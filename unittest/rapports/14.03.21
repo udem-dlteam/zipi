@@ -1,0 +1,2502 @@
+[2J
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m0[0m] Found 416 tests[2J
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m0[0m] Clearing cache...[2J
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m0[0m] Initializing test/test___all__.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m1[0m] Initializing test/test___future__.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m2[0m] Initializing test/test__locale.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m3[0m] Initializing test/test__opcode.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m4[0m] Initializing test/test__osx_support.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m5[0m] Initializing test/test__xxsubinterpreters.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m6[0m] Initializing test/test_abc.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_abc.py : [91mModuleNotFoundError: No module named 'abc'[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m7[0m] Initializing test/test_abstract_numbers.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_abc.py : [91mModuleNotFoundError: No module named 'abc'[0m
+test/test_abstract_numbers.py : [91mModuleNotFoundError: No module named 'math'[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m8[0m] Initializing test/test_aifc.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_abc.py : [91mModuleNotFoundError: No module named 'abc'[0m
+test/test_abstract_numbers.py : [91mModuleNotFoundError: No module named 'math'[0m
+test/test_aifc.py : [91mModuleNotFoundError: No module named 'test.support.check_no_resource_warning'[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m9[0m] Initializing test/test_argparse.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_abc.py : [91mModuleNotFoundError: No module named 'abc'[0m
+test/test_abstract_numbers.py : [91mModuleNotFoundError: No module named 'math'[0m
+test/test_aifc.py : [91mModuleNotFoundError: No module named 'test.support.check_no_resource_warning'[0m
+test/test_argparse.py : [91mError in ZPC
+*** ERROR IN g6, "../pyc/sexp.scm"@48.3 -- Compare "Not implemented" (Eq Eq)
+> 
+*** EOF again to exit[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m10[0m] Initializing test/test_array.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_abc.py : [91mModuleNotFoundError: No module named 'abc'[0m
+test/test_abstract_numbers.py : [91mModuleNotFoundError: No module named 'math'[0m
+test/test_aifc.py : [91mModuleNotFoundError: No module named 'test.support.check_no_resource_warning'[0m
+test/test_argparse.py : [91mError in ZPC
+*** ERROR IN g6, "../pyc/sexp.scm"@48.3 -- Compare "Not implemented" (Eq Eq)
+> 
+*** EOF again to exit[0m
+test/test_array.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_array/test_array.sld"@3.1 -- Invalid token
+> 
+*** EOF again to exit[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m11[0m] Initializing test/test_asdl_parser.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_abc.py : [91mModuleNotFoundError: No module named 'abc'[0m
+test/test_abstract_numbers.py : [91mModuleNotFoundError: No module named 'math'[0m
+test/test_aifc.py : [91mModuleNotFoundError: No module named 'test.support.check_no_resource_warning'[0m
+test/test_argparse.py : [91mError in ZPC
+*** ERROR IN g6, "../pyc/sexp.scm"@48.3 -- Compare "Not implemented" (Eq Eq)
+> 
+*** EOF again to exit[0m
+test/test_array.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_array/test_array.sld"@3.1 -- Invalid token
+> 
+*** EOF again to exit[0m
+test/test_asdl_parser.py : [91mModuleNotFoundError: No module named 'importlib.machinery'[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m12[0m] Initializing test/test_ast.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_abc.py : [91mModuleNotFoundError: No module named 'abc'[0m
+test/test_abstract_numbers.py : [91mModuleNotFoundError: No module named 'math'[0m
+test/test_aifc.py : [91mModuleNotFoundError: No module named 'test.support.check_no_resource_warning'[0m
+test/test_argparse.py : [91mError in ZPC
+*** ERROR IN g6, "../pyc/sexp.scm"@48.3 -- Compare "Not implemented" (Eq Eq)
+> 
+*** EOF again to exit[0m
+test/test_array.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_array/test_array.sld"@3.1 -- Invalid token
+> 
+*** EOF again to exit[0m
+test/test_asdl_parser.py : [91mModuleNotFoundError: No module named 'importlib.machinery'[0m
+test/test_ast.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_ast/test_ast.sld"@3.71 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m13[0m] Initializing test/test_asyncgen.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_abc.py : [91mModuleNotFoundError: No module named 'abc'[0m
+test/test_abstract_numbers.py : [91mModuleNotFoundError: No module named 'math'[0m
+test/test_aifc.py : [91mModuleNotFoundError: No module named 'test.support.check_no_resource_warning'[0m
+test/test_argparse.py : [91mError in ZPC
+*** ERROR IN g6, "../pyc/sexp.scm"@48.3 -- Compare "Not implemented" (Eq Eq)
+> 
+*** EOF again to exit[0m
+test/test_array.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_array/test_array.sld"@3.1 -- Invalid token
+> 
+*** EOF again to exit[0m
+test/test_asdl_parser.py : [91mModuleNotFoundError: No module named 'importlib.machinery'[0m
+test/test_ast.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_ast/test_ast.sld"@3.71 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_asyncgen.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_asyncgen/test_asyncgen.sld"@3.74 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m14[0m] Initializing test/test_asynchat.py...[2J
+test/test___all__.py : [91mError in ZPC
+*** ERROR IN pycnode->list::PycFor, "../pyc/dump.scm"@162.1 -- Unbound variable: PycFor-body
+> 
+*** EOF again to exit[0m
+test/test___future__.py : [91mModuleNotFoundError: No module named '__future__'[0m
+test/test__locale.py : [91mModuleNotFoundError: No module named '_locale'[0m
+test/test__opcode.py : [91mModuleNotFoundError: No module named 'dis'[0m
+test/test__osx_support.py : [91mModuleNotFoundError: No module named 'os'[0m
+test/test__xxsubinterpreters.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_abc.py : [91mModuleNotFoundError: No module named 'abc'[0m
+test/test_abstract_numbers.py : [91mModuleNotFoundError: No module named 'math'[0m
+test/test_aifc.py : [91mModuleNotFoundError: No module named 'test.support.check_no_resource_warning'[0m
+test/test_argparse.py : [91mError in ZPC
+*** ERROR IN g6, "../pyc/sexp.scm"@48.3 -- Compare "Not implemented" (Eq Eq)
+> 
+*** EOF again to exit[0m
+test/test_array.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_array/test_array.sld"@3.1 -- Invalid token
+> 
+*** EOF again to exit[0m
+test/test_asdl_parser.py : [91mModuleNotFoundError: No module named 'importlib.machinery'[0m
+test/test_ast.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_ast/test_ast.sld"@3.71 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_asyncgen.py : [91m*** ERROR IN "../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test/test_asyncgen/test_asyncgen.sld"@3.74 -- Incomplete form, EOF reached
+> 
+*** EOF again to exit[0m
+test/test_asynchat.py : [91mError in ZPC
+(define-library
+ (test_asynchat)
+ (export init)
+ (import (gambit) (zipi rts))
+ (begin
+   (py-begin-module)
+   (define procedure:global:start_echo_server-52
+     (lambda ()
+       (let ((%frame (make-cell #f)) (%names '(s event)))
+         (letrec* ((s-104 #f) (event-101 #f))
+           (begin
+             (set! event-101
+                   (py-call0-maybe-super
+                    (py-getattribute
+                     (if (eq? global:threading-44 py-absent)
+                         (global-get
+                          %global
+                          (& "threading")
+                          (vector-ref %caches 94))
+                         global:threading-44)
+                     (& "Event"))
+                    #f
+                    #f))
+             (set! s-104
+                   (py-call (if (eq? global:echo_server-50 py-absent)
+                                (global-get
+                                 %global
+                                 (& "echo_server")
+                                 (vector-ref %caches 96))
+                                global:echo_server-50)
+                            event-101))
+             (py-call0-maybe-super (py-getattribute s-104 (& "start")) #f #f)
+             (py-call0-maybe-super
+              (py-getattribute event-101 (& "wait"))
+              #f
+              #f)
+             (py-call0-maybe-super
+              (py-getattribute event-101 (& "clear"))
+              #f
+              #f)
+             (py-call (py-getattribute
+                       (if (eq? global:time-45 py-absent)
+                           (global-get
+                            %global
+                            (& "time")
+                            (vector-ref %caches 100))
+                           global:time-45)
+                       (& "sleep"))
+                      (py-float-from-scheme .01))
+             (py-make-tuple s-104 event-101))))))
+   (declare (separate))
+   (define %global #f)
+   (define %caches #f)
+   (define init:global:start_echo_server-52 #f)
+   (define global:TestNotConnected-57 py-absent)
+   (define global:TestHelperFunctions-56 py-absent)
+   (define global:TestAsynchatMocked-55 py-absent)
+   (define global:TestAsynchat_WithPoll-54 py-absent)
+   (define global:TestAsynchat-53 py-absent)
+   (define global:start_echo_server-52 py-absent)
+   (define global:echo_client-51 py-absent)
+   (define global:echo_server-50 py-absent)
+   (define global:SERVER_QUIT-49 py-absent)
+   (define global:HOST-48 py-absent)
+   (define global:unittest-46 py-absent)
+   (define global:time-45 py-absent)
+   (define global:threading-44 py-absent)
+   (define global:sys-43 py-absent)
+   (define global:socket-42 py-absent)
+   (define global:errno-41 py-absent)
+   (define global:asyncore-40 py-absent)
+   (define global:asynchat-39 py-absent)
+   (define global:threading_helper-38 py-absent)
+   (define global:socket_helper-37 py-absent)
+   (define global:support-36 py-absent)
+   (declare (block))
+   (define (py-module global caches)
+     (set! %global global)
+     (set! %caches caches)
+     (global-register!
+      %global
+      (& "TestNotConnected")
+      (lambda () global:TestNotConnected-57)
+      (lambda (v) (set! global:TestNotConnected-57 v)))
+     (global-register!
+      %global
+      (& "TestHelperFunctions")
+      (lambda () global:TestHelperFunctions-56)
+      (lambda (v) (set! global:TestHelperFunctions-56 v)))
+     (global-register!
+      %global
+      (& "TestAsynchatMocked")
+      (lambda () global:TestAsynchatMocked-55)
+      (lambda (v) (set! global:TestAsynchatMocked-55 v)))
+     (global-register!
+      %global
+      (& "TestAsynchat_WithPoll")
+      (lambda () global:TestAsynchat_WithPoll-54)
+      (lambda (v) (set! global:TestAsynchat_WithPoll-54 v)))
+     (global-register!
+      %global
+      (& "TestAsynchat")
+      (lambda () global:TestAsynchat-53)
+      (lambda (v) (set! global:TestAsynchat-53 v)))
+     (global-register!
+      %global
+      (& "start_echo_server")
+      (lambda () global:start_echo_server-52)
+      (lambda (v) (set! global:start_echo_server-52 v)))
+     (global-register!
+      %global
+      (& "echo_client")
+      (lambda () global:echo_client-51)
+      (lambda (v) (set! global:echo_client-51 v)))
+     (global-register!
+      %global
+      (& "echo_server")
+      (lambda () global:echo_server-50)
+      (lambda (v) (set! global:echo_server-50 v)))
+     (global-register!
+      %global
+      (& "SERVER_QUIT")
+      (lambda () global:SERVER_QUIT-49)
+      (lambda (v) (set! global:SERVER_QUIT-49 v)))
+     (global-register!
+      %global
+      (& "HOST")
+      (lambda () global:HOST-48)
+      (lambda (v) (set! global:HOST-48 v)))
+     (global-register!
+      %global
+      (& "unittest")
+      (lambda () global:unittest-46)
+      (lambda (v) (set! global:unittest-46 v)))
+     (global-register!
+      %global
+      (& "time")
+      (lambda () global:time-45)
+      (lambda (v) (set! global:time-45 v)))
+     (global-register!
+      %global
+      (& "threading")
+      (lambda () global:threading-44)
+      (lambda (v) (set! global:threading-44 v)))
+     (global-register!
+      %global
+      (& "sys")
+      (lambda () global:sys-43)
+      (lambda (v) (set! global:sys-43 v)))
+     (global-register!
+      %global
+      (& "socket")
+      (lambda () global:socket-42)
+      (lambda (v) (set! global:socket-42 v)))
+     (global-register!
+      %global
+      (& "errno")
+      (lambda () global:errno-41)
+      (lambda (v) (set! global:errno-41 v)))
+     (global-register!
+      %global
+      (& "asyncore")
+      (lambda () global:asyncore-40)
+      (lambda (v) (set! global:asyncore-40 v)))
+     (global-register!
+      %global
+      (& "asynchat")
+      (lambda () global:asynchat-39)
+      (lambda (v) (set! global:asynchat-39 v)))
+     (global-register!
+      %global
+      (& "threading_helper")
+      (lambda () global:threading_helper-38)
+      (lambda (v) (set! global:threading_helper-38 v)))
+     (global-register!
+      %global
+      (& "socket_helper")
+      (lambda () global:socket_helper-37)
+      (lambda (v) (set! global:socket_helper-37 v)))
+     (global-register!
+      %global
+      (& "support")
+      (lambda () global:support-36)
+      (lambda (v) (set! global:support-36 v)))
+     (letrec* ((%mod-1 (py-import "test" '("support"))))
+       (set! global:support-36
+             (py-getattribute
+              (or %mod-1
+                  (py-throw-exception-with-message
+                   py-builtin-UnboundLocalError
+                   "local variable '%mod' referenced before assignment"))
+              (& "support"))))
+     (letrec* ((%mod-2 (py-import "test.support" '("socket_helper"))))
+       (set! global:socket_helper-37
+             (py-getattribute
+              (or %mod-2
+                  (py-throw-exception-with-message
+                   py-builtin-UnboundLocalError
+                   "local variable '%mod' referenced before assignment"))
+              (& "socket_helper"))))
+     (letrec* ((%mod-3 (py-import "test.support" '("threading_helper"))))
+       (set! global:threading_helper-38
+             (py-getattribute
+              (or %mod-3
+                  (py-throw-exception-with-message
+                   py-builtin-UnboundLocalError
+                   "local variable '%mod' referenced before assignment"))
+              (& "threading_helper"))))
+     (set! global:asynchat-39 (py-import "asynchat" '()))
+     (set! global:asyncore-40 (py-import "asyncore" '()))
+     (set! global:errno-41 (py-import "errno" '()))
+     (set! global:socket-42 (py-import "socket" '()))
+     (set! global:sys-43 (py-import "sys" '()))
+     (set! global:threading-44 (py-import "threading" '()))
+     (set! global:time-45 (py-import "time" '()))
+     (set! global:unittest-46 (py-import "unittest" '()))
+     (begin
+       (py-import "unittest.mock" '())
+       (set! global:unittest-46 (py-import "unittest" '())))
+     (set! global:HOST-48
+           (py-getattribute
+            (if (eq? global:socket_helper-37 py-absent)
+                (global-get
+                 %global
+                 (& "socket_helper")
+                 (vector-ref %caches 16))
+                global:socket_helper-37)
+            (& "HOST")))
+     (set! global:SERVER_QUIT-49 (py-int-from-scheme #u8(81 85 73 84 10)))
+     (set! global:echo_server-50
+           (let (($%cls_1 py-absent))
+             (letrec* ((run-63 #f) (__init__-61 #f) (chunk_size-59 #f))
+               (begin
+                 (set! chunk_size-59 (py-int-from-scheme 1))
+                 (set! __init__-61
+                       (procedure->py-function
+                        (lambda (self-4 event-5)
+                          (letrec* ()
+                            (begin
+                              (py-call (py-getattribute
+                                        (py-getattribute
+                                         (if (eq? global:threading-44
+                                                  py-absent)
+                                             (global-get
+                                              %global
+                                              (& "threading")
+                                              (vector-ref %caches 20))
+                                             global:threading-44)
+                                         (& "Thread"))
+                                        (& "__init__"))
+                                       self-4)
+                              (py-setattribute
+                               (or self-4
+                                   (py-throw-exception-with-message
+                                    py-builtin-UnboundLocalError
+                                    "local variable 'self' referenced before assignment"))
+                               (& "event")
+                               (or event-5
+                                   (py-throw-exception-with-message
+                                    py-builtin-UnboundLocalError
+                                    "local variable 'event' referenced before assignment")))
+                              (py-setattribute
+                               (or self-4
+                                   (py-throw-exception-with-message
+                                    py-builtin-UnboundLocalError
+                                    "local variable 'self' referenced before assignment"))
+                               (& "sock")
+                               (py-call (py-getattribute
+                                         (if (eq? global:socket-42 py-absent)
+                                             (global-get
+                                              %global
+                                              (& "socket")
+                                              (vector-ref %caches 25))
+                                             global:socket-42)
+                                         (& "socket"))
+                                        (py-getattribute
+                                         (if (eq? global:socket-42 py-absent)
+                                             (global-get
+                                              %global
+                                              (& "socket")
+                                              (vector-ref %caches 27))
+                                             global:socket-42)
+                                         (& "AF_INET"))
+                                        (py-getattribute
+                                         (if (eq? global:socket-42 py-absent)
+                                             (global-get
+                                              %global
+                                              (& "socket")
+                                              (vector-ref %caches 29))
+                                             global:socket-42)
+                                         (& "SOCK_STREAM"))))
+                              (py-setattribute
+                               (or self-4
+                                   (py-throw-exception-with-message
+                                    py-builtin-UnboundLocalError
+                                    "local variable 'self' referenced before assignment"))
+                               (& "port")
+                               (py-call (py-getattribute
+                                         (if (eq? global:socket_helper-37
+                                                  py-absent)
+                                             (global-get
+                                              %global
+                                              (& "socket_helper")
+                                              (vector-ref %caches 32))
+                                             global:socket_helper-37)
+                                         (& "bind_port"))
+                                        (py-getattribute
+                                         (or self-4
+                                             (py-throw-exception-with-message
+                                              py-builtin-UnboundLocalError
+                                              "local variable 'self' referenced before assignment"))
+                                         (& "sock"))))
+                              (py-setattribute
+                               (or self-4
+                                   (py-throw-exception-with-message
+                                    py-builtin-UnboundLocalError
+                                    "local variable 'self' referenced before assignment"))
+                               (& "start_resend_event")
+                               py-None)
+                              py-None)))
+                        (make-signature args: (self event))))
+                 (set! run-63
+                       (procedure->py-function
+                        (lambda (self-6)
+                          (let ((%frame (make-cell #f))
+                                (%names '(self n data client conn)))
+                            (letrec* ((n-73 #f)
+                                      (data-71 #f)
+                                      (client-68 #f)
+                                      (conn-66 #f))
+                              (begin
+                                (py-call0-maybe-super
+                                 (py-getattribute
+                                  (py-getattribute self-6 (& "sock"))
+                                  (& "listen"))
+                                 #f
+                                 self-6)
+                                (py-call0-maybe-super
+                                 (py-getattribute
+                                  (py-getattribute self-6 (& "event"))
+                                  (& "set"))
+                                 #f
+                                 self-6)
+                                (py-throw-exception-with-message
+                                 py-builtin-NotImplementedError
+                                 "multiple assignations unimplemented at line "
+                                 "38")
+                                (py-setattribute
+                                 (or self-6
+                                     (py-throw-exception-with-message
+                                      py-builtin-UnboundLocalError
+                                      "local variable 'self' referenced before assignment"))
+                                 (& "buffer")
+                                 (py-int-from-scheme #u8()))
+                                (bind-exit
+                                 (%break)
+                                 (let $%while_8 ()
+                                   (when (py-test
+                                          (py-notin
+                                           (if (eq? global:SERVER_QUIT-49
+                                                    py-absent)
+                                               (global-get
+                                                %global
+                                                (& "SERVER_QUIT")
+                                                (vector-ref %caches 43))
+                                               global:SERVER_QUIT-49)
+                                           (py-getattribute
+                                            self-6
+                                            (& "buffer"))))
+                                     (begin
+                                       (set! data-71
+                                             (py-call (py-getattribute
+                                                       (or conn-66
+                                                           (py-throw-exception-with-message
+                                                            py-builtin-UnboundLocalError
+                                                            "local variable 'conn' referenced before assignment"))
+                                                       (& "recv"))
+                                                      (py-int-from-scheme 1)))
+                                       (if (py-test (py-not data-71))
+                                           (%break #f)
+                                           #f)
+                                       (py-setattribute
+                                        (or self-6
+                                            (py-throw-exception-with-message
+                                             py-builtin-UnboundLocalError
+                                             "local variable 'self' referenced before assignment"))
+                                        (& "buffer")
+                                        (py-add (py-getattribute
+                                                 (or self-6
+                                                     (py-throw-exception-with-message
+                                                      py-builtin-UnboundLocalError
+                                                      "local variable 'self' referenced before assignment"))
+                                                 (& "buffer"))
+                                                (or data-71
+                                                    (py-throw-exception-with-message
+                                                     py-builtin-UnboundLocalError
+                                                     "local variable 'data' referenced before assignment")))))
+                                     ($%while_8))))
+                                (py-setattribute
+                                 (or self-6
+                                     (py-throw-exception-with-message
+                                      py-builtin-UnboundLocalError
+                                      "local variable 'self' referenced before assignment"))
+                                 (& "buffer")
+                                 (py-call (py-getattribute
+                                           (py-getattribute
+                                            (or self-6
+                                                (py-throw-exception-with-message
+                                                 py-builtin-UnboundLocalError
+                                                 "local variable 'self' referenced before assignment"))
+                                            (& "buffer"))
+                                           (& "replace"))
+                                          (if (eq? global:SERVER_QUIT-49
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "SERVER_QUIT")
+                                               (vector-ref %caches 52))
+                                              global:SERVER_QUIT-49)
+                                          (py-int-from-scheme #u8())))
+                                (if (py-test (py-getattribute
+                                              self-6
+                                              (& "start_resend_event")))
+                                    (py-call0-maybe-super
+                                     (py-getattribute
+                                      (py-getattribute
+                                       self-6
+                                       (& "start_resend_event"))
+                                      (& "wait"))
+                                     #f
+                                     self-6)
+                                    #f)
+                                (with-handler
+                                 (lambda ($%exc_0)
+                                   (cond (#t #f) (else (raise $%exc_0))))
+                                 (let $%while_10 ()
+                                   (when (py-test
+                                          (py-getattribute
+                                           self-6
+                                           (& "buffer")))
+                                     (begin
+                                       (set! n-73
+                                             (py-call (py-getattribute
+                                                       (or conn-66
+                                                           (py-throw-exception-with-message
+                                                            py-builtin-UnboundLocalError
+                                                            "local variable 'conn' referenced before assignment"))
+                                                       (& "send"))
+                                                      (py-getitem
+                                                       (py-getattribute
+                                                        self-6
+                                                        (& "buffer"))
+                                                       (py-slice-from-scheme
+                                                        py-None
+                                                        (py-getattribute
+                                                         self-6
+                                                         (& "chunk_size"))
+                                                        py-None))))
+                                       (py-call (py-getattribute
+                                                 (if (eq? global:time-45
+                                                          py-absent)
+                                                     (global-get
+                                                      %global
+                                                      (& "time")
+                                                      (vector-ref %caches 60))
+                                                     global:time-45)
+                                                 (& "sleep"))
+                                                (py-float-from-scheme .001))
+                                       (py-setattribute
+                                        (or self-6
+                                            (py-throw-exception-with-message
+                                             py-builtin-UnboundLocalError
+                                             "local variable 'self' referenced before assignment"))
+                                        (& "buffer")
+                                        (py-getitem
+                                         (py-getattribute
+                                          (or self-6
+                                              (py-throw-exception-with-message
+                                               py-builtin-UnboundLocalError
+                                               "local variable 'self' referenced before assignment"))
+                                          (& "buffer"))
+                                         (py-slice-from-scheme
+                                          (or n-73
+                                              (py-throw-exception-with-message
+                                               py-builtin-UnboundLocalError
+                                               "local variable 'n' referenced before assignment"))
+                                          py-None
+                                          py-None))))
+                                     ($%while_10))))
+                                (py-call0-maybe-super
+                                 (py-getattribute
+                                  (or conn-66
+                                      (py-throw-exception-with-message
+                                       py-builtin-UnboundLocalError
+                                       "local variable 'conn' referenced before assignment"))
+                                  (& "close"))
+                                 #f
+                                 self-6)
+                                (py-call0-maybe-super
+                                 (py-getattribute
+                                  (py-getattribute self-6 (& "sock"))
+                                  (& "close"))
+                                 #f
+                                 self-6)
+                                py-None))))
+                        (make-signature args: (self)))))
+               (begin
+                 (set! $%cls_1
+                       (py-make-class
+                        (&& "echo_server")
+                        (&& "__main__")
+                        (list (py-getattribute
+                               (if (eq? global:threading-44 py-absent)
+                                   (global-get
+                                    %global
+                                    (& "threading")
+                                    (vector-ref %caches 67))
+                                   global:threading-44)
+                               (& "Thread")))
+                        (& "run")
+                        run-63
+                        (& "__init__")
+                        __init__-61
+                        (& "chunk_size")
+                        chunk_size-59))
+                 $%cls_1))))
+     (set! global:echo_client-51
+           (let (($%cls_2 py-absent))
+             (letrec* ((found_terminator-90 #f)
+                       (collect_incoming_data-88 #f)
+                       (handle_expt-86 #f)
+                       (handle_connect-83 #f)
+                       (__init__-81 #f))
+               (begin
+                 (set! __init__-81
+                       (procedure->py-function
+                        (lambda (self-7 terminator-8 server_port-9)
+                          (letrec* ()
+                            (begin
+                              (py-call (py-getattribute
+                                        (py-getattribute
+                                         (if (eq? global:asynchat-39 py-absent)
+                                             (global-get
+                                              %global
+                                              (& "asynchat")
+                                              (vector-ref %caches 70))
+                                             global:asynchat-39)
+                                         (& "async_chat"))
+                                        (& "__init__"))
+                                       self-7)
+                              (py-setattribute
+                               (or self-7
+                                   (py-throw-exception-with-message
+                                    py-builtin-UnboundLocalError
+                                    "local variable 'self' referenced before assignment"))
+                               (& "contents")
+                               (py-make-list))
+                              (py-call (py-getattribute
+                                        self-7
+                                        (& "create_socket"))
+                                       (py-getattribute
+                                        (if (eq? global:socket-42 py-absent)
+                                            (global-get
+                                             %global
+                                             (& "socket")
+                                             (vector-ref %caches 75))
+                                            global:socket-42)
+                                        (& "AF_INET"))
+                                       (py-getattribute
+                                        (if (eq? global:socket-42 py-absent)
+                                            (global-get
+                                             %global
+                                             (& "socket")
+                                             (vector-ref %caches 77))
+                                            global:socket-42)
+                                        (& "SOCK_STREAM")))
+                              (py-call (py-getattribute self-7 (& "connect"))
+                                       (py-make-tuple
+                                        (if (eq? global:HOST-48 py-absent)
+                                            (global-get
+                                             %global
+                                             (& "HOST")
+                                             (vector-ref %caches 80))
+                                            global:HOST-48)
+                                        server_port-9))
+                              (py-call (py-getattribute
+                                        self-7
+                                        (& "set_terminator"))
+                                       terminator-8)
+                              (py-setattribute
+                               (or self-7
+                                   (py-throw-exception-with-message
+                                    py-builtin-UnboundLocalError
+                                    "local variable 'self' referenced before assignment"))
+                               (& "buffer")
+                               (py-int-from-scheme #u8()))
+                              py-None)))
+                        (make-signature args: (self terminator server_port))))
+                 (set! handle_connect-83
+                       (procedure->py-function
+                        (lambda (self-10) (letrec* () (begin #f py-None)))
+                        (make-signature args: (self))))
+                 (if (py-test (py-eq (py-getattribute
+                                      (if (eq? global:sys-43 py-absent)
+                                          (global-get
+                                           %global
+                                           (& "sys")
+                                           (vector-ref %caches 83))
+                                          global:sys-43)
+                                      (& "platform"))
+                                     (&& "darwin")))
+                     (set! handle_expt-86
+                           (procedure->py-function
+                            (lambda (self-11) (letrec* () (begin #f py-None)))
+                            (make-signature args: (self))))
+                     #f)
+                 (set! collect_incoming_data-88
+                       (procedure->py-function
+                        (lambda (self-12 data-13)
+                          (letrec* ()
+                            (begin
+                              (let (($%o_11 (or self-12
+                                                (py-throw-exception-with-message
+                                                 py-builtin-UnboundLocalError
+                                                 "local variable 'self' referenced before assignment"))))
+                                (py-setattribute
+                                 $%o_11
+                                 (& "buffer")
+                                 (py-iadd (py-getattribute $%o_11 (& "buffer"))
+                                          (or data-13
+                                              (py-throw-exception-with-message
+                                               py-builtin-UnboundLocalError
+                                               "local variable 'data' referenced before assignment")))))
+                              py-None)))
+                        (make-signature args: (self data))))
+                 (set! found_terminator-90
+                       (procedure->py-function
+                        (lambda (self-14)
+                          (letrec* ()
+                            (begin
+                              (py-call (py-getattribute
+                                        (py-getattribute
+                                         self-14
+                                         (& "contents"))
+                                        (& "append"))
+                                       (py-getattribute self-14 (& "buffer")))
+                              (py-setattribute
+                               (or self-14
+                                   (py-throw-exception-with-message
+                                    py-builtin-UnboundLocalError
+                                    "local variable 'self' referenced before assignment"))
+                               (& "buffer")
+                               (py-int-from-scheme #u8()))
+                              py-None)))
+                        (make-signature args: (self)))))
+               (begin
+                 (set! $%cls_2
+                       (py-make-class
+                        (&& "echo_client")
+                        (&& "__main__")
+                        (list (py-getattribute
+                               (if (eq? global:asynchat-39 py-absent)
+                                   (global-get
+                                    %global
+                                    (& "asynchat")
+                                    (vector-ref %caches 91))
+                                   global:asynchat-39)
+                               (& "async_chat")))
+                        (& "found_terminator")
+                        found_terminator-90
+                        (& "collect_incoming_data")
+                        collect_incoming_data-88
+                        (& "handle_expt")
+                        handle_expt-86
+                        (& "handle_connect")
+                        handle_connect-83
+                        (& "__init__")
+                        __init__-81))
+                 $%cls_2))))
+     (let (($fun-obj
+            (procedure->py-function
+             procedure:global:start_echo_server-52
+             (make-signature))))
+       (set! global:start_echo_server-52 $fun-obj)
+       (set! init:global:start_echo_server-52 $fun-obj))
+     (set! global:TestAsynchat-53
+           (let (($%cls_3 py-absent))
+             (letrec* ((test_push-138 #f)
+                       (test_close_when_done-136 #f)
+                       (test_empty_line-134 #f)
+                       (test_string_producer-132 #f)
+                       (test_simple_producer-130 #f)
+                       (test_none_terminator-128 #f)
+                       (test_numeric_terminator2-126 #f)
+                       (test_numeric_terminator1-124 #f)
+                       (numeric_terminator_check-122 #f)
+                       (test_line_terminator3-120 #f)
+                       (test_line_terminator2-118 #f)
+                       (test_line_terminator1-116 #f)
+                       (line_terminator_check-114 #f)
+                       (tearDown-112 #f)
+                       (setUp-110 #f)
+                       (usepoll-108 #f))
+               (begin
+                 (set! usepoll-108 py-False)
+                 (set! setUp-110
+                       (procedure->py-function
+                        (lambda (self-15)
+                          (let ((%frame (make-cell #f)) (%names '(self)))
+                            (letrec* ()
+                              (begin
+                                (py-setattribute
+                                 (or self-15
+                                     (py-throw-exception-with-message
+                                      py-builtin-UnboundLocalError
+                                      "local variable 'self' referenced before assignment"))
+                                 (& "_threads")
+                                 (py-call0-maybe-super
+                                  (py-getattribute
+                                   (if (eq? global:threading_helper-38
+                                            py-absent)
+                                       (global-get
+                                        %global
+                                        (& "threading_helper")
+                                        (vector-ref %caches 104))
+                                       global:threading_helper-38)
+                                   (& "threading_setup"))
+                                  #f
+                                  self-15))
+                                py-None))))
+                        (make-signature args: (self))))
+                 (set! tearDown-112
+                       (procedure->py-function
+                        (lambda (self-16)
+                          (letrec* ()
+                            (begin
+                              (py-call (py-getattribute
+                                        (if (eq? global:threading_helper-38
+                                                 py-absent)
+                                            (global-get
+                                             %global
+                                             (& "threading_helper")
+                                             (vector-ref %caches 106))
+                                            global:threading_helper-38)
+                                        (& "threading_cleanup"))
+                                       *:
+                                       (py-getattribute
+                                        self-16
+                                        (& "_threads")))
+                              py-None)))
+                        (make-signature args: (self))))
+                 (set! line_terminator_check-114
+                       (procedure->py-function
+                        (lambda (self-17 term-18 server_chunk-19)
+                          (let ((%frame (make-cell #f))
+                                (%names '(self term server_chunk c s event)))
+                            (letrec* ((c-262 #f) (s-257 #f) (event-254 #f))
+                              (begin
+                                (set! event-254
+                                      (py-call0-maybe-super
+                                       (py-getattribute
+                                        (if (eq? global:threading-44 py-absent)
+                                            (global-get
+                                             %global
+                                             (& "threading")
+                                             (vector-ref %caches 109))
+                                            global:threading-44)
+                                        (& "Event"))
+                                       #f
+                                       self-17))
+                                (set! s-257
+                                      (py-call (if (eq? global:echo_server-50
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "echo_server")
+                                                    (vector-ref %caches 111))
+                                                   global:echo_server-50)
+                                               event-254))
+                                (py-setattribute
+                                 (or s-257
+                                     (py-throw-exception-with-message
+                                      py-builtin-UnboundLocalError
+                                      "local variable 's' referenced before assignment"))
+                                 (& "chunk_size")
+                                 (or server_chunk-19
+                                     (py-throw-exception-with-message
+                                      py-builtin-UnboundLocalError
+                                      "local variable 'server_chunk' referenced before assignment")))
+                                (py-call0-maybe-super
+                                 (py-getattribute s-257 (& "start"))
+                                 #f
+                                 self-17)
+                                (py-call0-maybe-super
+                                 (py-getattribute event-254 (& "wait"))
+                                 #f
+                                 self-17)
+                                (py-call0-maybe-super
+                                 (py-getattribute event-254 (& "clear"))
+                                 #f
+                                 self-17)
+                                (py-call (py-getattribute
+                                          (if (eq? global:time-45 py-absent)
+                                              (global-get
+                                               %global
+                                               (& "time")
+                                               (vector-ref %caches 116))
+                                              global:time-45)
+                                          (& "sleep"))
+                                         (py-float-from-scheme .01))
+                                (set! c-262
+                                      (py-call (if (eq? global:echo_client-51
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "echo_client")
+                                                    (vector-ref %caches 118))
+                                                   global:echo_client-51)
+                                               term-18
+                                               (py-getattribute
+                                                s-257
+                                                (& "port"))))
+                                (py-call (py-getattribute c-262 (& "push"))
+                                         (py-int-from-scheme
+                                          #u8(104 101 108 108 111 32)))
+                                (py-call (py-getattribute c-262 (& "push"))
+                                         (py-add (py-int-from-scheme
+                                                  #u8(119 111 114 108 100))
+                                                 term-18))
+                                (py-call (py-getattribute c-262 (& "push"))
+                                         (py-add (py-int-from-scheme
+                                                  #u8(73
+                                                      39
+                                                      109
+                                                      32
+                                                      110
+                                                      111
+                                                      116
+                                                      32
+                                                      100
+                                                      101
+                                                      97
+                                                      100
+                                                      32
+                                                      121
+                                                      101
+                                                      116
+                                                      33))
+                                                 term-18))
+                                (py-call (py-getattribute c-262 (& "push"))
+                                         (if (eq? global:SERVER_QUIT-49
+                                                  py-absent)
+                                             (global-get
+                                              %global
+                                              (& "SERVER_QUIT")
+                                              (vector-ref %caches 124))
+                                             global:SERVER_QUIT-49))
+                                (py-call (py-getattribute
+                                          (if (eq? global:asyncore-40
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "asyncore")
+                                               (vector-ref %caches 125))
+                                              global:asyncore-40)
+                                          (& "loop"))
+                                         use_poll:
+                                         (py-getattribute
+                                          self-17
+                                          (& "usepoll"))
+                                         count:
+                                         (py-int-from-scheme 300)
+                                         timeout:
+                                         (py-float-from-scheme .01))
+                                (py-call (py-getattribute
+                                          (if (eq? global:threading_helper-38
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "threading_helper")
+                                               (vector-ref %caches 128))
+                                              global:threading_helper-38)
+                                          (& "join_thread"))
+                                         s-257)
+                                (py-call (py-getattribute
+                                          self-17
+                                          (& "assertEqual"))
+                                         (py-getattribute c-262 (& "contents"))
+                                         (py-make-list
+                                          (py-int-from-scheme
+                                           #u8(104
+                                               101
+                                               108
+                                               108
+                                               111
+                                               32
+                                               119
+                                               111
+                                               114
+                                               108
+                                               100))
+                                          (py-int-from-scheme
+                                           #u8(73
+                                               39
+                                               109
+                                               32
+                                               110
+                                               111
+                                               116
+                                               32
+                                               100
+                                               101
+                                               97
+                                               100
+                                               32
+                                               121
+                                               101
+                                               116
+                                               33))))
+                                py-None))))
+                        (make-signature args: (self term server_chunk))))
+                 (set! test_line_terminator1-116
+                       (procedure->py-function
+                        (lambda (self-20)
+                          (letrec* ((l-251 #f))
+                            (begin
+                              (let* (($%iterable_14
+                                      (py-make-tuple
+                                       (py-int-from-scheme 1)
+                                       (py-int-from-scheme 2)
+                                       (py-int-from-scheme 3)))
+                                     ($%iterator_15 (py-iter $%iterable_14)))
+                                (let $%for_12 ()
+                                  (let (($%target_13 (py-next $%iterator_15)))
+                                    (when $%target_13
+                                      (set! l-251 $%target_13)
+                                      (py-call (py-getattribute
+                                                self-20
+                                                (& "line_terminator_check"))
+                                               (py-int-from-scheme #u8(10))
+                                               (or l-251
+                                                   (py-throw-exception-with-message
+                                                    py-builtin-UnboundLocalError
+                                                    "local variable 'l' referenced before assignment")))
+                                      ($%for_12)))))
+                              py-None)))
+                        (make-signature args: (self))))
+                 (set! test_line_terminator2-118
+                       (procedure->py-function
+                        (lambda (self-21)
+                          (letrec* ((l-248 #f))
+                            (begin
+                              (let* (($%iterable_18
+                                      (py-make-tuple
+                                       (py-int-from-scheme 1)
+                                       (py-int-from-scheme 2)
+                                       (py-int-from-scheme 3)))
+                                     ($%iterator_19 (py-iter $%iterable_18)))
+                                (let $%for_16 ()
+                                  (let (($%target_17 (py-next $%iterator_19)))
+                                    (when $%target_17
+                                      (set! l-248 $%target_17)
+                                      (py-call (py-getattribute
+                                                self-21
+                                                (& "line_terminator_check"))
+                                               (py-int-from-scheme #u8(13 10))
+                                               (or l-248
+                                                   (py-throw-exception-with-message
+                                                    py-builtin-UnboundLocalError
+                                                    "local variable 'l' referenced before assignment")))
+                                      ($%for_16)))))
+                              py-None)))
+                        (make-signature args: (self))))
+                 (set! test_line_terminator3-120
+                       (procedure->py-function
+                        (lambda (self-22)
+                          (letrec* ((l-245 #f))
+                            (begin
+                              (let* (($%iterable_22
+                                      (py-make-tuple
+                                       (py-int-from-scheme 1)
+                                       (py-int-from-scheme 2)
+                                       (py-int-from-scheme 3)))
+                                     ($%iterator_23 (py-iter $%iterable_22)))
+                                (let $%for_20 ()
+                                  (let (($%target_21 (py-next $%iterator_23)))
+                                    (when $%target_21
+                                      (set! l-245 $%target_21)
+                                      (py-call (py-getattribute
+                                                self-22
+                                                (& "line_terminator_check"))
+                                               (py-int-from-scheme
+                                                #u8(113 113 113))
+                                               (or l-245
+                                                   (py-throw-exception-with-message
+                                                    py-builtin-UnboundLocalError
+                                                    "local variable 'l' referenced before assignment")))
+                                      ($%for_20)))))
+                              py-None)))
+                        (make-signature args: (self))))
+                 (set! numeric_terminator_check-122
+                       (procedure->py-function
+                        (lambda (self-23 termlen-24)
+                          (let ((%frame (make-cell #f))
+                                (%names '(self termlen data c event s)))
+                            (letrec* ((data-239 #f)
+                                      (c-235 #f)
+                                      (event-232 #f)
+                                      (s-230 #f))
+                              (begin
+                                (py-throw-exception-with-message
+                                 py-builtin-NotImplementedError
+                                 "multiple assignations unimplemented at line "
+                                 "151")
+                                (set! c-235
+                                      (py-call (if (eq? global:echo_client-51
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "echo_client")
+                                                    (vector-ref %caches 142))
+                                                   global:echo_client-51)
+                                               termlen-24
+                                               (py-getattribute
+                                                (or s-230
+                                                    (py-throw-exception-with-message
+                                                     py-builtin-UnboundLocalError
+                                                     "local variable 's' referenced before assignment"))
+                                                (& "port"))))
+                                (set! data-239
+                                      (py-int-from-scheme
+                                       #u8(104
+                                           101
+                                           108
+                                           108
+                                           111
+                                           32
+                                           119
+                                           111
+                                           114
+                                           108
+                                           100
+                                           44
+                                           32
+                                           73
+                                           39
+                                           109
+                                           32
+                                           110
+                                           111
+                                           116
+                                           32
+                                           100
+                                           101
+                                           97
+                                           100
+                                           32
+                                           121
+                                           101
+                                           116
+                                           33
+                                           10)))
+                                (py-call (py-getattribute c-235 (& "push"))
+                                         data-239)
+                                (py-call (py-getattribute c-235 (& "push"))
+                                         (if (eq? global:SERVER_QUIT-49
+                                                  py-absent)
+                                             (global-get
+                                              %global
+                                              (& "SERVER_QUIT")
+                                              (vector-ref %caches 146))
+                                             global:SERVER_QUIT-49))
+                                (py-call (py-getattribute
+                                          (if (eq? global:asyncore-40
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "asyncore")
+                                               (vector-ref %caches 147))
+                                              global:asyncore-40)
+                                          (& "loop"))
+                                         use_poll:
+                                         (py-getattribute
+                                          self-23
+                                          (& "usepoll"))
+                                         count:
+                                         (py-int-from-scheme 300)
+                                         timeout:
+                                         (py-float-from-scheme .01))
+                                (py-call (py-getattribute
+                                          (if (eq? global:threading_helper-38
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "threading_helper")
+                                               (vector-ref %caches 150))
+                                              global:threading_helper-38)
+                                          (& "join_thread"))
+                                         (or s-230
+                                             (py-throw-exception-with-message
+                                              py-builtin-UnboundLocalError
+                                              "local variable 's' referenced before assignment")))
+                                (py-call (py-getattribute
+                                          self-23
+                                          (& "assertEqual"))
+                                         (py-getattribute c-235 (& "contents"))
+                                         (py-make-list
+                                          (py-getitem
+                                           data-239
+                                           (py-slice-from-scheme
+                                            py-None
+                                            termlen-24
+                                            py-None))))
+                                py-None))))
+                        (make-signature args: (self termlen))))
+                 (set! test_numeric_terminator1-124
+                       (procedure->py-function
+                        (lambda (self-25)
+                          (letrec* ()
+                            (begin
+                              (py-call (py-getattribute
+                                        self-25
+                                        (& "numeric_terminator_check"))
+                                       (py-int-from-scheme 1))
+                              py-None)))
+                        (make-signature args: (self))))
+                 (set! test_numeric_terminator2-126
+                       (procedure->py-function
+                        (lambda (self-26)
+                          (letrec* ()
+                            (begin
+                              (py-call (py-getattribute
+                                        self-26
+                                        (& "numeric_terminator_check"))
+                                       (py-int-from-scheme 6))
+                              py-None)))
+                        (make-signature args: (self))))
+                 (set! test_none_terminator-128
+                       (procedure->py-function
+                        (lambda (self-27)
+                          (let ((%frame (make-cell #f))
+                                (%names '(self data c event s)))
+                            (letrec* ((data-222 #f)
+                                      (c-219 #f)
+                                      (event-216 #f)
+                                      (s-214 #f))
+                              (begin
+                                (py-throw-exception-with-message
+                                 py-builtin-NotImplementedError
+                                 "multiple assignations unimplemented at line "
+                                 "171")
+                                (set! c-219
+                                      (py-call (if (eq? global:echo_client-51
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "echo_client")
+                                                    (vector-ref %caches 157))
+                                                   global:echo_client-51)
+                                               py-None
+                                               (py-getattribute
+                                                (or s-214
+                                                    (py-throw-exception-with-message
+                                                     py-builtin-UnboundLocalError
+                                                     "local variable 's' referenced before assignment"))
+                                                (& "port"))))
+                                (set! data-222
+                                      (py-int-from-scheme
+                                       #u8(104
+                                           101
+                                           108
+                                           108
+                                           111
+                                           32
+                                           119
+                                           111
+                                           114
+                                           108
+                                           100
+                                           44
+                                           32
+                                           73
+                                           39
+                                           109
+                                           32
+                                           110
+                                           111
+                                           116
+                                           32
+                                           100
+                                           101
+                                           97
+                                           100
+                                           32
+                                           121
+                                           101
+                                           116
+                                           33
+                                           10)))
+                                (py-call (py-getattribute c-219 (& "push"))
+                                         data-222)
+                                (py-call (py-getattribute c-219 (& "push"))
+                                         (if (eq? global:SERVER_QUIT-49
+                                                  py-absent)
+                                             (global-get
+                                              %global
+                                              (& "SERVER_QUIT")
+                                              (vector-ref %caches 161))
+                                             global:SERVER_QUIT-49))
+                                (py-call (py-getattribute
+                                          (if (eq? global:asyncore-40
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "asyncore")
+                                               (vector-ref %caches 162))
+                                              global:asyncore-40)
+                                          (& "loop"))
+                                         use_poll:
+                                         (py-getattribute
+                                          self-27
+                                          (& "usepoll"))
+                                         count:
+                                         (py-int-from-scheme 300)
+                                         timeout:
+                                         (py-float-from-scheme .01))
+                                (py-call (py-getattribute
+                                          (if (eq? global:threading_helper-38
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "threading_helper")
+                                               (vector-ref %caches 165))
+                                              global:threading_helper-38)
+                                          (& "join_thread"))
+                                         (or s-214
+                                             (py-throw-exception-with-message
+                                              py-builtin-UnboundLocalError
+                                              "local variable 's' referenced before assignment")))
+                                (py-call (py-getattribute
+                                          self-27
+                                          (& "assertEqual"))
+                                         (py-getattribute c-219 (& "contents"))
+                                         (py-make-list))
+                                (py-call (py-getattribute
+                                          self-27
+                                          (& "assertEqual"))
+                                         (py-getattribute c-219 (& "buffer"))
+                                         data-222)
+                                py-None))))
+                        (make-signature args: (self))))
+                 (set! test_simple_producer-130
+                       (procedure->py-function
+                        (lambda (self-28)
+                          (let ((%frame (make-cell #f))
+                                (%names '(self p data c event s)))
+                            (letrec* ((p-207 #f)
+                                      (data-205 #f)
+                                      (c-202 #f)
+                                      (event-199 #f)
+                                      (s-197 #f))
+                              (begin
+                                (py-throw-exception-with-message
+                                 py-builtin-NotImplementedError
+                                 "multiple assignations unimplemented at line "
+                                 "183")
+                                (set! c-202
+                                      (py-call (if (eq? global:echo_client-51
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "echo_client")
+                                                    (vector-ref %caches 172))
+                                                   global:echo_client-51)
+                                               (py-int-from-scheme #u8(10))
+                                               (py-getattribute
+                                                (or s-197
+                                                    (py-throw-exception-with-message
+                                                     py-builtin-UnboundLocalError
+                                                     "local variable 's' referenced before assignment"))
+                                                (& "port"))))
+                                (set! data-205
+                                      (py-int-from-scheme
+                                       #u8(104
+                                           101
+                                           108
+                                           108
+                                           111
+                                           32
+                                           119
+                                           111
+                                           114
+                                           108
+                                           100
+                                           10
+                                           73
+                                           39
+                                           109
+                                           32
+                                           110
+                                           111
+                                           116
+                                           32
+                                           100
+                                           101
+                                           97
+                                           100
+                                           32
+                                           121
+                                           101
+                                           116
+                                           33
+                                           10)))
+                                (set! p-207
+                                      (py-call (py-getattribute
+                                                (if (eq? global:asynchat-39
+                                                         py-absent)
+                                                    (global-get
+                                                     %global
+                                                     (& "asynchat")
+                                                     (vector-ref %caches 174))
+                                                    global:asynchat-39)
+                                                (& "simple_producer"))
+                                               (py-add data-205
+                                                       (if (eq? global:SERVER_QUIT-49
+                                                                py-absent)
+                                                           (global-get
+                                                            %global
+                                                            (& "SERVER_QUIT")
+                                                            (vector-ref
+                                                             %caches
+                                                             176))
+                                                           global:SERVER_QUIT-49))
+                                               buffer_size:
+                                               (py-int-from-scheme 8)))
+                                (py-call (py-getattribute
+                                          c-202
+                                          (& "push_with_producer"))
+                                         p-207)
+                                (py-call (py-getattribute
+                                          (if (eq? global:asyncore-40
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "asyncore")
+                                               (vector-ref %caches 178))
+                                              global:asyncore-40)
+                                          (& "loop"))
+                                         use_poll:
+                                         (py-getattribute
+                                          self-28
+                                          (& "usepoll"))
+                                         count:
+                                         (py-int-from-scheme 300)
+                                         timeout:
+                                         (py-float-from-scheme .01))
+                                (py-call (py-getattribute
+                                          (if (eq? global:threading_helper-38
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "threading_helper")
+                                               (vector-ref %caches 181))
+                                              global:threading_helper-38)
+                                          (& "join_thread"))
+                                         (or s-197
+                                             (py-throw-exception-with-message
+                                              py-builtin-UnboundLocalError
+                                              "local variable 's' referenced before assignment")))
+                                (py-call (py-getattribute
+                                          self-28
+                                          (& "assertEqual"))
+                                         (py-getattribute c-202 (& "contents"))
+                                         (py-make-list
+                                          (py-int-from-scheme
+                                           #u8(104
+                                               101
+                                               108
+                                               108
+                                               111
+                                               32
+                                               119
+                                               111
+                                               114
+                                               108
+                                               100))
+                                          (py-int-from-scheme
+                                           #u8(73
+                                               39
+                                               109
+                                               32
+                                               110
+                                               111
+                                               116
+                                               32
+                                               100
+                                               101
+                                               97
+                                               100
+                                               32
+                                               121
+                                               101
+                                               116
+                                               33))))
+                                py-None))))
+                        (make-signature args: (self))))
+                 (set! test_string_producer-132
+                       (procedure->py-function
+                        (lambda (self-29)
+                          (let ((%frame (make-cell #f))
+                                (%names '(self data c event s)))
+                            (letrec* ((data-191 #f)
+                                      (c-188 #f)
+                                      (event-185 #f)
+                                      (s-183 #f))
+                              (begin
+                                (py-throw-exception-with-message
+                                 py-builtin-NotImplementedError
+                                 "multiple assignations unimplemented at line "
+                                 "194")
+                                (set! c-188
+                                      (py-call (if (eq? global:echo_client-51
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "echo_client")
+                                                    (vector-ref %caches 186))
+                                                   global:echo_client-51)
+                                               (py-int-from-scheme #u8(10))
+                                               (py-getattribute
+                                                (or s-183
+                                                    (py-throw-exception-with-message
+                                                     py-builtin-UnboundLocalError
+                                                     "local variable 's' referenced before assignment"))
+                                                (& "port"))))
+                                (set! data-191
+                                      (py-int-from-scheme
+                                       #u8(104
+                                           101
+                                           108
+                                           108
+                                           111
+                                           32
+                                           119
+                                           111
+                                           114
+                                           108
+                                           100
+                                           10
+                                           73
+                                           39
+                                           109
+                                           32
+                                           110
+                                           111
+                                           116
+                                           32
+                                           100
+                                           101
+                                           97
+                                           100
+                                           32
+                                           121
+                                           101
+                                           116
+                                           33
+                                           10)))
+                                (py-call (py-getattribute
+                                          c-188
+                                          (& "push_with_producer"))
+                                         (py-add data-191
+                                                 (if (eq? global:SERVER_QUIT-49
+                                                          py-absent)
+                                                     (global-get
+                                                      %global
+                                                      (& "SERVER_QUIT")
+                                                      (vector-ref %caches 189))
+                                                     global:SERVER_QUIT-49)))
+                                (py-call (py-getattribute
+                                          (if (eq? global:asyncore-40
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "asyncore")
+                                               (vector-ref %caches 190))
+                                              global:asyncore-40)
+                                          (& "loop"))
+                                         use_poll:
+                                         (py-getattribute
+                                          self-29
+                                          (& "usepoll"))
+                                         count:
+                                         (py-int-from-scheme 300)
+                                         timeout:
+                                         (py-float-from-scheme .01))
+                                (py-call (py-getattribute
+                                          (if (eq? global:threading_helper-38
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "threading_helper")
+                                               (vector-ref %caches 193))
+                                              global:threading_helper-38)
+                                          (& "join_thread"))
+                                         (or s-183
+                                             (py-throw-exception-with-message
+                                              py-builtin-UnboundLocalError
+                                              "local variable 's' referenced before assignment")))
+                                (py-call (py-getattribute
+                                          self-29
+                                          (& "assertEqual"))
+                                         (py-getattribute c-188 (& "contents"))
+                                         (py-make-list
+                                          (py-int-from-scheme
+                                           #u8(104
+                                               101
+                                               108
+                                               108
+                                               111
+                                               32
+                                               119
+                                               111
+                                               114
+                                               108
+                                               100))
+                                          (py-int-from-scheme
+                                           #u8(73
+                                               39
+                                               109
+                                               32
+                                               110
+                                               111
+                                               116
+                                               32
+                                               100
+                                               101
+                                               97
+                                               100
+                                               32
+                                               121
+                                               101
+                                               116
+                                               33))))
+                                py-None))))
+                        (make-signature args: (self))))
+                 (set! test_empty_line-134
+                       (procedure->py-function
+                        (lambda (self-30)
+                          (let ((%frame (make-cell #f))
+                                (%names '(self c event s)))
+                            (letrec* ((c-176 #f) (event-173 #f) (s-171 #f))
+                              (begin
+                                (py-throw-exception-with-message
+                                 py-builtin-NotImplementedError
+                                 "multiple assignations unimplemented at line "
+                                 "205")
+                                (set! c-176
+                                      (py-call (if (eq? global:echo_client-51
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "echo_client")
+                                                    (vector-ref %caches 198))
+                                                   global:echo_client-51)
+                                               (py-int-from-scheme #u8(10))
+                                               (py-getattribute
+                                                (or s-171
+                                                    (py-throw-exception-with-message
+                                                     py-builtin-UnboundLocalError
+                                                     "local variable 's' referenced before assignment"))
+                                                (& "port"))))
+                                (py-call (py-getattribute c-176 (& "push"))
+                                         (py-int-from-scheme
+                                          #u8(104
+                                              101
+                                              108
+                                              108
+                                              111
+                                              32
+                                              119
+                                              111
+                                              114
+                                              108
+                                              100
+                                              10
+                                              10
+                                              73
+                                              39
+                                              109
+                                              32
+                                              110
+                                              111
+                                              116
+                                              32
+                                              100
+                                              101
+                                              97
+                                              100
+                                              32
+                                              121
+                                              101
+                                              116
+                                              33
+                                              10)))
+                                (py-call (py-getattribute c-176 (& "push"))
+                                         (if (eq? global:SERVER_QUIT-49
+                                                  py-absent)
+                                             (global-get
+                                              %global
+                                              (& "SERVER_QUIT")
+                                              (vector-ref %caches 202))
+                                             global:SERVER_QUIT-49))
+                                (py-call (py-getattribute
+                                          (if (eq? global:asyncore-40
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "asyncore")
+                                               (vector-ref %caches 203))
+                                              global:asyncore-40)
+                                          (& "loop"))
+                                         use_poll:
+                                         (py-getattribute
+                                          self-30
+                                          (& "usepoll"))
+                                         count:
+                                         (py-int-from-scheme 300)
+                                         timeout:
+                                         (py-float-from-scheme .01))
+                                (py-call (py-getattribute
+                                          (if (eq? global:threading_helper-38
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "threading_helper")
+                                               (vector-ref %caches 206))
+                                              global:threading_helper-38)
+                                          (& "join_thread"))
+                                         (or s-171
+                                             (py-throw-exception-with-message
+                                              py-builtin-UnboundLocalError
+                                              "local variable 's' referenced before assignment")))
+                                (py-call (py-getattribute
+                                          self-30
+                                          (& "assertEqual"))
+                                         (py-getattribute c-176 (& "contents"))
+                                         (py-make-list
+                                          (py-int-from-scheme
+                                           #u8(104
+                                               101
+                                               108
+                                               108
+                                               111
+                                               32
+                                               119
+                                               111
+                                               114
+                                               108
+                                               100))
+                                          (py-int-from-scheme #u8())
+                                          (py-int-from-scheme
+                                           #u8(73
+                                               39
+                                               109
+                                               32
+                                               110
+                                               111
+                                               116
+                                               32
+                                               100
+                                               101
+                                               97
+                                               100
+                                               32
+                                               121
+                                               101
+                                               116
+                                               33))))
+                                py-None))))
+                        (make-signature args: (self))))
+                 (set! test_close_when_done-136
+                       (procedure->py-function
+                        (lambda (self-31)
+                          (let ((%frame (make-cell #f))
+                                (%names '(self c event s)))
+                            (letrec* ((c-163 #f) (event-159 #f) (s-157 #f))
+                              (begin
+                                (py-throw-exception-with-message
+                                 py-builtin-NotImplementedError
+                                 "multiple assignations unimplemented at line "
+                                 "216")
+                                (py-setattribute
+                                 (or s-157
+                                     (py-throw-exception-with-message
+                                      py-builtin-UnboundLocalError
+                                      "local variable 's' referenced before assignment"))
+                                 (& "start_resend_event")
+                                 (py-call0-maybe-super
+                                  (py-getattribute
+                                   (if (eq? global:threading-44 py-absent)
+                                       (global-get
+                                        %global
+                                        (& "threading")
+                                        (vector-ref %caches 212))
+                                       global:threading-44)
+                                   (& "Event"))
+                                  #f
+                                  self-31))
+                                (set! c-163
+                                      (py-call (if (eq? global:echo_client-51
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "echo_client")
+                                                    (vector-ref %caches 214))
+                                                   global:echo_client-51)
+                                               (py-int-from-scheme #u8(10))
+                                               (py-getattribute
+                                                (or s-157
+                                                    (py-throw-exception-with-message
+                                                     py-builtin-UnboundLocalError
+                                                     "local variable 's' referenced before assignment"))
+                                                (& "port"))))
+                                (py-call (py-getattribute c-163 (& "push"))
+                                         (py-int-from-scheme
+                                          #u8(104
+                                              101
+                                              108
+                                              108
+                                              111
+                                              32
+                                              119
+                                              111
+                                              114
+                                              108
+                                              100
+                                              10
+                                              73
+                                              39
+                                              109
+                                              32
+                                              110
+                                              111
+                                              116
+                                              32
+                                              100
+                                              101
+                                              97
+                                              100
+                                              32
+                                              121
+                                              101
+                                              116
+                                              33
+                                              10)))
+                                (py-call (py-getattribute c-163 (& "push"))
+                                         (if (eq? global:SERVER_QUIT-49
+                                                  py-absent)
+                                             (global-get
+                                              %global
+                                              (& "SERVER_QUIT")
+                                              (vector-ref %caches 218))
+                                             global:SERVER_QUIT-49))
+                                (py-call0-maybe-super
+                                 (py-getattribute c-163 (& "close_when_done"))
+                                 #f
+                                 self-31)
+                                (py-call (py-getattribute
+                                          (if (eq? global:asyncore-40
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "asyncore")
+                                               (vector-ref %caches 220))
+                                              global:asyncore-40)
+                                          (& "loop"))
+                                         use_poll:
+                                         (py-getattribute
+                                          self-31
+                                          (& "usepoll"))
+                                         count:
+                                         (py-int-from-scheme 300)
+                                         timeout:
+                                         (py-float-from-scheme .01))
+                                (py-call0-maybe-super
+                                 (py-getattribute
+                                  (py-getattribute
+                                   (or s-157
+                                       (py-throw-exception-with-message
+                                        py-builtin-UnboundLocalError
+                                        "local variable 's' referenced before assignment"))
+                                   (& "start_resend_event"))
+                                  (& "set"))
+                                 #f
+                                 self-31)
+                                (py-call (py-getattribute
+                                          (if (eq? global:threading_helper-38
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "threading_helper")
+                                               (vector-ref %caches 225))
+                                              global:threading_helper-38)
+                                          (& "join_thread"))
+                                         (or s-157
+                                             (py-throw-exception-with-message
+                                              py-builtin-UnboundLocalError
+                                              "local variable 's' referenced before assignment")))
+                                (py-call (py-getattribute
+                                          self-31
+                                          (& "assertEqual"))
+                                         (py-getattribute c-163 (& "contents"))
+                                         (py-make-list))
+                                (py-call (py-getattribute
+                                          self-31
+                                          (& "assertGreater"))
+                                         (py-call (global-get
+                                                   %global
+                                                   (& "len")
+                                                   (vector-ref %caches 230))
+                                                  (py-getattribute
+                                                   (or s-157
+                                                       (py-throw-exception-with-message
+                                                        py-builtin-UnboundLocalError
+                                                        "local variable 's' referenced before assignment"))
+                                                   (& "buffer")))
+                                         (py-int-from-scheme 0))
+                                py-None))))
+                        (make-signature args: (self))))
+                 (set! test_push-138
+                       (procedure->py-function
+                        (lambda (self-32)
+                          (let ((%frame (make-cell #f))
+                                (%names '(self data c event s)))
+                            (letrec* ((data-148 #f)
+                                      (c-145 #f)
+                                      (event-142 #f)
+                                      (s-140 #f))
+                              (begin
+                                (py-throw-exception-with-message
+                                 py-builtin-NotImplementedError
+                                 "multiple assignations unimplemented at line "
+                                 "240")
+                                (set! c-145
+                                      (py-call (if (eq? global:echo_client-51
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "echo_client")
+                                                    (vector-ref %caches 233))
+                                                   global:echo_client-51)
+                                               (py-int-from-scheme #u8(10))
+                                               (py-getattribute
+                                                (or s-140
+                                                    (py-throw-exception-with-message
+                                                     py-builtin-UnboundLocalError
+                                                     "local variable 's' referenced before assignment"))
+                                                (& "port"))))
+                                (set! data-148
+                                      (py-int-from-scheme
+                                       #u8(98 121 116 101 115 10)))
+                                (py-call (py-getattribute c-145 (& "push"))
+                                         data-148)
+                                (py-call (py-getattribute c-145 (& "push"))
+                                         (py-call (global-get
+                                                   %global
+                                                   (& "bytearray")
+                                                   (vector-ref %caches 237))
+                                                  data-148))
+                                (py-call (py-getattribute c-145 (& "push"))
+                                         (py-call (global-get
+                                                   %global
+                                                   (& "memoryview")
+                                                   (vector-ref %caches 239))
+                                                  data-148))
+                                (py-call (py-getattribute
+                                          self-32
+                                          (& "assertRaises"))
+                                         (global-get
+                                          %global
+                                          (& "TypeError")
+                                          (vector-ref %caches 241))
+                                         (py-getattribute c-145 (& "push"))
+                                         (py-int-from-scheme 10))
+                                (py-call (py-getattribute
+                                          self-32
+                                          (& "assertRaises"))
+                                         (global-get
+                                          %global
+                                          (& "TypeError")
+                                          (vector-ref %caches 244))
+                                         (py-getattribute c-145 (& "push"))
+                                         (&& "unicode"))
+                                (py-call (py-getattribute c-145 (& "push"))
+                                         (if (eq? global:SERVER_QUIT-49
+                                                  py-absent)
+                                             (global-get
+                                              %global
+                                              (& "SERVER_QUIT")
+                                              (vector-ref %caches 247))
+                                             global:SERVER_QUIT-49))
+                                (py-call (py-getattribute
+                                          (if (eq? global:asyncore-40
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "asyncore")
+                                               (vector-ref %caches 248))
+                                              global:asyncore-40)
+                                          (& "loop"))
+                                         use_poll:
+                                         (py-getattribute
+                                          self-32
+                                          (& "usepoll"))
+                                         count:
+                                         (py-int-from-scheme 300)
+                                         timeout:
+                                         (py-float-from-scheme .01))
+                                (py-call (py-getattribute
+                                          (if (eq? global:threading_helper-38
+                                                   py-absent)
+                                              (global-get
+                                               %global
+                                               (& "threading_helper")
+                                               (vector-ref %caches 251))
+                                              global:threading_helper-38)
+                                          (& "join_thread"))
+                                         (or s-140
+                                             (py-throw-exception-with-message
+                                              py-builtin-UnboundLocalError
+                                              "local variable 's' referenced before assignment")))
+                                (py-call (py-getattribute
+                                          self-32
+                                          (& "assertEqual"))
+                                         (py-getattribute c-145 (& "contents"))
+                                         (py-make-list
+                                          (py-int-from-scheme
+                                           #u8(98 121 116 101 115))
+                                          (py-int-from-scheme
+                                           #u8(98 121 116 101 115))
+                                          (py-int-from-scheme
+                                           #u8(98 121 116 101 115))))
+                                py-None))))
+                        (make-signature args: (self)))))
+               (begin
+                 (set! $%cls_3
+                       (py-make-class
+                        (&& "TestAsynchat")
+                        (&& "__main__")
+                        (list (py-getattribute
+                               (if (eq? global:unittest-46 py-absent)
+                                   (global-get
+                                    %global
+                                    (& "unittest")
+                                    (vector-ref %caches 255))
+                                   global:unittest-46)
+                               (& "TestCase")))
+                        (& "test_push")
+                        test_push-138
+                        (& "test_close_when_done")
+                        test_close_when_done-136
+                        (& "test_empty_line")
+                        test_empty_line-134
+                        (& "test_string_producer")
+                        test_string_producer-132
+                        (& "test_simple_producer")
+                        test_simple_producer-130
+                        (& "test_none_terminator")
+                        test_none_terminator-128
+                        (& "test_numeric_terminator2")
+                        test_numeric_terminator2-126
+                        (& "test_numeric_terminator1")
+                        test_numeric_terminator1-124
+                        (& "numeric_terminator_check")
+                        numeric_terminator_check-122
+                        (& "test_line_terminator3")
+                        test_line_terminator3-120
+                        (& "test_line_terminator2")
+                        test_line_terminator2-118
+                        (& "test_line_terminator1")
+                        test_line_terminator1-116
+                        (& "line_terminator_check")
+                        line_terminator_check-114
+                        (& "tearDown")
+                        tearDown-112
+                        (& "setUp")
+                        setUp-110
+                        (& "usepoll")
+                        usepoll-108))
+                 $%cls_3))))
+     (set! global:TestAsynchat_WithPoll-54
+           (let (($%cls_4 py-absent))
+             (letrec* ((usepoll-274 #f))
+               (set! usepoll-274 py-True)
+               (begin
+                 (set! $%cls_4
+                       (py-make-class
+                        (&& "TestAsynchat_WithPoll")
+                        (&& "__main__")
+                        (list (if (eq? global:TestAsynchat-53 py-absent)
+                                  (global-get
+                                   %global
+                                   (& "TestAsynchat")
+                                   (vector-ref %caches 258))
+                                  global:TestAsynchat-53))
+                        (& "usepoll")
+                        usepoll-274))
+                 $%cls_4))))
+     (set! global:TestAsynchatMocked-55
+           (let (($%cls_5 py-absent))
+             (letrec* ((test_blockingioerror-276 #f))
+               (set! test_blockingioerror-276
+                     (procedure->py-function
+                      (lambda (self-33)
+                        (let ((%frame (make-cell #f))
+                              (%names '(self error dispatcher sock)))
+                          (letrec* ((error-287 #f)
+                                    (dispatcher-283 #f)
+                                    (sock-278 #f))
+                            (begin
+                              (set! sock-278
+                                    (py-call0-maybe-super
+                                     (py-getattribute
+                                      (py-getattribute
+                                       (if (eq? global:unittest-46 py-absent)
+                                           (global-get
+                                            %global
+                                            (& "unittest")
+                                            (vector-ref %caches 260))
+                                           global:unittest-46)
+                                       (& "mock"))
+                                      (& "Mock"))
+                                     #f
+                                     self-33))
+                              (py-setattribute
+                               (py-getattribute
+                                (or sock-278
+                                    (py-throw-exception-with-message
+                                     py-builtin-UnboundLocalError
+                                     "local variable 'sock' referenced before assignment"))
+                                (& "recv"))
+                               (& "side_effect")
+                               (py-call (global-get
+                                         %global
+                                         (& "BlockingIOError")
+                                         (vector-ref %caches 265))
+                                        (py-getattribute
+                                         (if (eq? global:errno-41 py-absent)
+                                             (global-get
+                                              %global
+                                              (& "errno")
+                                              (vector-ref %caches 266))
+                                             global:errno-41)
+                                         (& "EAGAIN"))))
+                              (set! dispatcher-283
+                                    (py-call0-maybe-super
+                                     (py-getattribute
+                                      (if (eq? global:asynchat-39 py-absent)
+                                          (global-get
+                                           %global
+                                           (& "asynchat")
+                                           (vector-ref %caches 268))
+                                          global:asynchat-39)
+                                      (& "async_chat"))
+                                     #f
+                                     self-33))
+                              (py-call (py-getattribute
+                                        dispatcher-283
+                                        (& "set_socket"))
+                                       sock-278)
+                              (py-call (py-getattribute
+                                        self-33
+                                        (& "addCleanup"))
+                                       (py-getattribute
+                                        dispatcher-283
+                                        (& "del_channel")))
+                              (let (($%with-ctx_24
+                                     (py-call (py-getattribute
+                                               (py-getattribute
+                                                (py-getattribute
+                                                 (if (eq? global:unittest-46
+                                                          py-absent)
+                                                     (global-get
+                                                      %global
+                                                      (& "unittest")
+                                                      (vector-ref %caches 273))
+                                                     global:unittest-46)
+                                                 (& "mock"))
+                                                (& "patch"))
+                                               (& "object"))
+                                              dispatcher-283
+                                              (&& "handle_error"))))
+                                (set! error-287 (py-enter $%with-ctx_24))
+                                (with-handler
+                                 (lambda (%exn)
+                                   (if (PyObject? %exn)
+                                       (py-exit $%with-ctx_24 %exn)
+                                       (raise %exn)))
+                                 (py-call0-maybe-super
+                                  (py-getattribute
+                                   dispatcher-283
+                                   (& "handle_read"))
+                                  #f
+                                  self-33))
+                                (py-exit $%with-ctx_24 py-None))
+                              (py-call (py-getattribute
+                                        self-33
+                                        (& "assertFalse"))
+                                       (py-getattribute
+                                        (or error-287
+                                            (py-throw-exception-with-message
+                                             py-builtin-UnboundLocalError
+                                             "local variable 'error' referenced before assignment"))
+                                        (& "called")))
+                              py-None))))
+                      (make-signature args: (self))))
+               (begin
+                 (set! $%cls_5
+                       (py-make-class
+                        (&& "TestAsynchatMocked")
+                        (&& "__main__")
+                        (list (py-getattribute
+                               (if (eq? global:unittest-46 py-absent)
+                                   (global-get
+                                    %global
+                                    (& "unittest")
+                                    (vector-ref %caches 280))
+                                   global:unittest-46)
+                               (& "TestCase")))
+                        (& "test_blockingioerror")
+                        test_blockingioerror-276))
+                 $%cls_5))))
+     (set! global:TestHelperFunctions-56
+           (let (($%cls_6 py-absent))
+             (letrec* ((test_find_prefix_at_end-289 #f))
+               (set! test_find_prefix_at_end-289
+                     (procedure->py-function
+                      (lambda (self-34)
+                        (letrec* ()
+                          (begin
+                            (py-call (py-getattribute
+                                      self-34
+                                      (& "assertEqual"))
+                                     (py-call (py-getattribute
+                                               (if (eq? global:asynchat-39
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "asynchat")
+                                                    (vector-ref %caches 284))
+                                                   global:asynchat-39)
+                                               (& "find_prefix_at_end"))
+                                              (&& "qwerty\r")
+                                              (&& "\r\n"))
+                                     (py-int-from-scheme 1))
+                            (py-call (py-getattribute
+                                      self-34
+                                      (& "assertEqual"))
+                                     (py-call (py-getattribute
+                                               (if (eq? global:asynchat-39
+                                                        py-absent)
+                                                   (global-get
+                                                    %global
+                                                    (& "asynchat")
+                                                    (vector-ref %caches 287))
+                                                   global:asynchat-39)
+                                               (& "find_prefix_at_end"))
+                                              (&& "qwertydkjf")
+                                              (&& "\r\n"))
+                                     (py-int-from-scheme 0))
+                            py-None)))
+                      (make-signature args: (self))))
+               (begin
+                 (set! $%cls_6
+                       (py-make-class
+                        (&& "TestHelperFunctions")
+                        (&& "__main__")
+                        (list (py-getattribute
+                               (if (eq? global:unittest-46 py-absent)
+                                   (global-get
+                                    %global
+                                    (& "unittest")
+                                    (vector-ref %caches 289))
+                                   global:unittest-46)
+                               (& "TestCase")))
+                        (& "test_find_prefix_at_end")
+                        test_find_prefix_at_end-289))
+                 $%cls_6))))
+     (set! global:TestNotConnected-57
+           (let (($%cls_7 py-absent))
+             (letrec* ((test_disallow_negative_terminator-293 #f))
+               (set! test_disallow_negative_terminator-293
+                     (procedure->py-function
+                      (lambda (self-35)
+                        (let ((%frame (make-cell #f)) (%names '(self client)))
+                          (letrec* ((client-295 #f))
+                            (begin
+                              (set! client-295
+                                    (py-call0-maybe-super
+                                     (py-getattribute
+                                      (if (eq? global:asynchat-39 py-absent)
+                                          (global-get
+                                           %global
+                                           (& "asynchat")
+                                           (vector-ref %caches 292))
+                                          global:asynchat-39)
+                                      (& "async_chat"))
+                                     #f
+                                     self-35))
+                              (py-call (py-getattribute
+                                        self-35
+                                        (& "assertRaises"))
+                                       (global-get
+                                        %global
+                                        (& "ValueError")
+                                        (vector-ref %caches 295))
+                                       (py-getattribute
+                                        client-295
+                                        (& "set_terminator"))
+                                       (py-neg (py-int-from-scheme 1)))
+                              py-None))))
+                      (make-signature args: (self))))
+               (begin
+                 (set! $%cls_7
+                       (py-make-class
+                        (&& "TestNotConnected")
+                        (&& "__main__")
+                        (list (py-getattribute
+                               (if (eq? global:unittest-46 py-absent)
+                                   (global-get
+                                    %global
+                                    (& "unittest")
+                                    (vector-ref %caches 298))
+                                   global:unittest-46)
+                               (& "TestCase")))
+                        (& "test_disallow_negative_terminator")
+                        test_disallow_negative_terminator-293))
+                 $%cls_7))))
+     (if (py-test (py-eq (global-get
+                          %global
+                          (& "__name__")
+                          (vector-ref %caches 300))
+                         (&& "__main__")))
+         (py-call0-maybe-super
+          (py-getattribute
+           (if (eq? global:unittest-46 py-absent)
+               (global-get %global (& "unittest") (vector-ref %caches 301))
+               global:unittest-46)
+           (& "main"))
+          #f
+          #f)
+         #f))
+   (define (init name package __path__)
+     (py-init-module)
+     (let ((caches (py-make-caches 303))
+           (module (py-make-module name package __path__)))
+       (begin)
+       (py-module module caches)
+       module))
+   (py-end-module)))[0m
+[[92m0[0m ([92m0[0m) | [93m0[0m ([93m0[0m) | [91m15[0m] Initializing test/test_asyncore.py...

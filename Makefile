@@ -96,3 +96,6 @@ cleanall: distclean
 
 test:
 	@cd tests; python run.py
+
+unittest:
+	@cd unittest; make unittest

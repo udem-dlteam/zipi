@@ -1,0 +1,1060 @@
+Running all unittest suite with 20s timeout
+all test are run with this command : zipi
+>>> test_abc.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_abstract_numbers.py
+ModuleNotFoundError: No module named 'math'
+>>> test_aifc.py
+AttributeError
+>>> test___all__.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_argparse.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_array.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_asdl_parser.py
+ModuleNotFoundError: No module named 'importlib'
+>>> test_ast.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_ast/test_ast.sld"@3.71 -- Incomplete form, EOF reached
+>>> test_asyncgen.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_asyncgen/test_asyncgen.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_asynchat.py
+AttributeError
+>>> test_asyncio
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- File exists
+(create-directory
+ "/home/leonard/.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/un...
+)
+>>> test_asyncore.py
+ModuleNotFoundError: No module named 'asyncore'
+>>> test_atexit.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_audioop.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_audioop/test_audioop.sld"@3.76 -- Incomplete form, EOF reached
+>>> test_audit.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_audit/test_audit.sld"@3.72 -- Incomplete form, EOF reached
+>>> test_augassign.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_base64.py
+ModuleNotFoundError: No module named 'base64'
+>>> test_baseexception.py
+ModuleNotFoundError: No module named 'platform'
+>>> test_bdb.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_bigaddrspace.py
+AttributeError
+>>> test_bigmem.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_binascii.py
+ModuleNotFoundError: No module named 'binascii'
+>>> test_binhex.py
+AttributeError
+>>> test_binop.py
+ModuleNotFoundError: No module named 'operator'
+>>> test_bisect.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_bool.py
+test_blocked : the assert function assertRaises is not implemented
+test_boolean : the assert function assertNotIsInstance is not implemented
+test_callable : NotImplementedError raised
+test_contains : OK
+test_convert : the assert function assertRaises is not implemented
+test_convert_to_bool : the assert function assertRaises is not implemented
+test_fileclosed : An error was raised : <AttributeError object #0x2>
+test_float : NotImplementedError raised
+test_format : An error was raised : <ValueError object #0x3>
+test_from_bytes : An error was raised : <AttributeError object #0x4>
+test_hasattr : NotImplementedError raised
+test_int : OK
+test_isinstance : NotImplementedError raised
+test_issubclass : NotImplementedError raised
+test_keyword_args : the assert function assertRaisesRegex is not implemented
+test_marshal : An error was raised : <ModuleNotFoundError object #0x5>
+test_math : FAIL
+  57 'assertIs' FAILLED
+  58 'assertIs' FAILLED
+  59 'assertIs' FAILLED
+  72 'assertIs' FAILLED
+  73 'assertIs' FAILLED
+  74 'assertIs' FAILLED
+  87 'assertIs' FAILLED
+  88 'assertIs' FAILLED
+  89 'assertIs' FAILLED
+  102 'assertIs' FAILLED
+  103 'assertIs' FAILLED
+  104 'assertIs' FAILLED
+  138 'assertIs' FAILLED
+  140 'assertIs' FAILLED
+
+test_operator : An error was raised : <ModuleNotFoundError object #0x6>
+test_pickle : An error was raised : <ModuleNotFoundError object #0x7>
+test_picklevalues : An error was raised : <ModuleNotFoundError object #0x8>
+test_print : An error was raised : <AttributeError object #0x9>
+test_real_and_imag : An error was raised : <AttributeError object #0xa>
+test_repr : NotImplementedError raised
+test_sane_len : OK
+test_str : OK
+test_string : An error was raised : <AttributeError object #0xb>
+test_subclass : An error was raised : <AttributeError object #0xc>
+test_types : OK
+
+success : 5
+not implemented : 11
+total : 28
+success rate : (5/28) = 0.17857142857142858 %
+>>> test_buffer.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_buffer/test_buffer.sld"@1.14 -- Invalid token
+>>> test_bufio.py
+ModuleNotFoundError: No module named 'io'
+>>> test_builtin.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_bytes.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_bytes/test_bytes.sld"@3.41 -- Incomplete form, EOF reached
+>>> test_bz2.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_calendar.py
+ModuleNotFoundError: No module named 'calendar'
+>>> test_call.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_call/test_call.sld"@1.14 -- Invalid token
+>>> test_capi.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_cgi.py
+ModuleNotFoundError: No module named 'cgi'
+>>> test_cgitb.py
+AttributeError
+>>> test_charmapcodec.py
+ModuleNotFoundError: No module named 'codecs'
+>>> test_check_c_globals.py
+ModuleNotFoundError: No module named 'test.test_tools'
+>>> test_class.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_clinic.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_c_locale_coercion.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_c_locale_coercion/test_c_locale_coercion.sld"@3.68 -- Incomplete form, EOF reached
+>>> test_cmath.py
+AttributeError
+>>> test_cmd_line.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_cmd_line/test_cmd_line.sld"@3.41 -- Incomplete form, EOF reached
+>>> test_cmd_line_script.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_cmd.py
+ModuleNotFoundError: No module named 'cmd'
+>>> test_codeccallbacks.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_codecencodings_cn.py
+AttributeError
+>>> test_codecencodings_hk.py
+AttributeError
+>>> test_codecencodings_iso2022.py
+AttributeError
+>>> test_codecencodings_jp.py
+AttributeError
+>>> test_codecencodings_kr.py
+AttributeError
+>>> test_codecencodings_tw.py
+AttributeError
+>>> test_codecmaps_cn.py
+AttributeError
+>>> test_codecmaps_hk.py
+AttributeError
+>>> test_codecmaps_jp.py
+AttributeError
+>>> test_codecmaps_kr.py
+AttributeError
+>>> test_codecmaps_tw.py
+AttributeError
+>>> test_codecs.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_codecs/test_codecs.sld"@3.52 -- Incomplete form, EOF reached
+>>> test_code_module.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_codeop.py
+ModuleNotFoundError: No module named 'codeop'
+>>> test_code.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_code/test_code.sld"@3.65 -- Incomplete form, EOF reached
+>>> test_collections.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_colorsys.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_compare.py
+AttributeError
+>>> test_compileall.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_compileall/test_compileall.sld"@3.52 -- Incomplete form, EOF reached
+>>> test_compile.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_compile/test_compile.sld"@3.70 -- Incomplete form, EOF reached
+>>> test_complex.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_concurrent_futures.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_configparser.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_contains.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_contextlib_async.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_contextlib_async/test_contextlib_async.sld"@3.73 -- Incomplete form, EOF reached
+>>> test_contextlib.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_context.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_context/test_context.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_copy.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_copy/test_copy.sld"@1.14 -- Invalid token
+>>> test_copyreg.py
+ModuleNotFoundError: No module named 'copyreg'
+>>> test_coroutines.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_cprofile.py
+ModuleNotFoundError: No module named 'cProfile'
+>>> test_crashers.py
+ModuleNotFoundError: No module named 'glob'
+>>> test_crypt.py
+AttributeError
+>>> test_csv.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_ctypes.py
+AttributeError
+>>> test_curses.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_dataclasses.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dataclasses/test_dataclasses.sld"@3.39 -- Incomplete form, EOF reached
+>>> test_datetime.py
+AttributeError
+>>> test_dbm_dumb.py
+ModuleNotFoundError: No module named 'contextlib'
+>>> test_dbm_gnu.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dbm_gnu/test_dbm_gnu.sld"@3.76 -- Incomplete form, EOF reached
+>>> test_dbm_ndbm.py
+AttributeError
+>>> test_dbm.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_decimal.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_decimal/test_decimal.sld"@3.70 -- Incomplete form, EOF reached
+>>> test_decorators.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_decorators/test_decorators.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_defaultdict.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_deque.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_descr.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_descrtut.py
+AttributeError
+>>> test_devpoll.py
+ModuleNotFoundError: No module named 'random'
+>>> test_dictcomps.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dictcomps/test_dictcomps.sld"@3.41 -- Incomplete form, EOF reached
+>>> test_dict.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dict/test_dict.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_dict_version.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_dictviews.py
+ModuleNotFoundError: No module named 'collections'
+>>> test_difflib_expect.html
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_difflib.py
+ModuleNotFoundError: No module named 'difflib'
+>>> test_dis.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_dis/test_dis.sld"@3.21 -- Incomplete form, EOF reached
+>>> test_distutils.py
+ModuleNotFoundError: No module named 'distutils'
+>>> test_doctest2.py
+AttributeError
+>>> test_doctest2.txt
+AttributeError
+>>> test_doctest3.txt
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_doctest4.txt
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_doctest.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_doctest.txt
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_docxmlrpc.py
+ModuleNotFoundError: No module named 'xmlrpc.server'
+>>> test_dtrace.py
+ModuleNotFoundError: No module named 'dis'
+>>> test_dynamicclassattribute.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_dynamic.py
+AttributeError
+>>> test_eintr.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_eintr/test_eintr.sld"@3.39 -- Incomplete form, EOF reached
+>>> test_email
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- File exists
+(create-directory
+ "/home/leonard/.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/un...
+)
+>>> test_embed.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_ensurepip.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_enumerate.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_enum.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_eof.py
+AttributeError
+>>> test_epoll.py
+ModuleNotFoundError: No module named 'errno'
+>>> test_errno.py
+ModuleNotFoundError: No module named 'errno'
+>>> test_exception_hierarchy.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_exceptions.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_exception_variations.py
+running  ExceptionTestCase
+test_nested : FAIL
+  1 'assertTrue' FAILLED
+  2 'assertTrue' FAILLED
+  3 'assertTrue' FAILLED
+
+test_nested_else : FAIL
+  1 'assertFalse' FAILLED
+  2 'assertTrue' FAILLED
+  3 'assertFalse' FAILLED
+  4 'assertTrue' FAILLED
+  5 'assertTrue' FAILLED
+
+test_try_except : FAIL
+  1 'assertTrue' FAILLED
+
+test_try_except_else : FAIL
+  1 'assertFalse' FAILLED
+  2 'assertTrue' FAILLED
+
+test_try_except_else_finally : FAIL
+  1 'assertTrue' FAILLED
+  2 'assertTrue' FAILLED
+  3 'assertFalse' FAILLED
+
+test_try_except_else_finally_no_exception : FAIL
+  1 'assertFalse' FAILLED
+  2 'assertTrue' FAILLED
+  3 'assertTrue' FAILLED
+
+test_try_except_else_no_exception : FAIL
+  1 'assertFalse' FAILLED
+  2 'assertTrue' FAILLED
+
+test_try_except_finally : FAIL
+  1 'assertTrue' FAILLED
+  2 'assertTrue' FAILLED
+
+test_try_except_finally_no_exception : FAIL
+  1 'assertFalse' FAILLED
+  2 'assertTrue' FAILLED
+
+test_try_except_no_exception : FAIL
+  1 'assertFalse' FAILLED
+
+test_try_finally_no_exception : FAIL
+  1 'assertTrue' FAILLED
+
+
+success : 0
+not implemented : 0
+total : 11
+success rate : (0/11) = 0.0 %
+>>> test_extcall.py
+AttributeError
+>>> test_faulthandler.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_fcntl.py
+ModuleNotFoundError: No module named 'platform'
+>>> test_filecmp.py
+ModuleNotFoundError: No module named 'filecmp'
+>>> test_file_eintr.py
+ModuleNotFoundError: No module named 'select'
+>>> test_fileinput.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_fileio.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_file.py
+ModuleNotFoundError: No module named 'array'
+>>> test_finalization.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_float.py
+ModuleNotFoundError: No module named 'fractions'
+>>> test_flufl.py
+ModuleNotFoundError: No module named '__future__'
+>>> test_fnmatch.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_fnmatch/test_fnmatch.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_fork1.py
+ModuleNotFoundError: No module named '_imp'
+>>> test_format.py
+AttributeError
+>>> test_fractions.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_frame.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_frozen.py
+AttributeError
+>>> test_fstring.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_ftplib.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_ftplib/test_ftplib.sld"@3.1 -- Invalid token
+>>> test_funcattrs.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_functools.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_future3.py
+ModuleNotFoundError: No module named '__future__'
+>>> test_future4.py
+ModuleNotFoundError: No module named '__future__'
+>>> test_future5.py
+ModuleNotFoundError: No module named '__future__'
+>>> test___future__.py
+ModuleNotFoundError: No module named '__future__'
+>>> test_future.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_future/test_future.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_gc.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_gdb.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_gdb/test_gdb.sld"@3.54 -- Incomplete form, EOF reached
+>>> test_generators.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_generators/test_generators.sld"@3.34 -- Incomplete form, EOF reached
+>>> test_generator_stop.py
+ModuleNotFoundError: No module named '__future__'
+>>> test_genericalias.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_genericalias/test_genericalias.sld"@3.54 -- Incomplete form, EOF reached
+>>> test_genericclass.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_genericclass/test_genericclass.sld"@3.75 -- Incomplete form, EOF reached
+>>> test_genericpath.py
+ModuleNotFoundError: No module named 'genericpath'
+>>> test_genexps.py
+NotImplementedError: hasattr not implemented
+>>> test_getargs2.py
+ModuleNotFoundError: No module named 'math'
+>>> test_getopt.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_getpass.py
+ModuleNotFoundError: No module named 'getpass'
+>>> test_gettext.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_gettext/test_gettext.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_global.py
+AttributeError
+>>> test_glob.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_glob/test_glob.sld"@3.58 -- Incomplete form, EOF reached
+>>> test_grammar.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_graphlib.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_graphlib/test_graphlib.sld"@3.76 -- Incomplete form, EOF reached
+>>> test_grp.py
+AttributeError
+>>> test_gzip.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_hashlib.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_hashlib/test_hashlib.sld"@3.31 -- Incomplete form, EOF reached
+>>> test_hash.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_heapq.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_hmac.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_hmac/test_hmac.sld"@3.75 -- Incomplete form, EOF reached
+>>> test_htmlparser.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_html.py
+ModuleNotFoundError: No module named 'html'
+>>> test_http_cookiejar.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_http_cookiejar/test_http_cookiejar.sld"@3.41 -- Incomplete form, EOF reached
+>>> test_http_cookies.py
+ModuleNotFoundError: No module named 'copy'
+>>> test_httplib.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_httplib/test_httplib.sld"@3.70 -- Incomplete form, EOF reached
+>>> test_httpservers.py
+ModuleNotFoundError: No module named 'http.server'
+>>> test_idle.py
+AttributeError
+>>> test_imaplib.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_imghdr.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_import
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- File exists
+(create-directory
+ "/home/leonard/.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/un...
+)
+>>> test_importlib
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- File exists
+(create-directory
+ "/home/leonard/.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/un...
+)
+>>> test_imp.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_imp/test_imp.sld"@3.76 -- Incomplete form, EOF reached
+>>> test_index.py
+ModuleNotFoundError: No module named 'operator'
+>>> test_inspect.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_inspect/test_inspect.sld"@1.14 -- Invalid token
+>>> test_int_literal.py
+running  TestHexOctBin
+test_bin_baseline : OK
+test_bin_unsigned : OK
+test_hex_baseline : OK
+test_hex_unsigned : OK
+test_oct_baseline : OK
+test_oct_unsigned : OK
+
+success : 6
+not implemented : 0
+total : 6
+success rate : (6/6) = 1.0 %
+>>> test_int.py
+running  IntTestCases
+test_basic : NotImplementedError raised
+test_error_message : NotImplementedError raised
+test_int_base_bad_types : the assert function assertRaises is not implemented
+test_int_base_indexable : the assert function assertRaises is not implemented
+test_int_base_limits : An error was raised : <TypeError object #0x2>
+test_int_memoryview : NotImplementedError raised
+test_int_returns_int_subclass : the assert function assertWarns is not implemented
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- py-obj-cls "unhandled object type" #<error-exception #3>
+>>> test_ioctl.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_io.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_io/test_io.sld"@3.43 -- Incomplete form, EOF reached
+>>> test_ipaddress.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_ipaddress/test_ipaddress.sld"@3.2 -- Invalid token
+>>> test_isinstance.py
+NotImplementedError: property not implemented
+>>> test_iterlen.py
+AttributeError
+>>> test_iter.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_itertools.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_json
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- File exists
+(create-directory
+ "/home/leonard/.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/un...
+)
+>>> test_keywordonlyarg.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_keywordonlyarg/test_keywordonlyarg.sld"@1.14 -- Invalid token
+>>> test_keyword.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_keyword/test_keyword.sld"@3.76 -- Incomplete form, EOF reached
+>>> test_kqueue.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_largefile.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_largefile/test_largefile.sld"@3.73 -- Incomplete form, EOF reached
+>>> test_lib2to3.py
+ModuleNotFoundError: No module named 'lib2to3.tests'
+>>> test_linecache.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_listcomps.py
+NotImplementedError: py-call does not support nammed args, *args or **kwargs
+>>> test_list.py
+AttributeError
+>>> test_lltrace.py
+ModuleNotFoundError: No module named 'textwrap'
+>>> test__locale.py
+ModuleNotFoundError: No module named '_locale'
+>>> test_locale.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_logging.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_logging/test_logging.sld"@3.51 -- Incomplete form, EOF reached
+>>> test_longexp.py
+running  LongExpText
+test_longexp : An error was raised : <ValueError object #0x2>
+
+success : 0
+not implemented : 0
+total : 1
+success rate : (0/1) = 0.0 %
+>>> test_long.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_lzma.py
+ModuleNotFoundError: No module named '_compression'
+>>> test_mailbox.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_mailbox/test_mailbox.sld"@3.71 -- Incomplete form, EOF reached
+>>> test_mailcap.py
+ModuleNotFoundError: No module named 'mailcap'
+>>> test_marshal.py
+ModuleNotFoundError: No module named 'array'
+>>> test_math.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_math/test_math.sld"@3.2 -- Invalid token
+>>> test_memoryio.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_memoryview.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_metaclass.py
+NotImplementedError: hasattr not implemented
+>>> test_mimetypes.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_minidom.py
+ModuleNotFoundError: No module named 'copy'
+>>> test_mmap.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_modulefinder.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_module.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_msilib.py
+AttributeError
+>>> test_multibytecodec.py
+AttributeError
+>>> test_multiprocessing_fork.py
+ModuleNotFoundError: No module named 'test._test_multiprocessing'
+>>> test_multiprocessing_forkserver.py
+ModuleNotFoundError: No module named 'test._test_multiprocessing'
+>>> test_multiprocessing_main_handling.py
+AttributeError
+>>> test_multiprocessing_spawn.py
+ModuleNotFoundError: No module named 'test._test_multiprocessing'
+>>> test_named_expressions.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_named_expressions/test_named_expressions.sld"@3.41 -- Incomplete form, EOF reached
+>>> test_netrc.py
+ModuleNotFoundError: No module named 'netrc'
+>>> test_nis.py
+AttributeError
+>>> test_nntplib.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_nntplib/test_nntplib.sld"@3.52 -- Incomplete form, EOF reached
+>>> test_ntpath.py
+ModuleNotFoundError: No module named 'ntpath'
+>>> test_numeric_tower.py
+ModuleNotFoundError: No module named 'random'
+>>> test__opcode.py
+ModuleNotFoundError: No module named 'dis'
+>>> test_opcodes.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_openpty.py
+NotImplementedError: hasattr not implemented
+>>> test_operator.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_optparse.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_ordered_dict.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_os.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_os/test_os.sld"@3.22 -- Incomplete form, EOF reached
+>>> test_ossaudiodev.py
+AttributeError
+>>> test_osx_env.py
+AttributeError
+>>> test__osx_support.py
+ModuleNotFoundError: No module named 'platform'
+>>> test_parser.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_pathlib.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_pathlib/test_pathlib.sld"@3.61 -- Incomplete form, EOF reached
+>>> test_pdb.py
+ModuleNotFoundError: No module named 'doctest'
+>>> test_peepholer.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_peepholer/test_peepholer.sld"@3.1 -- Incomplete form, EOF reached
+>>> test_peg_generator
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- File exists
+(create-directory
+ "/home/leonard/.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/un...
+)
+>>> test_peg_parser.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_peg_parser/test_peg_parser.sld"@3.21 -- Incomplete form, EOF reached
+>>> test_picklebuffer.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_pickle.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_pickle/test_pickle.sld"@3.72 -- Incomplete form, EOF reached
+>>> test_pickletools.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_pipes.py
+ModuleNotFoundError: No module named 'pipes'
+>>> test_pkg.py
+ModuleNotFoundError: No module named 'tempfile'
+>>> test_pkgutil.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_platform.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_platform/test_platform.sld"@3.22 -- Invalid token
+>>> test_plistlib.py
+ModuleNotFoundError: No module named 'copy'
+>>> test_poll.py
+ModuleNotFoundError: No module named 'subprocess'
+>>> test_popen.py
+AttributeError
+>>> test_poplib.py
+ModuleNotFoundError: No module named 'poplib'
+>>> test_positional_only_arg.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_positional_only_arg/test_positional_only_arg.sld"@1.14 -- Invalid token
+>>> test_posixpath.py
+ModuleNotFoundError: No module named 'posixpath'
+>>> test_posix.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_pow.py
+ModuleNotFoundError: No module named 'math'
+>>> test_pprint.py
+ModuleNotFoundError: No module named 'collections'
+>>> test_print.py
+ModuleNotFoundError: No module named 'io'
+>>> test_profile.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_profile/test_profile.sld"@3.54 -- Incomplete form, EOF reached
+>>> test_property.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_pstats.py
+ModuleNotFoundError: No module named 'io'
+>>> test_pty.py
+AttributeError
+>>> test_pulldom.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_pwd.py
+AttributeError
+>>> test_pyclbr.py
+ModuleNotFoundError: No module named 'textwrap'
+>>> test_py_compile.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_py_compile/test_py_compile.sld"@1.14 -- Invalid token
+>>> test_pydoc.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_pyexpat.py
+ModuleNotFoundError: No module named 'io'
+>>> test_queue.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_quopri.py
+ModuleNotFoundError: No module named 'io'
+>>> test_raise.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_random.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_range.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_readline.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_readline/test_readline.sld"@3.64 -- Incomplete form, EOF reached
+>>> test_regrtest.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_regrtest/test_regrtest.sld"@3.75 -- Incomplete form, EOF reached
+>>> test_repl.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_reprlib.py
+ModuleNotFoundError: No module named 'shutil'
+>>> test_re.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_resource.py
+ModuleNotFoundError: No module named 'contextlib'
+>>> test_richcmp.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_rlcompleter.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_rlcompleter/test_rlcompleter.sld"@3.71 -- Incomplete form, EOF reached
+>>> test_robotparser.py
+ModuleNotFoundError: No module named 'io'
+>>> test_runpy.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_sax.py
+ModuleNotFoundError: No module named 'xml.sax'
+>>> test_sched.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_scope.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_script_helper.py
+ModuleNotFoundError: No module named 'subprocess'
+>>> test_secrets.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_selectors.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_select.py
+ModuleNotFoundError: No module named 'errno'
+>>> test_setcomps.py
+NotImplementedError: py-call does not support nammed args, *args or **kwargs
+>>> test_set.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_set/test_set.sld"@3.62 -- Incomplete form, EOF reached
+>>> test_shelve.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_shlex.py
+ModuleNotFoundError: No module named 'io'
+>>> test_shutil.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_signal.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_signal/test_signal.sld"@3.72 -- Incomplete form, EOF reached
+>>> test_site.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_site/test_site.sld"@3.70 -- Incomplete form, EOF reached
+>>> test_slice.py
+ModuleNotFoundError: No module named 'operator'
+>>> test_smtpd.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_smtplib.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_smtpnet.py
+AttributeError
+>>> test_sndhdr.py
+ModuleNotFoundError: No module named 'sndhdr'
+>>> test_socket.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_socketserver.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_sort.py
+ModuleNotFoundError: No module named 'random'
+>>> test_source_encoding.py
+AttributeError
+>>> test_spwd.py
+AttributeError
+>>> test_sqlite.py
+AttributeError
+>>> test_ssl.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_ssl/test_ssl.sld"@3.52 -- Incomplete form, EOF reached
+>>> test_startfile.py
+ModuleNotFoundError: No module named 'platform'
+>>> test_statistics.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_stat.py
+ModuleNotFoundError: No module named 'socket'
+>>> test_strftime.py
+ModuleNotFoundError: No module named 'calendar'
+>>> test_string_literals.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_stringprep.py
+ModuleNotFoundError: No module named 'stringprep'
+>>> test_string.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_strptime.py
+ModuleNotFoundError: No module named 'locale'
+>>> test_strtod.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_structmembers.py
+AttributeError
+>>> test_struct.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_structseq.py
+running  StructSeqTest
+test_cmp : An error was raised : <AttributeError object #0x2>
+test_concat : An error was raised : <AttributeError object #0x3>
+test_constructor : An error was raised : <AttributeError object #0x4>
+test_contains : An error was raised : <AttributeError object #0x5>
+test_eviltuple : An error was raised : <AttributeError object #0x6>
+test_extended_getslice : An error was raised : <AttributeError object #0x7>
+test_fields : An error was raised : <AttributeError object #0x8>
+test_hash : An error was raised : <AttributeError object #0x9>
+test_reduce : An error was raised : <AttributeError object #0xa>
+test_repeat : An error was raised : <AttributeError object #0xb>
+test_repr : An error was raised : <AttributeError object #0xc>
+test_tuple : An error was raised : <AttributeError object #0xd>
+
+success : 0
+not implemented : 0
+total : 12
+success rate : (0/12) = 0.0 %
+>>> test_subclassinit.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_subprocess.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_subprocess/test_subprocess.sld"@3.43 -- Incomplete form, EOF reached
+>>> test_sunau.py
+AttributeError
+>>> test_sundry.py
+ModuleNotFoundError: No module named 'importlib'
+>>> test_super.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_support.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_support/test_support.sld"@3.41 -- Incomplete form, EOF reached
+>>> test_symbol.py
+ModuleNotFoundError: No module named 'sysconfig'
+>>> test_symtable.py
+ModuleNotFoundError: No module named 'symtable'
+>>> test_syntax.py
+ModuleNotFoundError: No module named 're'
+>>> test_sysconfig.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_syslog.py
+AttributeError
+>>> test_sys.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_sys/test_sys.sld"@3.66 -- Incomplete form, EOF reached
+>>> test_sys_setprofile.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_sys_settrace.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_sys_settrace/test_sys_settrace.sld"@3.73 -- Incomplete form, EOF reached
+>>> test_tabnanny.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_tabnanny/test_tabnanny.sld"@3.22 -- Incomplete form, EOF reached
+>>> test_tarfile.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_tcl.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_telnetlib.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_tempfile.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_textwrap.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_threadedtempfile.py
+ModuleNotFoundError: No module named 'tempfile'
+>>> test_threading_local.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_threading.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_threading/test_threading.sld"@3.43 -- Incomplete form, EOF reached
+>>> test_thread.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_threadsignals.py
+ModuleNotFoundError: No module named 'signal'
+>>> test_timeit.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_timeout.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_time.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_tix.py
+AttributeError
+>>> test_tk.py
+AttributeError
+>>> test_tokenize.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_tokenize/test_tokenize.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_tools
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- File exists
+(create-directory
+ "/home/leonard/.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/un...
+)
+>>> test_traceback.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_traceback/test_traceback.sld"@3.41 -- Invalid escaped character: #\.
+>>> test_tracemalloc.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_tracemalloc/test_tracemalloc.sld"@3.67 -- Incomplete form, EOF reached
+>>> test_trace.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_trace/test_trace.sld"@3.22 -- Incomplete form, EOF reached
+>>> test_ttk_guionly.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_ttk_textonly.py
+AttributeError
+>>> test_tuple.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_tuple/test_tuple.sld"@3.72 -- Incomplete form, EOF reached
+>>> test_turtle.py
+ModuleNotFoundError: No module named 'pickle'
+>>> test_typechecks.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- (Argument 1) Instance of #<type #2 PyObjectType> expected
+(zipi/rts#PyObjectType-bases 'object-class)
+>>> test_type_comments.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_types.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_typing.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_typing/test_typing.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_ucn.py
+ModuleNotFoundError: No module named 'unicodedata'
+>>> test_unary.py
+running  UnaryOpTestCase
+test_bad_types : the assert function assertRaises is not implemented
+test_invert : FAIL
+  1 'assertTrue' FAILLED
+  4 'assertTrue' FAILLED
+
+test_negation_of_exponentiation : OK
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- py-obj-cls "unhandled object type" #<error-exception #2>
+>>> test_unicodedata.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_unicodedata/test_unicodedata.sld"@3.22 -- Incomplete form, EOF reached
+>>> test_unicode_file_functions.py
+ModuleNotFoundError: No module named 'warnings'
+>>> test_unicode_file.py
+ModuleNotFoundError: No module named 'glob'
+>>> test_unicode_identifiers.py
+running  PEP3131Test
+test_invalid : An error was raised : <AttributeError object #0x2>
+test_non_bmp_normalized : NotImplementedError raised
+test_valid : An error was raised : <AttributeError object #0x3>
+
+success : 0
+not implemented : 1
+total : 3
+success rate : (0/3) = 0.0 %
+>>> test_unicode.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_unicode/test_unicode.sld"@3.43 -- Incomplete form, EOF reached
+>>> test_unittest.py
+ModuleNotFoundError: No module named 'unittest.test'; unittest is not a package
+>>> test_univnewlines.py
+ModuleNotFoundError: No module named 'io'
+>>> test_unpack_ex.py
+NotImplementedError: py-call does not support nammed args, *args or **kwargs
+>>> test_unpack.py
+NotImplementedError: py-call does not support nammed args, *args or **kwargs
+>>> test_unparse.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_unparse/test_unparse.sld"@3.76 -- Incomplete form, EOF reached
+>>> test_urllib2_localnet.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_urllib2net.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_urllib2.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_urllib2/test_urllib2.sld"@3.64 -- Incomplete form, EOF reached
+>>> test_urllibnet.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_urllibnet/test_urllibnet.sld"@3.76 -- Incomplete form, EOF reached
+>>> test_urllib.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_urllib/test_urllib.sld"@3.69 -- Incomplete form, EOF reached
+>>> test_urllib_response.py
+ModuleNotFoundError: No module named 'socket'
+>>> test_urlparse.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_urlparse/test_urlparse.sld"@3.63 -- Incomplete form, EOF reached
+>>> test_userdict.py
+AttributeError
+>>> test_userlist.py
+ModuleNotFoundError: No module named 'collections'
+>>> test_userstring.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_utf8_mode.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_utf8_mode/test_utf8_mode.sld"@3.73 -- Incomplete form, EOF reached
+>>> test_utf8source.py
+running  BuiltinCompileTests
+test_latin1 : An error was raised : <AttributeError object #0x2>
+
+success : 0
+not implemented : 0
+total : 1
+success rate : (0/1) = 0.0 %
+running  PEP3120Test
+test_badsyntax : An error was raised : <ModuleNotFoundError object #0x3>
+test_pep3120 : An error was raised : <AttributeError object #0x4>
+
+success : 0
+not implemented : 0
+total : 2
+success rate : (0/2) = 0.0 %
+>>> test_uuid.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_uu.py
+ModuleNotFoundError: No module named 'stat'
+>>> test_venv.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_venv/test_venv.sld"@3.74 -- Incomplete form, EOF reached
+>>> test_wait3.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_wait3/test_wait3.sld"@1.14 -- Invalid token
+>>> test_wait4.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_wait4/test_wait4.sld"@1.14 -- Invalid token
+>>> test_warnings
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- File exists
+(create-directory
+ "/home/leonard/.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/un...
+)
+>>> test_wave.py
+AttributeError
+>>> test_weakref.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_weakset.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_webbrowser.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_webbrowser/test_webbrowser.sld"@1.14 -- Invalid token
+>>> test_winconsoleio.py
+ModuleNotFoundError: No module named 'io'
+>>> test_winreg.py
+ModuleNotFoundError: No module named 'errno'
+>>> test_winsound.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_with.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_wsgiref.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_xdrlib.py
+ModuleNotFoundError: No module named 'xdrlib'
+>>> test_xml_dom_minicompat.py
+ModuleNotFoundError: No module named 'copy'
+>>> test_xml_etree_c.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_xml_etree.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_xml_etree/test_xml_etree.sld"@3.76 -- Incomplete form, EOF reached
+>>> test_xmlrpc_net.py
+ModuleNotFoundError: No module named 'collections'
+>>> test_xmlrpc.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_xmlrpc/test_xmlrpc.sld"@3.41 -- Incomplete form, EOF reached
+>>> test__xxsubinterpreters.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test__xxsubinterpreters/test__xxsubinterpreters.sld"@3.39 -- Incomplete form, EOF reached
+>>> test_xxtestfuzz.py
+ModuleNotFoundError: No module named 'faulthandler'
+>>> test_yield_from.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_yield_from/test_yield_from.sld"@1.127 -- Ill-formed expression
+>>> test_zipapp.py
+ModuleNotFoundError: No module named 'io'
+>>> test_zipfile64.py
+AttributeError
+>>> test_zipfile.py
+*** ERROR IN "../../../../.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/unittest/test_suite/test_zipfile/test_zipfile.sld"@3.63 -- Incomplete form, EOF reached
+>>> test_zipimport.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_zipimport_support.py
+ModuleNotFoundError: No module named 'os.path'; os is not a package
+>>> test_zlib.py
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- Unbound variable: ***
+>>> test_zoneinfo
+*** ERROR IN main, "../../../../scripts/zipi"@40.13 -- File exists
+(create-directory
+ "/home/leonard/.zipicache/cache@zipi_0_0_1/home/leonard/udem-dlteam/zipi/un...
+)
