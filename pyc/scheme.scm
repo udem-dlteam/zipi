@@ -339,10 +339,10 @@
 
 (define-walk-method (scheme this::PycReturn conf)
    (if (PycReturn-tail this)
-      (scheme (PycReturn-val this) conf)
-      (let ((return-sym (config-get conf return:)))
-        (epairify this
-  	      `(,return-sym ,(scheme (PycReturn-val this) conf))))))
+       (scheme (PycReturn-val this) conf)
+       (let ((return-sym (config-get conf return:)))
+	  (epairify this
+	     `(,return-sym ,(scheme (PycReturn-val this) conf))))))
 
 (define-walk-method (scheme this::PycReturnYield conf)
    (let ((kont (PycReturnYield-kont this))
@@ -1286,11 +1286,24 @@
       ((PycRef-can-direct-access this)
         name)
   	  ((eq? (PycVar-scope var) 'global)
-  	   `(or ,name
-  	        (global-get
-  		   %global
-  		   ,(pyc-propname id)
-  		   ,(scheme-cache (PycRef-cache this) this))))
+        (cond-expand
+          (bigloo
+           (if (config-get conf optim-globals:)
+         `(or ,name
+              (global-get
+           %global
+           ,(pyc-propname id)
+           ,(scheme-cache (PycRef-cache this) this)))
+         `(global-get
+           %global
+           ,(pyc-propname id)
+           ,(scheme-cache (PycRef-cache this) this))))
+          (else
+           `(or ,name
+          (global-get
+             %global
+             ,(pyc-propname id)
+             ,(scheme-cache (PycRef-cache this) this))))))
   	  (else
   	   `(or ,name
   	        (py-throw-exception-with-message

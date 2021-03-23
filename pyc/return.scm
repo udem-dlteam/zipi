@@ -172,3 +172,15 @@
 
 (define-walk-method (return this::PycFun block tail conf)
    (return (PycFun-body this) this #t conf))
+
+(define-walk-method (return this::PycLoop block tail conf)
+   (return (PycLoop-body this) block #f conf))
+
+(define-walk-method (return this::PycFor block tail conf)
+   (return (PycLoop-body this) block #f conf)
+   (return (PycFor-target this) block #f conf)
+   (return (PycFor-iter this) block #f conf))
+
+(define-walk-method (return this::PycWhile block tail conf)
+   (return (PycLoop-body this) block #f conf)
+   (return (PycWhile-test this) block #f conf))

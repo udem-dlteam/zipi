@@ -1,0 +1,1223 @@
+
+==== STATISTICS ====
+
+Ran 430 tests
+PASS : 1
+FAIL : 6
+compile_error : 246
+import_error : 112
+attribute_error : 57
+other_error : 8
+
+==== COMPLETE REPORT ====
+
+--- PASS ---
+test_suite/test_int_literal.py
+    running  TestHexOctBin
+    test_bin_baseline : OK
+    test_bin_unsigned : OK
+    test_hex_baseline : OK
+    test_hex_unsigned : OK
+    test_oct_baseline : OK
+    test_oct_unsigned : OK
+    
+    success : 6
+    not implemented : 0
+    total : 6
+    PASS |  6 tests passed ! yay !
+    
+
+--- FAIL ---
+test_suite/test_bool.py
+    test_blocked : the assert function assertRaises is not implemented
+    test_boolean : the assert function assertNotIsInstance is not implemented
+    test_callable : NotImplementedError raised
+    test_contains : OK
+    test_convert : the assert function assertRaises is not implemented
+    test_convert_to_bool : the assert function assertRaises is not implemented
+    test_fileclosed : An error was raised : <AttributeError object #0x2>
+    test_float : NotImplementedError raised
+    test_format : An error was raised : <ValueError object #0x3>
+    test_from_bytes : An error was raised : <AttributeError object #0x4>
+    test_hasattr : NotImplementedError raised
+    test_int : OK
+    test_isinstance : NotImplementedError raised
+    test_issubclass : NotImplementedError raised
+    test_keyword_args : the assert function assertRaisesRegex is not implemented
+    test_marshal : An error was raised : <ModuleNotFoundError object #0x5>
+    test_math : FAIL
+      57 'assertIs' FAILLED
+      58 'assertIs' FAILLED
+      59 'assertIs' FAILLED
+      72 'assertIs' FAILLED
+      73 'assertIs' FAILLED
+      74 'assertIs' FAILLED
+      87 'assertIs' FAILLED
+      88 'assertIs' FAILLED
+      89 'assertIs' FAILLED
+      102 'assertIs' FAILLED
+      103 'assertIs' FAILLED
+      104 'assertIs' FAILLED
+      138 'assertIs' FAILLED
+      140 'assertIs' FAILLED
+    
+    test_operator : An error was raised : <ModuleNotFoundError object #0x6>
+    test_pickle : An error was raised : <ModuleNotFoundError object #0x7>
+    test_picklevalues : An error was raised : <ModuleNotFoundError object #0x8>
+    test_print : An error was raised : <AttributeError object #0x9>
+    test_real_and_imag : An error was raised : <AttributeError object #0xa>
+    test_repr : NotImplementedError raised
+    test_sane_len : OK
+    test_str : OK
+    test_string : An error was raised : <AttributeError object #0xb>
+    test_subclass : An error was raised : <AttributeError object #0xc>
+    test_types : OK
+    
+    success : 5
+    not implemented : 11
+    total : 28
+    FAIL | 28 tests runned. PASSED = 5    FAILLED = 23
+    
+test_suite/test_exception_variations.py
+    running  ExceptionTestCase
+    test_nested : FAIL
+      1 'assertTrue' FAILLED
+      2 'assertTrue' FAILLED
+      3 'assertTrue' FAILLED
+    
+    test_nested_else : FAIL
+      1 'assertFalse' FAILLED
+      2 'assertTrue' FAILLED
+      3 'assertFalse' FAILLED
+      4 'assertTrue' FAILLED
+      5 'assertTrue' FAILLED
+    
+    test_try_except : FAIL
+      1 'assertTrue' FAILLED
+    
+    test_try_except_else : FAIL
+      1 'assertFalse' FAILLED
+      2 'assertTrue' FAILLED
+    
+    test_try_except_else_finally : FAIL
+      1 'assertTrue' FAILLED
+      2 'assertTrue' FAILLED
+      3 'assertFalse' FAILLED
+    
+    test_try_except_else_finally_no_exception : FAIL
+      1 'assertFalse' FAILLED
+      2 'assertTrue' FAILLED
+      3 'assertTrue' FAILLED
+    
+    test_try_except_else_no_exception : FAIL
+      1 'assertFalse' FAILLED
+      2 'assertTrue' FAILLED
+    
+    test_try_except_finally : FAIL
+      1 'assertTrue' FAILLED
+      2 'assertTrue' FAILLED
+    
+    test_try_except_finally_no_exception : FAIL
+      1 'assertFalse' FAILLED
+      2 'assertTrue' FAILLED
+    
+    test_try_except_no_exception : FAIL
+      1 'assertFalse' FAILLED
+    
+    test_try_finally_no_exception : FAIL
+      1 'assertTrue' FAILLED
+    
+    
+    success : 0
+    not implemented : 0
+    total : 11
+    FAIL | 11 tests runned. PASSED = 0    FAILLED = 11
+    
+test_suite/test_longexp.py
+    running  LongExpText
+    test_longexp : An error was raised : <ValueError object #0x2>
+    
+    success : 0
+    not implemented : 0
+    total : 1
+    FAIL | 1 tests runned. PASSED = 0    FAILLED = 1
+    
+test_suite/test_structseq.py
+    running  StructSeqTest
+    test_cmp : An error was raised : <AttributeError object #0x2>
+    test_concat : An error was raised : <AttributeError object #0x3>
+    test_constructor : An error was raised : <AttributeError object #0x4>
+    test_contains : An error was raised : <AttributeError object #0x5>
+    test_eviltuple : An error was raised : <AttributeError object #0x6>
+    test_extended_getslice : An error was raised : <AttributeError object #0x7>
+    test_fields : An error was raised : <AttributeError object #0x8>
+    test_hash : An error was raised : <AttributeError object #0x9>
+    test_reduce : An error was raised : <AttributeError object #0xa>
+    test_repeat : An error was raised : <AttributeError object #0xb>
+    test_repr : An error was raised : <AttributeError object #0xc>
+    test_tuple : An error was raised : <AttributeError object #0xd>
+    
+    success : 0
+    not implemented : 0
+    total : 12
+    FAIL | 12 tests runned. PASSED = 0    FAILLED = 12
+    
+test_suite/test_unicode_identifiers.py
+    running  PEP3131Test
+    test_invalid : An error was raised : <AttributeError object #0x2>
+    test_non_bmp_normalized : NotImplementedError raised
+    test_valid : An error was raised : <AttributeError object #0x3>
+    
+    success : 0
+    not implemented : 1
+    total : 3
+    FAIL | 3 tests runned. PASSED = 0    FAILLED = 3
+    
+test_suite/test_utf8source.py
+    running  BuiltinCompileTests
+    test_latin1 : An error was raised : <AttributeError object #0x2>
+    
+    success : 0
+    not implemented : 0
+    total : 1
+    FAIL | 1 tests runned. PASSED = 0    FAILLED = 1
+    running  PEP3120Test
+    test_badsyntax : An error was raised : <ModuleNotFoundError object #0x3>
+    test_pep3120 : An error was raised : <AttributeError object #0x4>
+    
+    success : 0
+    not implemented : 0
+    total : 2
+    FAIL | 2 tests runned. PASSED = 0    FAILLED = 2
+    
+
+--- compile_error ---
+test_suite/test___all__.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test___all__.py & wait $!')
+test_suite/test__xxsubinterpreters.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test__xxsubinterpreters.py & wait $!')
+test_suite/test_abc.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_abc.py & wait $!')
+test_suite/test_argparse.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_argparse.py & wait $!')
+test_suite/test_array.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_array.py & wait $!')
+test_suite/test_ast.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_ast.py & wait $!')
+test_suite/test_asyncgen.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_asyncgen.py & wait $!')
+test_suite/test_asyncio
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_asyncio & wait $!')
+test_suite/test_atexit.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_atexit.py & wait $!')
+test_suite/test_audioop.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_audioop.py & wait $!')
+test_suite/test_audit.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_audit.py & wait $!')
+test_suite/test_augassign.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_augassign.py & wait $!')
+test_suite/test_bdb.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_bdb.py & wait $!')
+test_suite/test_bigmem.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_bigmem.py & wait $!')
+test_suite/test_bisect.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_bisect.py & wait $!')
+test_suite/test_buffer.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_buffer.py & wait $!')
+test_suite/test_builtin.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_builtin.py & wait $!')
+test_suite/test_bytes.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_bytes.py & wait $!')
+test_suite/test_bz2.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_bz2.py & wait $!')
+test_suite/test_c_locale_coercion.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_c_locale_coercion.py & wait $!')
+test_suite/test_call.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_call.py & wait $!')
+test_suite/test_capi.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_capi.py & wait $!')
+test_suite/test_class.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_class.py & wait $!')
+test_suite/test_clinic.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_clinic.py & wait $!')
+test_suite/test_cmd_line.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_cmd_line.py & wait $!')
+test_suite/test_cmd_line_script.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_cmd_line_script.py & wait $!')
+test_suite/test_code.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_code.py & wait $!')
+test_suite/test_code_module.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_code_module.py & wait $!')
+test_suite/test_codeccallbacks.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_codeccallbacks.py & wait $!')
+test_suite/test_codecs.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_codecs.py & wait $!')
+test_suite/test_collections.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_collections.py & wait $!')
+test_suite/test_colorsys.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_colorsys.py & wait $!')
+test_suite/test_compile.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_compile.py & wait $!')
+test_suite/test_compileall.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_compileall.py & wait $!')
+test_suite/test_complex.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_complex.py & wait $!')
+test_suite/test_concurrent_futures.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_concurrent_futures.py & wait $!')
+test_suite/test_configparser.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_configparser.py & wait $!')
+test_suite/test_contains.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_contains.py & wait $!')
+test_suite/test_context.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_context.py & wait $!')
+test_suite/test_contextlib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_contextlib.py & wait $!')
+test_suite/test_contextlib_async.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_contextlib_async.py & wait $!')
+test_suite/test_copy.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_copy.py & wait $!')
+test_suite/test_coroutines.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_coroutines.py & wait $!')
+test_suite/test_csv.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_csv.py & wait $!')
+test_suite/test_curses.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_curses.py & wait $!')
+test_suite/test_dataclasses.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_dataclasses.py & wait $!')
+test_suite/test_dbm.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_dbm.py & wait $!')
+test_suite/test_dbm_gnu.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_dbm_gnu.py & wait $!')
+test_suite/test_decimal.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_decimal.py & wait $!')
+test_suite/test_decorators.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_decorators.py & wait $!')
+test_suite/test_defaultdict.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_defaultdict.py & wait $!')
+test_suite/test_deque.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_deque.py & wait $!')
+test_suite/test_descr.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_descr.py & wait $!')
+test_suite/test_dict.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_dict.py & wait $!')
+test_suite/test_dict_version.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_dict_version.py & wait $!')
+test_suite/test_dictcomps.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_dictcomps.py & wait $!')
+test_suite/test_difflib_expect.html
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_difflib_expect.html & wait $!')
+test_suite/test_dis.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_dis.py & wait $!')
+test_suite/test_doctest.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_doctest.py & wait $!')
+test_suite/test_doctest.txt
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_doctest.txt & wait $!')
+test_suite/test_doctest3.txt
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_doctest3.txt & wait $!')
+test_suite/test_doctest4.txt
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_doctest4.txt & wait $!')
+test_suite/test_dynamicclassattribute.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_dynamicclassattribute.py & wait $!')
+test_suite/test_eintr.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_eintr.py & wait $!')
+test_suite/test_email
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_email & wait $!')
+test_suite/test_embed.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_embed.py & wait $!')
+test_suite/test_ensurepip.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_ensurepip.py & wait $!')
+test_suite/test_enum.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_enum.py & wait $!')
+test_suite/test_enumerate.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_enumerate.py & wait $!')
+test_suite/test_exception_hierarchy.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_exception_hierarchy.py & wait $!')
+test_suite/test_exceptions.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_exceptions.py & wait $!')
+test_suite/test_faulthandler.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_faulthandler.py & wait $!')
+test_suite/test_fileinput.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_fileinput.py & wait $!')
+test_suite/test_fileio.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_fileio.py & wait $!')
+test_suite/test_finalization.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_finalization.py & wait $!')
+test_suite/test_fnmatch.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_fnmatch.py & wait $!')
+test_suite/test_fractions.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_fractions.py & wait $!')
+test_suite/test_frame.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_frame.py & wait $!')
+test_suite/test_fstring.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_fstring.py & wait $!')
+test_suite/test_ftplib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_ftplib.py & wait $!')
+test_suite/test_funcattrs.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_funcattrs.py & wait $!')
+test_suite/test_functools.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_functools.py & wait $!')
+test_suite/test_future.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_future.py & wait $!')
+test_suite/test_gc.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_gc.py & wait $!')
+test_suite/test_gdb.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_gdb.py & wait $!')
+test_suite/test_generators.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_generators.py & wait $!')
+test_suite/test_genericalias.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_genericalias.py & wait $!')
+test_suite/test_genericclass.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_genericclass.py & wait $!')
+test_suite/test_getopt.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_getopt.py & wait $!')
+test_suite/test_gettext.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_gettext.py & wait $!')
+test_suite/test_glob.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_glob.py & wait $!')
+test_suite/test_grammar.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_grammar.py & wait $!')
+test_suite/test_graphlib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_graphlib.py & wait $!')
+test_suite/test_gzip.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_gzip.py & wait $!')
+test_suite/test_hash.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_hash.py & wait $!')
+test_suite/test_hashlib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_hashlib.py & wait $!')
+test_suite/test_heapq.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_heapq.py & wait $!')
+test_suite/test_hmac.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_hmac.py & wait $!')
+test_suite/test_htmlparser.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_htmlparser.py & wait $!')
+test_suite/test_http_cookiejar.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_http_cookiejar.py & wait $!')
+test_suite/test_httplib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_httplib.py & wait $!')
+test_suite/test_imaplib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_imaplib.py & wait $!')
+test_suite/test_imghdr.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_imghdr.py & wait $!')
+test_suite/test_imp.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_imp.py & wait $!')
+test_suite/test_import
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_import & wait $!')
+test_suite/test_importlib
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_importlib & wait $!')
+test_suite/test_inspect.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_inspect.py & wait $!')
+test_suite/test_int.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_int.py & wait $!')
+test_suite/test_io.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_io.py & wait $!')
+test_suite/test_ioctl.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_ioctl.py & wait $!')
+test_suite/test_ipaddress.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_ipaddress.py & wait $!')
+test_suite/test_iter.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_iter.py & wait $!')
+test_suite/test_itertools.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_itertools.py & wait $!')
+test_suite/test_json
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_json & wait $!')
+test_suite/test_keyword.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_keyword.py & wait $!')
+test_suite/test_keywordonlyarg.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_keywordonlyarg.py & wait $!')
+test_suite/test_kqueue.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_kqueue.py & wait $!')
+test_suite/test_largefile.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_largefile.py & wait $!')
+test_suite/test_linecache.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_linecache.py & wait $!')
+test_suite/test_locale.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_locale.py & wait $!')
+test_suite/test_logging.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_logging.py & wait $!')
+test_suite/test_long.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_long.py & wait $!')
+test_suite/test_mailbox.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_mailbox.py & wait $!')
+test_suite/test_math.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_math.py & wait $!')
+test_suite/test_memoryio.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_memoryio.py & wait $!')
+test_suite/test_memoryview.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_memoryview.py & wait $!')
+test_suite/test_mimetypes.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_mimetypes.py & wait $!')
+test_suite/test_mmap.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_mmap.py & wait $!')
+test_suite/test_module.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_module.py & wait $!')
+test_suite/test_modulefinder.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_modulefinder.py & wait $!')
+test_suite/test_named_expressions.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_named_expressions.py & wait $!')
+test_suite/test_nntplib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_nntplib.py & wait $!')
+test_suite/test_opcodes.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_opcodes.py & wait $!')
+test_suite/test_operator.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_operator.py & wait $!')
+test_suite/test_optparse.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_optparse.py & wait $!')
+test_suite/test_ordered_dict.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_ordered_dict.py & wait $!')
+test_suite/test_os.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_os.py & wait $!')
+test_suite/test_parser.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_parser.py & wait $!')
+test_suite/test_pathlib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_pathlib.py & wait $!')
+test_suite/test_peepholer.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_peepholer.py & wait $!')
+test_suite/test_peg_generator
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_peg_generator & wait $!')
+test_suite/test_peg_parser.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_peg_parser.py & wait $!')
+test_suite/test_pickle.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_pickle.py & wait $!')
+test_suite/test_picklebuffer.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_picklebuffer.py & wait $!')
+test_suite/test_pickletools.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_pickletools.py & wait $!')
+test_suite/test_pkgutil.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_pkgutil.py & wait $!')
+test_suite/test_platform.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_platform.py & wait $!')
+test_suite/test_positional_only_arg.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_positional_only_arg.py & wait $!')
+test_suite/test_posix.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_posix.py & wait $!')
+test_suite/test_profile.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_profile.py & wait $!')
+test_suite/test_property.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_property.py & wait $!')
+test_suite/test_pulldom.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_pulldom.py & wait $!')
+test_suite/test_py_compile.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_py_compile.py & wait $!')
+test_suite/test_pydoc.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_pydoc.py & wait $!')
+test_suite/test_queue.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_queue.py & wait $!')
+test_suite/test_raise.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_raise.py & wait $!')
+test_suite/test_random.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_random.py & wait $!')
+test_suite/test_range.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_range.py & wait $!')
+test_suite/test_re.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_re.py & wait $!')
+test_suite/test_readline.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_readline.py & wait $!')
+test_suite/test_regrtest.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_regrtest.py & wait $!')
+test_suite/test_repl.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_repl.py & wait $!')
+test_suite/test_richcmp.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_richcmp.py & wait $!')
+test_suite/test_rlcompleter.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_rlcompleter.py & wait $!')
+test_suite/test_runpy.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_runpy.py & wait $!')
+test_suite/test_sched.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_sched.py & wait $!')
+test_suite/test_scope.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_scope.py & wait $!')
+test_suite/test_secrets.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_secrets.py & wait $!')
+test_suite/test_selectors.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_selectors.py & wait $!')
+test_suite/test_set.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_set.py & wait $!')
+test_suite/test_shelve.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_shelve.py & wait $!')
+test_suite/test_shutil.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_shutil.py & wait $!')
+test_suite/test_signal.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_signal.py & wait $!')
+test_suite/test_site.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_site.py & wait $!')
+test_suite/test_smtpd.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_smtpd.py & wait $!')
+test_suite/test_smtplib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_smtplib.py & wait $!')
+test_suite/test_socket.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_socket.py & wait $!')
+test_suite/test_socketserver.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_socketserver.py & wait $!')
+test_suite/test_ssl.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_ssl.py & wait $!')
+test_suite/test_statistics.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_statistics.py & wait $!')
+test_suite/test_string.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_string.py & wait $!')
+test_suite/test_string_literals.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_string_literals.py & wait $!')
+test_suite/test_strtod.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_strtod.py & wait $!')
+test_suite/test_struct.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_struct.py & wait $!')
+test_suite/test_subclassinit.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_subclassinit.py & wait $!')
+test_suite/test_subprocess.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_subprocess.py & wait $!')
+test_suite/test_super.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_super.py & wait $!')
+test_suite/test_support.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_support.py & wait $!')
+test_suite/test_sys.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_sys.py & wait $!')
+test_suite/test_sys_setprofile.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_sys_setprofile.py & wait $!')
+test_suite/test_sys_settrace.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_sys_settrace.py & wait $!')
+test_suite/test_sysconfig.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_sysconfig.py & wait $!')
+test_suite/test_tabnanny.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_tabnanny.py & wait $!')
+test_suite/test_tarfile.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_tarfile.py & wait $!')
+test_suite/test_tcl.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_tcl.py & wait $!')
+test_suite/test_telnetlib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_telnetlib.py & wait $!')
+test_suite/test_tempfile.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_tempfile.py & wait $!')
+test_suite/test_textwrap.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_textwrap.py & wait $!')
+test_suite/test_thread.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_thread.py & wait $!')
+test_suite/test_threading.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_threading.py & wait $!')
+test_suite/test_threading_local.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_threading_local.py & wait $!')
+test_suite/test_time.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_time.py & wait $!')
+test_suite/test_timeit.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_timeit.py & wait $!')
+test_suite/test_timeout.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_timeout.py & wait $!')
+test_suite/test_tokenize.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_tokenize.py & wait $!')
+test_suite/test_tools
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_tools & wait $!')
+test_suite/test_trace.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_trace.py & wait $!')
+test_suite/test_traceback.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_traceback.py & wait $!')
+test_suite/test_tracemalloc.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_tracemalloc.py & wait $!')
+test_suite/test_ttk_guionly.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_ttk_guionly.py & wait $!')
+test_suite/test_tuple.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_tuple.py & wait $!')
+test_suite/test_type_comments.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_type_comments.py & wait $!')
+test_suite/test_typechecks.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_typechecks.py & wait $!')
+test_suite/test_types.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_types.py & wait $!')
+test_suite/test_typing.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_typing.py & wait $!')
+test_suite/test_unary.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_unary.py & wait $!')
+test_suite/test_unicode.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_unicode.py & wait $!')
+test_suite/test_unicodedata.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_unicodedata.py & wait $!')
+test_suite/test_unparse.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_unparse.py & wait $!')
+test_suite/test_urllib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_urllib.py & wait $!')
+test_suite/test_urllib2.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_urllib2.py & wait $!')
+test_suite/test_urllib2_localnet.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_urllib2_localnet.py & wait $!')
+test_suite/test_urllib2net.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_urllib2net.py & wait $!')
+test_suite/test_urllibnet.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_urllibnet.py & wait $!')
+test_suite/test_urlparse.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_urlparse.py & wait $!')
+test_suite/test_userstring.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_userstring.py & wait $!')
+test_suite/test_utf8_mode.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_utf8_mode.py & wait $!')
+test_suite/test_uuid.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_uuid.py & wait $!')
+test_suite/test_venv.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_venv.py & wait $!')
+test_suite/test_wait3.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_wait3.py & wait $!')
+test_suite/test_wait4.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_wait4.py & wait $!')
+test_suite/test_warnings
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_warnings & wait $!')
+test_suite/test_weakref.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_weakref.py & wait $!')
+test_suite/test_weakset.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_weakset.py & wait $!')
+test_suite/test_webbrowser.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_webbrowser.py & wait $!')
+test_suite/test_winsound.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_winsound.py & wait $!')
+test_suite/test_with.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_with.py & wait $!')
+test_suite/test_wsgiref.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_wsgiref.py & wait $!')
+test_suite/test_xml_etree.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_xml_etree.py & wait $!')
+test_suite/test_xml_etree_c.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_xml_etree_c.py & wait $!')
+test_suite/test_xmlrpc.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_xmlrpc.py & wait $!')
+test_suite/test_yield_from.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_yield_from.py & wait $!')
+test_suite/test_zipfile.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_zipfile.py & wait $!')
+test_suite/test_zipimport.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_zipimport.py & wait $!')
+test_suite/test_zlib.py
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_zlib.py & wait $!')
+test_suite/test_zoneinfo
+    CalledProcessError(70, '$ZIPIROOT/zpc/run-zipi test_suite/test_zoneinfo & wait $!')
+
+--- import_error ---
+test_suite/test___future__.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test__locale.py
+    ModuleNotFoundError: No module named '_locale'
+    
+test_suite/test__opcode.py
+    ModuleNotFoundError: No module named 'dis'
+    
+test_suite/test__osx_support.py
+    ModuleNotFoundError: No module named 'platform'
+    
+test_suite/test_abstract_numbers.py
+    ModuleNotFoundError: No module named 'math'
+    
+test_suite/test_asdl_parser.py
+    ModuleNotFoundError: No module named 'importlib'
+    
+test_suite/test_asyncore.py
+    ModuleNotFoundError: No module named 'asyncore'
+    
+test_suite/test_base64.py
+    ModuleNotFoundError: No module named 'base64'
+    
+test_suite/test_baseexception.py
+    ModuleNotFoundError: No module named 'platform'
+    
+test_suite/test_binascii.py
+    ModuleNotFoundError: No module named 'binascii'
+    
+test_suite/test_binop.py
+    ModuleNotFoundError: No module named 'operator'
+    
+test_suite/test_bufio.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_calendar.py
+    ModuleNotFoundError: No module named 'calendar'
+    
+test_suite/test_cgi.py
+    ModuleNotFoundError: No module named 'cgi'
+    
+test_suite/test_charmapcodec.py
+    ModuleNotFoundError: No module named 'codecs'
+    
+test_suite/test_check_c_globals.py
+    ModuleNotFoundError: No module named 'test.test_tools'
+    
+test_suite/test_cmd.py
+    ModuleNotFoundError: No module named 'cmd'
+    
+test_suite/test_codeop.py
+    ModuleNotFoundError: No module named 'codeop'
+    
+test_suite/test_copyreg.py
+    ModuleNotFoundError: No module named 'copyreg'
+    
+test_suite/test_cprofile.py
+    ModuleNotFoundError: No module named 'cProfile'
+    
+test_suite/test_crashers.py
+    ModuleNotFoundError: No module named 'glob'
+    
+test_suite/test_dbm_dumb.py
+    ModuleNotFoundError: No module named 'contextlib'
+    
+test_suite/test_devpoll.py
+    ModuleNotFoundError: No module named 'random'
+    
+test_suite/test_dictviews.py
+    ModuleNotFoundError: No module named 'collections'
+    
+test_suite/test_difflib.py
+    ModuleNotFoundError: No module named 'difflib'
+    
+test_suite/test_distutils.py
+    ModuleNotFoundError: No module named 'distutils'
+    
+test_suite/test_docxmlrpc.py
+    ModuleNotFoundError: No module named 'xmlrpc.server'
+    
+test_suite/test_dtrace.py
+    ModuleNotFoundError: No module named 'dis'
+    
+test_suite/test_epoll.py
+    ModuleNotFoundError: No module named 'errno'
+    
+test_suite/test_errno.py
+    ModuleNotFoundError: No module named 'errno'
+    
+test_suite/test_fcntl.py
+    ModuleNotFoundError: No module named 'platform'
+    
+test_suite/test_file.py
+    ModuleNotFoundError: No module named 'array'
+    
+test_suite/test_file_eintr.py
+    ModuleNotFoundError: No module named 'select'
+    
+test_suite/test_filecmp.py
+    ModuleNotFoundError: No module named 'filecmp'
+    
+test_suite/test_float.py
+    ModuleNotFoundError: No module named 'fractions'
+    
+test_suite/test_flufl.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_fork1.py
+    ModuleNotFoundError: No module named '_imp'
+    
+test_suite/test_future3.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_future4.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_future5.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_generator_stop.py
+    ModuleNotFoundError: No module named '__future__'
+    
+test_suite/test_genericpath.py
+    ModuleNotFoundError: No module named 'genericpath'
+    
+test_suite/test_getargs2.py
+    ModuleNotFoundError: No module named 'math'
+    
+test_suite/test_getpass.py
+    ModuleNotFoundError: No module named 'getpass'
+    
+test_suite/test_html.py
+    ModuleNotFoundError: No module named 'html'
+    
+test_suite/test_http_cookies.py
+    ModuleNotFoundError: No module named 'copy'
+    
+test_suite/test_httpservers.py
+    ModuleNotFoundError: No module named 'http.server'
+    
+test_suite/test_index.py
+    ModuleNotFoundError: No module named 'operator'
+    
+test_suite/test_lib2to3.py
+    ModuleNotFoundError: No module named 'lib2to3.tests'
+    
+test_suite/test_lltrace.py
+    ModuleNotFoundError: No module named 'textwrap'
+    
+test_suite/test_lzma.py
+    ModuleNotFoundError: No module named '_compression'
+    
+test_suite/test_mailcap.py
+    ModuleNotFoundError: No module named 'mailcap'
+    
+test_suite/test_marshal.py
+    ModuleNotFoundError: No module named 'array'
+    
+test_suite/test_minidom.py
+    ModuleNotFoundError: No module named 'copy'
+    
+test_suite/test_multiprocessing_fork.py
+    ModuleNotFoundError: No module named 'test._test_multiprocessing'
+    
+test_suite/test_multiprocessing_forkserver.py
+    ModuleNotFoundError: No module named 'test._test_multiprocessing'
+    
+test_suite/test_multiprocessing_spawn.py
+    ModuleNotFoundError: No module named 'test._test_multiprocessing'
+    
+test_suite/test_netrc.py
+    ModuleNotFoundError: No module named 'netrc'
+    
+test_suite/test_ntpath.py
+    ModuleNotFoundError: No module named 'ntpath'
+    
+test_suite/test_numeric_tower.py
+    ModuleNotFoundError: No module named 'random'
+    
+test_suite/test_pdb.py
+    ModuleNotFoundError: No module named 'doctest'
+    
+test_suite/test_pipes.py
+    ModuleNotFoundError: No module named 'pipes'
+    
+test_suite/test_pkg.py
+    ModuleNotFoundError: No module named 'tempfile'
+    
+test_suite/test_plistlib.py
+    ModuleNotFoundError: No module named 'copy'
+    
+test_suite/test_poll.py
+    ModuleNotFoundError: No module named 'subprocess'
+    
+test_suite/test_poplib.py
+    ModuleNotFoundError: No module named 'poplib'
+    
+test_suite/test_posixpath.py
+    ModuleNotFoundError: No module named 'posixpath'
+    
+test_suite/test_pow.py
+    ModuleNotFoundError: No module named 'math'
+    
+test_suite/test_pprint.py
+    ModuleNotFoundError: No module named 'collections'
+    
+test_suite/test_print.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_pstats.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_pyclbr.py
+    ModuleNotFoundError: No module named 'textwrap'
+    
+test_suite/test_pyexpat.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_quopri.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_reprlib.py
+    ModuleNotFoundError: No module named 'shutil'
+    
+test_suite/test_resource.py
+    ModuleNotFoundError: No module named 'contextlib'
+    
+test_suite/test_robotparser.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_sax.py
+    ModuleNotFoundError: No module named 'xml.sax'
+    
+test_suite/test_script_helper.py
+    ModuleNotFoundError: No module named 'subprocess'
+    
+test_suite/test_select.py
+    ModuleNotFoundError: No module named 'errno'
+    
+test_suite/test_shlex.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_slice.py
+    ModuleNotFoundError: No module named 'operator'
+    
+test_suite/test_sndhdr.py
+    ModuleNotFoundError: No module named 'sndhdr'
+    
+test_suite/test_sort.py
+    ModuleNotFoundError: No module named 'random'
+    
+test_suite/test_startfile.py
+    ModuleNotFoundError: No module named 'platform'
+    
+test_suite/test_stat.py
+    ModuleNotFoundError: No module named 'socket'
+    
+test_suite/test_strftime.py
+    ModuleNotFoundError: No module named 'calendar'
+    
+test_suite/test_stringprep.py
+    ModuleNotFoundError: No module named 'stringprep'
+    
+test_suite/test_strptime.py
+    ModuleNotFoundError: No module named 'locale'
+    
+test_suite/test_sundry.py
+    ModuleNotFoundError: No module named 'importlib'
+    
+test_suite/test_symbol.py
+    ModuleNotFoundError: No module named 'sysconfig'
+    
+test_suite/test_symtable.py
+    ModuleNotFoundError: No module named 'symtable'
+    
+test_suite/test_syntax.py
+    ModuleNotFoundError: No module named 're'
+    
+test_suite/test_threadedtempfile.py
+    ModuleNotFoundError: No module named 'tempfile'
+    
+test_suite/test_threadsignals.py
+    ModuleNotFoundError: No module named 'signal'
+    
+test_suite/test_turtle.py
+    ModuleNotFoundError: No module named 'pickle'
+    
+test_suite/test_ucn.py
+    ModuleNotFoundError: No module named 'unicodedata'
+    
+test_suite/test_unicode_file.py
+    ModuleNotFoundError: No module named 'glob'
+    
+test_suite/test_unicode_file_functions.py
+    ModuleNotFoundError: No module named 'warnings'
+    
+test_suite/test_unittest.py
+    ModuleNotFoundError: No module named 'unittest.test'; unittest is not a package
+    
+test_suite/test_univnewlines.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_urllib_response.py
+    ModuleNotFoundError: No module named 'socket'
+    
+test_suite/test_userlist.py
+    ModuleNotFoundError: No module named 'collections'
+    
+test_suite/test_uu.py
+    ModuleNotFoundError: No module named 'stat'
+    
+test_suite/test_winconsoleio.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_winreg.py
+    ModuleNotFoundError: No module named 'errno'
+    
+test_suite/test_xdrlib.py
+    ModuleNotFoundError: No module named 'xdrlib'
+    
+test_suite/test_xml_dom_minicompat.py
+    ModuleNotFoundError: No module named 'copy'
+    
+test_suite/test_xmlrpc_net.py
+    ModuleNotFoundError: No module named 'collections'
+    
+test_suite/test_xxtestfuzz.py
+    ModuleNotFoundError: No module named 'faulthandler'
+    
+test_suite/test_zipapp.py
+    ModuleNotFoundError: No module named 'io'
+    
+test_suite/test_zipimport_support.py
+    ModuleNotFoundError: No module named 'os.path'; os is not a package
+    
+
+--- attribute_error ---
+test_suite/test_aifc.py
+    AttributeError: 'module' object has no attribute 'check_no_resource_warning'
+    
+test_suite/test_asynchat.py
+    AttributeError: 'module' object has no attribute 'socket_helper'
+    
+test_suite/test_bigaddrspace.py
+    AttributeError: 'module' object has no attribute 'bigaddrspacetest'
+    
+test_suite/test_binhex.py
+    AttributeError: 'object' object has no attribute 'check_warnings'
+    
+test_suite/test_cgitb.py
+    AttributeError: 'module' object has no attribute 'temp_dir'
+    
+test_suite/test_cmath.py
+    AttributeError: 'module' object has no attribute 'requires_IEEE_754'
+    
+test_suite/test_codecencodings_cn.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecencodings_hk.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecencodings_iso2022.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecencodings_jp.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecencodings_kr.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecencodings_tw.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecmaps_cn.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecmaps_hk.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecmaps_jp.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecmaps_kr.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_codecmaps_tw.py
+    AttributeError: 'module' object has no attribute 'multibytecodec_support'
+    
+test_suite/test_compare.py
+    AttributeError: 'module' object has no attribute 'ALWAYS_EQ'
+    
+test_suite/test_crypt.py
+    AttributeError: 'module' object has no attribute 'platform'
+    
+test_suite/test_ctypes.py
+    AttributeError: 'module' object has no attribute 'import_module'
+    
+test_suite/test_datetime.py
+    AttributeError: 'module' object has no attribute 'import_fresh_module'
+    
+test_suite/test_dbm_ndbm.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_descrtut.py
+    AttributeError: 'module' object has no attribute 'sortdict'
+    
+test_suite/test_doctest2.py
+    AttributeError: 'module' object has no attribute 'flags'
+    
+test_suite/test_doctest2.txt
+    AttributeError: 'module' object has no attribute 'flags'
+    
+test_suite/test_dynamic.py
+    AttributeError: 'module' object has no attribute 'swap_item'
+    
+test_suite/test_eof.py
+    AttributeError: 'module' object has no attribute 'script_helper'
+    
+test_suite/test_extcall.py
+    AttributeError: 'object' object has no attribute 'run_doctest'
+    
+test_suite/test_format.py
+    AttributeError: 'module' object has no attribute 'verbose'
+    
+test_suite/test_frozen.py
+    AttributeError: 'module' object has no attribute 'captured_stdout'
+    
+test_suite/test_global.py
+    AttributeError: 'module' object has no attribute 'run_unittest'
+    
+test_suite/test_grp.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_idle.py
+    AttributeError: 'module' object has no attribute 'import_module'
+    
+test_suite/test_iterlen.py
+    AttributeError: 'module' object has no attribute 'repeat'
+    
+test_suite/test_list.py
+    AttributeError: 'module' object has no attribute 'list_tests'
+    
+test_suite/test_msilib.py
+    AttributeError: 'module' object has no attribute 'TESTFN'
+    
+test_suite/test_multibytecodec.py
+    AttributeError: 'module' object has no attribute 'TESTFN'
+    
+test_suite/test_multiprocessing_main_handling.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_nis.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_ossaudiodev.py
+    AttributeError: 'object' object has no attribute 'requires'
+    
+test_suite/test_osx_env.py
+    AttributeError: 'module' object has no attribute 'EnvironmentVarGuard'
+    
+test_suite/test_popen.py
+    AttributeError: 'module' object has no attribute 'executable'
+    
+test_suite/test_pty.py
+    AttributeError: 'module' object has no attribute 'verbose'
+    
+test_suite/test_pwd.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_smtpnet.py
+    AttributeError: 'module' object has no attribute 'socket_helper'
+    
+test_suite/test_source_encoding.py
+    AttributeError: 'module' object has no attribute 'TESTFN'
+    
+test_suite/test_spwd.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_sqlite.py
+    AttributeError: 'module' object has no attribute 'import_module'
+    
+test_suite/test_structmembers.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_sunau.py
+    AttributeError: 'module' object has no attribute 'audiotests'
+    
+test_suite/test_syslog.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_tix.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_tk.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_ttk_textonly.py
+    AttributeError: 'object' object has no attribute 'import_module'
+    
+test_suite/test_userdict.py
+    AttributeError: 'module' object has no attribute 'mapping_tests'
+    
+test_suite/test_wave.py
+    AttributeError: 'module' object has no attribute 'audiotests'
+    
+test_suite/test_zipfile64.py
+    AttributeError: 'object' object has no attribute 'requires'
+    
+
+--- other_error ---
+test_suite/test_genexps.py
+    NotImplementedError: hasattr not implemented
+    
+test_suite/test_isinstance.py
+    NotImplementedError: property not implemented
+    
+test_suite/test_listcomps.py
+    NotImplementedError: py-call does not support nammed args, *args or **kwargs
+    
+test_suite/test_metaclass.py
+    NotImplementedError: hasattr not implemented
+    
+test_suite/test_openpty.py
+    NotImplementedError: hasattr not implemented
+    
+test_suite/test_setcomps.py
+    NotImplementedError: py-call does not support nammed args, *args or **kwargs
+    
+test_suite/test_unpack.py
+    NotImplementedError: py-call does not support nammed args, *args or **kwargs
+    
+test_suite/test_unpack_ex.py
+    NotImplementedError: py-call does not support nammed args, *args or **kwargs
+    
