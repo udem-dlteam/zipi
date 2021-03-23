@@ -1311,7 +1311,7 @@
                           (&& "' doesn't define __trunc__ method"))))
         result-1315)))
 
-(define (py-maybe-integer-fallback obj-71)
+(define (py-maybe-to-int-fallback obj-71)
   (letrec* ((__int__-1322 (getattribute-from-obj-mro obj-71 (&& "__int__"))))
     (if (py-test (py-is __int__-1322 py-absent))
         py-absent
@@ -1326,8 +1326,8 @@
                                          (& "__name__")))
                                 (&& "'")))))))))
 
-(define (py-integer-fallback obj-72)
-  (letrec* ((result-1333 (py-maybe-integer-fallback obj-72)))
+(define (py-to-int-fallback obj-72)
+  (letrec* ((result-1333 (py-maybe-to-int-fallback obj-72)))
     (if (py-test (py-is result-1333 py-absent))
         (py-throw
          (py-call py-builtin-TypeError

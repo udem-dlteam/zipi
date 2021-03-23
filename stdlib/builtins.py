@@ -1,10 +1,10 @@
-from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_maybe_integer, semantics_maybe_index, semantics_maybe_trunc
+from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_maybe_to_int, semantics_maybe_index, semantics_maybe_trunc
 
 
 @builtin
 @private
 def convert_to_int(obj):
-    int_conversion = semantics_maybe_integer(obj)
+    int_conversion = semantics_maybe_to_int(obj)
     if int_conversion is absent:
         index_conversion = semantics_maybe_index(obj)
         if index_conversion is absent:

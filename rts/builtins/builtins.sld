@@ -88,7 +88,7 @@
                  (index_conversion-309 #f)
                  (int_conversion-304 #f))
          (begin
-           (set! int_conversion-304 (py-maybe-integer obj-2))
+           (set! int_conversion-304 (py-maybe-to-int obj-2))
            (if (py-test (py-is int_conversion-304 py-absent))
                (begin
                  (set! index_conversion-309 (py-maybe-index obj-2))

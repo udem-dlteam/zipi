@@ -33,8 +33,8 @@ def trunc(obj):
     # trunc:end-body
 
 @define_semantics
-def maybe_integer(obj):
-    # maybe_integer:start-body
+def maybe_to_int(obj):
+    # maybe_to_int:start-body
     __int__ = class_getattr(obj, "__int__")
     if __int__ is absent:
         return absent
@@ -45,17 +45,17 @@ def maybe_integer(obj):
             return result
         else:
             raise TypeError("__int__ returned non-int type: '" + type(obj).__name__ + "'")
-    # maybe_integer:end-body
+    # maybe_to_int:end-body
 
 @define_semantics
-def integer(obj):
-    # integer:start-body
-    result = maybe_integer(obj)
+def to_int(obj):
+    # to_int:start-body
+    result = maybe_to_int(obj)
     if result is absent:
         raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
     else:
         return result
-    # integer:end-body
+    # to_int:end-body
 
 @define_semantics
 def maybe_index(obj):
@@ -573,7 +573,7 @@ class_int_template = \
 @builtin
 @private
 def convert_to_int(obj):
-    int_conversion = semantics_maybe_integer(obj)
+    int_conversion = semantics_maybe_to_int(obj)
     if int_conversion is absent:
         index_conversion = semantics_maybe_index(obj)
         if index_conversion is absent:
@@ -982,7 +982,7 @@ class str:
 
 
 builtins_template = """\
-from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_maybe_integer, semantics_maybe_index, semantics_maybe_trunc
+from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_maybe_to_int, semantics_maybe_index, semantics_maybe_trunc
 
 {definitions}
 

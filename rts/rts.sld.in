@@ -134,8 +134,8 @@
 
     py-len
     py-maybe-len
-    py-integer
-    py-maybe-integer
+    py-to-int
+    py-maybe-to-int
     py-index
     py-maybe-index
     py-trunc

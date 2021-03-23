@@ -1656,11 +1656,11 @@
 (define-macro (py-maybe-trunc obj)
   `(py-maybe-trunc-fallback ,obj))
 
-(define-macro (py-integer obj)
-  `(py-integer-fallback ,obj))
+(define-macro (py-to-int obj)
+  `(py-to-int-fallback ,obj))
 
-(define-macro (py-maybe-integer obj)
-  `(py-maybe-integer-fallback ,obj))
+(define-macro (py-maybe-to-int obj)
+  `(py-maybe-to-int-fallback ,obj))
 
 (define-macro (py-index obj)
   `(py-index-fallback ,obj))

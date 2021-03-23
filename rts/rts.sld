@@ -134,8 +134,8 @@
 
     py-len
     py-maybe-len
-    py-integer
-    py-maybe-integer
+    py-to-int
+    py-maybe-to-int
     py-index
     py-maybe-index
     py-trunc
@@ -776,8 +776,8 @@ py-ne-fallback:reflected
 py-ne-fallback:default
 py-maybe-trunc-fallback
 py-trunc-fallback
-py-maybe-integer-fallback
-py-integer-fallback
+py-maybe-to-int-fallback
+py-to-int-fallback
 py-maybe-index-fallback
 py-index-fallback
 py-maybe-len-fallback

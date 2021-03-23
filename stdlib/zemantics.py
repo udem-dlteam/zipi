@@ -1244,8 +1244,8 @@ def trunc(obj):
     # trunc:end-body
 
 @define_semantics
-def maybe_integer(obj):
-    # maybe_integer:start-body
+def maybe_to_int(obj):
+    # maybe_to_int:start-body
     __int__ = class_getattr(obj, "__int__")
     if __int__ is absent:
         return absent
@@ -1256,17 +1256,17 @@ def maybe_integer(obj):
             return result
         else:
             raise TypeError("__int__ returned non-int type: '" + type(obj).__name__ + "'")
-    # maybe_integer:end-body
+    # maybe_to_int:end-body
 
 @define_semantics
-def integer(obj):
-    # integer:start-body
-    result = maybe_integer(obj)
+def to_int(obj):
+    # to_int:start-body
+    result = maybe_to_int(obj)
     if result is absent:
         raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
     else:
         return result
-    # integer:end-body
+    # to_int:end-body
 
 @define_semantics
 def maybe_index(obj):
