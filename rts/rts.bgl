@@ -819,4 +819,4 @@
    (print-exception o))
 
 (define (bootstrap-builtins)
-  #f)
+  (error "NotImplemented:" "builtins.py bootstrap as module" ""))

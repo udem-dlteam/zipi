@@ -1323,6 +1323,33 @@ def index(obj):
     # index:end-body
 
 @define_semantics
+def maybe_big_index(obj):
+    # maybe_big_index:start-body
+    __index__ = class_getattr(obj, "__index__")
+    if __index__ is absent:
+        return absent
+    else:
+        result = __index__(obj)
+
+        if result is absent:
+            return absent
+        elif type(result) is int:
+            return result
+        else:
+            raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_big_index:end-body
+
+@define_semantics
+def big_index(obj):
+    # big_index:start-body
+    result = maybe_big_index(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
+    # big_index:end-body
+
+@define_semantics
 def maybe_len(obj):
     # len:start-body
     __len__ = class_getattr(obj, "__len__")

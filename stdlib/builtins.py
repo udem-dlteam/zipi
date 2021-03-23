@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_truth, semantics_maybe_to_int, semantics_maybe_to_float, semantics_maybe_index, semantics_maybe_trunc
+from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_truth, semantics_maybe_to_int, semantics_maybe_to_float, semantics_maybe_index, semantics_maybe_trunc, semantics_big_index
 
 
 @builtin
@@ -1106,13 +1106,11 @@ class range:
     def __new__(cls, arg1, arg2=absent, arg3=absent, /):
         if cls is range:
             if arg3 is not absent:
-                return alloc(range, start=arg1, stop=arg2, step=arg3)
+                return alloc(range, start=semantics_big_index(arg1), stop=semantics_big_index(arg2), step=semantics_big_index(arg3))
             elif arg2 is not absent:
-                return alloc(range, start=arg1, stop=arg2, step=1)
+                return alloc(range, start=semantics_big_index(arg1), stop=semantics_big_index(arg2), step=1)
             else:
-                return alloc(range, start=0, stop=arg1, step=1)
-        elif isinstance(cls, type) and issubclass(cls, range):
-            raise NotImplementedError
+                return alloc(range, start=0, stop=semantics_big_index(arg1), step=1)
         else:
             raise TypeError("range.__new__ expected a subtype of 'range' as first argument")
 

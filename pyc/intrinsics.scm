@@ -302,6 +302,8 @@
    (cons 'semantics_maybe_to_int (make-pragma-call-maker 'py-maybe-to-int))
    (cons 'semantics_to_float (make-pragma-call-maker 'py-to-float))
    (cons 'semantics_maybe_to_float (make-pragma-call-maker 'py-maybe-to-float))
+   (cons 'semantics_big_index (make-pragma-call-maker 'py-big-index))
+   (cons 'semantics_maybe_big_index (make-pragma-call-maker 'py-maybe-big-index))
    (cons 'semantics_index (make-pragma-call-maker 'py-index))
    (cons 'semantics_maybe_index (make-pragma-call-maker 'py-maybe-index))
    (cons 'semantics_trunc (make-pragma-call-maker 'py-trunc))

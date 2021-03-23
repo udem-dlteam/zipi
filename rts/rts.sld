@@ -140,6 +140,8 @@
     py-maybe-to-float
     py-index
     py-maybe-index
+    py-big-index
+    py-maybe-big-index
     py-trunc
     py-maybe-trunc
 
@@ -785,6 +787,8 @@ py-maybe-to-float-fallback
 py-to-float-fallback
 py-maybe-index-fallback
 py-index-fallback
+py-maybe-big-index-fallback
+py-big-index-fallback
 py-maybe-len-fallback
 py-len-fallback
 py-truth-fallback

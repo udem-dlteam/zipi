@@ -140,6 +140,8 @@
     py-maybe-to-float
     py-index
     py-maybe-index
+    py-big-index
+    py-maybe-big-index
     py-trunc
     py-maybe-trunc
 
