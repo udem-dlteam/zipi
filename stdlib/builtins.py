@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_maybe_to_int, semantics_maybe_index, semantics_maybe_trunc
+from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_truth, semantics_maybe_to_int, semantics_maybe_to_float, semantics_maybe_index, semantics_maybe_trunc
 
 
 @builtin
@@ -504,7 +504,7 @@ class bool(int):
             if val is absent:
                 return False
             else:
-                return True if val else False
+                return semantics_truth(val)
         else:
             raise TypeError("bool.__new__ expected a subtype of 'bool' as first argument")
 
@@ -583,20 +583,37 @@ class bool(int):
             raise TypeError("descriptor '__rxor__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 
 
+
+@builtin
+@private
+def convert_to_float(obj):
+    float_conversion = semantics_maybe_to_float(obj)
+    if float_conversion is absent:
+        raise TypeError("float() argument must be a string or a number, not '" + type(obj).__name__ + "'")
+    else:
+        return float_conversion
+
 @builtin
 class float:
     def __new__(cls, val=absent):
         if cls is float:
             if val is absent:
                 return 0.0
-            if isinstance(val, float):
-                return py_float_from_host(py_float_to_host(val))
             else:
-                raise NotImplementedError
+                raise convert_to_float(val)
         elif isinstance(cls, type) and issubclass(cls, float):
-            raise NotImplementedError
+            if val is absent:
+                return alloc(float, cls=cls, value=py_float_to_host(0.0))
+            else:
+                return alloc(float, cls=cls, value=py_float_to_host(convert_to_float(val)))
         else:
             raise TypeError("float.__new__ expected a subtype of 'float' as first argument")
+
+    def __float__(self):
+        if isinstance(self, float):
+            return py_float_from_host(py_float_to_host(self))
+        else:
+            raise TypeError("descriptor '__float__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 
     def __bool__(self):
         if isinstance(self, float):

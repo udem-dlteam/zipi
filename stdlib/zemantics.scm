@@ -104,22 +104,22 @@
   `(let ((x-67 ,x-67) (y-68 ,y-68)) (py-ne-fallback:normal x-67 y-68)))
 
 (define (py-add-fallback:normal x-2 y-3)
-  (letrec* ((magic_method-173 (getattribute-from-obj-mro x-2 (&& "__add__"))))
-    (if (py-test (py-is magic_method-173 py-absent))
+  (letrec* ((magic_method-177 (getattribute-from-obj-mro x-2 (&& "__add__"))))
+    (if (py-test (py-is magic_method-177 py-absent))
         (py-add-fallback:reflected x-2 y-3)
-        (letrec* ((result-179 (py-call magic_method-173 x-2 y-3)))
-          (if (py-test (py-is result-179 py-NotImplemented))
+        (letrec* ((result-183 (py-call magic_method-177 x-2 y-3)))
+          (if (py-test (py-is result-183 py-NotImplemented))
               (py-add-fallback:reflected x-2 y-3)
-              result-179)))))
+              result-183)))))
 
 (define (py-add-fallback:reflected x-2 y-3)
-  (letrec* ((magic_method-163 (getattribute-from-obj-mro y-3 (&& "__radd__"))))
-    (if (py-test (py-is magic_method-163 py-absent))
+  (letrec* ((magic_method-167 (getattribute-from-obj-mro y-3 (&& "__radd__"))))
+    (if (py-test (py-is magic_method-167 py-absent))
         (py-add-fallback:err x-2 y-3)
-        (letrec* ((result-169 (py-call magic_method-163 y-3 x-2)))
-          (if (py-test (py-is result-169 py-NotImplemented))
+        (letrec* ((result-173 (py-call magic_method-167 y-3 x-2)))
+          (if (py-test (py-is result-173 py-NotImplemented))
               (py-add-fallback:err x-2 y-3)
-              result-169)))))
+              result-173)))))
 
 (define (py-add-fallback:err x-2 y-3)
   (py-throw
@@ -135,22 +135,22 @@
                     (&& "'")))))
 
 (define (py-bitand-fallback:normal x-4 y-5)
-  (letrec* ((magic_method-203 (getattribute-from-obj-mro x-4 (&& "__and__"))))
-    (if (py-test (py-is magic_method-203 py-absent))
+  (letrec* ((magic_method-207 (getattribute-from-obj-mro x-4 (&& "__and__"))))
+    (if (py-test (py-is magic_method-207 py-absent))
         (py-bitand-fallback:reflected x-4 y-5)
-        (letrec* ((result-209 (py-call magic_method-203 x-4 y-5)))
-          (if (py-test (py-is result-209 py-NotImplemented))
+        (letrec* ((result-213 (py-call magic_method-207 x-4 y-5)))
+          (if (py-test (py-is result-213 py-NotImplemented))
               (py-bitand-fallback:reflected x-4 y-5)
-              result-209)))))
+              result-213)))))
 
 (define (py-bitand-fallback:reflected x-4 y-5)
-  (letrec* ((magic_method-193 (getattribute-from-obj-mro y-5 (&& "__rand__"))))
-    (if (py-test (py-is magic_method-193 py-absent))
+  (letrec* ((magic_method-197 (getattribute-from-obj-mro y-5 (&& "__rand__"))))
+    (if (py-test (py-is magic_method-197 py-absent))
         (py-bitand-fallback:err x-4 y-5)
-        (letrec* ((result-199 (py-call magic_method-193 y-5 x-4)))
-          (if (py-test (py-is result-199 py-NotImplemented))
+        (letrec* ((result-203 (py-call magic_method-197 y-5 x-4)))
+          (if (py-test (py-is result-203 py-NotImplemented))
               (py-bitand-fallback:err x-4 y-5)
-              result-199)))))
+              result-203)))))
 
 (define (py-bitand-fallback:err x-4 y-5)
   (py-throw
@@ -166,22 +166,22 @@
                     (&& "'")))))
 
 (define (py-bitor-fallback:normal x-6 y-7)
-  (letrec* ((magic_method-233 (getattribute-from-obj-mro x-6 (&& "__or__"))))
-    (if (py-test (py-is magic_method-233 py-absent))
+  (letrec* ((magic_method-237 (getattribute-from-obj-mro x-6 (&& "__or__"))))
+    (if (py-test (py-is magic_method-237 py-absent))
         (py-bitor-fallback:reflected x-6 y-7)
-        (letrec* ((result-239 (py-call magic_method-233 x-6 y-7)))
-          (if (py-test (py-is result-239 py-NotImplemented))
+        (letrec* ((result-243 (py-call magic_method-237 x-6 y-7)))
+          (if (py-test (py-is result-243 py-NotImplemented))
               (py-bitor-fallback:reflected x-6 y-7)
-              result-239)))))
+              result-243)))))
 
 (define (py-bitor-fallback:reflected x-6 y-7)
-  (letrec* ((magic_method-223 (getattribute-from-obj-mro y-7 (&& "__ror__"))))
-    (if (py-test (py-is magic_method-223 py-absent))
+  (letrec* ((magic_method-227 (getattribute-from-obj-mro y-7 (&& "__ror__"))))
+    (if (py-test (py-is magic_method-227 py-absent))
         (py-bitor-fallback:err x-6 y-7)
-        (letrec* ((result-229 (py-call magic_method-223 y-7 x-6)))
-          (if (py-test (py-is result-229 py-NotImplemented))
+        (letrec* ((result-233 (py-call magic_method-227 y-7 x-6)))
+          (if (py-test (py-is result-233 py-NotImplemented))
               (py-bitor-fallback:err x-6 y-7)
-              result-229)))))
+              result-233)))))
 
 (define (py-bitor-fallback:err x-6 y-7)
   (py-throw
@@ -197,24 +197,24 @@
                     (&& "'")))))
 
 (define (py-floordiv-fallback:normal x-8 y-9)
-  (letrec* ((magic_method-263
+  (letrec* ((magic_method-267
              (getattribute-from-obj-mro x-8 (&& "__floordiv__"))))
-    (if (py-test (py-is magic_method-263 py-absent))
+    (if (py-test (py-is magic_method-267 py-absent))
         (py-floordiv-fallback:reflected x-8 y-9)
-        (letrec* ((result-269 (py-call magic_method-263 x-8 y-9)))
-          (if (py-test (py-is result-269 py-NotImplemented))
+        (letrec* ((result-273 (py-call magic_method-267 x-8 y-9)))
+          (if (py-test (py-is result-273 py-NotImplemented))
               (py-floordiv-fallback:reflected x-8 y-9)
-              result-269)))))
+              result-273)))))
 
 (define (py-floordiv-fallback:reflected x-8 y-9)
-  (letrec* ((magic_method-253
+  (letrec* ((magic_method-257
              (getattribute-from-obj-mro y-9 (&& "__rfloordiv__"))))
-    (if (py-test (py-is magic_method-253 py-absent))
+    (if (py-test (py-is magic_method-257 py-absent))
         (py-floordiv-fallback:err x-8 y-9)
-        (letrec* ((result-259 (py-call magic_method-253 y-9 x-8)))
-          (if (py-test (py-is result-259 py-NotImplemented))
+        (letrec* ((result-263 (py-call magic_method-257 y-9 x-8)))
+          (if (py-test (py-is result-263 py-NotImplemented))
               (py-floordiv-fallback:err x-8 y-9)
-              result-259)))))
+              result-263)))))
 
 (define (py-floordiv-fallback:err x-8 y-9)
   (py-throw
@@ -230,24 +230,24 @@
                     (&& "'")))))
 
 (define (py-lshift-fallback:normal x-10 y-11)
-  (letrec* ((magic_method-293
+  (letrec* ((magic_method-297
              (getattribute-from-obj-mro x-10 (&& "__lshift__"))))
-    (if (py-test (py-is magic_method-293 py-absent))
+    (if (py-test (py-is magic_method-297 py-absent))
         (py-lshift-fallback:reflected x-10 y-11)
-        (letrec* ((result-299 (py-call magic_method-293 x-10 y-11)))
-          (if (py-test (py-is result-299 py-NotImplemented))
+        (letrec* ((result-303 (py-call magic_method-297 x-10 y-11)))
+          (if (py-test (py-is result-303 py-NotImplemented))
               (py-lshift-fallback:reflected x-10 y-11)
-              result-299)))))
+              result-303)))))
 
 (define (py-lshift-fallback:reflected x-10 y-11)
-  (letrec* ((magic_method-283
+  (letrec* ((magic_method-287
              (getattribute-from-obj-mro y-11 (&& "__rlshift__"))))
-    (if (py-test (py-is magic_method-283 py-absent))
+    (if (py-test (py-is magic_method-287 py-absent))
         (py-lshift-fallback:err x-10 y-11)
-        (letrec* ((result-289 (py-call magic_method-283 y-11 x-10)))
-          (if (py-test (py-is result-289 py-NotImplemented))
+        (letrec* ((result-293 (py-call magic_method-287 y-11 x-10)))
+          (if (py-test (py-is result-293 py-NotImplemented))
               (py-lshift-fallback:err x-10 y-11)
-              result-289)))))
+              result-293)))))
 
 (define (py-lshift-fallback:err x-10 y-11)
   (py-throw
@@ -263,24 +263,24 @@
                     (&& "'")))))
 
 (define (py-matmul-fallback:normal x-12 y-13)
-  (letrec* ((magic_method-323
+  (letrec* ((magic_method-327
              (getattribute-from-obj-mro x-12 (&& "__matmul__"))))
-    (if (py-test (py-is magic_method-323 py-absent))
+    (if (py-test (py-is magic_method-327 py-absent))
         (py-matmul-fallback:reflected x-12 y-13)
-        (letrec* ((result-329 (py-call magic_method-323 x-12 y-13)))
-          (if (py-test (py-is result-329 py-NotImplemented))
+        (letrec* ((result-333 (py-call magic_method-327 x-12 y-13)))
+          (if (py-test (py-is result-333 py-NotImplemented))
               (py-matmul-fallback:reflected x-12 y-13)
-              result-329)))))
+              result-333)))))
 
 (define (py-matmul-fallback:reflected x-12 y-13)
-  (letrec* ((magic_method-313
+  (letrec* ((magic_method-317
              (getattribute-from-obj-mro y-13 (&& "__rmatmul__"))))
-    (if (py-test (py-is magic_method-313 py-absent))
+    (if (py-test (py-is magic_method-317 py-absent))
         (py-matmul-fallback:err x-12 y-13)
-        (letrec* ((result-319 (py-call magic_method-313 y-13 x-12)))
-          (if (py-test (py-is result-319 py-NotImplemented))
+        (letrec* ((result-323 (py-call magic_method-317 y-13 x-12)))
+          (if (py-test (py-is result-323 py-NotImplemented))
               (py-matmul-fallback:err x-12 y-13)
-              result-319)))))
+              result-323)))))
 
 (define (py-matmul-fallback:err x-12 y-13)
   (py-throw
@@ -296,23 +296,23 @@
                     (&& "'")))))
 
 (define (py-mod-fallback:normal x-14 y-15)
-  (letrec* ((magic_method-353 (getattribute-from-obj-mro x-14 (&& "__mod__"))))
-    (if (py-test (py-is magic_method-353 py-absent))
+  (letrec* ((magic_method-357 (getattribute-from-obj-mro x-14 (&& "__mod__"))))
+    (if (py-test (py-is magic_method-357 py-absent))
         (py-mod-fallback:reflected x-14 y-15)
-        (letrec* ((result-359 (py-call magic_method-353 x-14 y-15)))
-          (if (py-test (py-is result-359 py-NotImplemented))
+        (letrec* ((result-363 (py-call magic_method-357 x-14 y-15)))
+          (if (py-test (py-is result-363 py-NotImplemented))
               (py-mod-fallback:reflected x-14 y-15)
-              result-359)))))
+              result-363)))))
 
 (define (py-mod-fallback:reflected x-14 y-15)
-  (letrec* ((magic_method-343
+  (letrec* ((magic_method-347
              (getattribute-from-obj-mro y-15 (&& "__rmod__"))))
-    (if (py-test (py-is magic_method-343 py-absent))
+    (if (py-test (py-is magic_method-347 py-absent))
         (py-mod-fallback:err x-14 y-15)
-        (letrec* ((result-349 (py-call magic_method-343 y-15 x-14)))
-          (if (py-test (py-is result-349 py-NotImplemented))
+        (letrec* ((result-353 (py-call magic_method-347 y-15 x-14)))
+          (if (py-test (py-is result-353 py-NotImplemented))
               (py-mod-fallback:err x-14 y-15)
-              result-349)))))
+              result-353)))))
 
 (define (py-mod-fallback:err x-14 y-15)
   (py-throw
@@ -328,23 +328,23 @@
                     (&& "'")))))
 
 (define (py-mul-fallback:normal x-16 y-17)
-  (letrec* ((magic_method-383 (getattribute-from-obj-mro x-16 (&& "__mul__"))))
-    (if (py-test (py-is magic_method-383 py-absent))
+  (letrec* ((magic_method-387 (getattribute-from-obj-mro x-16 (&& "__mul__"))))
+    (if (py-test (py-is magic_method-387 py-absent))
         (py-mul-fallback:reflected x-16 y-17)
-        (letrec* ((result-389 (py-call magic_method-383 x-16 y-17)))
-          (if (py-test (py-is result-389 py-NotImplemented))
+        (letrec* ((result-393 (py-call magic_method-387 x-16 y-17)))
+          (if (py-test (py-is result-393 py-NotImplemented))
               (py-mul-fallback:reflected x-16 y-17)
-              result-389)))))
+              result-393)))))
 
 (define (py-mul-fallback:reflected x-16 y-17)
-  (letrec* ((magic_method-373
+  (letrec* ((magic_method-377
              (getattribute-from-obj-mro y-17 (&& "__rmul__"))))
-    (if (py-test (py-is magic_method-373 py-absent))
+    (if (py-test (py-is magic_method-377 py-absent))
         (py-mul-fallback:err x-16 y-17)
-        (letrec* ((result-379 (py-call magic_method-373 y-17 x-16)))
-          (if (py-test (py-is result-379 py-NotImplemented))
+        (letrec* ((result-383 (py-call magic_method-377 y-17 x-16)))
+          (if (py-test (py-is result-383 py-NotImplemented))
               (py-mul-fallback:err x-16 y-17)
-              result-379)))))
+              result-383)))))
 
 (define (py-mul-fallback:err x-16 y-17)
   (py-throw
@@ -360,23 +360,23 @@
                     (&& "'")))))
 
 (define (py-pow-fallback:normal x-18 y-19)
-  (letrec* ((magic_method-413 (getattribute-from-obj-mro x-18 (&& "__pow__"))))
-    (if (py-test (py-is magic_method-413 py-absent))
+  (letrec* ((magic_method-417 (getattribute-from-obj-mro x-18 (&& "__pow__"))))
+    (if (py-test (py-is magic_method-417 py-absent))
         (py-pow-fallback:reflected x-18 y-19)
-        (letrec* ((result-419 (py-call magic_method-413 x-18 y-19)))
-          (if (py-test (py-is result-419 py-NotImplemented))
+        (letrec* ((result-423 (py-call magic_method-417 x-18 y-19)))
+          (if (py-test (py-is result-423 py-NotImplemented))
               (py-pow-fallback:reflected x-18 y-19)
-              result-419)))))
+              result-423)))))
 
 (define (py-pow-fallback:reflected x-18 y-19)
-  (letrec* ((magic_method-403
+  (letrec* ((magic_method-407
              (getattribute-from-obj-mro y-19 (&& "__rpow__"))))
-    (if (py-test (py-is magic_method-403 py-absent))
+    (if (py-test (py-is magic_method-407 py-absent))
         (py-pow-fallback:err x-18 y-19)
-        (letrec* ((result-409 (py-call magic_method-403 y-19 x-18)))
-          (if (py-test (py-is result-409 py-NotImplemented))
+        (letrec* ((result-413 (py-call magic_method-407 y-19 x-18)))
+          (if (py-test (py-is result-413 py-NotImplemented))
               (py-pow-fallback:err x-18 y-19)
-              result-409)))))
+              result-413)))))
 
 (define (py-pow-fallback:err x-18 y-19)
   (py-throw
@@ -392,24 +392,24 @@
                     (&& "'")))))
 
 (define (py-rshift-fallback:normal x-20 y-21)
-  (letrec* ((magic_method-443
+  (letrec* ((magic_method-447
              (getattribute-from-obj-mro x-20 (&& "__rshift__"))))
-    (if (py-test (py-is magic_method-443 py-absent))
+    (if (py-test (py-is magic_method-447 py-absent))
         (py-rshift-fallback:reflected x-20 y-21)
-        (letrec* ((result-449 (py-call magic_method-443 x-20 y-21)))
-          (if (py-test (py-is result-449 py-NotImplemented))
+        (letrec* ((result-453 (py-call magic_method-447 x-20 y-21)))
+          (if (py-test (py-is result-453 py-NotImplemented))
               (py-rshift-fallback:reflected x-20 y-21)
-              result-449)))))
+              result-453)))))
 
 (define (py-rshift-fallback:reflected x-20 y-21)
-  (letrec* ((magic_method-433
+  (letrec* ((magic_method-437
              (getattribute-from-obj-mro y-21 (&& "__rrshift__"))))
-    (if (py-test (py-is magic_method-433 py-absent))
+    (if (py-test (py-is magic_method-437 py-absent))
         (py-rshift-fallback:err x-20 y-21)
-        (letrec* ((result-439 (py-call magic_method-433 y-21 x-20)))
-          (if (py-test (py-is result-439 py-NotImplemented))
+        (letrec* ((result-443 (py-call magic_method-437 y-21 x-20)))
+          (if (py-test (py-is result-443 py-NotImplemented))
               (py-rshift-fallback:err x-20 y-21)
-              result-439)))))
+              result-443)))))
 
 (define (py-rshift-fallback:err x-20 y-21)
   (py-throw
@@ -425,23 +425,23 @@
                     (&& "'")))))
 
 (define (py-sub-fallback:normal x-22 y-23)
-  (letrec* ((magic_method-473 (getattribute-from-obj-mro x-22 (&& "__sub__"))))
-    (if (py-test (py-is magic_method-473 py-absent))
+  (letrec* ((magic_method-477 (getattribute-from-obj-mro x-22 (&& "__sub__"))))
+    (if (py-test (py-is magic_method-477 py-absent))
         (py-sub-fallback:reflected x-22 y-23)
-        (letrec* ((result-479 (py-call magic_method-473 x-22 y-23)))
-          (if (py-test (py-is result-479 py-NotImplemented))
+        (letrec* ((result-483 (py-call magic_method-477 x-22 y-23)))
+          (if (py-test (py-is result-483 py-NotImplemented))
               (py-sub-fallback:reflected x-22 y-23)
-              result-479)))))
+              result-483)))))
 
 (define (py-sub-fallback:reflected x-22 y-23)
-  (letrec* ((magic_method-463
+  (letrec* ((magic_method-467
              (getattribute-from-obj-mro y-23 (&& "__rsub__"))))
-    (if (py-test (py-is magic_method-463 py-absent))
+    (if (py-test (py-is magic_method-467 py-absent))
         (py-sub-fallback:err x-22 y-23)
-        (letrec* ((result-469 (py-call magic_method-463 y-23 x-22)))
-          (if (py-test (py-is result-469 py-NotImplemented))
+        (letrec* ((result-473 (py-call magic_method-467 y-23 x-22)))
+          (if (py-test (py-is result-473 py-NotImplemented))
               (py-sub-fallback:err x-22 y-23)
-              result-469)))))
+              result-473)))))
 
 (define (py-sub-fallback:err x-22 y-23)
   (py-throw
@@ -457,24 +457,24 @@
                     (&& "'")))))
 
 (define (py-truediv-fallback:normal x-24 y-25)
-  (letrec* ((magic_method-503
+  (letrec* ((magic_method-507
              (getattribute-from-obj-mro x-24 (&& "__truediv__"))))
-    (if (py-test (py-is magic_method-503 py-absent))
+    (if (py-test (py-is magic_method-507 py-absent))
         (py-truediv-fallback:reflected x-24 y-25)
-        (letrec* ((result-509 (py-call magic_method-503 x-24 y-25)))
-          (if (py-test (py-is result-509 py-NotImplemented))
+        (letrec* ((result-513 (py-call magic_method-507 x-24 y-25)))
+          (if (py-test (py-is result-513 py-NotImplemented))
               (py-truediv-fallback:reflected x-24 y-25)
-              result-509)))))
+              result-513)))))
 
 (define (py-truediv-fallback:reflected x-24 y-25)
-  (letrec* ((magic_method-493
+  (letrec* ((magic_method-497
              (getattribute-from-obj-mro y-25 (&& "__rtruediv__"))))
-    (if (py-test (py-is magic_method-493 py-absent))
+    (if (py-test (py-is magic_method-497 py-absent))
         (py-truediv-fallback:err x-24 y-25)
-        (letrec* ((result-499 (py-call magic_method-493 y-25 x-24)))
-          (if (py-test (py-is result-499 py-NotImplemented))
+        (letrec* ((result-503 (py-call magic_method-497 y-25 x-24)))
+          (if (py-test (py-is result-503 py-NotImplemented))
               (py-truediv-fallback:err x-24 y-25)
-              result-499)))))
+              result-503)))))
 
 (define (py-truediv-fallback:err x-24 y-25)
   (py-throw
@@ -490,23 +490,23 @@
                     (&& "'")))))
 
 (define (py-xor-fallback:normal x-26 y-27)
-  (letrec* ((magic_method-533 (getattribute-from-obj-mro x-26 (&& "__xor__"))))
-    (if (py-test (py-is magic_method-533 py-absent))
+  (letrec* ((magic_method-537 (getattribute-from-obj-mro x-26 (&& "__xor__"))))
+    (if (py-test (py-is magic_method-537 py-absent))
         (py-xor-fallback:reflected x-26 y-27)
-        (letrec* ((result-539 (py-call magic_method-533 x-26 y-27)))
-          (if (py-test (py-is result-539 py-NotImplemented))
+        (letrec* ((result-543 (py-call magic_method-537 x-26 y-27)))
+          (if (py-test (py-is result-543 py-NotImplemented))
               (py-xor-fallback:reflected x-26 y-27)
-              result-539)))))
+              result-543)))))
 
 (define (py-xor-fallback:reflected x-26 y-27)
-  (letrec* ((magic_method-523
+  (letrec* ((magic_method-527
              (getattribute-from-obj-mro y-27 (&& "__rxor__"))))
-    (if (py-test (py-is magic_method-523 py-absent))
+    (if (py-test (py-is magic_method-527 py-absent))
         (py-xor-fallback:err x-26 y-27)
-        (letrec* ((result-529 (py-call magic_method-523 y-27 x-26)))
-          (if (py-test (py-is result-529 py-NotImplemented))
+        (letrec* ((result-533 (py-call magic_method-527 y-27 x-26)))
+          (if (py-test (py-is result-533 py-NotImplemented))
               (py-xor-fallback:err x-26 y-27)
-              result-529)))))
+              result-533)))))
 
 (define (py-xor-fallback:err x-26 y-27)
   (py-throw
@@ -522,33 +522,33 @@
                     (&& "'")))))
 
 (define (py-iadd-fallback:inplace x-28 y-29)
-  (letrec* ((magic_method-575
+  (letrec* ((magic_method-579
              (getattribute-from-obj-mro x-28 (&& "__iadd__"))))
-    (if (py-test (py-is magic_method-575 py-absent))
+    (if (py-test (py-is magic_method-579 py-absent))
         (py-iadd-fallback:normal x-28 y-29)
-        (letrec* ((result-581 (py-call magic_method-575 x-28 y-29)))
-          (if (py-test (py-is result-581 py-NotImplemented))
+        (letrec* ((result-585 (py-call magic_method-579 x-28 y-29)))
+          (if (py-test (py-is result-585 py-NotImplemented))
               (py-iadd-fallback:normal x-28 y-29)
-              result-581)))))
+              result-585)))))
 
 (define (py-iadd-fallback:normal x-28 y-29)
-  (letrec* ((magic_method-565 (getattribute-from-obj-mro x-28 (&& "__add__"))))
-    (if (py-test (py-is magic_method-565 py-absent))
+  (letrec* ((magic_method-569 (getattribute-from-obj-mro x-28 (&& "__add__"))))
+    (if (py-test (py-is magic_method-569 py-absent))
         (py-iadd-fallback:reflected x-28 y-29)
-        (letrec* ((result-571 (py-call magic_method-565 x-28 y-29)))
-          (if (py-test (py-is result-571 py-NotImplemented))
+        (letrec* ((result-575 (py-call magic_method-569 x-28 y-29)))
+          (if (py-test (py-is result-575 py-NotImplemented))
               (py-iadd-fallback:reflected x-28 y-29)
-              result-571)))))
+              result-575)))))
 
 (define (py-iadd-fallback:reflected x-28 y-29)
-  (letrec* ((magic_method-555
+  (letrec* ((magic_method-559
              (getattribute-from-obj-mro y-29 (&& "__radd__"))))
-    (if (py-test (py-is magic_method-555 py-absent))
+    (if (py-test (py-is magic_method-559 py-absent))
         (py-iadd-fallback:err x-28 y-29)
-        (letrec* ((result-561 (py-call magic_method-555 y-29 x-28)))
-          (if (py-test (py-is result-561 py-NotImplemented))
+        (letrec* ((result-565 (py-call magic_method-559 y-29 x-28)))
+          (if (py-test (py-is result-565 py-NotImplemented))
               (py-iadd-fallback:err x-28 y-29)
-              result-561)))))
+              result-565)))))
 
 (define (py-iadd-fallback:err x-28 y-29)
   (py-throw
@@ -564,33 +564,33 @@
                     (&& "'")))))
 
 (define (py-ibitand-fallback:inplace x-30 y-31)
-  (letrec* ((magic_method-617
+  (letrec* ((magic_method-621
              (getattribute-from-obj-mro x-30 (&& "__iand__"))))
-    (if (py-test (py-is magic_method-617 py-absent))
+    (if (py-test (py-is magic_method-621 py-absent))
         (py-ibitand-fallback:normal x-30 y-31)
-        (letrec* ((result-623 (py-call magic_method-617 x-30 y-31)))
-          (if (py-test (py-is result-623 py-NotImplemented))
+        (letrec* ((result-627 (py-call magic_method-621 x-30 y-31)))
+          (if (py-test (py-is result-627 py-NotImplemented))
               (py-ibitand-fallback:normal x-30 y-31)
-              result-623)))))
+              result-627)))))
 
 (define (py-ibitand-fallback:normal x-30 y-31)
-  (letrec* ((magic_method-607 (getattribute-from-obj-mro x-30 (&& "__and__"))))
-    (if (py-test (py-is magic_method-607 py-absent))
+  (letrec* ((magic_method-611 (getattribute-from-obj-mro x-30 (&& "__and__"))))
+    (if (py-test (py-is magic_method-611 py-absent))
         (py-ibitand-fallback:reflected x-30 y-31)
-        (letrec* ((result-613 (py-call magic_method-607 x-30 y-31)))
-          (if (py-test (py-is result-613 py-NotImplemented))
+        (letrec* ((result-617 (py-call magic_method-611 x-30 y-31)))
+          (if (py-test (py-is result-617 py-NotImplemented))
               (py-ibitand-fallback:reflected x-30 y-31)
-              result-613)))))
+              result-617)))))
 
 (define (py-ibitand-fallback:reflected x-30 y-31)
-  (letrec* ((magic_method-597
+  (letrec* ((magic_method-601
              (getattribute-from-obj-mro y-31 (&& "__rand__"))))
-    (if (py-test (py-is magic_method-597 py-absent))
+    (if (py-test (py-is magic_method-601 py-absent))
         (py-ibitand-fallback:err x-30 y-31)
-        (letrec* ((result-603 (py-call magic_method-597 y-31 x-30)))
-          (if (py-test (py-is result-603 py-NotImplemented))
+        (letrec* ((result-607 (py-call magic_method-601 y-31 x-30)))
+          (if (py-test (py-is result-607 py-NotImplemented))
               (py-ibitand-fallback:err x-30 y-31)
-              result-603)))))
+              result-607)))))
 
 (define (py-ibitand-fallback:err x-30 y-31)
   (py-throw
@@ -606,31 +606,31 @@
                     (&& "'")))))
 
 (define (py-ibitor-fallback:inplace x-32 y-33)
-  (letrec* ((magic_method-659 (getattribute-from-obj-mro x-32 (&& "__ior__"))))
-    (if (py-test (py-is magic_method-659 py-absent))
+  (letrec* ((magic_method-663 (getattribute-from-obj-mro x-32 (&& "__ior__"))))
+    (if (py-test (py-is magic_method-663 py-absent))
         (py-ibitor-fallback:normal x-32 y-33)
-        (letrec* ((result-665 (py-call magic_method-659 x-32 y-33)))
-          (if (py-test (py-is result-665 py-NotImplemented))
+        (letrec* ((result-669 (py-call magic_method-663 x-32 y-33)))
+          (if (py-test (py-is result-669 py-NotImplemented))
               (py-ibitor-fallback:normal x-32 y-33)
-              result-665)))))
+              result-669)))))
 
 (define (py-ibitor-fallback:normal x-32 y-33)
-  (letrec* ((magic_method-649 (getattribute-from-obj-mro x-32 (&& "__or__"))))
-    (if (py-test (py-is magic_method-649 py-absent))
+  (letrec* ((magic_method-653 (getattribute-from-obj-mro x-32 (&& "__or__"))))
+    (if (py-test (py-is magic_method-653 py-absent))
         (py-ibitor-fallback:reflected x-32 y-33)
-        (letrec* ((result-655 (py-call magic_method-649 x-32 y-33)))
-          (if (py-test (py-is result-655 py-NotImplemented))
+        (letrec* ((result-659 (py-call magic_method-653 x-32 y-33)))
+          (if (py-test (py-is result-659 py-NotImplemented))
               (py-ibitor-fallback:reflected x-32 y-33)
-              result-655)))))
+              result-659)))))
 
 (define (py-ibitor-fallback:reflected x-32 y-33)
-  (letrec* ((magic_method-639 (getattribute-from-obj-mro y-33 (&& "__ror__"))))
-    (if (py-test (py-is magic_method-639 py-absent))
+  (letrec* ((magic_method-643 (getattribute-from-obj-mro y-33 (&& "__ror__"))))
+    (if (py-test (py-is magic_method-643 py-absent))
         (py-ibitor-fallback:err x-32 y-33)
-        (letrec* ((result-645 (py-call magic_method-639 y-33 x-32)))
-          (if (py-test (py-is result-645 py-NotImplemented))
+        (letrec* ((result-649 (py-call magic_method-643 y-33 x-32)))
+          (if (py-test (py-is result-649 py-NotImplemented))
               (py-ibitor-fallback:err x-32 y-33)
-              result-645)))))
+              result-649)))))
 
 (define (py-ibitor-fallback:err x-32 y-33)
   (py-throw
@@ -646,34 +646,34 @@
                     (&& "'")))))
 
 (define (py-ifloordiv-fallback:inplace x-34 y-35)
-  (letrec* ((magic_method-701
+  (letrec* ((magic_method-705
              (getattribute-from-obj-mro x-34 (&& "__ifloordiv__"))))
-    (if (py-test (py-is magic_method-701 py-absent))
+    (if (py-test (py-is magic_method-705 py-absent))
         (py-ifloordiv-fallback:normal x-34 y-35)
-        (letrec* ((result-707 (py-call magic_method-701 x-34 y-35)))
-          (if (py-test (py-is result-707 py-NotImplemented))
+        (letrec* ((result-711 (py-call magic_method-705 x-34 y-35)))
+          (if (py-test (py-is result-711 py-NotImplemented))
               (py-ifloordiv-fallback:normal x-34 y-35)
-              result-707)))))
+              result-711)))))
 
 (define (py-ifloordiv-fallback:normal x-34 y-35)
-  (letrec* ((magic_method-691
+  (letrec* ((magic_method-695
              (getattribute-from-obj-mro x-34 (&& "__floordiv__"))))
-    (if (py-test (py-is magic_method-691 py-absent))
+    (if (py-test (py-is magic_method-695 py-absent))
         (py-ifloordiv-fallback:reflected x-34 y-35)
-        (letrec* ((result-697 (py-call magic_method-691 x-34 y-35)))
-          (if (py-test (py-is result-697 py-NotImplemented))
+        (letrec* ((result-701 (py-call magic_method-695 x-34 y-35)))
+          (if (py-test (py-is result-701 py-NotImplemented))
               (py-ifloordiv-fallback:reflected x-34 y-35)
-              result-697)))))
+              result-701)))))
 
 (define (py-ifloordiv-fallback:reflected x-34 y-35)
-  (letrec* ((magic_method-681
+  (letrec* ((magic_method-685
              (getattribute-from-obj-mro y-35 (&& "__rfloordiv__"))))
-    (if (py-test (py-is magic_method-681 py-absent))
+    (if (py-test (py-is magic_method-685 py-absent))
         (py-ifloordiv-fallback:err x-34 y-35)
-        (letrec* ((result-687 (py-call magic_method-681 y-35 x-34)))
-          (if (py-test (py-is result-687 py-NotImplemented))
+        (letrec* ((result-691 (py-call magic_method-685 y-35 x-34)))
+          (if (py-test (py-is result-691 py-NotImplemented))
               (py-ifloordiv-fallback:err x-34 y-35)
-              result-687)))))
+              result-691)))))
 
 (define (py-ifloordiv-fallback:err x-34 y-35)
   (py-throw
@@ -689,34 +689,34 @@
                     (&& "'")))))
 
 (define (py-ilshift-fallback:inplace x-36 y-37)
-  (letrec* ((magic_method-743
+  (letrec* ((magic_method-747
              (getattribute-from-obj-mro x-36 (&& "__ilshift__"))))
-    (if (py-test (py-is magic_method-743 py-absent))
+    (if (py-test (py-is magic_method-747 py-absent))
         (py-ilshift-fallback:normal x-36 y-37)
-        (letrec* ((result-749 (py-call magic_method-743 x-36 y-37)))
-          (if (py-test (py-is result-749 py-NotImplemented))
+        (letrec* ((result-753 (py-call magic_method-747 x-36 y-37)))
+          (if (py-test (py-is result-753 py-NotImplemented))
               (py-ilshift-fallback:normal x-36 y-37)
-              result-749)))))
+              result-753)))))
 
 (define (py-ilshift-fallback:normal x-36 y-37)
-  (letrec* ((magic_method-733
+  (letrec* ((magic_method-737
              (getattribute-from-obj-mro x-36 (&& "__lshift__"))))
-    (if (py-test (py-is magic_method-733 py-absent))
+    (if (py-test (py-is magic_method-737 py-absent))
         (py-ilshift-fallback:reflected x-36 y-37)
-        (letrec* ((result-739 (py-call magic_method-733 x-36 y-37)))
-          (if (py-test (py-is result-739 py-NotImplemented))
+        (letrec* ((result-743 (py-call magic_method-737 x-36 y-37)))
+          (if (py-test (py-is result-743 py-NotImplemented))
               (py-ilshift-fallback:reflected x-36 y-37)
-              result-739)))))
+              result-743)))))
 
 (define (py-ilshift-fallback:reflected x-36 y-37)
-  (letrec* ((magic_method-723
+  (letrec* ((magic_method-727
              (getattribute-from-obj-mro y-37 (&& "__rlshift__"))))
-    (if (py-test (py-is magic_method-723 py-absent))
+    (if (py-test (py-is magic_method-727 py-absent))
         (py-ilshift-fallback:err x-36 y-37)
-        (letrec* ((result-729 (py-call magic_method-723 y-37 x-36)))
-          (if (py-test (py-is result-729 py-NotImplemented))
+        (letrec* ((result-733 (py-call magic_method-727 y-37 x-36)))
+          (if (py-test (py-is result-733 py-NotImplemented))
               (py-ilshift-fallback:err x-36 y-37)
-              result-729)))))
+              result-733)))))
 
 (define (py-ilshift-fallback:err x-36 y-37)
   (py-throw
@@ -732,34 +732,34 @@
                     (&& "'")))))
 
 (define (py-imatmul-fallback:inplace x-38 y-39)
-  (letrec* ((magic_method-785
+  (letrec* ((magic_method-789
              (getattribute-from-obj-mro x-38 (&& "__imatmul__"))))
-    (if (py-test (py-is magic_method-785 py-absent))
+    (if (py-test (py-is magic_method-789 py-absent))
         (py-imatmul-fallback:normal x-38 y-39)
-        (letrec* ((result-791 (py-call magic_method-785 x-38 y-39)))
-          (if (py-test (py-is result-791 py-NotImplemented))
+        (letrec* ((result-795 (py-call magic_method-789 x-38 y-39)))
+          (if (py-test (py-is result-795 py-NotImplemented))
               (py-imatmul-fallback:normal x-38 y-39)
-              result-791)))))
+              result-795)))))
 
 (define (py-imatmul-fallback:normal x-38 y-39)
-  (letrec* ((magic_method-775
+  (letrec* ((magic_method-779
              (getattribute-from-obj-mro x-38 (&& "__matmul__"))))
-    (if (py-test (py-is magic_method-775 py-absent))
+    (if (py-test (py-is magic_method-779 py-absent))
         (py-imatmul-fallback:reflected x-38 y-39)
-        (letrec* ((result-781 (py-call magic_method-775 x-38 y-39)))
-          (if (py-test (py-is result-781 py-NotImplemented))
+        (letrec* ((result-785 (py-call magic_method-779 x-38 y-39)))
+          (if (py-test (py-is result-785 py-NotImplemented))
               (py-imatmul-fallback:reflected x-38 y-39)
-              result-781)))))
+              result-785)))))
 
 (define (py-imatmul-fallback:reflected x-38 y-39)
-  (letrec* ((magic_method-765
+  (letrec* ((magic_method-769
              (getattribute-from-obj-mro y-39 (&& "__rmatmul__"))))
-    (if (py-test (py-is magic_method-765 py-absent))
+    (if (py-test (py-is magic_method-769 py-absent))
         (py-imatmul-fallback:err x-38 y-39)
-        (letrec* ((result-771 (py-call magic_method-765 y-39 x-38)))
-          (if (py-test (py-is result-771 py-NotImplemented))
+        (letrec* ((result-775 (py-call magic_method-769 y-39 x-38)))
+          (if (py-test (py-is result-775 py-NotImplemented))
               (py-imatmul-fallback:err x-38 y-39)
-              result-771)))))
+              result-775)))))
 
 (define (py-imatmul-fallback:err x-38 y-39)
   (py-throw
@@ -775,33 +775,33 @@
                     (&& "'")))))
 
 (define (py-imod-fallback:inplace x-40 y-41)
-  (letrec* ((magic_method-827
+  (letrec* ((magic_method-831
              (getattribute-from-obj-mro x-40 (&& "__imod__"))))
-    (if (py-test (py-is magic_method-827 py-absent))
+    (if (py-test (py-is magic_method-831 py-absent))
         (py-imod-fallback:normal x-40 y-41)
-        (letrec* ((result-833 (py-call magic_method-827 x-40 y-41)))
-          (if (py-test (py-is result-833 py-NotImplemented))
+        (letrec* ((result-837 (py-call magic_method-831 x-40 y-41)))
+          (if (py-test (py-is result-837 py-NotImplemented))
               (py-imod-fallback:normal x-40 y-41)
-              result-833)))))
+              result-837)))))
 
 (define (py-imod-fallback:normal x-40 y-41)
-  (letrec* ((magic_method-817 (getattribute-from-obj-mro x-40 (&& "__mod__"))))
-    (if (py-test (py-is magic_method-817 py-absent))
+  (letrec* ((magic_method-821 (getattribute-from-obj-mro x-40 (&& "__mod__"))))
+    (if (py-test (py-is magic_method-821 py-absent))
         (py-imod-fallback:reflected x-40 y-41)
-        (letrec* ((result-823 (py-call magic_method-817 x-40 y-41)))
-          (if (py-test (py-is result-823 py-NotImplemented))
+        (letrec* ((result-827 (py-call magic_method-821 x-40 y-41)))
+          (if (py-test (py-is result-827 py-NotImplemented))
               (py-imod-fallback:reflected x-40 y-41)
-              result-823)))))
+              result-827)))))
 
 (define (py-imod-fallback:reflected x-40 y-41)
-  (letrec* ((magic_method-807
+  (letrec* ((magic_method-811
              (getattribute-from-obj-mro y-41 (&& "__rmod__"))))
-    (if (py-test (py-is magic_method-807 py-absent))
+    (if (py-test (py-is magic_method-811 py-absent))
         (py-imod-fallback:err x-40 y-41)
-        (letrec* ((result-813 (py-call magic_method-807 y-41 x-40)))
-          (if (py-test (py-is result-813 py-NotImplemented))
+        (letrec* ((result-817 (py-call magic_method-811 y-41 x-40)))
+          (if (py-test (py-is result-817 py-NotImplemented))
               (py-imod-fallback:err x-40 y-41)
-              result-813)))))
+              result-817)))))
 
 (define (py-imod-fallback:err x-40 y-41)
   (py-throw
@@ -817,33 +817,33 @@
                     (&& "'")))))
 
 (define (py-imul-fallback:inplace x-42 y-43)
-  (letrec* ((magic_method-869
+  (letrec* ((magic_method-873
              (getattribute-from-obj-mro x-42 (&& "__imul__"))))
-    (if (py-test (py-is magic_method-869 py-absent))
+    (if (py-test (py-is magic_method-873 py-absent))
         (py-imul-fallback:normal x-42 y-43)
-        (letrec* ((result-875 (py-call magic_method-869 x-42 y-43)))
-          (if (py-test (py-is result-875 py-NotImplemented))
+        (letrec* ((result-879 (py-call magic_method-873 x-42 y-43)))
+          (if (py-test (py-is result-879 py-NotImplemented))
               (py-imul-fallback:normal x-42 y-43)
-              result-875)))))
+              result-879)))))
 
 (define (py-imul-fallback:normal x-42 y-43)
-  (letrec* ((magic_method-859 (getattribute-from-obj-mro x-42 (&& "__mul__"))))
-    (if (py-test (py-is magic_method-859 py-absent))
+  (letrec* ((magic_method-863 (getattribute-from-obj-mro x-42 (&& "__mul__"))))
+    (if (py-test (py-is magic_method-863 py-absent))
         (py-imul-fallback:reflected x-42 y-43)
-        (letrec* ((result-865 (py-call magic_method-859 x-42 y-43)))
-          (if (py-test (py-is result-865 py-NotImplemented))
+        (letrec* ((result-869 (py-call magic_method-863 x-42 y-43)))
+          (if (py-test (py-is result-869 py-NotImplemented))
               (py-imul-fallback:reflected x-42 y-43)
-              result-865)))))
+              result-869)))))
 
 (define (py-imul-fallback:reflected x-42 y-43)
-  (letrec* ((magic_method-849
+  (letrec* ((magic_method-853
              (getattribute-from-obj-mro y-43 (&& "__rmul__"))))
-    (if (py-test (py-is magic_method-849 py-absent))
+    (if (py-test (py-is magic_method-853 py-absent))
         (py-imul-fallback:err x-42 y-43)
-        (letrec* ((result-855 (py-call magic_method-849 y-43 x-42)))
-          (if (py-test (py-is result-855 py-NotImplemented))
+        (letrec* ((result-859 (py-call magic_method-853 y-43 x-42)))
+          (if (py-test (py-is result-859 py-NotImplemented))
               (py-imul-fallback:err x-42 y-43)
-              result-855)))))
+              result-859)))))
 
 (define (py-imul-fallback:err x-42 y-43)
   (py-throw
@@ -859,33 +859,33 @@
                     (&& "'")))))
 
 (define (py-ipow-fallback:inplace x-44 y-45)
-  (letrec* ((magic_method-911
+  (letrec* ((magic_method-915
              (getattribute-from-obj-mro x-44 (&& "__ipow__"))))
-    (if (py-test (py-is magic_method-911 py-absent))
+    (if (py-test (py-is magic_method-915 py-absent))
         (py-ipow-fallback:normal x-44 y-45)
-        (letrec* ((result-917 (py-call magic_method-911 x-44 y-45)))
-          (if (py-test (py-is result-917 py-NotImplemented))
+        (letrec* ((result-921 (py-call magic_method-915 x-44 y-45)))
+          (if (py-test (py-is result-921 py-NotImplemented))
               (py-ipow-fallback:normal x-44 y-45)
-              result-917)))))
+              result-921)))))
 
 (define (py-ipow-fallback:normal x-44 y-45)
-  (letrec* ((magic_method-901 (getattribute-from-obj-mro x-44 (&& "__pow__"))))
-    (if (py-test (py-is magic_method-901 py-absent))
+  (letrec* ((magic_method-905 (getattribute-from-obj-mro x-44 (&& "__pow__"))))
+    (if (py-test (py-is magic_method-905 py-absent))
         (py-ipow-fallback:reflected x-44 y-45)
-        (letrec* ((result-907 (py-call magic_method-901 x-44 y-45)))
-          (if (py-test (py-is result-907 py-NotImplemented))
+        (letrec* ((result-911 (py-call magic_method-905 x-44 y-45)))
+          (if (py-test (py-is result-911 py-NotImplemented))
               (py-ipow-fallback:reflected x-44 y-45)
-              result-907)))))
+              result-911)))))
 
 (define (py-ipow-fallback:reflected x-44 y-45)
-  (letrec* ((magic_method-891
+  (letrec* ((magic_method-895
              (getattribute-from-obj-mro y-45 (&& "__rpow__"))))
-    (if (py-test (py-is magic_method-891 py-absent))
+    (if (py-test (py-is magic_method-895 py-absent))
         (py-ipow-fallback:err x-44 y-45)
-        (letrec* ((result-897 (py-call magic_method-891 y-45 x-44)))
-          (if (py-test (py-is result-897 py-NotImplemented))
+        (letrec* ((result-901 (py-call magic_method-895 y-45 x-44)))
+          (if (py-test (py-is result-901 py-NotImplemented))
               (py-ipow-fallback:err x-44 y-45)
-              result-897)))))
+              result-901)))))
 
 (define (py-ipow-fallback:err x-44 y-45)
   (py-throw
@@ -901,34 +901,34 @@
                     (&& "'")))))
 
 (define (py-irshift-fallback:inplace x-46 y-47)
-  (letrec* ((magic_method-953
+  (letrec* ((magic_method-957
              (getattribute-from-obj-mro x-46 (&& "__irshift__"))))
-    (if (py-test (py-is magic_method-953 py-absent))
+    (if (py-test (py-is magic_method-957 py-absent))
         (py-irshift-fallback:normal x-46 y-47)
-        (letrec* ((result-959 (py-call magic_method-953 x-46 y-47)))
-          (if (py-test (py-is result-959 py-NotImplemented))
+        (letrec* ((result-963 (py-call magic_method-957 x-46 y-47)))
+          (if (py-test (py-is result-963 py-NotImplemented))
               (py-irshift-fallback:normal x-46 y-47)
-              result-959)))))
+              result-963)))))
 
 (define (py-irshift-fallback:normal x-46 y-47)
-  (letrec* ((magic_method-943
+  (letrec* ((magic_method-947
              (getattribute-from-obj-mro x-46 (&& "__rshift__"))))
-    (if (py-test (py-is magic_method-943 py-absent))
+    (if (py-test (py-is magic_method-947 py-absent))
         (py-irshift-fallback:reflected x-46 y-47)
-        (letrec* ((result-949 (py-call magic_method-943 x-46 y-47)))
-          (if (py-test (py-is result-949 py-NotImplemented))
+        (letrec* ((result-953 (py-call magic_method-947 x-46 y-47)))
+          (if (py-test (py-is result-953 py-NotImplemented))
               (py-irshift-fallback:reflected x-46 y-47)
-              result-949)))))
+              result-953)))))
 
 (define (py-irshift-fallback:reflected x-46 y-47)
-  (letrec* ((magic_method-933
+  (letrec* ((magic_method-937
              (getattribute-from-obj-mro y-47 (&& "__rrshift__"))))
-    (if (py-test (py-is magic_method-933 py-absent))
+    (if (py-test (py-is magic_method-937 py-absent))
         (py-irshift-fallback:err x-46 y-47)
-        (letrec* ((result-939 (py-call magic_method-933 y-47 x-46)))
-          (if (py-test (py-is result-939 py-NotImplemented))
+        (letrec* ((result-943 (py-call magic_method-937 y-47 x-46)))
+          (if (py-test (py-is result-943 py-NotImplemented))
               (py-irshift-fallback:err x-46 y-47)
-              result-939)))))
+              result-943)))))
 
 (define (py-irshift-fallback:err x-46 y-47)
   (py-throw
@@ -944,33 +944,33 @@
                     (&& "'")))))
 
 (define (py-isub-fallback:inplace x-48 y-49)
-  (letrec* ((magic_method-995
+  (letrec* ((magic_method-999
              (getattribute-from-obj-mro x-48 (&& "__isub__"))))
-    (if (py-test (py-is magic_method-995 py-absent))
+    (if (py-test (py-is magic_method-999 py-absent))
         (py-isub-fallback:normal x-48 y-49)
-        (letrec* ((result-1001 (py-call magic_method-995 x-48 y-49)))
-          (if (py-test (py-is result-1001 py-NotImplemented))
+        (letrec* ((result-1005 (py-call magic_method-999 x-48 y-49)))
+          (if (py-test (py-is result-1005 py-NotImplemented))
               (py-isub-fallback:normal x-48 y-49)
-              result-1001)))))
+              result-1005)))))
 
 (define (py-isub-fallback:normal x-48 y-49)
-  (letrec* ((magic_method-985 (getattribute-from-obj-mro x-48 (&& "__sub__"))))
-    (if (py-test (py-is magic_method-985 py-absent))
+  (letrec* ((magic_method-989 (getattribute-from-obj-mro x-48 (&& "__sub__"))))
+    (if (py-test (py-is magic_method-989 py-absent))
         (py-isub-fallback:reflected x-48 y-49)
-        (letrec* ((result-991 (py-call magic_method-985 x-48 y-49)))
-          (if (py-test (py-is result-991 py-NotImplemented))
+        (letrec* ((result-995 (py-call magic_method-989 x-48 y-49)))
+          (if (py-test (py-is result-995 py-NotImplemented))
               (py-isub-fallback:reflected x-48 y-49)
-              result-991)))))
+              result-995)))))
 
 (define (py-isub-fallback:reflected x-48 y-49)
-  (letrec* ((magic_method-975
+  (letrec* ((magic_method-979
              (getattribute-from-obj-mro y-49 (&& "__rsub__"))))
-    (if (py-test (py-is magic_method-975 py-absent))
+    (if (py-test (py-is magic_method-979 py-absent))
         (py-isub-fallback:err x-48 y-49)
-        (letrec* ((result-981 (py-call magic_method-975 y-49 x-48)))
-          (if (py-test (py-is result-981 py-NotImplemented))
+        (letrec* ((result-985 (py-call magic_method-979 y-49 x-48)))
+          (if (py-test (py-is result-985 py-NotImplemented))
               (py-isub-fallback:err x-48 y-49)
-              result-981)))))
+              result-985)))))
 
 (define (py-isub-fallback:err x-48 y-49)
   (py-throw
@@ -986,34 +986,34 @@
                     (&& "'")))))
 
 (define (py-itruediv-fallback:inplace x-50 y-51)
-  (letrec* ((magic_method-1037
+  (letrec* ((magic_method-1041
              (getattribute-from-obj-mro x-50 (&& "__itruediv__"))))
-    (if (py-test (py-is magic_method-1037 py-absent))
+    (if (py-test (py-is magic_method-1041 py-absent))
         (py-itruediv-fallback:normal x-50 y-51)
-        (letrec* ((result-1043 (py-call magic_method-1037 x-50 y-51)))
-          (if (py-test (py-is result-1043 py-NotImplemented))
+        (letrec* ((result-1047 (py-call magic_method-1041 x-50 y-51)))
+          (if (py-test (py-is result-1047 py-NotImplemented))
               (py-itruediv-fallback:normal x-50 y-51)
-              result-1043)))))
+              result-1047)))))
 
 (define (py-itruediv-fallback:normal x-50 y-51)
-  (letrec* ((magic_method-1027
+  (letrec* ((magic_method-1031
              (getattribute-from-obj-mro x-50 (&& "__truediv__"))))
-    (if (py-test (py-is magic_method-1027 py-absent))
+    (if (py-test (py-is magic_method-1031 py-absent))
         (py-itruediv-fallback:reflected x-50 y-51)
-        (letrec* ((result-1033 (py-call magic_method-1027 x-50 y-51)))
-          (if (py-test (py-is result-1033 py-NotImplemented))
+        (letrec* ((result-1037 (py-call magic_method-1031 x-50 y-51)))
+          (if (py-test (py-is result-1037 py-NotImplemented))
               (py-itruediv-fallback:reflected x-50 y-51)
-              result-1033)))))
+              result-1037)))))
 
 (define (py-itruediv-fallback:reflected x-50 y-51)
-  (letrec* ((magic_method-1017
+  (letrec* ((magic_method-1021
              (getattribute-from-obj-mro y-51 (&& "__rtruediv__"))))
-    (if (py-test (py-is magic_method-1017 py-absent))
+    (if (py-test (py-is magic_method-1021 py-absent))
         (py-itruediv-fallback:err x-50 y-51)
-        (letrec* ((result-1023 (py-call magic_method-1017 y-51 x-50)))
-          (if (py-test (py-is result-1023 py-NotImplemented))
+        (letrec* ((result-1027 (py-call magic_method-1021 y-51 x-50)))
+          (if (py-test (py-is result-1027 py-NotImplemented))
               (py-itruediv-fallback:err x-50 y-51)
-              result-1023)))))
+              result-1027)))))
 
 (define (py-itruediv-fallback:err x-50 y-51)
   (py-throw
@@ -1029,34 +1029,34 @@
                     (&& "'")))))
 
 (define (py-ixor-fallback:inplace x-52 y-53)
-  (letrec* ((magic_method-1079
+  (letrec* ((magic_method-1083
              (getattribute-from-obj-mro x-52 (&& "__ixor__"))))
-    (if (py-test (py-is magic_method-1079 py-absent))
+    (if (py-test (py-is magic_method-1083 py-absent))
         (py-ixor-fallback:normal x-52 y-53)
-        (letrec* ((result-1085 (py-call magic_method-1079 x-52 y-53)))
-          (if (py-test (py-is result-1085 py-NotImplemented))
+        (letrec* ((result-1089 (py-call magic_method-1083 x-52 y-53)))
+          (if (py-test (py-is result-1089 py-NotImplemented))
               (py-ixor-fallback:normal x-52 y-53)
-              result-1085)))))
+              result-1089)))))
 
 (define (py-ixor-fallback:normal x-52 y-53)
-  (letrec* ((magic_method-1069
+  (letrec* ((magic_method-1073
              (getattribute-from-obj-mro x-52 (&& "__xor__"))))
-    (if (py-test (py-is magic_method-1069 py-absent))
+    (if (py-test (py-is magic_method-1073 py-absent))
         (py-ixor-fallback:reflected x-52 y-53)
-        (letrec* ((result-1075 (py-call magic_method-1069 x-52 y-53)))
-          (if (py-test (py-is result-1075 py-NotImplemented))
+        (letrec* ((result-1079 (py-call magic_method-1073 x-52 y-53)))
+          (if (py-test (py-is result-1079 py-NotImplemented))
               (py-ixor-fallback:reflected x-52 y-53)
-              result-1075)))))
+              result-1079)))))
 
 (define (py-ixor-fallback:reflected x-52 y-53)
-  (letrec* ((magic_method-1059
+  (letrec* ((magic_method-1063
              (getattribute-from-obj-mro y-53 (&& "__rxor__"))))
-    (if (py-test (py-is magic_method-1059 py-absent))
+    (if (py-test (py-is magic_method-1063 py-absent))
         (py-ixor-fallback:err x-52 y-53)
-        (letrec* ((result-1065 (py-call magic_method-1059 y-53 x-52)))
-          (if (py-test (py-is result-1065 py-NotImplemented))
+        (letrec* ((result-1069 (py-call magic_method-1063 y-53 x-52)))
+          (if (py-test (py-is result-1069 py-NotImplemented))
               (py-ixor-fallback:err x-52 y-53)
-              result-1065)))))
+              result-1069)))))
 
 (define (py-ixor-fallback:err x-52 y-53)
   (py-throw
@@ -1072,11 +1072,11 @@
                     (&& "'")))))
 
 (define (py-pos-fallback:normal x-54)
-  (letrec* ((magic_method-1096
+  (letrec* ((magic_method-1100
              (getattribute-from-obj-mro x-54 (&& "__pos__"))))
-    (if (py-test (py-is magic_method-1096 py-absent))
+    (if (py-test (py-is magic_method-1100 py-absent))
         (py-pos-fallback:err x-54)
-        (py-call magic_method-1096 x-54))))
+        (py-call magic_method-1100 x-54))))
 
 (define (py-pos-fallback:err x-54)
   (py-throw
@@ -1088,11 +1088,11 @@
                     (&& "'")))))
 
 (define (py-neg-fallback:normal x-55)
-  (letrec* ((magic_method-1109
+  (letrec* ((magic_method-1113
              (getattribute-from-obj-mro x-55 (&& "__neg__"))))
-    (if (py-test (py-is magic_method-1109 py-absent))
+    (if (py-test (py-is magic_method-1113 py-absent))
         (py-neg-fallback:err x-55)
-        (py-call magic_method-1109 x-55))))
+        (py-call magic_method-1113 x-55))))
 
 (define (py-neg-fallback:err x-55)
   (py-throw
@@ -1104,11 +1104,11 @@
                     (&& "'")))))
 
 (define (py-invert-fallback:normal x-56)
-  (letrec* ((magic_method-1122
+  (letrec* ((magic_method-1126
              (getattribute-from-obj-mro x-56 (&& "__invert__"))))
-    (if (py-test (py-is magic_method-1122 py-absent))
+    (if (py-test (py-is magic_method-1126 py-absent))
         (py-invert-fallback:err x-56)
-        (py-call magic_method-1122 x-56))))
+        (py-call magic_method-1126 x-56))))
 
 (define (py-invert-fallback:err x-56)
   (py-throw
@@ -1120,22 +1120,22 @@
                     (&& "'")))))
 
 (define (py-ge-fallback:normal x-57 y-58)
-  (letrec* ((magic_method-1148 (getattribute-from-obj-mro x-57 (&& "__ge__"))))
-    (if (py-test (py-is magic_method-1148 py-absent))
+  (letrec* ((magic_method-1152 (getattribute-from-obj-mro x-57 (&& "__ge__"))))
+    (if (py-test (py-is magic_method-1152 py-absent))
         (py-ge-fallback:reflected x-57 y-58)
-        (letrec* ((result-1154 (py-call magic_method-1148 x-57 y-58)))
-          (if (py-test (py-is result-1154 py-NotImplemented))
+        (letrec* ((result-1158 (py-call magic_method-1152 x-57 y-58)))
+          (if (py-test (py-is result-1158 py-NotImplemented))
               (py-ge-fallback:reflected x-57 y-58)
-              result-1154)))))
+              result-1158)))))
 
 (define (py-ge-fallback:reflected x-57 y-58)
-  (letrec* ((magic_method-1138 (getattribute-from-obj-mro y-58 (&& "__le__"))))
-    (if (py-test (py-is magic_method-1138 py-absent))
+  (letrec* ((magic_method-1142 (getattribute-from-obj-mro y-58 (&& "__le__"))))
+    (if (py-test (py-is magic_method-1142 py-absent))
         (py-ge-fallback:err x-57 y-58)
-        (letrec* ((result-1144 (py-call magic_method-1138 y-58 x-57)))
-          (if (py-test (py-is result-1144 py-NotImplemented))
+        (letrec* ((result-1148 (py-call magic_method-1142 y-58 x-57)))
+          (if (py-test (py-is result-1148 py-NotImplemented))
               (py-ge-fallback:err x-57 y-58)
-              result-1144)))))
+              result-1148)))))
 
 (define (py-ge-fallback:err x-57 y-58)
   (py-throw
@@ -1151,22 +1151,22 @@
                     (&& "'")))))
 
 (define (py-gt-fallback:normal x-59 y-60)
-  (letrec* ((magic_method-1178 (getattribute-from-obj-mro x-59 (&& "__gt__"))))
-    (if (py-test (py-is magic_method-1178 py-absent))
+  (letrec* ((magic_method-1182 (getattribute-from-obj-mro x-59 (&& "__gt__"))))
+    (if (py-test (py-is magic_method-1182 py-absent))
         (py-gt-fallback:reflected x-59 y-60)
-        (letrec* ((result-1184 (py-call magic_method-1178 x-59 y-60)))
-          (if (py-test (py-is result-1184 py-NotImplemented))
+        (letrec* ((result-1188 (py-call magic_method-1182 x-59 y-60)))
+          (if (py-test (py-is result-1188 py-NotImplemented))
               (py-gt-fallback:reflected x-59 y-60)
-              result-1184)))))
+              result-1188)))))
 
 (define (py-gt-fallback:reflected x-59 y-60)
-  (letrec* ((magic_method-1168 (getattribute-from-obj-mro y-60 (&& "__lt__"))))
-    (if (py-test (py-is magic_method-1168 py-absent))
+  (letrec* ((magic_method-1172 (getattribute-from-obj-mro y-60 (&& "__lt__"))))
+    (if (py-test (py-is magic_method-1172 py-absent))
         (py-gt-fallback:err x-59 y-60)
-        (letrec* ((result-1174 (py-call magic_method-1168 y-60 x-59)))
-          (if (py-test (py-is result-1174 py-NotImplemented))
+        (letrec* ((result-1178 (py-call magic_method-1172 y-60 x-59)))
+          (if (py-test (py-is result-1178 py-NotImplemented))
               (py-gt-fallback:err x-59 y-60)
-              result-1174)))))
+              result-1178)))))
 
 (define (py-gt-fallback:err x-59 y-60)
   (py-throw
@@ -1182,22 +1182,22 @@
                     (&& "'")))))
 
 (define (py-le-fallback:normal x-61 y-62)
-  (letrec* ((magic_method-1208 (getattribute-from-obj-mro x-61 (&& "__le__"))))
-    (if (py-test (py-is magic_method-1208 py-absent))
+  (letrec* ((magic_method-1212 (getattribute-from-obj-mro x-61 (&& "__le__"))))
+    (if (py-test (py-is magic_method-1212 py-absent))
         (py-le-fallback:reflected x-61 y-62)
-        (letrec* ((result-1214 (py-call magic_method-1208 x-61 y-62)))
-          (if (py-test (py-is result-1214 py-NotImplemented))
+        (letrec* ((result-1218 (py-call magic_method-1212 x-61 y-62)))
+          (if (py-test (py-is result-1218 py-NotImplemented))
               (py-le-fallback:reflected x-61 y-62)
-              result-1214)))))
+              result-1218)))))
 
 (define (py-le-fallback:reflected x-61 y-62)
-  (letrec* ((magic_method-1198 (getattribute-from-obj-mro y-62 (&& "__ge__"))))
-    (if (py-test (py-is magic_method-1198 py-absent))
+  (letrec* ((magic_method-1202 (getattribute-from-obj-mro y-62 (&& "__ge__"))))
+    (if (py-test (py-is magic_method-1202 py-absent))
         (py-le-fallback:err x-61 y-62)
-        (letrec* ((result-1204 (py-call magic_method-1198 y-62 x-61)))
-          (if (py-test (py-is result-1204 py-NotImplemented))
+        (letrec* ((result-1208 (py-call magic_method-1202 y-62 x-61)))
+          (if (py-test (py-is result-1208 py-NotImplemented))
               (py-le-fallback:err x-61 y-62)
-              result-1204)))))
+              result-1208)))))
 
 (define (py-le-fallback:err x-61 y-62)
   (py-throw
@@ -1213,22 +1213,22 @@
                     (&& "'")))))
 
 (define (py-lt-fallback:normal x-63 y-64)
-  (letrec* ((magic_method-1238 (getattribute-from-obj-mro x-63 (&& "__lt__"))))
-    (if (py-test (py-is magic_method-1238 py-absent))
+  (letrec* ((magic_method-1242 (getattribute-from-obj-mro x-63 (&& "__lt__"))))
+    (if (py-test (py-is magic_method-1242 py-absent))
         (py-lt-fallback:reflected x-63 y-64)
-        (letrec* ((result-1244 (py-call magic_method-1238 x-63 y-64)))
-          (if (py-test (py-is result-1244 py-NotImplemented))
+        (letrec* ((result-1248 (py-call magic_method-1242 x-63 y-64)))
+          (if (py-test (py-is result-1248 py-NotImplemented))
               (py-lt-fallback:reflected x-63 y-64)
-              result-1244)))))
+              result-1248)))))
 
 (define (py-lt-fallback:reflected x-63 y-64)
-  (letrec* ((magic_method-1228 (getattribute-from-obj-mro y-64 (&& "__gt__"))))
-    (if (py-test (py-is magic_method-1228 py-absent))
+  (letrec* ((magic_method-1232 (getattribute-from-obj-mro y-64 (&& "__gt__"))))
+    (if (py-test (py-is magic_method-1232 py-absent))
         (py-lt-fallback:err x-63 y-64)
-        (letrec* ((result-1234 (py-call magic_method-1228 y-64 x-63)))
-          (if (py-test (py-is result-1234 py-NotImplemented))
+        (letrec* ((result-1238 (py-call magic_method-1232 y-64 x-63)))
+          (if (py-test (py-is result-1238 py-NotImplemented))
               (py-lt-fallback:err x-63 y-64)
-              result-1234)))))
+              result-1238)))))
 
 (define (py-lt-fallback:err x-63 y-64)
   (py-throw
@@ -1244,53 +1244,54 @@
                     (&& "'")))))
 
 (define (py-eq-fallback:normal x-65 y-66)
-  (letrec* ((magic_method-1266 (getattribute-from-obj-mro x-65 (&& "__eq__"))))
-    (if (py-test (py-is magic_method-1266 py-absent))
+  (letrec* ((magic_method-1270 (getattribute-from-obj-mro x-65 (&& "__eq__"))))
+    (if (py-test (py-is magic_method-1270 py-absent))
         (py-eq-fallback:reflected x-65 y-66)
-        (letrec* ((result-1272 (py-call magic_method-1266 x-65 y-66)))
-          (if (py-test (py-is result-1272 py-NotImplemented))
+        (letrec* ((result-1276 (py-call magic_method-1270 x-65 y-66)))
+          (if (py-test (py-is result-1276 py-NotImplemented))
               (py-eq-fallback:reflected x-65 y-66)
-              result-1272)))))
+              result-1276)))))
 
 (define (py-eq-fallback:reflected x-65 y-66)
-  (letrec* ((magic_method-1256 (getattribute-from-obj-mro y-66 (&& "__eq__"))))
-    (if (py-test (py-is magic_method-1256 py-absent))
+  (letrec* ((magic_method-1260 (getattribute-from-obj-mro y-66 (&& "__eq__"))))
+    (if (py-test (py-is magic_method-1260 py-absent))
         (py-eq-fallback:default x-65 y-66)
-        (letrec* ((result-1262 (py-call magic_method-1256 y-66 x-65)))
-          (if (py-test (py-is result-1262 py-NotImplemented))
+        (letrec* ((result-1266 (py-call magic_method-1260 y-66 x-65)))
+          (if (py-test (py-is result-1266 py-NotImplemented))
               (py-eq-fallback:default x-65 y-66)
-              result-1262)))))
+              result-1266)))))
 
 (define (py-eq-fallback:default x-65 y-66) (py-is x-65 y-66))
 
 (define (py-ne-fallback:normal x-67 y-68)
-  (letrec* ((magic_method-1294 (getattribute-from-obj-mro x-67 (&& "__ne__"))))
-    (if (py-test (py-is magic_method-1294 py-absent))
+  (letrec* ((magic_method-1298 (getattribute-from-obj-mro x-67 (&& "__ne__"))))
+    (if (py-test (py-is magic_method-1298 py-absent))
         (py-ne-fallback:reflected x-67 y-68)
-        (letrec* ((result-1300 (py-call magic_method-1294 x-67 y-68)))
-          (if (py-test (py-is result-1300 py-NotImplemented))
+        (letrec* ((result-1304 (py-call magic_method-1298 x-67 y-68)))
+          (if (py-test (py-is result-1304 py-NotImplemented))
               (py-ne-fallback:reflected x-67 y-68)
-              result-1300)))))
+              result-1304)))))
 
 (define (py-ne-fallback:reflected x-67 y-68)
-  (letrec* ((magic_method-1284 (getattribute-from-obj-mro y-68 (&& "__ne__"))))
-    (if (py-test (py-is magic_method-1284 py-absent))
+  (letrec* ((magic_method-1288 (getattribute-from-obj-mro y-68 (&& "__ne__"))))
+    (if (py-test (py-is magic_method-1288 py-absent))
         (py-ne-fallback:default x-67 y-68)
-        (letrec* ((result-1290 (py-call magic_method-1284 y-68 x-67)))
-          (if (py-test (py-is result-1290 py-NotImplemented))
+        (letrec* ((result-1294 (py-call magic_method-1288 y-68 x-67)))
+          (if (py-test (py-is result-1294 py-NotImplemented))
               (py-ne-fallback:default x-67 y-68)
-              result-1290)))))
+              result-1294)))))
 
 (define (py-ne-fallback:default x-67 y-68) (py-isnot x-67 y-68))
 
 (define (py-maybe-trunc-fallback obj-69)
-  (letrec* ((__trunc__-1304
+  (letrec* ((__trunc__-1308
              (getattribute-from-obj-mro obj-69 (&& "__trunc__"))))
-    (if (py-test (py-is __trunc__-1304 py-absent))
+    (if (py-test (py-is __trunc__-1308 py-absent))
         py-absent
-        (letrec* ((result-1309 (py-call __trunc__-1304 obj-69)))
-          (if (py-isinstance? result-1309 py-builtin-int)
-              result-1309
+        (letrec* ((result-1313 (py-call __trunc__-1308 obj-69)))
+          (if (py-test (py-is (py-call py-builtin-type result-1313)
+                              py-builtin-int))
+              result-1313
               (py-throw
                (py-call py-builtin-TypeError
                         (py-add (py-add (&& "__trunc__ returned non-int type: '")
@@ -1300,8 +1301,8 @@
                                 (&& "'")))))))))
 
 (define (py-trunc-fallback obj-70)
-  (letrec* ((result-1315 (py-maybe-trunc-fallback obj-70)))
-    (if (py-test (py-is result-1315 py-absent))
+  (letrec* ((result-1318 (py-maybe-trunc-fallback obj-70)))
+    (if (py-test (py-is result-1318 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
                   (py-add (py-add (&& "type '")
@@ -1309,15 +1310,16 @@
                                    (py-call py-builtin-type obj-70)
                                    (& "__name__")))
                           (&& "' doesn't define __trunc__ method"))))
-        result-1315)))
+        result-1318)))
 
 (define (py-maybe-to-int-fallback obj-71)
-  (letrec* ((__int__-1322 (getattribute-from-obj-mro obj-71 (&& "__int__"))))
-    (if (py-test (py-is __int__-1322 py-absent))
+  (letrec* ((__int__-1325 (getattribute-from-obj-mro obj-71 (&& "__int__"))))
+    (if (py-test (py-is __int__-1325 py-absent))
         py-absent
-        (letrec* ((result-1327 (py-call __int__-1322 obj-71)))
-          (if (py-isinstance? result-1327 py-builtin-int)
-              result-1327
+        (letrec* ((result-1330 (py-call __int__-1325 obj-71)))
+          (if (py-test (py-is (py-call py-builtin-type result-1330)
+                              py-builtin-int))
+              result-1330
               (py-throw
                (py-call py-builtin-TypeError
                         (py-add (py-add (&& "__int__ returned non-int type: '")
@@ -1327,8 +1329,8 @@
                                 (&& "'")))))))))
 
 (define (py-to-int-fallback obj-72)
-  (letrec* ((result-1333 (py-maybe-to-int-fallback obj-72)))
-    (if (py-test (py-is result-1333 py-absent))
+  (letrec* ((result-1335 (py-maybe-to-int-fallback obj-72)))
+    (if (py-test (py-is result-1335 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
                   (py-add (py-add (&& "'")
@@ -1336,19 +1338,47 @@
                                    (py-call py-builtin-type obj-72)
                                    (& "__name__")))
                           (&& "' object cannot be interpreted as an integer"))))
-        result-1333)))
+        result-1335)))
 
-(define (py-maybe-index-fallback obj-73)
-  (letrec* ((__index__-1340
-             (getattribute-from-obj-mro obj-73 (&& "__index__"))))
-    (if (py-test (py-is __index__-1340 py-absent))
+(define (py-maybe-to-float-fallback obj-73)
+  (letrec* ((__float__-1342
+             (getattribute-from-obj-mro obj-73 (&& "__float__"))))
+    (if (py-test (py-is __float__-1342 py-absent))
         py-absent
-        (letrec* ((result-1345 (py-call __index__-1340 obj-73)))
-          (if (py-test (py-is result-1345 py-absent))
+        (letrec* ((result-1347 (py-call __float__-1342 obj-73)))
+          (if (py-isinstance? result-1347 py-builtin-float)
+              result-1347
+              (py-throw
+               (py-call py-builtin-TypeError
+                        (py-add (py-add (&& "__float__ returned non-float type: '")
+                                        (py-getattribute
+                                         (py-call py-builtin-type obj-73)
+                                         (& "__name__")))
+                                (&& "'")))))))))
+
+(define (py-to-float-fallback obj-74)
+  (letrec* ((result-1353 (py-maybe-to-float-fallback obj-74)))
+    (if (py-test (py-is result-1353 py-absent))
+        (py-throw
+         (py-call py-builtin-TypeError
+                  (py-add (py-add (&& "'")
+                                  (py-getattribute
+                                   (py-call py-builtin-type obj-74)
+                                   (& "__name__")))
+                          (&& "' object cannot be interpreted as a float"))))
+        result-1353)))
+
+(define (py-maybe-index-fallback obj-75)
+  (letrec* ((__index__-1360
+             (getattribute-from-obj-mro obj-75 (&& "__index__"))))
+    (if (py-test (py-is __index__-1360 py-absent))
+        py-absent
+        (letrec* ((result-1365 (py-call __index__-1360 obj-75)))
+          (if (py-test (py-is result-1365 py-absent))
               py-absent
-              (if (py-has-type-sint? result-1345)
-                  result-1345
-                  (if (py-has-type-bint? result-1345)
+              (if (py-has-type-sint? result-1365)
+                  result-1365
+                  (if (py-has-type-bint? result-1365)
                       (py-throw
                        (py-call py-builtin-OverflowError
                                 (&& "cannot fit 'int' into an index-sized integer")))
@@ -1357,127 +1387,128 @@
                                 (py-add (py-add (&& "__index__ returned non-int type: '")
                                                 (py-getattribute
                                                  (py-call py-builtin-type
-                                                          obj-73)
+                                                          obj-75)
                                                  (& "__name__")))
                                         (&& "'")))))))))))
 
-(define (py-index-fallback obj-74)
-  (letrec* ((result-1353 (py-maybe-index-fallback obj-74)))
-    (if (py-test (py-is result-1353 py-absent))
+(define (py-index-fallback obj-76)
+  (letrec* ((result-1373 (py-maybe-index-fallback obj-76)))
+    (if (py-test (py-is result-1373 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
                   (py-add (py-add (&& "'")
                                   (py-getattribute
-                                   (py-call py-builtin-type obj-74)
+                                   (py-call py-builtin-type obj-76)
                                    (& "__name__")))
                           (&& "' object cannot be interpreted as an integer"))))
-        result-1353)))
+        result-1373)))
 
-(define (py-maybe-len-fallback obj-75)
-  (letrec* ((__len__-1360 (getattribute-from-obj-mro obj-75 (&& "__len__"))))
-    (if (py-test (py-is __len__-1360 py-absent))
+(define (py-maybe-len-fallback obj-77)
+  (letrec* ((__len__-1380 (getattribute-from-obj-mro obj-77 (&& "__len__"))))
+    (if (py-test (py-is __len__-1380 py-absent))
         py-absent
-        (letrec* ((len_result-1365 (py-call __len__-1360 obj-75)))
-          (py-index-fallback len_result-1365)))))
+        (letrec* ((len_result-1385 (py-call __len__-1380 obj-77)))
+          (py-index-fallback len_result-1385)))))
 
-(define (py-len-fallback obj-76)
-  (letrec* ((result-1368 (py-maybe-len-fallback obj-76)))
-    (if (py-test (py-is result-1368 py-absent))
+(define (py-len-fallback obj-78)
+  (letrec* ((result-1388 (py-maybe-len-fallback obj-78)))
+    (if (py-test (py-is result-1388 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
                   (py-add (py-add (&& "object of type")
                                   (py-getattribute
-                                   (py-call py-builtin-type obj-76)
+                                   (py-call py-builtin-type obj-78)
                                    (& "__name__")))
                           (&& "has no len()"))))
-        result-1368)))
+        result-1388)))
 
-(define (py-truth-fallback obj-77)
-  (letrec* ((__bool__-1375 (getattribute-from-obj-mro obj-77 (&& "__bool__"))))
-    (if (py-test (py-isnot __bool__-1375 py-absent))
-        (letrec* ((result-1380 (py-call __bool__-1375 obj-77)))
-          (if (py-isinstance? result-1380 py-builtin-bool)
-              result-1380
+(define (py-truth-fallback obj-79)
+  (letrec* ((__bool__-1395 (getattribute-from-obj-mro obj-79 (&& "__bool__"))))
+    (if (py-test (py-isnot __bool__-1395 py-absent))
+        (letrec* ((result-1400 (py-call __bool__-1395 obj-79)))
+          (if (py-test (py-is (py-call py-builtin-type result-1400)
+                              py-builtin-bool))
+              result-1400
               (py-throw
                (py-call py-builtin-TypeError
                         (py-add (py-add (&& "__bool__ should return bool, returned '")
                                         (py-getattribute
-                                         (py-call py-builtin-type obj-77)
+                                         (py-call py-builtin-type obj-79)
                                          (& "__name__")))
                                 (&& "'"))))))
-        (letrec* ((len_result-1386 (py-maybe-len-fallback obj-77)))
-          (if (py-test (py-isnot len_result-1386 py-absent))
-              (py-ne len_result-1386 (py-int-from-scheme 0))
+        (letrec* ((len_result-1405 (py-maybe-len-fallback obj-79)))
+          (if (py-test (py-isnot len_result-1405 py-absent))
+              (py-ne len_result-1405 (py-int-from-scheme 0))
               py-True)))))
 
-(define (py-test-fallback obj-78)
-  (py-bool-to-scheme-bool (py-truth-fallback obj-78)))
+(define (py-test-fallback obj-80)
+  (py-bool-to-scheme-bool (py-truth-fallback obj-80)))
 
-(define (py-getattribute-fallback obj-79 attr-80)
-  (letrec* ((__getattribute__-1392
-             (getattribute-from-obj-mro obj-79 (&& "__getattribute__"))))
+(define (py-getattribute-fallback obj-81 attr-82)
+  (letrec* ((__getattribute__-1411
+             (getattribute-from-obj-mro obj-81 (&& "__getattribute__"))))
     (with-handler
      (lambda ($%exc_0)
        (cond ((py-isinstance? $%exc_0 py-builtin-AttributeError)
-              (letrec* ((__getattr__-1398
+              (letrec* ((__getattr__-1417
                          (getattribute-from-obj-mro
-                          obj-79
+                          obj-81
                           (&& "__getattr__"))))
-                (if (py-test (py-is __getattr__-1398 py-absent))
+                (if (py-test (py-is __getattr__-1417 py-absent))
                     (py-throw $%exc_0)
-                    (py-call __getattr__-1398 obj-79 attr-80))))
+                    (py-call __getattr__-1417 obj-81 attr-82))))
              (else (raise $%exc_0))))
-     (py-call __getattribute__-1392 obj-79 attr-80))))
+     (py-call __getattribute__-1411 obj-81 attr-82))))
 
-(define (py-setattribute-fallback obj-81 attr-82 val-83)
-  (letrec* ((__setattr__-1401
-             (getattribute-from-obj-mro obj-81 (&& "__setattr__"))))
-    (py-call __setattr__-1401 obj-81 attr-82 val-83)))
+(define (py-setattribute-fallback obj-83 attr-84 val-85)
+  (letrec* ((__setattr__-1420
+             (getattribute-from-obj-mro obj-83 (&& "__setattr__"))))
+    (py-call __setattr__-1420 obj-83 attr-84 val-85)))
 
-(define (py-getitem-fallback obj-84 index-85)
-  (letrec* ((__getitem__-1407
-             (getattribute-from-obj-mro obj-84 (&& "__getitem__"))))
-    (if (py-test (py-is __getitem__-1407 py-absent))
+(define (py-getitem-fallback obj-86 index-87)
+  (letrec* ((__getitem__-1426
+             (getattribute-from-obj-mro obj-86 (&& "__getitem__"))))
+    (if (py-test (py-is __getitem__-1426 py-absent))
         (py-throw
          (py-call py-builtin-TypeError (&& "object is not subscriptable")))
-        (py-call __getitem__-1407 obj-84 index-85))))
+        (py-call __getitem__-1426 obj-86 index-87))))
 
-(define (py-setitem-fallback obj-86 index-87 value-88)
-  (letrec* ((__setitem__-1414
-             (getattribute-from-obj-mro obj-86 (&& "__setitem__"))))
-    (if (py-test (py-is __setitem__-1414 py-absent))
+(define (py-setitem-fallback obj-88 index-89 value-90)
+  (letrec* ((__setitem__-1433
+             (getattribute-from-obj-mro obj-88 (&& "__setitem__"))))
+    (if (py-test (py-is __setitem__-1433 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
                   (&& "object does not support item assignment")))
-        (py-call __setitem__-1414 obj-86 index-87 value-88))))
+        (py-call __setitem__-1433 obj-88 index-89 value-90))))
 
-(define (py-delitem-fallback obj-89 index-90)
-  (letrec* ((__delitem__-1422
-             (getattribute-from-obj-mro obj-89 (&& "__delitem__"))))
-    (if (py-test (py-is __delitem__-1422 py-absent))
+(define (py-delitem-fallback obj-91 index-92)
+  (letrec* ((__delitem__-1441
+             (getattribute-from-obj-mro obj-91 (&& "__delitem__"))))
+    (if (py-test (py-is __delitem__-1441 py-absent))
         (py-throw
          (py-call py-builtin-TypeError
                   (&& "object does not support item deletion")))
-        (py-call __delitem__-1422 obj-89 index-90))))
+        (py-call __delitem__-1441 obj-91 index-92))))
 
-(define (py-enter-fallback obj-91)
-  (letrec* ((__enter__-1429
-             (getattribute-from-obj-mro obj-91 (&& "__enter__"))))
-    (if (py-test (py-is __enter__-1429 py-absent))
+(define (py-enter-fallback obj-93)
+  (letrec* ((__enter__-1448
+             (getattribute-from-obj-mro obj-93 (&& "__enter__"))))
+    (if (py-test (py-is __enter__-1448 py-absent))
         (py-throw (py-call py-builtin-AttributeError (&& "__enter__")))
-        (py-call __enter__-1429 obj-91))))
+        (py-call __enter__-1448 obj-93))))
 
-(define (py-exit-fallback obj-92 exc-93)
-  (letrec* ((__exit__-1435 (getattribute-from-obj-mro obj-92 (&& "__exit__"))))
-    (if (py-test (py-is __exit__-1435 py-absent))
+(define (py-exit-fallback obj-94 exc-95)
+  (letrec* ((__exit__-1454 (getattribute-from-obj-mro obj-94 (&& "__exit__"))))
+    (if (py-test (py-is __exit__-1454 py-absent))
         (py-throw (py-call py-builtin-AttributeError (&& "__exit__")))
-        (if (py-test (py-is exc-93 py-None))
-            (py-call __exit__-1435 obj-92 py-None py-None py-None)
-            (letrec* ((exit_result-1442
-                       (py-call __exit__-1435
-                                obj-92
-                                (py-call py-builtin-type exc-93)
-                                exc-93
+        (if (py-test (py-is exc-95 py-None))
+            (py-call __exit__-1454 obj-94 py-None py-None py-None)
+            (letrec* ((exit_result-1461
+                       (py-call __exit__-1454
+                                obj-94
+                                (py-call py-builtin-type exc-95)
+                                exc-95
                                 py-None)))
-              (if (py-test exit_result-1442) py-None (py-throw exc-93)))))))
+              (if (py-test exit_result-1461) py-None (py-throw exc-95)))))))
 

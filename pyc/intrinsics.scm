@@ -297,8 +297,11 @@
    (cons 'py_str_from_host (make-pragma-call-maker 'py-str-from-scheme))
    (cons 'py_str_len_to_host (make-pragma-call-maker 'py-str-len-to-scheme))
    ;; semantics
+   (cons 'semantics_truth (make-pragma-call-maker 'py-truth))
    (cons 'semantics_to_int (make-pragma-call-maker 'py-to-int))
    (cons 'semantics_maybe_to_int (make-pragma-call-maker 'py-maybe-to-int))
+   (cons 'semantics_to_float (make-pragma-call-maker 'py-to-float))
+   (cons 'semantics_maybe_to_float (make-pragma-call-maker 'py-maybe-to-float))
    (cons 'semantics_index (make-pragma-call-maker 'py-index))
    (cons 'semantics_maybe_index (make-pragma-call-maker 'py-maybe-index))
    (cons 'semantics_trunc (make-pragma-call-maker 'py-trunc))

@@ -136,6 +136,8 @@
     py-maybe-len
     py-to-int
     py-maybe-to-int
+    py-to-float
+    py-maybe-to-float
     py-index
     py-maybe-index
     py-trunc
@@ -422,6 +424,7 @@
     py-tuple-hclass-of-instances
 
     make-PyObjectInt
+    make-PyObjectFloat
 
     py-range-hclass-of-instances
     make-PyObjectRange
@@ -778,6 +781,8 @@ py-maybe-trunc-fallback
 py-trunc-fallback
 py-maybe-to-int-fallback
 py-to-int-fallback
+py-maybe-to-float-fallback
+py-to-float-fallback
 py-maybe-index-fallback
 py-index-fallback
 py-maybe-len-fallback

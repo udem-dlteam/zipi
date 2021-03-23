@@ -1227,7 +1227,7 @@ def maybe_trunc(obj):
     else:
         result = __trunc__(obj)
 
-        if isinstance(result, int):
+        if type(result) is int:
             return result
         else:
             raise TypeError("__trunc__ returned non-int type: '" + type(obj).__name__ + "'")
@@ -1252,7 +1252,7 @@ def maybe_to_int(obj):
     else:
         result = __int__(obj)
 
-        if isinstance(result, int):
+        if type(result) is int:
             return result
         else:
             raise TypeError("__int__ returned non-int type: '" + type(obj).__name__ + "'")
@@ -1267,6 +1267,31 @@ def to_int(obj):
     else:
         return result
     # to_int:end-body
+
+@define_semantics
+def maybe_to_float(obj):
+    # maybe_to_float:start-body
+    __float__ = class_getattr(obj, "__float__")
+    if __float__ is absent:
+        return absent
+    else:
+        result = __float__(obj)
+
+        if isinstance(result, float):
+            return result
+        else:
+            raise TypeError("__float__ returned non-float type: '" + type(obj).__name__ + "'")
+    # maybe_to_float:end-body
+
+@define_semantics
+def to_float(obj):
+    # to_float:start-body
+    result = maybe_to_float(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as a float")
+    else:
+        return result
+    # to_float:end-body
 
 @define_semantics
 def maybe_index(obj):
@@ -1324,7 +1349,7 @@ def truth(obj):
     __bool__ = class_getattr(obj, "__bool__")
     if __bool__ is not absent:
         result = __bool__(obj)
-        if isinstance(result, bool):
+        if type(result) is bool:
             return result
         else:
             raise TypeError("__bool__ should return bool, returned '" + type(obj).__name__ + "'")

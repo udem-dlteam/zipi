@@ -1662,6 +1662,12 @@
 (define-macro (py-maybe-to-int obj)
   `(py-maybe-to-int-fallback ,obj))
 
+(define-macro (py-to-float obj)
+  `(py-to-float-fallback ,obj))
+
+(define-macro (py-maybe-to-float obj)
+  `(py-maybe-to-float-fallback ,obj))
+
 (define-macro (py-index obj)
   `(py-index-fallback ,obj))
 
