@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Nov  5 10:30:55 2020                          */
-;*    Last change :  Mon Nov  9 11:45:07 2020 (serrano)                */
+;*    Last change :  Tue Mar 23 08:41:11 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Macros for Python calls                                          */
@@ -254,22 +254,4 @@
        (e (call-expander f args) e))
       (else
        (error "py-call" "bad syntax" x))))
-
-;*---------------------------------------------------------------------*/
-;*    py-global-call ...                                               */
-;*---------------------------------------------------------------------*/
-(define (py-global-call-expander x e)
-
-   (define (&call-expander &f f f0 name cache args)
-      (let ((params (map (lambda (e) (gensym 'p)) args)))
-	 `(let ,(map (lambda (p a) (list p a)) params args)
-	     (if (eq? ,f ,f0)
-		 (,&f ,@params)
-		 (py-call (or ,f (global-get %global ,name ,cache)) ,@params)))))
-      
-   (match-case x
-      ((py-global-call ?&f ?f ?f0 ?name ?cache . ?args)
-       (e (&call-expander &f f f0 name cache args) e))
-      (else
-       (error "py-global-call" "bad syntax" x))))
    

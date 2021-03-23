@@ -1257,11 +1257,24 @@
 	  (name (scheme-var-name var conf)))
       (cond
 	 ((eq? (PycVar-scope var) 'global)
-	  `(or ,name
-	       (global-get
-		  %global
-		  ,(pyc-propname id)
-		  ,(scheme-cache (PycRef-cache this) this))))
+	  (cond-expand
+	     (bigloo
+	      (if (config-get conf optim-globals:)
+		  `(or ,name
+		       (global-get
+			  %global
+			  ,(pyc-propname id)
+			  ,(scheme-cache (PycRef-cache this) this)))
+		  `(global-get
+			  %global
+			  ,(pyc-propname id)
+			  ,(scheme-cache (PycRef-cache this) this))))
+	     (else
+	      `(or ,name
+		   (global-get
+		      %global
+		      ,(pyc-propname id)
+		      ,(scheme-cache (PycRef-cache this) this))))))
 	 ((PycRef-can-direct-access this)
 	  name)
 	 (else

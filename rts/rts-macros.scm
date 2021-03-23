@@ -21,13 +21,14 @@
         (py-call $fn))))
 
 (define-macro (py-global-call global procedure global-id init-value name cache . args)
-  (if (symbol? global-id)
-    `(if (eq? ,global-id ,init-value)
-        (,procedure ,@args)
-        (py-call
-          (or ,global-id (global-get ,global ,name ,cache))
-          ,@args))
-    (error "py-global-call" "global-id must be a symbol" global-id)))
+   (if (symbol? global-id)
+       (let ((params (map (lambda (e) (gensym 'p)) args)))
+	  `(let ,(map (lambda (p a) (list p a)) params args)
+	      (if (eq? ,global-id ,init-value)
+		  (,procedure ,@params)
+		  (py-call (or ,global-id (global-get ,global ,name ,cache))
+		     ,@params))))
+       (error "py-global-call" "global-id must be a symbol" global-id)))
 
 (define-macro (py-call0 fun)
   `(let (($fun ,fun))
