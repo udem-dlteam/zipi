@@ -23,7 +23,7 @@
 (define-macro (py-global-call global procedure global-id init-value name cache . args)
    (if (symbol? global-id)
        (let ((params (map (lambda (e) (gensym 'p)) args)))
-	  `(let ,(map (lambda (p a) (list p a)) params args)
+	  `(let* ,(map (lambda (p a) (list p a)) params args)
 	      (if (eq? ,global-id ,init-value)
 		  (,procedure ,@params)
 		  (py-call (or ,global-id (global-get ,global ,name ,cache))
