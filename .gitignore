@@ -23,6 +23,7 @@ zpc/configure.scm
 rts/.afile
 rts/.etags
 rts/o
+rts/rts@*
 rts/rts.sch
 rts/builtins.bgl
 rts/zemantics.bgl
