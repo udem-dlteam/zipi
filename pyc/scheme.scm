@@ -359,19 +359,40 @@
    (epairify this
      (if (eq? (PycExpr-type this) 'Ubool)
       (scheme this conf)
-      (if (isa? this PycBoolOp)
-        ;; in a test we try to skip conversion of expression to Python bool
-        ;; and convert directly to scheme bool
-        (let ((op (PycBoolOp-op this))
-              (args (PycBoolOp-args this)))
-          (case op
-            ((or)
-              `(or ,@(map (lambda (a) (pyc-test a conf)) args)))
-            ((and)
-              `(and ,@(map (lambda (a) (pyc-test a conf)) args)))
-            (else (error "scheme::PycBoolOp" "unknown op" op))))
-       ;; TODO: there might be BoolOp nested in there, can we do better?
-	     `(py-test ,(scheme this conf))))))
+      (cond
+        ((isa? this PycBoolOp)
+          ;; in a test we try to skip conversion of expression to Python bool
+          ;; and convert directly to scheme bool
+          (let ((op (PycBoolOp-op this))
+                (args (PycBoolOp-args this)))
+            (case op
+              ((or)
+                `(or ,@(map (lambda (a) (pyc-test a conf)) args)))
+              ((and)
+                `(and ,@(map (lambda (a) (pyc-test a conf)) args)))
+              (else (error "scheme::PycBoolOp" "unknown op" op)))))
+        ((isa? this PycChainCmp)
+          (let ((left-chain-symbol (my-gensym '%left-elt)))
+            `(let ((,left-chain-symbol ,(scheme (PycChainCmp-lhs this) conf)))
+              ,(let loop ((left left-chain-symbol)
+                         (rights
+                           (map
+                             (lambda (e) (scheme e conf))
+                             (PycChainCmp-rest this)))
+                         (ops (PycChainCmp-ops this)))
+                (if (null? (cdr ops))
+                  (epairify this
+                    `(py-test
+                      (,(symbol-append 'py- (car ops))
+                        ,left
+                        ,(car rights))))
+                  (let ((chain-symbol (my-gensym '%chain-elt))
+                        (res-symbol (my-gensym '%chain-result)))
+                    `(let* ((,chain-symbol ,(car rights))
+                            (,res-symbol (py-test (,(symbol-append 'py- (car ops)) ,left ,chain-symbol))))
+                      (and ,res-symbol
+                          ,(loop chain-symbol (cdr rights) (cdr ops))))))))))
+	      (else `(py-test ,(scheme this conf)))))))
 
 (define-walk-method (scheme this::PycWhile conf)
 
@@ -942,6 +963,28 @@
         (begin
         (error "scheme::PycBinary" "operation between rhs native type and non-native type" lhs-type-hint))
         (python-op)))))
+
+(define-walk-method (scheme this::PycChainCmp conf)
+  (let ((left-chain-symbol (my-gensym '%left-elt)))
+    `(let ((,left-chain-symbol ,(scheme (PycChainCmp-lhs this) conf)))
+      ,(let loop ((left left-chain-symbol)
+                 (rights
+                   (map
+                     (lambda (e) (scheme e conf))
+                     (PycChainCmp-rest this)))
+                 (ops (PycChainCmp-ops this)))
+        (if (null? (cdr ops))
+          (epairify this
+            `(,(symbol-append 'py- (car ops))
+              ,left
+              ,(car rights)))
+          (let ((chain-symbol (my-gensym '%chain-elt))
+                (res-symbol (my-gensym '%chain-result)))
+            `(let* ((,chain-symbol ,(car rights))
+                    (,res-symbol (,(symbol-append 'py- (car ops)) ,left ,chain-symbol)))
+              (if (py-test ,res-symbol)
+                  ,(loop chain-symbol (cdr rights) (cdr ops))
+                  ,res-symbol))))))))
 
 (define-walk-method (scheme this::PycUnary conf)
   (define native-types '(Uint Usint Ubint Ufloat Ubool Ustr))

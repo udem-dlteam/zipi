@@ -344,14 +344,20 @@
     ;; Yield(expr? value)
     ((Compare ?loc ?left ?ops ?rights)
      ;; Compare(expr left, cmpop* ops, expr* comparators)
-     (if (pair? (cdr ops))
-         (error "Compare" "Not implemented" ops)
-         (let ((left-node (sexp left #f scope conf))
-               (right-nodes (sexp (car rights) #f scope conf)))
+     (let ((left-value (sexp left #f scope conf))
+           (right-values
+             (map
+               (lambda (v) (sexp v #f scope conf))
+               rights)))
+       (if (pair? (cdr ops))
+           (new-PycChainCmp loc
+                          (map compare-operator ops)
+                          left-value
+                          right-values)
            (new-PycBinary loc
                           (compare-operator (car ops))
-                          left-node
-                          right-nodes))))
+                          left-value
+                          (car right-values)))))
     ((Call ?loc ?fun ?args ?keywords)
      ;; Call(expr func, expr* args, keyword* keywords)
      (new-PycCall loc
@@ -484,9 +490,9 @@
 
 
 (define (compile-import-from loc module aliases level conf)
-  
+
   ;; module can be #f in the case of from . import x
-  (let* ((module-str (if module (symbol->string module) "")) 
+  (let* ((module-str (if module (symbol->string module) ""))
          (module-var (new-PycVar '(-1 -1) '%mod 'block))
          (module-assig
            (new-PycAssig
