@@ -174,11 +174,11 @@
                 )
       (pyneg    (py-sint-from-scheme (|##fx-| X)) ;; bool or non-ov. sint
                 (or (|##fx-?| X) (|##negate| X)) ;; sint
-                (|##negate| X) ;; otherwise
+                (pyneg-UintX-fallback X) ;; otherwise
                 )
       (pyinvert (py-sint-from-scheme (|##fxnot| X)) ;; bool or non-ov. sint
                 (py-sint-from-scheme (|##fxnot| X)) ;; sint
-                (pyinvert-UintX X) ;; otherwise
+                (pyinvert-UintX-fallback X) ;; otherwise
                 )))
 
   (define binary-operators-gambit
