@@ -214,6 +214,11 @@
 	 (rhs-type-hint (default #f))
 	 (cache (default #f)))
 
+    (final-class PycChainCmp::PycExpr
+      ops::pair-nil
+      lhs::PycExpr
+      rest::pair-nil)
+
       (final-class PycBoolOp::PycExpr
 	 op::symbol
 	 args::pair-nil
@@ -641,6 +646,7 @@
 (gen-walks PycSemantics (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators))
 (gen-walks PycClass body (bases) (decorators))
 (gen-walks PycBinary lhs rhs)
+(gen-walks PycChainCmp lhs (rest))
 (gen-walks PycUnary expr)
 (gen-walks PycBoolOp (args))
 (gen-walks PycCall fun (args) (keywords-values))
