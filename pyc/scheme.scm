@@ -43,6 +43,15 @@
           #f)))
     defs))
 
+(define (filter-private-vars vars)
+  (cond
+    ((null? vars)
+      '())
+    ((PycVar-global-only-accessed-in-module (car vars))
+      (filter-private-vars (cdr vars)))
+    (else
+      (cons (car vars) (filter-private-vars (cdr vars))))))
+
 (define (scheme-register-globals vars conf)
   (map
     (lambda (var)
@@ -52,7 +61,7 @@
         (lambda () ,(scheme-var-name var conf))
         (lambda (v)
           (set! ,(scheme-var-name var conf) v))))
-    (get-unique-var-lst vars conf)))
+    (get-unique-var-lst (filter-private-vars vars) conf)))
 
 (define (set-procedure-names! defs conf)
   (if (not (null? defs))
@@ -172,6 +181,10 @@
       ;; normal compilation
       (let* ((file (config-get conf file:))
             (path (config-get conf dir:))
+            (special-init
+              (if (eq? (PycModule-special-init ast) 'builtins)
+                'init-builtin-module
+                #f))
             (global-funs
               (if (config-get conf optim-globals:)
                   (let ((defs (PycModule-global-defs ast)))
@@ -187,7 +200,14 @@
             (full-path (if (and file path) (make-file-path path file) #f)))
         (list
           `(define-library (,(string->symbol (config-get conf name:)))
-            (export init)
+            ,(if special-init
+              `(export
+                init
+                ,special-init
+                ,@(map
+                  (lambda (var) (scheme-var-name var conf))
+                  (get-unique-var-lst (map PycRef-decl global-refs) conf)))
+              `(export init))
             (import (gambit) (zipi rts))
             (begin
               (py-begin-module)
@@ -212,7 +232,12 @@
                   ,@prog)
                    `(define py-module ,prog))
 
-              (define (init name package __path__)
+              ,@(if special-init
+                `((define (init name package __path__)
+                    builtins-mod))
+                '())
+
+              (define (,(or special-init 'init) name package __path__)
                 (py-init-module)
                 (let ((caches (py-make-caches ,(PycModule-caches ast)))
                       (module (py-make-module name package __path__)))
@@ -639,16 +664,20 @@
     (if current-name
       current-name
       (let* ((name
-              (if (eq? (PycVar-scope var) 'global)
-                (symbol-append
-                  '|global:|
-                  (PycVar-id var)
-                  '-
-                  (string->symbol (number->string (PycVar-key var))))
-                 (symbol-append
-                   (PycVar-id var)
-            	     '-
-            	     (string->symbol (number->string (PycVar-key var)))))))
+              (cond
+                ((PycVar-is-builtin var)
+                  (symbol-append '&py-builtin- (PycVar-id var)))
+                ((eq? (PycVar-scope var) 'global)
+                  (symbol-append
+                    '|global:|
+                    (PycVar-id var)
+                    '-
+                    (string->symbol (number->string (PycVar-key var)))))
+                (else
+                  (symbol-append
+                     (PycVar-id var)
+              	     '-
+              	     (string->symbol (number->string (PycVar-key var))))))))
         (PycVar-name-set! var name)
         name))))
 
@@ -1060,9 +1089,6 @@
       ,(generator this body)))))
 
 (define-walk-method (scheme this::PycClass conf)
-  (define (make-HClass-name name)
-    (string->symbol (string-append "py-" name "-hclass-of-instances")))
-
   (define (pyc-class this)
     (let ((cls-symbol (PycClass-super-key this))
           (is-builtin (PycClass-is-builtin this)))
@@ -1075,7 +1101,6 @@
                 (&& ,(PycClass-name this))
                 (&& ,(PycClass-module this))
                 (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
-                ,(make-HClass-name (PycClass-name this))
                 ,@(append-map
                   (lambda (var)
                     `(,(pyc-propname (PycVar-id var))
@@ -1151,14 +1176,16 @@
                  (if (and (PycFun? init-val)
                           (symbol? (PycFun-&proc init-val))
                           (correct-arity? init-val args))
-                  `(py-global-call
-                      %global
-                      ,(PycFun-&proc init-val)
-                      ,(scheme-var-name var conf)
-                      ,(scheme-def-optim-globals-name-init var conf)
-                      ,(pyc-propname (PycVar-id var))
-                      ,(scheme-cache (PycRef-cache f) this)
-                      ,@args)
+                  (if (PycVar-global-ref-to-init-def var)
+                    `(,(PycFun-&proc init-val) ,@args)
+                    `(py-global-call
+                        %global
+                        ,(PycFun-&proc init-val)
+                        ,(scheme-var-name var conf)
+                        ,(scheme-def-optim-globals-name-init var conf)
+                        ,(pyc-propname (PycVar-id var))
+                        ,(scheme-cache (PycRef-cache f) this)
+                        ,@args))
                   #f))
               #f)))
         ((PycRefUnresolved? f) #f)
@@ -1253,35 +1280,35 @@
 
 (define-walk-method (scheme this::PycRef conf)
    (let* ((var (PycRef-decl this))
-	  (id (PycVar-id var))
-	  (name (scheme-var-name var conf)))
-      (cond
-	 ((eq? (PycVar-scope var) 'global)
-	  (cond-expand
-	     (bigloo
-	      (if (config-get conf optim-globals:)
-		  `(or ,name
-		       (global-get
-			  %global
-			  ,(pyc-propname id)
-			  ,(scheme-cache (PycRef-cache this) this)))
-		  `(global-get
-			  %global
-			  ,(pyc-propname id)
-			  ,(scheme-cache (PycRef-cache this) this))))
-	     (else
-	      `(or ,name
-		   (global-get
-		      %global
-		      ,(pyc-propname id)
-		      ,(scheme-cache (PycRef-cache this) this))))))
-	 ((PycRef-can-direct-access this)
-	  name)
-	 (else
-	  `(or ,name
-	       (py-throw-exception-with-message
-		  py-builtin-UnboundLocalError
-		  ,(string-append "local variable '" (symbol->string id) "' referenced before assignment")))))))
+          (id (PycVar-id var))
+          (name (scheme-var-name var conf)))
+    (cond
+      ((PycRef-can-direct-access this)
+        name)
+  	  ((eq? (PycVar-scope var) 'global)
+        (cond-expand
+          (bigloo
+           (if (config-get conf optim-globals:)
+         `(or ,name
+              (global-get
+           %global
+           ,(pyc-propname id)
+           ,(scheme-cache (PycRef-cache this) this)))
+         `(global-get
+           %global
+           ,(pyc-propname id)
+           ,(scheme-cache (PycRef-cache this) this))))
+          (else
+           `(or ,name
+          (global-get
+             %global
+             ,(pyc-propname id)
+             ,(scheme-cache (PycRef-cache this) this))))))
+  	  (else
+  	   `(or ,name
+  	        (py-throw-exception-with-message
+  	 	  py-builtin-UnboundLocalError
+  	 	  ,(string-append "local variable '" (symbol->string id) "' referenced before assignment")))))))
 
 (define-walk-method (scheme this::PycRefUnresolved conf)
    (epairify this

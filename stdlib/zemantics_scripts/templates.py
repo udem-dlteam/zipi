@@ -8,21 +8,135 @@ semantics_template = \
 {arithmetic}
 
 @define_semantics
-def index(obj):
-    # index:start-body
+def maybe_trunc(obj):
+    # maybe_trunc:start-body
+    __trunc__ = class_getattr(obj, "__trunc__")
+    if __trunc__ is absent:
+        return absent
+    else:
+        result = __trunc__(obj)
+
+        if type(result) is int:
+            return result
+        else:
+            raise TypeError("__trunc__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_trunc:end-body
+
+@define_semantics
+def trunc(obj):
+    # trunc:start-body
+    result = maybe_trunc(obj)
+    if result is absent:
+        raise TypeError("type '" + type(obj).__name__ + "' doesn't define __trunc__ method")
+    else:
+        return result
+    # trunc:end-body
+
+@define_semantics
+def maybe_to_int(obj):
+    # maybe_to_int:start-body
+    __int__ = class_getattr(obj, "__int__")
+    if __int__ is absent:
+        return absent
+    else:
+        result = __int__(obj)
+
+        if type(result) is int:
+            return result
+        else:
+            raise TypeError("__int__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_to_int:end-body
+
+@define_semantics
+def to_int(obj):
+    # to_int:start-body
+    result = maybe_to_int(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
+    # to_int:end-body
+
+@define_semantics
+def maybe_to_float(obj):
+    # maybe_to_float:start-body
+    __float__ = class_getattr(obj, "__float__")
+    if __float__ is absent:
+        return absent
+    else:
+        result = __float__(obj)
+
+        if isinstance(result, float):
+            return result
+        else:
+            raise TypeError("__float__ returned non-float type: '" + type(obj).__name__ + "'")
+    # maybe_to_float:end-body
+
+@define_semantics
+def to_float(obj):
+    # to_float:start-body
+    result = maybe_to_float(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as a float")
+    else:
+        return result
+    # to_float:end-body
+
+@define_semantics
+def maybe_index(obj):
+    # maybe_index:start-body
     __index__ = class_getattr(obj, "__index__")
     if __index__ is absent:
-        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+        return absent
     else:
         result = __index__(obj)
 
-        if isinstance(result, sint):
+        if result is absent:
+            return absent
+        elif isinstance(result, sint):
             return result
         elif isinstance(result, bint):
             raise OverflowError("cannot fit 'int' into an index-sized integer")
         else:
             raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_index:end-body
+
+@define_semantics
+def index(obj):
+    # index:start-body
+    result = maybe_index(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
     # index:end-body
+
+@define_semantics
+def maybe_big_index(obj):
+    # maybe_big_index:start-body
+    __index__ = class_getattr(obj, "__index__")
+    if __index__ is absent:
+        return absent
+    else:
+        result = __index__(obj)
+
+        if result is absent:
+            return absent
+        elif type(result) is int:
+            return result
+        else:
+            raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_big_index:end-body
+
+@define_semantics
+def big_index(obj):
+    # big_index:start-body
+    result = maybe_big_index(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
+    # big_index:end-body
 
 @define_semantics
 def maybe_len(obj):
@@ -51,7 +165,7 @@ def truth(obj):
     __bool__ = class_getattr(obj, "__bool__")
     if __bool__ is not absent:
         result = __bool__(obj)
-        if isinstance(result, bool):
+        if type(result) is bool:
             return result
         else:
             raise TypeError("__bool__ should return bool, returned '" + type(obj).__name__ + "'")
@@ -507,31 +621,60 @@ int_unary_method_template = \
 """
 
 class_int_template = \
-    """@builtin_class
+    """
+@builtin
+@private
+def convert_to_int(obj):
+    int_conversion = semantics_maybe_to_int(obj)
+    if int_conversion is absent:
+        index_conversion = semantics_maybe_index(obj)
+        if index_conversion is absent:
+            trunc_conversion = semantics_maybe_trunc(obj)
+            if trunc_conversion is absent:
+                raise TypeError("int() argument must be a string, a bytes-like object or a number, not '" + type(obj).__name__ + "'")
+            else:
+                return trunc_conversion
+        else:
+            return index_conversion
+    else:
+        return int_conversion
+
+@builtin
 class int:
-    @staticmethod
     def __new__(cls, val=absent):
         if cls is int:
             if val is absent:
                 return 0
-            if isinstance(val, int):
-                return py_int_from_host(py_int_to_host(val))
             else:
-                raise NotImplementedError
+                return convert_to_int(val)
+        elif isinstance(cls, type) and issubclass(cls, int):
+            if val is absent:
+                return alloc(int, cls=cls, value=py_int_to_host(0))
+            else:
+                return alloc(int, cls=cls, value=py_int_to_host(convert_to_int(val)))
         else:
-            raise NotImplementedError
-            
+            raise TypeError("int.__new__ expected a subtype of 'int' as first argument")
+
     def __bool__(self):
         if isinstance(self, int):
             return self != 0
         else:
             raise TypeError("descriptor '__bool__' requires a 'int' object but received a '" + type(self).__name__ + "'")
-            
+
     def __index__(self):
         if isinstance(self, int):
             return py_int_from_host(py_int_to_host(self))
         else:
             raise TypeError("descriptor '__index__' requires a 'int' object but received a '" + type(self).__name__ + "'")
+
+    def __abs__(self):
+        if isinstance(self, int):
+            if self < 0:
+                return py_int_from_host(-py_int_to_host(self))
+            else:
+                return py_int_from_host(py_int_to_host(self))
+        else:
+            raise TypeError("descriptor '__abs__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 {methods}"""
 
 int_method_info = {
@@ -605,17 +748,24 @@ bool_reflected_binary_method_template = \
 """
 
 class_bool_template = \
-    """@builtin_class
+    """@builtin
 class bool(int):
-    @staticmethod
     def __new__(cls, val=absent):
-        if cls is int:
+        if cls is bool:
             if val is absent:
                 return False
             else:
-                return bool(val)
+                return semantics_truth(val)
         else:
-            raise NotImplementedError
+            raise TypeError("bool.__new__ expected a subtype of 'bool' as first argument")
+
+    def __repr__(self):
+        if self is True:
+            return "True"
+        elif self is False:
+            return "False"
+        else:
+            raise TypeError("descriptor '__repr__' requires a 'bool' object but received a '" + type(self).__name__ + "'")
 {methods}"""
 
 bool_method_info = {
@@ -762,20 +912,38 @@ float_unary_method_template = \
 """
 
 class_float_template = \
-    """@builtin_class
+    """
+@builtin
+@private
+def convert_to_float(obj):
+    float_conversion = semantics_maybe_to_float(obj)
+    if float_conversion is absent:
+        raise TypeError("float() argument must be a string or a number, not '" + type(obj).__name__ + "'")
+    else:
+        return float_conversion
+
+@builtin
 class float:
-    @staticmethod
     def __new__(cls, val=absent):
-        if cls is int:
+        if cls is float:
             if val is absent:
                 return 0.0
-            if isinstance(val, float):
-                return py_float_from_host(py_float_to_host(val))
             else:
-                raise NotImplementedError
+                raise convert_to_float(val)
+        elif isinstance(cls, type) and issubclass(cls, float):
+            if val is absent:
+                return alloc(float, cls=cls, value=py_float_to_host(0.0))
+            else:
+                return alloc(float, cls=cls, value=py_float_to_host(convert_to_float(val)))
         else:
-            raise NotImplementedError
-            
+            raise TypeError("float.__new__ expected a subtype of 'float' as first argument")
+
+    def __float__(self):
+        if isinstance(self, float):
+            return py_float_from_host(py_float_to_host(self))
+        else:
+            raise TypeError("descriptor '__float__' requires a 'float' object but received a '" + type(self).__name__ + "'")
+
     def __bool__(self):
         if isinstance(self, float):
             return self != 0.0
@@ -839,7 +1007,7 @@ str_comparison_method_info = {
 
 
 class_str_template = \
-"""@builtin_class
+"""@builtin
 class str:
     def __len__(self):
         if isinstance(self, str):
@@ -883,6 +1051,495 @@ class str:
 
 
 builtins_template = """\
-from __compiler_intrinsics__ import absent, builtin_class, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host
+from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_truth, semantics_maybe_to_int, semantics_maybe_to_float, semantics_maybe_index, semantics_maybe_trunc, semantics_big_index
 
-{definitions}"""
+{definitions}
+
+@builtin
+@private
+class range_iterator:
+    def __new__(*args):
+        raise ValueError("cannot create 'range_iterator' instances")
+
+    def __iter__(self, /):
+        return self
+
+    def __next__(self, /):
+        start = self.start
+        stop = self.stop
+        step = self.step
+
+        if step < 0:
+            if start > stop:
+                self.start = start + step
+                return start
+        else:
+            if start < stop:
+                self.start = start + step
+                return start
+
+        raise StopIteration
+
+@builtin
+class range:
+    def __new__(cls, arg1, arg2=absent, arg3=absent, /):
+        if cls is range:
+            if arg3 is not absent:
+                return alloc(range, start=semantics_big_index(arg1), stop=semantics_big_index(arg2), step=semantics_big_index(arg3))
+            elif arg2 is not absent:
+                return alloc(range, start=semantics_big_index(arg1), stop=semantics_big_index(arg2), step=1)
+            else:
+                return alloc(range, start=0, stop=semantics_big_index(arg1), step=1)
+        else:
+            raise TypeError("range.__new__ expected a subtype of 'range' as first argument")
+
+    def __len__(self, /):
+        return (self.stop - self.start) // self.step
+
+    def __contains__(self, item, /):
+        start = self.start
+        stop = self.stop
+        step = self.step
+
+        if step < 0:
+            if stop >= item or item > start:
+                return False
+        else:
+            if start > item or item >= stop:
+                return False
+
+        return (item - start) % step == 0
+
+    def __iter__(self, /):
+        return alloc(range_iterator, start=self.start, stop=self.stop, step=self.step)
+
+    def __repr__(self):
+        start = self.start
+        stop = self.stop
+        step = self.step
+
+        if step == 1:
+            return "range(" + str(start) + ", " + str(stop) + ")"
+        else:
+            return "range(" + str(start) + ", " + str(stop) + ", " + str(step) + ")"
+
+@private
+@builtin
+def __merge(l1, l2):
+    \"""
+    Merge all items from two sorted list into one sorted list.
+    Time complexity: O(n) where n is the total number of elements
+    \"""
+    i = j = 0
+    output = []
+
+    while i < len(l1) and j < len(l2):
+        if l1[i] <= l2[j]:
+            output.append(l1[i])
+            i += 1
+        else:
+            output.append(l2[j])
+            j += 1
+
+    output.extend(l1[i:] + l2[j:])
+
+    return output
+
+@private
+@builtin
+def __merge_many(lsts):
+    \"""
+    Merge all items from k lists into one sorted list.
+    Time complexity: O(n log(k)) where n is the total number of elements and k the number of lists
+    \"""
+    if not lsts:
+        return []
+    elif len(lsts) == 1:
+        return lsts[0][:]
+    elif len(lsts) == 2:
+        return __merge(lsts[0], lsts[1])
+    else:
+        left = lsts[len(lsts) // 2:]
+        right = lsts[:len(lsts) // 2]
+
+        return __merge(__merge_many(left), __merge_many(right))
+
+
+# TODO: key and reversed must be kwonlyargs
+@builtin
+def sorted(lst, key=None, reversed=False):
+    \"""
+    Timsort is an improved version of Merge Sort which splits the list into monotonic sub-lists before merging them
+    into a sorted list.
+    Worst case time complexity: O(n log(n))
+    Best cast time complexity:  O(n) when the list is almost sorted
+        where n is the number of elements in the list
+    \"""
+    sublsts = []
+
+    i = 0
+    while i < len(lst):
+        sublsts.append([lst[i]])
+        i += 1
+
+        if i < len(lst) and lst[i] >= lst[i - 1]:
+            while i < len(lst) and lst[i] >= lst[i - 1]:
+                sublsts[-1].append(lst[i])
+                i += 1
+        elif i < len(lst):
+            while i < len(lst) and lst[i] < lst[i - 1]:
+                sublsts[-1].append(lst[i])
+                i += 1
+
+            sublsts[-1] = sublsts[-1][::-1]
+
+    return __merge_many(sublsts)
+
+# ==============================================================================
+# Exceptions
+# ==============================================================================
+
+@builtin
+class BaseException:
+    def __init__(self, *args):
+        self.args = args
+
+    def __str__(self):
+        args = self.args
+        args_len = len(self.args)
+
+        if args_len == 0:
+            return ""
+        elif args_len == 1:
+            return str(args[0])
+        else:
+            return str(args)
+
+@builtin
+class Exception(BaseException):
+    pass
+
+@builtin
+class GeneratorExit(BaseException):
+    pass
+
+
+@builtin
+class KeyboardInterrupt(BaseException):
+    pass
+
+
+@builtin
+class SystemExit(BaseException):
+    pass
+
+
+@builtin
+class ArithmeticError(Exception):
+    pass
+
+
+@builtin
+class AssertionError(Exception):
+    pass
+
+
+@builtin
+class AttributeError(Exception):
+    pass
+
+
+@builtin
+class BufferError(Exception):
+    pass
+
+
+@builtin
+class EOFError(Exception):
+    pass
+
+
+@builtin
+class ImportError(Exception):
+    pass
+
+
+@builtin
+class LookupError(Exception):
+    pass
+
+
+@builtin
+class MemoryError(Exception):
+    pass
+
+
+@builtin
+class NameError(Exception):
+    pass
+
+
+@builtin
+class EnvironmentError(Exception):
+    pass
+
+
+@builtin
+class IOError(Exception):
+    pass
+
+
+@builtin
+class OSError(Exception):
+    pass
+
+
+@builtin
+class WindowsError(Exception):
+    pass
+
+
+@builtin
+class ReferenceError(Exception):
+    pass
+
+
+@builtin
+class RuntimeError(Exception):
+    pass
+
+
+@builtin
+class StopAsyncIteration(Exception):
+    pass
+
+
+@builtin
+class StopIteration(Exception):
+    pass
+
+
+@builtin
+class SyntaxError(Exception):
+    pass
+
+
+@builtin
+class SystemError(Exception):
+    pass
+
+
+@builtin
+class TypeError(Exception):
+    pass
+
+
+@builtin
+class ValueError(Exception):
+    pass
+
+
+@builtin
+class Warning(Exception):
+    pass
+
+
+@builtin
+class FloatingPointError(ArithmeticError):
+    pass
+
+
+@builtin
+class OverflowError(ArithmeticError):
+    pass
+
+
+@builtin
+class ZeroDivisionError(ArithmeticError):
+    pass
+
+
+@builtin
+class ModuleNotFoundError(ImportError):
+    pass
+
+
+@builtin
+class IndexError(LookupError):
+    pass
+
+
+@builtin
+class KeyError(LookupError):
+    pass
+
+
+@builtin
+class UnboundLocalError(NameError):
+    pass
+
+
+@builtin
+class BlockingIOError(OSError):
+    pass
+
+
+@builtin
+class ChildProcessError(OSError):
+    pass
+
+
+@builtin
+class ConnectionError(OSError):
+    pass
+
+
+@builtin
+class FileExistsError(OSError):
+    pass
+
+
+@builtin
+class FileNotFoundError(OSError):
+    pass
+
+
+@builtin
+class InterruptedError(OSError):
+    pass
+
+
+@builtin
+class IsADirectoryError(OSError):
+    pass
+
+
+@builtin
+class NotADirectoryError(OSError):
+    pass
+
+
+@builtin
+class PermissionError(OSError):
+    pass
+
+
+@builtin
+class ProcessLookupError(OSError):
+    pass
+
+
+@builtin
+class TimeoutError(OSError):
+    pass
+
+
+@builtin
+class NotImplementedError(RuntimeError):
+    pass
+
+
+@builtin
+class RecursionError(RuntimeError):
+    pass
+
+
+@builtin
+class IndentationError(SyntaxError):
+    pass
+
+
+@builtin
+class UnicodeError(ValueError):
+    pass
+
+
+@builtin
+class BytesWarning(Warning):
+    pass
+
+
+@builtin
+class DeprecationWarning(Warning):
+    pass
+
+
+@builtin
+class FutureWarning(Warning):
+    pass
+
+
+@builtin
+class ImportWarning(Warning):
+    pass
+
+
+@builtin
+class PendingDeprecationWarning(Warning):
+    pass
+
+
+@builtin
+class ResourceWarning(Warning):
+    pass
+
+
+@builtin
+class RuntimeWarning(Warning):
+    pass
+
+
+@builtin
+class SyntaxWarning(Warning):
+    pass
+
+
+@builtin
+class UnicodeWarning(Warning):
+    pass
+
+
+@builtin
+class UserWarning(Warning):
+    pass
+
+
+@builtin
+class BrokenPipeError(ConnectionError):
+    pass
+
+
+@builtin
+class ConnectionAbortedError(ConnectionError):
+    pass
+
+
+@builtin
+class ConnectionRefusedError(ConnectionError):
+    pass
+
+
+@builtin
+class ConnectionResetError(ConnectionError):
+    pass
+
+
+@builtin
+class TabError(IndentationError):
+    pass
+
+
+@builtin
+class UnicodeDecodeError(UnicodeError):
+    pass
+
+
+@builtin
+class UnicodeEncodeError(UnicodeError):
+    pass
+
+
+@builtin
+class UnicodeTranslateError(UnicodeError):
+    pass
+"""

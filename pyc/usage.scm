@@ -1,6 +1,15 @@
 (define (pyc-usage! this conf)
   (mark-can-be-deleted! this conf)
   (mark-global-functions-usage! this conf)
+  (mark-global-usage! this conf)
+  this)
+
+(define-walk-method (mark-global-usage! this::PycNode conf)
+  (call-default-walker))
+
+(define-walk-method (mark-global-usage! this::PycRef conf)
+  (if (PycVar-global-always-defined (PycRef-decl this))
+    (PycRef-can-direct-access-set! this #t))
   this)
 
 (define-walk-method (mark-can-be-deleted! this::PycNode conf)

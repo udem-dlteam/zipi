@@ -1219,21 +1219,135 @@ def ne(x, y):
     # ne:end-body
 
 @define_semantics
-def index(obj):
-    # index:start-body
+def maybe_trunc(obj):
+    # maybe_trunc:start-body
+    __trunc__ = class_getattr(obj, "__trunc__")
+    if __trunc__ is absent:
+        return absent
+    else:
+        result = __trunc__(obj)
+
+        if type(result) is int:
+            return result
+        else:
+            raise TypeError("__trunc__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_trunc:end-body
+
+@define_semantics
+def trunc(obj):
+    # trunc:start-body
+    result = maybe_trunc(obj)
+    if result is absent:
+        raise TypeError("type '" + type(obj).__name__ + "' doesn't define __trunc__ method")
+    else:
+        return result
+    # trunc:end-body
+
+@define_semantics
+def maybe_to_int(obj):
+    # maybe_to_int:start-body
+    __int__ = class_getattr(obj, "__int__")
+    if __int__ is absent:
+        return absent
+    else:
+        result = __int__(obj)
+
+        if type(result) is int:
+            return result
+        else:
+            raise TypeError("__int__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_to_int:end-body
+
+@define_semantics
+def to_int(obj):
+    # to_int:start-body
+    result = maybe_to_int(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
+    # to_int:end-body
+
+@define_semantics
+def maybe_to_float(obj):
+    # maybe_to_float:start-body
+    __float__ = class_getattr(obj, "__float__")
+    if __float__ is absent:
+        return absent
+    else:
+        result = __float__(obj)
+
+        if isinstance(result, float):
+            return result
+        else:
+            raise TypeError("__float__ returned non-float type: '" + type(obj).__name__ + "'")
+    # maybe_to_float:end-body
+
+@define_semantics
+def to_float(obj):
+    # to_float:start-body
+    result = maybe_to_float(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as a float")
+    else:
+        return result
+    # to_float:end-body
+
+@define_semantics
+def maybe_index(obj):
+    # maybe_index:start-body
     __index__ = class_getattr(obj, "__index__")
     if __index__ is absent:
-        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+        return absent
     else:
         result = __index__(obj)
 
-        if isinstance(result, sint):
+        if result is absent:
+            return absent
+        elif isinstance(result, sint):
             return result
         elif isinstance(result, bint):
             raise OverflowError("cannot fit 'int' into an index-sized integer")
         else:
             raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_index:end-body
+
+@define_semantics
+def index(obj):
+    # index:start-body
+    result = maybe_index(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
     # index:end-body
+
+@define_semantics
+def maybe_big_index(obj):
+    # maybe_big_index:start-body
+    __index__ = class_getattr(obj, "__index__")
+    if __index__ is absent:
+        return absent
+    else:
+        result = __index__(obj)
+
+        if result is absent:
+            return absent
+        elif type(result) is int:
+            return result
+        else:
+            raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+    # maybe_big_index:end-body
+
+@define_semantics
+def big_index(obj):
+    # big_index:start-body
+    result = maybe_big_index(obj)
+    if result is absent:
+        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+    else:
+        return result
+    # big_index:end-body
 
 @define_semantics
 def maybe_len(obj):
@@ -1262,7 +1376,7 @@ def truth(obj):
     __bool__ = class_getattr(obj, "__bool__")
     if __bool__ is not absent:
         result = __bool__(obj)
-        if isinstance(result, bool):
+        if type(result) is bool:
             return result
         else:
             raise TypeError("__bool__ should return bool, returned '" + type(obj).__name__ + "'")

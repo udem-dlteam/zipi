@@ -156,7 +156,7 @@
   `(make-PyObjectInt
       py-int-hclass-of-instances
       '#()
-      py-int-class
+      py-builtin-int
       ,value))
 
 (define-macro (py-bint-from-scheme value)
@@ -173,8 +173,8 @@
                 X ;; otherwise
                 )
       (pyneg    (py-sint-from-scheme (|##fx-| X)) ;; bool or non-ov. sint
-                (or (|##fx-?| X) (pyneg-UintX X)) ;; sint
-                (pyneg-UintX X) ;; otherwise
+                (or (|##fx-?| X) (|##negate| X)) ;; sint
+                (|##negate| X) ;; otherwise
                 )
       (pyinvert (py-sint-from-scheme (|##fxnot| X)) ;; bool or non-ov. sint
                 (py-sint-from-scheme (|##fxnot| X)) ;; sint
@@ -221,7 +221,7 @@
             )
       (py// (py-sint-from-scheme (|##fxquotient| X Y)) ;; bool/bool or non-ov. sint/sint
             (if (|##eqv?| Y -1) ;; sint/sint
-                (or (|##fx-?| X) (pyneg-UintX X))
+                (or (|##fx-?| X) (|##negate| X))
                 (|##fxquotient| X Y))
             (py//-UintX-UintY-fallback X Y) ;; otherwise
             )
@@ -798,8 +798,8 @@
   `(py-specialized-sint-float-dispatch-let
     $obj
     ,obj
-    py-int-class
-    py-float-class
+    py-builtin-int
+    py-builtin-float
     (py-obj-cls-general $obj)))
 
 (define-macro (py-obj-mro obj) ;; get MRO of object's class
@@ -847,7 +847,7 @@
     ,obj
     #t
     #f
-    (eq? (PyObject-class $obj) py-int-class)))
+    (eq? (PyObject-class $obj) py-builtin-int)))
 
 (define-macro (py-subtype-of-int? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -855,8 +855,8 @@
     ,obj
     #t
     #f
-    (or (eq? (PyObject-class $obj) py-int-class)
-        (py-isinstance? $obj py-int-class))))
+    (or (eq? (PyObject-class $obj) py-builtin-int)
+        (py-isinstance? $obj py-builtin-int))))
 
 (define-macro (py-strict-subtype-of-int? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -864,8 +864,8 @@
     ,obj
     #f
     #f
-    (and (not (eq? (PyObject-class $obj) py-int-class))
-         (py-isinstance? $obj py-int-class))))
+    (and (not (eq? (PyObject-class $obj) py-builtin-int))
+         (py-isinstance? $obj py-builtin-int))))
 
 ;; Specialized type tests for float
 
@@ -883,8 +883,8 @@
     ,obj
     #f
     #t
-    (or (eq? (PyObject-class $obj) py-float-class)
-        (py-isinstance? $obj py-float-class))))
+    (or (eq? (PyObject-class $obj) py-builtin-float)
+        (py-isinstance? $obj py-builtin-float))))
 
 (define-macro (py-strict-subtype-of-float? obj)
   `(py-specialized-sint-float-dispatch-let
@@ -892,8 +892,8 @@
     ,obj
     #f
     #f
-    (and (not (eq? (PyObject-class $obj) py-float-class))
-         (py-isinstance? $obj py-float-class))))
+    (and (not (eq? (PyObject-class $obj) py-builtin-float))
+         (py-isinstance? $obj py-builtin-float))))
 
 ;; Specialized type tests for str
 
@@ -1012,8 +1012,65 @@
 (define-macro ($get-behavior-type-index indices-info name)
   (cadr (assq name indices-info)))
 
-(define-macro (py-make-builtin-class name module bases hclass-of-instances . attrs)
-  `(with-class-indices-info $py-make-builtin-class-with-class-index-info ,name ,module ,bases ,hclass-of-instances ,@attrs))
+(define-macro (py-make-builtin-class name module bases . attrs)
+  (define hclass-of-instances
+    '((object . py-object-hclass-of-instances)
+      (type . py-type-hclass-of-instances)
+      (str . py-str-hclass-of-instances)
+      (tuple . py-tuple-hclass-of-instances)
+      (int . py-int-hclass-of-instances)
+      (bool . py-bool-hclass-of-instances)
+      (float . py-float-hclass-of-instances)
+      (slice . py-slice-hclass-of-instances)
+      (bytearray . py-bytearray-hclass-of-instances)
+      (method . py-method-hclass-of-instances)
+      (function . py-function-hclass-of-instances)
+      (list . py-list-hclass-of-instances)
+      (dict . py-dict-hclass-of-instances)
+      (set . py-set-hclass-of-instances)
+      (module . py-module-hclass-of-instances)
+      (list_iterator . py-list-iterator-hclass-of-instances)
+      (bytearray_iterator . py-bytearray-iterator-hclass-of-instances)
+      (tuple_iterator . py-tuple-iterator-hclass-of-instances)
+      (dict_keyiterator . py-dict-keyiterator-hclass-of-instances)
+      (generator . py-generator-hclass)
+      (TextIOWrapper . py-TextIOWrapper-hclass-of-instances)
+      (super . py-super-hclass-of-instances)
+      (range . py-range-hclass-of-instances)
+      (range_iterator . py-range_iterator-hclass-of-instances)))
+
+  (define pre-bootstrap-classes
+    '((object . py-object-class)
+      (type . py-type-class)
+      (str . py-str-class)
+      (tuple . py-tuple-class)
+      (int . py-int-class)
+      (bool . py-bool-class)
+      (float . py-float-class)))
+
+  (let* ((scheme-name
+          (if (and (pair? name) (memq (car name) '(& &&)))
+            (string->symbol (cadr name))
+            (error "py-make-builtin-class" "name must be a Python string literal" name)))
+        (pre-bootstrap-class
+          (let ((pair (assq scheme-name pre-bootstrap-classes))) (if pair (cdr pair) #f)))
+        (hclass-of-instances
+          (let ((pair (assq scheme-name hclass-of-instances)))
+            (if pair
+              (cdr pair)
+              'py-object-hclass-of-instances))))
+
+  (if pre-bootstrap-class
+    `(py-extend-builtin-core-class
+        ,pre-bootstrap-class
+        ,@attrs)
+    `(with-class-indices-info
+      $py-make-builtin-class-with-class-index-info
+      ,name
+      ,module
+      ,bases
+      ,hclass-of-instances
+      ,@attrs))))
 
 (define-macro ($py-make-builtin-class-with-class-index-info indices-info name module bases hclass-of-instances . attrs)
   (define (get-class-index-by-name name-symbol)
@@ -1535,6 +1592,9 @@
 (define-macro (py-ne x y)
   `(py-specialized-binop-dispatch ne ,x ,y))
 
+(define-macro (py-not obj)
+  `(if (py-test ,obj) py-False py-True))
+
 (define-macro (py-is x y) ;; x is y
   `(if (py-test-is ,x ,y) py-True py-False))
 
@@ -1591,14 +1651,41 @@
 (define-macro (py-truth obj)
   `(py-specialized-unop-dispatch truth ,obj))
 
+(define-macro (py-trunc obj)
+  `(py-trunc-fallback ,obj))
+
+(define-macro (py-maybe-trunc obj)
+  `(py-maybe-trunc-fallback ,obj))
+
+(define-macro (py-to-int obj)
+  `(py-to-int-fallback ,obj))
+
+(define-macro (py-maybe-to-int obj)
+  `(py-maybe-to-int-fallback ,obj))
+
+(define-macro (py-to-float obj)
+  `(py-to-float-fallback ,obj))
+
+(define-macro (py-maybe-to-float obj)
+  `(py-maybe-to-float-fallback ,obj))
+
+(define-macro (py-index obj)
+  `(py-index-fallback ,obj))
+
+(define-macro (py-maybe-index obj)
+  `(py-maybe-index-fallback ,obj))
+
+(define-macro (py-big-index obj)
+  `(py-big-index-fallback ,obj))
+
+(define-macro (py-maybe-big-index obj)
+  `(py-maybe-big-index-fallback ,obj))
+
 (define-macro (py-len obj)
   `(py-len-fallback ,obj))
 
 (define-macro (py-maybe-len obj)
   `(py-maybe-len-fallback ,obj))
-
-(define-macro (py-index obj)
-  `(py-index-fallback ,obj))
 
 (define-macro (py-getattribute obj attr)
   `(py-getattribute-fallback ,obj ,attr))

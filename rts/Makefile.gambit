@@ -1,11 +1,15 @@
-.PHONY: do.gambit build.gambit
+.PHONY: do.gambit build.gambit builtins
 
 do.gambit: build.gambit
 
 rts.sld: ../stdlib/zemantics.scm ../stdlib/behaviors.scm
 	../etc/scm-to-zipi-sld ../stdlib/zemantics.scm ../stdlib/behaviors.scm rts.sld.in > rts.sld
 
-build.gambit: rts.sld rts.sld.in
+builtins: ../stdlib/builtins.sld
+	mkdir -p builtins
+	cp ../stdlib/builtins.sld ./builtins/builtins.sld
+
+build.gambit: rts.sld rts.sld.in builtins
 	gsc . zipi/rts
 
 install.gambit:
@@ -13,3 +17,4 @@ install.gambit:
 
 clean.gambit:
 	rm -rf rts\@gambit*@C
+	rm -rf builtins

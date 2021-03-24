@@ -163,8 +163,6 @@
 ;;  py-absent
 ;; =============================================================================
 
-;; WARNING: this must be a constant otherwise it may be garbage collected
-;; in some case and no longer be eq? with its version stored in literal objects
 (define py-absent '%py-absent)
 
 ;; =============================================================================
@@ -197,6 +195,11 @@
     '()))
 
 (define py-int-hclass-of-instances
+  (make-builtin-HClass
+    '#()
+    '()))
+
+(define py-bool-hclass-of-instances
   (make-builtin-HClass
     '#()
     '()))
@@ -1494,141 +1497,6 @@
 ;; int operations
 ;; =============================================================================
 
-(define (int-new cls value)
-  (cond
-
-   ((eq? cls py-int-class)
-    (cond
-     ((eq? value py-absent)
-      ;; TODO this could be removed by setting value default to the int 0
-      ;; int() return 0
-      (py-int-from-scheme 0))
-     ((py-has-type-int? value)
-      ;; int(x) return the same object when x is an int
-      value)
-     ((py-subtype-of-int? value)
-      ;; up-typing an instance of subclass to an int
-      (py-int-from-scheme (py-subtype-of-int-to-scheme value)))
-     (else
-      (py-throw-exception-with-message
-       py-builtin-NotImplementedError
-       "int.__new__ unimplemented for non int"))))
-
-   ((py-issubclass? cls py-int-class)
-    (cond
-     ((eq? value py-absent)
-      (py-subtype-of-int-from-scheme 0 cls))
-     ((py-subtype-of-int? value)
-      (py-subtype-of-int-from-scheme (py-subtype-of-int-to-scheme value) cls))
-     (else
-      (py-throw-exception-with-message
-       py-builtin-NotImplementedError
-       "int.__new__ only supports subtypes of int"))))
-
-   (else
-    (py-throw-wrong-new-argument "int" cls))))
-
-(define int.__new__
-  (procedure->py-function
-    int-new
-    (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
-
-(define-macro (define-int-into-int-binary-operator fun-name method-name scheme-op)
-  (let ((py-func-name (string->symbol (string-append "int." method-name))))
-    `(begin
-       (define (,fun-name self other)
-         (if (py-subtype-of-int? self)
-             (if (py-subtype-of-int? other)
-                 (py-int-from-scheme
-                  (,scheme-op (py-subtype-of-int-to-scheme self)
-                              (py-subtype-of-int-to-scheme other)))
-                 py-NotImplemented)
-             (py-throw-required-type ,method-name "int" self)))
-       (define ,py-func-name
-         (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self other)))))))
-
-(define-macro (define-int-into-int-division-operator fun-name method-name scheme-op)
-  (let ((py-func-name (string->symbol (string-append "int." method-name))))
-    `(begin
-       (define (,fun-name self other)
-         (if (py-subtype-of-int? self)
-             (if (py-subtype-of-int? other)
-                 (let ((other-value (py-subtype-of-int-to-scheme other)))
-                   (if (not (= 0 other-value))
-                       (py-int-from-scheme
-                        (,scheme-op (py-subtype-of-int-to-scheme self)
-                                    other-value))
-                       (py-throw
-                        (py-call py-builtin-ZeroDivisionError
-                                 (&& "integer division or modulo by zero")))))
-                 py-NotImplemented)
-             (py-throw-required-type ,method-name "int" self)))
-       (define ,py-func-name
-         (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self other)))))))
-
-(define-macro (define-int-into-float-division-operator fun-name method-name scheme-op)
-  (let ((py-func-name (string->symbol (string-append "int." method-name))))
-    `(begin
-       (define (,fun-name self other)
-         (if (py-subtype-of-int? self)
-             (if (py-subtype-of-int? other)
-                 (let ((other-value (py-subtype-of-int-to-scheme other)))
-                   (if (not (= 0 other-value))
-                       (py-float-from-scheme
-                        (,scheme-op (inexact
-                                     (py-subtype-of-int-to-scheme self))
-                                    other-value))
-                       (py-throw
-                        (py-call py-builtin-ZeroDivisionError
-                                 (&& "division by zero")))))
-                 py-NotImplemented)
-             (py-throw-required-type ,method-name "int" self)))
-       (define ,py-func-name
-         (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self other)))))))
-
-(define-macro (define-int-comparison-operator fun-name method-name scheme-op)
-  (let ((py-func-name (string->symbol (string-append "int." method-name))))
-    `(begin
-       (define (,fun-name self other)
-         (if (py-subtype-of-int? self)
-             (if (py-subtype-of-int? other)
-                 (if (,scheme-op (py-subtype-of-int-to-scheme self)
-                                 (py-subtype-of-int-to-scheme other))
-                     py-True
-                     py-False)
-                 py-NotImplemented)
-             (py-throw-required-type ,method-name "int" self)))
-       (define ,py-func-name
-         (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self other)))))))
-
-(define-macro (define-int-unary-operator fun-name method-name scheme-op)
-  (let ((py-func-name (string->symbol (string-append "int." method-name))))
-    `(begin
-       (define (,fun-name self)
-         (if (py-subtype-of-int? self)
-             (py-int-from-scheme
-              (,scheme-op (py-subtype-of-int-to-scheme self)))
-             (py-throw-required-type ,method-name "int" self)))
-       (define ,py-func-name
-         (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self)))))))
-
-;; helpers
-
-(define (arithmetic-lshift x y)
-   (arithmetic-shift x (- y)))
-
-(define (!= x y) (not (= x y)))
-
 (cond-expand
   (gambit
 
@@ -1671,87 +1539,6 @@
      (py-int-from-scheme (|##modulo| x y)))
 ))
 
-;; operations
-
-(define-int-into-int-binary-operator int-add "__add__" +)
-
-(define-int-into-int-binary-operator int-sub "__sub__" -)
-
-(define-int-into-int-binary-operator int-mul "__mul__" *)
-
-(define-int-into-int-binary-operator int-and "__and__" bitwise-and)
-
-(define-int-into-int-binary-operator int-lshift "__lshift__" arithmetic-shift)
-
-(define-int-into-int-binary-operator int-rshift "__rshift__" arithmetic-lshift)
-
-(define-int-into-int-binary-operator int-or "__or__" bitwise-ior)
-
-(define-int-into-int-binary-operator int-pow "__pow__" expt)
-
-(define-int-into-int-binary-operator int-xor "__xor__" bitwise-xor)
-
-(define-int-into-int-division-operator int-mod "__mod__" modulo)
-
-(define-int-into-int-division-operator int-floordiv "__floordiv__" floor-quotient)
-
-(define-int-into-float-division-operator int-truediv "__truediv__" /)
-
-;; Comparisons
-
-(define-int-comparison-operator int-eq "__eq__" =)
-
-(define-int-comparison-operator int-ne "__ne__" !=)
-
-(define-int-comparison-operator int-lt "__lt__" <)
-
-(define-int-comparison-operator int-lte "__le__" <=)
-
-(define-int-comparison-operator int-gt "__gt__" >)
-
-(define-int-comparison-operator int-gte "__ge__" >=)
-
-;; in-place operators
-
-(define-int-into-int-binary-operator int-iadd "__iadd__" +)
-
-(define-int-into-int-binary-operator int-isub "__isub__" -)
-
-(define-int-into-int-binary-operator int-imul "__imul__" *)
-
-(define-int-into-int-binary-operator int-iand "__iand__" bitwise-and)
-
-(define-int-into-int-binary-operator int-ilshift "__ilshift__" arithmetic-shift)
-
-(define-int-into-int-binary-operator int-irshift "__irshift__"
-  (lambda (x y) (arithmetic-shift x (- y))))
-
-(define-int-into-int-binary-operator int-ior "__ior__" bitwise-ior)
-
-(define-int-into-int-binary-operator int-ipow "__ipow__" expt)
-
-(define-int-into-int-binary-operator int-ixor "__ixor__" bitwise-xor)
-
-(define-int-into-int-binary-operator int-imod "__imod__" modulo)
-
-(define-int-into-int-division-operator int-ifloordiv "__ifloordiv__" floor-quotient)
-
-(define-int-into-float-division-operator int-itruediv "__itruediv__" /)
-
-;; unary operators
-
-(define-int-unary-operator int-invert "__invert__" bitwise-not)
-
-(define-int-unary-operator int-neg "__neg__" -)
-
-(define-int-unary-operator int-pos "__pos__" +)
-
-(define-int-unary-operator int-abs "__abs__" abs)
-
-(define-int-unary-operator int-hash "__hash__"
-   (let ()
-      truncate-hash))
-
 (define (int-repr self)
   (if (py-subtype-of-int? self)
       (py-str-from-scheme (number->string (py-subtype-of-int-to-scheme self)))
@@ -1762,253 +1549,15 @@
     int-repr
     (make-signature posonlyargs: (self))))
 
-(define (int-index self)
-  (cond
-   ((py-has-type-int? self)
-    self)
-   ((py-subtype-of-int? self)
-    (py-int-from-scheme (py-subtype-of-int-to-scheme self)))
-   (else
-    (py-throw-required-type "__repr__" "int" self))))
+(define (int-hash self)
+  (if (py-subtype-of-int? self)
+      (py-int-from-scheme (truncate-hash (py-subtype-of-int-to-scheme self)))
+      (py-throw-required-type "__hash__" "int" self)))
 
-(define int.__index__
+(define int.__hash__
   (procedure->py-function
-    int-index
+    int-hash
     (make-signature posonlyargs: (self))))
-
-;; =============================================================================
-;; float operations
-;; =============================================================================
-
-(define (float-new cls #!optional (value py-absent))
-  (cond
-
-   ((eq? cls py-float-class)
-    (cond
-     ((eq? value py-absent)
-      (py-float-from-scheme 0.0))
-     ((py-has-type-float? value)
-      ;; float(x) return the same object when x is a float
-      value)
-     ((py-subtype-of-float? value)
-      ;; up-typing an instance of subclass to an float
-      (py-float-from-scheme (py-subtype-of-float-to-scheme value)))
-     (else
-      (py-throw-exception-with-message
-       py-builtin-NotImplementedError
-       "float.__new__ unimplemented for non float"))))
-
-   ((py-issubclass? cls py-float-class)
-    (cond
-     ((eq? value py-absent)
-      (py-subtype-of-float-from-scheme 0.0 cls))
-     ((py-subtype-of-float? value)
-      (py-subtype-of-float-from-scheme (py-subtype-of-float-to-scheme value) cls))
-     (else
-      (py-throw-exception-with-message
-       py-builtin-NotImplementedError
-       "float.__new__ only supports subtypes of float"))))
-
-   (else
-    (py-throw-wrong-new-argument "float" cls))))
-
-(define float.__new__
-  (procedure->py-function
-    float-new
-    (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
-
-
-;; scheme-to-py-op defines an operator that RETURNS A PYTHON TYPE
-
-(define-macro (define-float-binary-operator fun-name method-name float-float-op)
-  (let ((py-func-name (string->symbol (string-append "float." method-name))))
-    `(begin
-       (define (,fun-name self other)
-         (if (py-subtype-of-float? self)
-             (cond
-              ((py-subtype-of-float? other)
-               (,float-float-op (py-subtype-of-float-to-scheme self)
-                                (py-subtype-of-float-to-scheme other)))
-              ((py-subtype-of-int? other)
-               ;; If the operation is float-int, it converts the int to a float
-               (,float-float-op (py-subtype-of-float-to-scheme self)
-                                (inexact (py-subtype-of-int-to-scheme other))))
-              (else py-NotImplemented))
-             (py-throw-required-type ,method-name "float" self)))
-       (define ,py-func-name
-         (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self other)))))))
-
-(define-macro (define-float-binary-operator-reverse fun-name method-name float-float-op)
-  (let ((py-func-name (string->symbol (string-append "float." method-name))))
-    `(begin
-       (define (,fun-name self other)
-         (if (py-subtype-of-float? self)
-             (cond
-              ((py-subtype-of-float? other)
-               (,float-float-op (py-subtype-of-float-to-scheme other)
-                                (py-subtype-of-float-to-scheme self)))
-              ((py-subtype-of-int? other)
-               ;; If the operation is float-int, it converts the int to a float
-               (,float-float-op (inexact (py-subtype-of-int-to-scheme other))
-                                (py-subtype-of-float-to-scheme self)))
-              (else py-NotImplemented))
-             (py-throw-required-type ,method-name "float" self)))
-       (define ,py-func-name
-         (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self other)))))))
-;; Helpers
-
-(define (reverse-args fun)
-  (lambda (x y) (fun y x)))
-
-(define (result-to-float op)
-   ;; !!! overriden by a macro
-  (lambda (x y) (py-float-from-scheme (op x y))))
-
-(define (comparison-conversion scheme-comp-op)
-  (lambda (x y)
-    (if (scheme-comp-op x y) py-True py-False)))
-
-;; int-or-float is the function of the conversion to sheme number to py numbers
-(define (div-to-float op)
-  (lambda (x y)
-    (if (= y 0)
-      (py-throw
-        (py-call py-builtin-ZeroDivisionError
-          (&& "float division by zero")))
-      (py-float-from-scheme (inexact (op x y))))))
-
-(define (mod-to-float op)
-  (lambda (x y)
-    (if (= y 0)
-      (py-throw
-        (py-call py-builtin-ZeroDivisionError
-          (&& "float modulo")))
-      (py-float-from-scheme (inexact (op x y))))))
-
-(define (floor-div x y)
-  (floor (/ (exact x) (exact y))))
-
-
-(define (flmod fl1 fl2)
-   ;; MS CARE 11dec2020: something's wrong here
-   ;; as flmod is used for compiling expressions
-   ;; such as n % k where both n and k might be
-   ;; integers
-  (let ((div (fl/ fl1 fl2)))
-    (fl- fl1 (fl* fl2
-                (if (fl< 0. fl2)
-                  (flfloor div)
-                  (flceiling div))))))
-
-(define (fl!= x y)
-  (not (fl= x y)))
-
-(define-float-binary-operator float-add "__add__"            (result-to-float fl+))
-(define-float-binary-operator float-radd "__radd__"          (result-to-float fl+))
-(define-float-binary-operator float-sub "__sub__"            (result-to-float fl-))
-(define-float-binary-operator-reverse float-rsub "__rsub__"  (result-to-float fl-))
-
-(define-float-binary-operator float-truediv "__truediv__"    (div-to-float fl/))
-(define-float-binary-operator-reverse float-rtruediv "__rtruediv__"  (div-to-float fl/))
-(define-float-binary-operator float-floordiv "__floordiv__"   (div-to-float floor-div))
-(define-float-binary-operator-reverse float-rfloordiv "__rfloordiv__" (div-to-float floor-div))
-
-(define-float-binary-operator float-mod "__mod__"            (mod-to-float flmod))
-(define-float-binary-operator-reverse float-rmod "__rmod__"  (mod-to-float flmod))
-
-(define-float-binary-operator float-mul "__mul__"            (result-to-float fl*))
-(define-float-binary-operator float-rmul "__rmul__"          (result-to-float fl*))
-(define-float-binary-operator float-pow "__pow__"            (result-to-float flexpt))
-(define-float-binary-operator-reverse float-rpow "__rpow__"  (result-to-float flexpt))
-
-(define-float-binary-operator float-eq "__eq__" (comparison-conversion fl=))
-(define-float-binary-operator float-ne "__ne__" (comparison-conversion fl!=))
-(define-float-binary-operator float-gt "__gt__" (comparison-conversion fl>))
-(define-float-binary-operator float-ge "__ge__" (comparison-conversion fl>=))
-(define-float-binary-operator float-lt "__lt__" (comparison-conversion fl<))
-(define-float-binary-operator float-le "__le__" (comparison-conversion fl<=))
-
-(define-macro (define-float-unary-operator fun-name method-name scheme-op)
-  (let ((py-func-name (string->symbol (string-append "float." method-name))))
-    `(begin
-      (define (,fun-name self)
-        (if (py-subtype-of-float? self)
-          (,scheme-op (py-subtype-of-float-to-scheme self))
-          (py-throw-required-type ,method-name "float" self)))
-      (define ,py-func-name
-        (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self)))))))
-
-(define (unary-to-float op)
-  (lambda (x) (py-float-from-scheme (op x))))
-
-(define (unary-to-bool x)
-  (if (fl= x 0.0)
-    py-False
-    py-True))
-
-(define-float-unary-operator float-abs "__abs__" (unary-to-float abs))
-(define-float-unary-operator float-neg "__neg__" (unary-to-float fl-))
-(define-float-unary-operator float-bool "__bool__" unary-to-bool)
-
-(define-float-unary-operator float-int "__int__" (lambda (x) (py-int-from-scheme (exact (fltruncate x)))))
-(define-float-unary-operator float-trunk "__trunc__" (lambda (x) (py-float-from-scheme (fltruncate x))))
-(define-float-unary-operator float-round "__round__" (lambda (x) (py-float-from-scheme (flround x))))
-(define-float-unary-operator float-is_integer "is_integer" (lambda (x) (if (integer? x) py-True py-False)))
-
-;; identity functions
-(define-float-unary-operator float-float "__float__" (unary-to-float (lambda (x) x)))
-(define-float-unary-operator float-pos "__pos__" (unary-to-float (lambda (x) x)))
-(define-float-unary-operator float-conjugate "conjugate" (unary-to-float (lambda (x) x)))
-
-;; =============================================================================
-;; bool operations
-;; =============================================================================
-
-;; the bool class is a wrapper aroung int 0 and 1 to print them as False and True
-
-(define (bool-new cls #!optional (value py-absent))
-  (if (py-issubclass? cls py-bool-class)
-    (if (and (not (eq? value py-absent)) (py-test value)) py-True py-False)
-    ;; TODO: incorrect error message
-    (py-throw
-      (py-call py-builtin-TypeError
-         (&& "object.__new__(X): X is not a type object")))))
-
-(define bool.__new__
-  (procedure->py-function
-    bool-new
-    (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
-
-(define (bool-str self)
-  (cond
-    ((eq? self py-True) (&& "True"))
-    ((eq? self py-False) (&& "False"))
-    (else
-      (py-throw-required-type "__str__" "bool" self))))
-
-(define bool.__str__
-  (procedure->py-function
-    bool-str
-    (make-signature posonlyargs: (self))))
-
-(define (bool-repr self)
-  (cond
-    ((eq? self py-True) (&& "True"))
-    ((eq? self py-False) (&& "False"))
-    (else
-      (py-throw-required-type "__repr__" "bool" self))))
-
-(define bool.__repr__
-  (procedure->py-function
-    bool-repr
-    (make-signature posonlyargs: (self))))
-
 
 ;;;----------------------------------------------------------------------------
 
@@ -2145,29 +1694,6 @@
 
 (define (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
-
-;; ================
-;; BOOL PROTOCOL
-;; ================
-
-(define (int-bool self)
-  (if (py-subtype-of-int? self)
-      (let ((value (py-subtype-of-int-to-scheme self)))
-        (if (= value 0)
-            py-False
-            py-True))
-      (py-throw-required-type "__bool__" "int" self)))
-
-;; The Python object int.__bool__
-(define int.__bool__
-  (procedure->py-function
-    int-bool
-    (make-signature posonlyargs: (self))))
-
-(define (py-not obj)
-  (if (py-test obj)
-    py-False
-    py-True))
 
 ;; =============
 ;; CALL PROTOCOL
@@ -2514,58 +2040,6 @@
             str1
             str2)))))
 
-(define (str-new cls value)
-  (cond
-    ((eq? cls py-str-class)
-     (if (eq? value py-absent)
-         (&& "")
-         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
-                (result (py-call __str__ value)))
-           (if (py-subtype-of-str? result)
-               result
-               (throw-returned-wrong-type "__str__" value "non-string")))))
-    ((py-issubclass? cls py-str-class)
-     (if (eq? value py-absent)
-         (py-subtype-of-str-from-scheme
-           ""
-           cls)
-         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
-                (result (py-call __str__ value)))
-           (if (py-subtype-of-str? result)
-               (py-subtype-of-str-from-scheme
-                 (py-subtype-of-str-to-scheme result)
-                 cls)
-               (throw-returned-wrong-type "__str__" value "non-string")))))
-    (else
-      (py-throw-wrong-new-argument "str" cls))))
-
-(define str.__new__
-  (procedure->py-function
-    str-new
-    (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
-
-(define (str-str self)
-  (if (py-subtype-of-str? self)
-      self
-      (py-throw-required-type "__str__" "str" self)))
-
-(define str.__str__
-  (procedure->py-function
-    str-str
-    (make-signature posonlyargs: (self))))
-
-(define (str-repr self)
-  (if (py-subtype-of-str? self)
-      (let* ((string (py-subtype-of-str-to-scheme self))
-             (string-repr (py-str-repr-scheme string)))
-        (py-str-from-scheme string-repr))
-      (py-throw-required-type "__repr__" "str" self)))
-
-(define str.__repr__
-  (procedure->py-function
-    str-repr
-    (make-signature posonlyargs: (self))))
-
 (define (string-join-vector separator vec)
   (let* ((separator-len (string-length separator))
         (vec-len (vector-length vec))
@@ -2601,64 +2075,38 @@
           (loop (+ vec-pos 1) out-pos))
         out))))
 
-(define (str-len self)
-  (if (py-subtype-of-str? self)
-      (py-int-from-scheme (py-str-len-to-scheme self))
-      (py-throw-required-type "__len__" "str" self)))
-
-(define str.__len__
-  (procedure->py-function
-    str-len
-    (make-signature posonlyargs: (self))))
-
 (define (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define-macro (define-eq-ne-str fun-name method-name yes no)
-  (let ((py-func-name (string->symbol (string-append "str." method-name))))
-    `(begin
-      (define (,fun-name self other)
-        (if (py-subtype-of-str? self)
-            (if (eq? self other)
-                ,yes
-                (if (py-subtype-of-str? other)
-                    ;; TODO: replace with str-representatives-eq?
-                    (let* ((self-representative (py-str-representative self))
-                           (other-representative (py-str-representative other)))
-                      (if (eq? self-representative other-representative)
-                          ,yes
-                          ,no))
-                    py-NotImplemented))
-            (py-throw-required-type ,method-name "str" self)))
-      (define ,py-func-name
-        (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self other)))))))
+(define (str-new cls value)
+  (cond
+    ((eq? cls py-str-class)
+     (if (eq? value py-absent)
+         (&& "")
+         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+                (result (py-call __str__ value)))
+           (if (py-subtype-of-str? result)
+               result
+               (throw-returned-wrong-type "__str__" value "non-string")))))
+    ((py-issubclass? cls py-str-class)
+     (if (eq? value py-absent)
+         (py-subtype-of-str-from-scheme
+           ""
+           cls)
+         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+                (result (py-call __str__ value)))
+           (if (py-subtype-of-str? result)
+               (py-subtype-of-str-from-scheme
+                 (py-subtype-of-str-to-scheme result)
+                 cls)
+               (throw-returned-wrong-type "__str__" value "non-string")))))
+    (else
+      (py-throw-wrong-new-argument "str" cls))))
 
-(define-eq-ne-str str-eq "__eq__" py-True py-False)
-(define-eq-ne-str str-ne "__ne__" py-False py-True)
-
-(define-macro (define-str-comparison-operator fun-name method-name scheme-op)
-  (let ((py-func-name (string->symbol (string-append "str." method-name))))
-    `(begin
-       (define (,fun-name self other)
-         (if (py-subtype-of-str? self)
-             (cond
-              ((py-subtype-of-str? other)
-               (let ((self-value (py-subtype-of-str-to-scheme self))
-                     (other-value (py-subtype-of-str-to-scheme other)))
-                 (if (,scheme-op self-value other-value) py-True py-False)))
-              (else py-NotImplemented))
-             (py-throw-required-type ,method-name "str" self)))
-       (define ,py-func-name
-         (procedure->py-function
-          ,fun-name
-          (make-signature posonlyargs: (self other)))))))
-
-(define-str-comparison-operator str-gt "__gt__" string>?)
-(define-str-comparison-operator str-lt "__lt__" string<?)
-(define-str-comparison-operator str-ge "__ge__" string>=?)
-(define-str-comparison-operator str-le "__le__" string<=?)
+(define str.__new__
+  (procedure->py-function
+    str-new
+    (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
 
 (define (str-hash-value str)
   (PyObjectStrRep-hash (py-str-representative str)))
@@ -2673,17 +2121,27 @@
     str-hash
     (make-signature posonlyargs: (self))))
 
-(define (str-add self other)
+(define (str-str self)
   (if (py-subtype-of-str? self)
-      (if (py-subtype-of-str? other)
-          (py-concat-strX-strY self other)
-          py-NotImplemented)
-      (py-throw-required-type "__add__" "str" self)))
+      self
+      (py-throw-required-type "__str__" "str" self)))
 
-(define str.__add__
+(define str.__str__
   (procedure->py-function
-    str-add
-    (make-signature posonlyargs: (self other))))
+    str-str
+    (make-signature posonlyargs: (self))))
+
+(define (str-repr self)
+  (if (py-subtype-of-str? self)
+      (let* ((string (py-subtype-of-str-to-scheme self))
+             (string-repr (py-str-repr-scheme string)))
+        (py-str-from-scheme string-repr))
+      (py-throw-required-type "__repr__" "str" self)))
+
+(define str.__repr__
+  (procedure->py-function
+    str-repr
+    (make-signature posonlyargs: (self))))
 
 (define (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
@@ -2816,17 +2274,17 @@
 (define (py-display obj port)
   ;; check some common cases first for efficiency
   (let ((t (py-type obj)))
-    (cond ((eq? t py-str-class)
+    (cond ((eq? t py-builtin-str)
            (display (py-str-to-scheme obj)
                     port))
-          ((eq? t py-int-class)
+          ((eq? t py-builtin-int)
            (display (py-int-to-scheme obj)
                     port))
-          ((eq? t py-float-class)
+          ((eq? t py-builtin-float)
            (display (float->string-with-padded-zeros
                      (py-float-to-scheme obj))
                     port))
-          ((eq? t py-bool-class)
+          ((eq? t py-builtin-bool)
            (if (eq? obj py-True)
                (display "True" port)
                (display "False" port)))
@@ -2909,14 +2367,16 @@
 ;;  BUILTIN CLASSES
 ;; =============================================================================
 
+;; core types (must be created in 1st bootstrap phase)
 (define py-object-class #f)
 (define py-type-class   #f)
 (define py-str-class    #f)
 (define py-tuple-class  #f)
-(define py-int-class    #f)
+(define py-int-class #f)
+(define py-bool-class #f)
+(define py-float-class #f)
+
 (define py-bytearray-class #f)
-(define py-float-class  #f)
-(define py-bool-class   #f)
 (define py-complex-class #f)
 (define py-slice-class  #f)
 (define py-method-class #f)
@@ -2928,35 +2388,10 @@
 
 ;;;----------------------------------------------------------------------------
 
-;;; Converters between Scheme objects and Python objects for basic
-;;; types.
-;; TODO: remove direct indexing and use fast-set! methods in this section
-
-;; TODO: only include these functions when specialized int representation
-;; not used.
-
-(define int-cache-low -5)
-(define int-cache-high 256)
-
-(define (make-int-cache)
-  (let* ((cache (make-vector (- int-cache-high int-cache-low -1))))
-    (let loop ((int int-cache-low))
-      (if (<= int int-cache-high)
-        (begin
-          (vector-set! cache (- int int-cache-low) (alloc-new-PyObjectInt-from-scheme int))
-          (loop (+ int 1)))
-        cache))))
-
-;; Set on bootstrap when int class is defined
-(define int-cache #f)
-
 (define (py-int-from-scheme-fallback value)
   (py-if-specialized-sint-representation
    (if (fixnum? value) value (py-bint-from-scheme value))
-   (if (and (<= value int-cache-high)
-            (>= value int-cache-low))
-       (vector-ref int-cache (- value int-cache-low))
-       (alloc-new-PyObjectInt-from-scheme value))))
+   (alloc-new-PyObjectInt-from-scheme value)))
 
 (define (py-bint-from-scheme-fallback value)
   (alloc-new-PyObjectInt-from-scheme value))
@@ -2979,7 +2414,7 @@
     (make-vector
      (vector-length (HClass-names py-float-hclass-of-instances))
      py-absent)
-    py-float-class
+    py-builtin-float
     value)))
 
 (define (py-subtype-of-float-from-scheme value float-subclass)
@@ -3108,18 +2543,9 @@
     (py-own-attr-set! str-class (& "__name__") (&& "str"))
     (py-own-attr-set! str-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
-    (py-own-attr-set! str-class (& "__eq__") str.__eq__)
     (py-own-attr-set! str-class (& "__hash__") str.__hash__)
-    (py-own-attr-set! str-class (& "__str__") str.__str__)
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
-    (py-own-attr-set! str-class (& "__len__") str.__len__)
-    (py-own-attr-set! str-class (& "__add__") str.__add__)
-
-    (py-own-attr-set! str-class (& "__ne__") str.__ne__)
-    (py-own-attr-set! str-class (& "__gt__") str.__gt__)
-    (py-own-attr-set! str-class (& "__lt__") str.__lt__)
-    (py-own-attr-set! str-class (& "__ge__") str.__ge__)
-    (py-own-attr-set! str-class (& "__le__") str.__le__)))
+    (py-own-attr-set! str-class (& "__str__") str.__str__)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -3144,6 +2570,24 @@
           (loop (- i 1) (add-class (vector-ref bases i) classes)))))
 
   (list->vector (add-class cls '())))
+
+(define (py-class-parse-attributes attrs)
+  (let loop ((lst attrs)
+             (rev-attr-names '())
+             (rev-attr-values '()))
+    (if (and (pair? lst) (pair? (cdr lst)))
+      (let ((name (car lst))
+            (value (cadr lst))
+            (rest (cddr lst)))
+        (if (eq? value py-absent)
+          (loop rest
+                rev-attr-names
+                rev-attr-values)
+          (loop rest
+                (cons name rev-attr-names)
+                (cons value rev-attr-values))))
+      (cons (reverse rev-attr-names) (reverse rev-attr-values)))))
+
 
 (define (py-make-class-from-type-allocator class-index name module bases type-allocator attrs)
   (define (make-cls attr-names attr-values)
@@ -3172,22 +2616,8 @@
         name)
       cls))
 
-    (let loop ((lst attrs)
-       (rev-attr-names '())
-       (rev-attr-values '()))
-    (if (and (pair? lst) (pair? (cdr lst)))
-    (let ((name (car lst))
-        (value (cadr lst))
-        (rest (cddr lst)))
-    (if (eq? value py-absent)
-        (loop rest
-              rev-attr-names
-              rev-attr-values)
-        (loop rest
-              (cons name rev-attr-names)
-              (cons value rev-attr-values))))
-    (make-cls (reverse rev-attr-names)
-            (reverse rev-attr-values)))))
+    (let ((parsed-attrs (py-class-parse-attributes attrs)))
+      (make-cls (car parsed-attrs) (cdr parsed-attrs))))
 
 (define (py-make-class name module bases . attrs)
   (py-make-class-from-type-allocator (get-behavior-type-index default) name module bases py-type-alloc attrs))
@@ -3198,6 +2628,18 @@
             class-index name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
+
+(define (py-extend-builtin-core-class cls . attrs)
+  (define (extend-cls attr-names attr-values)
+    (let loop ((attr-names attr-names) (attr-values attr-values))
+      (if (pair? attr-names)
+        (begin
+          (py-own-attr-set! cls (car attr-names) (car attr-values))
+          (loop (cdr attr-names) (cdr attr-values)))))
+        cls)
+
+  (let ((parsed-attrs (py-class-parse-attributes attrs)))
+    (extend-cls (car parsed-attrs) (cdr parsed-attrs))))
 ;; ================
 ;; MODULE FUNCTIONS
 ;; ================
@@ -3218,7 +2660,7 @@
 
 (define (module-getattribute self name)
   (if (py-isinstance? self py-module-class)
-      (if (py-isinstance? name py-str-class)
+      (if (py-isinstance? name py-builtin-str)
         (let ((val (global-own-attr-ref-no-cache self name)))
           (or
             val
@@ -3250,7 +2692,7 @@
 
 (define (module-setattr self name val)
   (if (py-isinstance? self py-module-class)
-      (if (py-isinstance? name py-str-class)
+      (if (py-isinstance? name py-builtin-str)
         (begin
           (global-own-attr-put-no-cache! self name val)
           py-None)
@@ -3357,7 +2799,6 @@
     (&& "list_iterator")
     (&& "builtins")
     (list)
-    py-list-iterator-hclass-of-instances
       (& "__iter__") list_iterator.__iter__
       (& "__next__") list_iterator.__next__))
 
@@ -3393,7 +2834,6 @@
     (&& "tuple_iterator")
     (&& "builtins")
     (list)
-    py-tuple-iterator-hclass-of-instances
       (& "__iter__") py-tuple-iterator-iter
       (& "__next__") py-tuple-iterator-next))
 
@@ -3434,7 +2874,6 @@
     (&& "bytearray_iterator")
     (&& "builtins")
     (list)
-    py-bytearray-iterator-hclass-of-instances
       (& "__iter__") py-bytearray-iterator.__iter__
       (& "__next__") py-bytearray-iterator.__next__))
 
@@ -3803,8 +3242,8 @@
          (py-step (PyObjectSlice-step slice))
          (step
            (cond
-             ((eq? py-step py-None) 1)
-             ((eq? py-step py-int-0)
+             ((eq? py-step py-None) (py-int-from-scheme 1))
+             ((py-test-eq py-step (py-int-from-scheme 0))
               (py-throw (py-call py-builtin-ValueError (&& "slice step cannot be zero"))))
              ((py-subtype-of-int? py-step)
                 (py-subtype-of-int-to-scheme py-step))
@@ -5599,13 +5038,55 @@
     (&& "dict_keyiterator")
     (&& "builtins")
     (list)
-    py-dict-keyiterator-hclass-of-instances
       (& "__iter__") dict_keyiterator.__iter__
       (& "__next__") dict_keyiterator.__next__))
 
 ;; -----------------------------------------------------------------------------
 
 (define (bootstrap-type-hierarchy-phase2)
+  ;; create number core types
+  (let* ((int-class
+            (py-builtin-type-alloc
+                py-type-class
+                (get-behavior-type-index bint)
+                (vector py-object-class) ;; bases
+                #f ;; mro
+                py-int-hclass-of-instances))
+           (bool-class
+              (py-builtin-type-alloc
+                  py-type-class
+                  (get-behavior-type-index bool)
+                  (vector py-object-class) ;; bases
+                  #f ;; mro
+                  py-int-hclass-of-instances))
+           (float-class
+              (py-builtin-type-alloc
+                  py-type-class
+                  (get-behavior-type-index float)
+                  (vector py-object-class) ;; bases
+                  #f ;; mro
+                  py-int-hclass-of-instances)))
+    ;; int
+    (set! py-int-class int-class)
+    (PyObjectType-mro-set! int-class (vector int-class py-object-class))
+    (py-own-attr-set! int-class (& "__name__") (&& "int"))
+    (py-own-attr-set! int-class (& "__module__") (&& "builtins"))
+    (py-own-attr-set! int-class (& "__repr__") int.__repr__)
+    (py-own-attr-set! int-class (& "__hash__") int.__hash__)
+
+    ;; bool
+    (set! py-bool-class bool-class)
+    (PyObjectType-mro-set! bool-class (vector bool-class int-class py-object-class))
+    (py-own-attr-set! bool-class (& "__name__") (&& "bool"))
+    (py-own-attr-set! bool-class (& "__module__") (&& "builtins"))
+
+    ;;float
+    (set! py-float-class float-class)
+    (PyObjectType-mro-set! float-class (vector float-class py-object-class))
+    (py-own-attr-set! float-class (& "__name__") (&& "float"))
+    (py-own-attr-set! float-class (& "__module__") (&& "builtins"))
+    (py-own-attr-set! float-class (& "__repr__") float.__repr__))
+
   ;; Fill in tuple class
   (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
   (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
@@ -5629,127 +5110,21 @@
      (&& "module")
      (&& "builtins")
      (list)
-     py-module-hclass-of-instances
      (& "__dir__") module.__dir__
      (& "__getattribute__") module.__getattribute__
      (& "__setattr__") module.__setattr__))
-
-  (set! py-int-class
-    (py-make-builtin-class
-     (&& "int")
-     (&& "builtins")
-     (list)
-     py-int-hclass-of-instances
-     (& "__new__") int.__new__
-     (& "__bool__") int.__bool__
-     (& "__add__") int.__add__
-     (& "__sub__") int.__sub__
-     (& "__mul__") int.__mul__
-     (& "__floordiv__") int.__floordiv__
-     (& "__and__") int.__and__
-     (& "__lshift__") int.__lshift__
-     (& "__rshift__") int.__rshift__
-     (& "__mod__") int.__mod__
-     (& "__or__") int.__or__
-     (& "__pow__") int.__pow__
-     (& "__xor__") int.__xor__
-     (& "__iadd__") int.__iadd__
-     (& "__isub__") int.__isub__
-     (& "__imul__") int.__imul__
-     (& "__ifloordiv__") int.__ifloordiv__
-     (& "__iand__") int.__iand__
-     (& "__ilshift__") int.__ilshift__
-     (& "__irshift__") int.__irshift__
-     (& "__imod__") int.__imod__
-     (& "__ior__") int.__ior__
-     (& "__ipow__") int.__ipow__
-     (& "__ixor__") int.__ixor__
-     (& "__eq__") int.__eq__
-     (& "__ne__") int.__ne__
-     (& "__lt__") int.__lt__
-     (& "__le__") int.__le__
-     (& "__gt__") int.__gt__
-     (& "__ge__") int.__ge__
-     (& "__neg__") int.__neg__
-     (& "__pos__") int.__pos__
-     (& "__invert__") int.__invert__
-     (& "__abs__") int.__abs__
-     (& "__hash__") int.__hash__
-     (& "__truediv__") int.__truediv__
-     (& "__itruediv__") int.__itruediv__
-     (& "__repr__") int.__repr__
-     (& "__index__") int.__index__
-     ))
-
-  ;; Pre-allocate ints from -5 to 256 and cache them
-  (set! int-cache (make-int-cache))
-
-  (set! py-float-class
-    (py-make-builtin-class
-     (&& "float")
-     (&& "builtins")
-     (list)
-     py-float-hclass-of-instances
-     (& "__new__") float.__new__
-     (& "__repr__") float.__repr__
-     (& "__add__") float.__add__
-     (& "__radd__") float.__radd__
-     (& "__sub__") float.__sub__
-     (& "__rsub__") float.__rsub__
-     (& "__mul__") float.__mul__
-     (& "__rmul__") float.__rmul__
-     (& "__pow__") float.__pow__
-     (& "__rpow__") float.__rpow__
-     (& "__eq__") float.__eq__
-     (& "__ne__") float.__ne__
-     (& "__lt__") float.__lt__
-     (& "__le__") float.__le__
-     (& "__gt__") float.__gt__
-     (& "__ge__") float.__ge__
-     (& "__truediv__") float.__truediv__
-     (& "__rtruediv__") float.__rtruediv__
-     (& "__floordiv__") float.__floordiv__
-     (& "__rfloordiv__") float.__rfloordiv__
-     (& "__mod__") float.__mod__
-     (& "__rmod__") float.__rmod__
-
-     (& "__neg__") float.__neg__
-     (& "__pos__") float.__pos__
-     (& "__abs__") float.__abs__
-     (& "__bool__") float.__bool__
-
-     (& "__float__") float.__float__
-     (& "__int__") float.__int__
-     (& "__round__") float.__round__
-     (& "__trunc__") float.__trunc__
-     (& "conjugate") float.conjugate
-     (& "is_integer") float.is_integer
-
-     ))
-
-  (set! py-bool-class
-    (py-make-builtin-class
-     (&& "bool")
-     (&& "builtins")
-     (list py-int-class)
-     py-int-hclass-of-instances
-     (& "__new__") bool.__new__
-     (& "__str__") bool.__str__
-     (& "__repr__") bool.__repr__))
 
   (set! py-complex-class
     (py-make-builtin-class
      (& "complex")
      (& "builtins")
-     (list)
-     py-complex-hclass-of-instances))
+     (list)))
 
   (set! py-slice-class
     (py-make-builtin-class
      (&& "slice")
      (&& "builtins")
      (list)
-     py-slice-hclass-of-instances
      (& "__new__") slice.__new__
      (& "indices") slice.indices))
 
@@ -5758,7 +5133,6 @@
      (&& "method")
      (&& "builtins")
      (list)
-     py-method-hclass-of-instances
      (& "__call__") method.__call__))
 
   (set! py-function-class
@@ -5766,7 +5140,6 @@
      (&& "function")
      (&& "builtins")
      (list)
-     py-function-hclass-of-instances
      (& "__call__") function.__call__
      (& "__get__") function.__get__))
 
@@ -5775,7 +5148,6 @@
      (&& "list")
      (&& "builtins")
      (list)
-     py-list-hclass-of-instances
      (& "__new__") list.__new__
      (& "__iter__") list.__iter__
      (& "__contains__") list.__contains__
@@ -5814,7 +5186,6 @@
      (&& "dict")
      (&& "builtins")
      (list)
-     py-dict-hclass-of-instances
      (& "__getitem__") dict.__getitem__
      (& "__setitem__") dict.__setitem__
      (& "__delitem__") dict.__delitem__
@@ -5827,15 +5198,13 @@
     (py-make-builtin-class
      (&& "set")
      (&& "builtins")
-     (list)
-     py-set-hclass-of-instances))
+     (list)))
 
   (set! py-bytearray-class
     (py-make-builtin-class
       (&& "bytearray")
       (&& "builtins")
       (list)
-      py-set-hclass-of-instances
         (& "__getitem__") bytearray.__getitem__
         (& "__new__") bytearray.__new__
         (& "__setitem__") bytearray.__setitem__
@@ -5863,6 +5232,10 @@
       )
 
 (bootstrap-type-hierarchy-phase2)
+
+(define py-True (py-subtype-of-int-from-scheme 1 py-bool-class))
+(define py-False (py-subtype-of-int-from-scheme 0 py-bool-class))
+
 (bootstrap-functions)
 
 
@@ -5909,40 +5282,6 @@
 (PyObjectStrRep-magic-index-set! (& "__call__") (__call__.index))
 (PyObjectStrRep-magic-index-set! (& "__get__")  (__get__.index))
 
-(magic-attr-set! py-int-class (__add__.index)  int.__add__)
-(magic-attr-set! py-int-class (__iadd__.index) int.__iadd__)
-(magic-attr-set! py-int-class (__mul__.index)  int.__mul__)
-(magic-attr-set! py-int-class (__imul__.index) int.__imul__)
-(magic-attr-set! py-int-class (__sub__.index)  int.__sub__)
-(magic-attr-set! py-int-class (__isub__.index) int.__isub__)
-(magic-attr-set! py-int-class (__eq__.index)   int.__eq__)
-(magic-attr-set! py-int-class (__ne__.index)   int.__ne__)
-(magic-attr-set! py-int-class (__lt__.index)   int.__lt__)
-(magic-attr-set! py-int-class (__le__.index)   int.__le__)
-(magic-attr-set! py-int-class (__gt__.index)   int.__gt__)
-(magic-attr-set! py-int-class (__ge__.index)   int.__ge__)
-
-(magic-attr-set! py-float-class (__add__.index)  float.__add__)
-(magic-attr-set! py-float-class (__radd__.index) float.__radd__)
-(magic-attr-set! py-float-class (__mul__.index)  float.__mul__)
-(magic-attr-set! py-float-class (__rmul__.index) float.__rmul__)
-(magic-attr-set! py-float-class (__sub__.index)  float.__sub__)
-(magic-attr-set! py-float-class (__rsub__.index) float.__rsub__)
-(magic-attr-set! py-float-class (__eq__.index)   float.__eq__)
-(magic-attr-set! py-float-class (__ne__.index)   float.__ne__)
-(magic-attr-set! py-float-class (__lt__.index)   float.__lt__)
-(magic-attr-set! py-float-class (__le__.index)   float.__le__)
-(magic-attr-set! py-float-class (__gt__.index)   float.__gt__)
-(magic-attr-set! py-float-class (__ge__.index)   float.__ge__)
-
-(magic-attr-set! py-str-class (__add__.index)  str.__add__)
-(magic-attr-set! py-str-class (__eq__.index)   str.__eq__)
-(magic-attr-set! py-str-class (__ne__.index)   str.__ne__)
-(magic-attr-set! py-str-class (__lt__.index)   str.__lt__)
-(magic-attr-set! py-str-class (__le__.index)   str.__le__)
-(magic-attr-set! py-str-class (__gt__.index)   str.__gt__)
-(magic-attr-set! py-str-class (__ge__.index)   str.__ge__)
-
 (magic-attr-set! py-type-class     (__call__.index) type.__call__)
 
 (magic-attr-set! py-method-class   (__call__.index) method.__call__)
@@ -5950,13 +5289,6 @@
 (magic-attr-set! py-function-class (__call__.index) function.__call__)
 (magic-attr-set! py-function-class (__get__.index)  function.__get__)
 
-
-;; Save low ints for fast access
-(define py-int-0 (py-int-from-scheme 0))
-(define py-int-1 (py-int-from-scheme 1))
-(define py-int-2 (py-int-from-scheme 2))
-(define py-int-3 (py-int-from-scheme 3))
-(define py-int-4 (py-int-from-scheme 4))
 
 ;; =============================================================================
 ;;  IO
@@ -6027,7 +5359,6 @@
     (&& "_io")
     ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
     (list)
-    py-TextIOWrapper-hclass-of-instances
       (& "__enter__") TextIOWrapper.__enter__
       (& "__exit__") TextIOWrapper.__exit__
       (& "close") TextIOWrapper.close
@@ -6051,11 +5382,7 @@
 
 ;; True and False
 
-(define py-True
-  (py-subtype-of-int-from-scheme 1 py-bool-class))
 
-(define py-False
-  (py-subtype-of-int-from-scheme 0 py-bool-class))
 
 ;; NotImplemented object
 
@@ -6092,7 +5419,6 @@
     (&& "NotImplementedType")
     (&& "builtins")
     (list)
-    py-object-hclass-of-instances
       (& "__new__") NotImplementedType.__new__
       (& "__repr__") NotImplementedType.__repr__))
 
@@ -6150,7 +5476,6 @@
     (&& "NoneType")
     (&& "builtins")
     (list)
-    py-object-hclass-of-instances
       (& "__new__") NoneType.__new__
       (& "__repr__") NoneType.__repr__
       (& "__bool__") NoneType.__bool__))
@@ -6198,12 +5523,12 @@
 (define (py-make-global)
   (py-module-alloc py-module-class py-module-hclass-of-instances))
 
-(define (py-make-module name package path)
+(define (py-make-module name package #!optional (path #f))
   (let ((mod (py-make-global))
         (modules (sys.modules-get)))
    (global-own-attr-put-no-cache! mod (& "__name__") name)
    (global-own-attr-put-no-cache! mod (& "__package__") package)
-   (global-own-attr-put-no-cache! mod (& "__path__")path)
+   (if path (global-own-attr-put-no-cache! mod (& "__path__") path))
    (dict-setitem modules name mod)
    mod))
 
@@ -6469,7 +5794,6 @@
 
 
 (define (run-as-main path)
-  (build-builtins)
   (let ((sys.modules (sys.modules-get)))
     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
     (with-exception-catcher
@@ -6625,7 +5949,7 @@
 ;;
 ;; Changed in version 3.7: x is now a positional-only parameter.
 
-(define py-builtin-bool py-bool-class)
+(define py-builtin-bool #f)
 
 ;;-------------------- breakpoint(*args, **kws)
 
@@ -7172,7 +6496,7 @@
 ;; Changed in version 3.8: Falls back to __index__() if __float__() is
 ;; not defined.
 
-(define py-builtin-float py-float-class)
+(define py-builtin-float #f)
 
 ;;-------------------- format(value[, format_spec])
 
@@ -7432,7 +6756,7 @@
 ;; Changed in version 3.8: Falls back to __index__() if __int__() is not
 ;; defined.
 
-(define py-builtin-int py-int-class)
+(define py-builtin-int #f)
 
 ;;-------------------- isinstance(object, classinfo)
 
@@ -7460,7 +6784,19 @@
 (define py-builtin-issubclass
   (procedure->py-function
     (lambda (object classinfo)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "issubclass not implemented"))
+      (if (py-isinstance? object py-builtin-type)
+        (cond
+          ((py-isinstance? classinfo py-builtin-type)
+            (py-bool-from-scheme-bool (py-issubclass? object classinfo)))
+          ((py-isinstance? classinfo py-builtin-tuple)
+            (py-throw py-builtin-NotImplementedError))
+          (else
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "issubclass() arg 2 must be a class or tuple of classes")))
+        (py-throw-exception-with-message
+          py-builtin-TypeError
+          "issubclass() arg 1 must be a class")))
     (make-signature posonlyargs: (object classinfo))))
 
 ;;-------------------- iter(object[, sentinel])
@@ -8054,14 +7390,7 @@
 ;; Rather than being a function, range is actually an immutable sequence
 ;; type, as documented in Ranges and Sequence Types — list, tuple, range.
 
-(define py-builtin-range
-  (procedure->py-function
-    (lambda (arg1 arg2 arg3)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "range unimplemented generic procedure for builtin"))
-    (make-signature
-      posonlyargs: (arg1 arg2 arg3)
-      defaults: (vector py-absent py-absent))))
-
+(define py-builtin-range #f)
 (define py-builtin-range_iterator #f)
 
 ;;-------------------- repr(object)
@@ -8242,7 +7571,7 @@
 ;; str is the built-in string class. For general information about
 ;; strings, see Text Sequence Type — str.
 
-(define py-builtin-str py-str-class)
+(define py-builtin-str #f)
 
 ;;-------------------- sum(iterable, /, start=0)
 
@@ -8371,7 +7700,6 @@
     (&& "super")
     (&& "builtins")
     (list)
-    py-super-hclass-of-instances
       (& "__init__") super.__init__
       (& "__getattribute__") super.__getattribute__
     ))
@@ -8654,183 +7982,6 @@
 ;; BUILTINS
 ;;==============================================================================
 
-;; Once builtins.py is loaded, we need to keep a direct access to some builtins
-;; Examples are exceptions which are part of Python protocols, such as StopIteration
-(define (bootstrap-builtins builtins-mod)
-  ;; builtin functions
-  (set! py-builtin-sorted (global-own-attr-ref-no-cache builtins-mod (& "sorted")))
-
-  ;; Exceptions
-  (set! py-builtin-ArithmeticError (global-own-attr-ref-no-cache builtins-mod (& "ArithmeticError")))
-  (set! py-builtin-AssertionError (global-own-attr-ref-no-cache builtins-mod (& "AssertionError")))
-  (set! py-builtin-AttributeError (global-own-attr-ref-no-cache builtins-mod (& "AttributeError")))
-  (set! py-builtin-BaseException (global-own-attr-ref-no-cache builtins-mod (& "BaseException")))
-  (set! py-builtin-BlockingIOError (global-own-attr-ref-no-cache builtins-mod (& "BlockingIOError")))
-  (set! py-builtin-BrokenPipeError (global-own-attr-ref-no-cache builtins-mod (& "BrokenPipeError")))
-  (set! py-builtin-BufferError (global-own-attr-ref-no-cache builtins-mod (& "BufferError")))
-  (set! py-builtin-BytesWarning (global-own-attr-ref-no-cache builtins-mod (& "BytesWarning")))
-  (set! py-builtin-ChildProcessError (global-own-attr-ref-no-cache builtins-mod (& "ChildProcessError")))
-  (set! py-builtin-ConnectionAbortedError (global-own-attr-ref-no-cache builtins-mod (& "ConnectionAbortedError")))
-  (set! py-builtin-ConnectionError (global-own-attr-ref-no-cache builtins-mod (& "ConnectionError")))
-  (set! py-builtin-ConnectionRefusedError (global-own-attr-ref-no-cache builtins-mod (& "ConnectionRefusedError")))
-  (set! py-builtin-ConnectionResetError (global-own-attr-ref-no-cache builtins-mod (& "ConnectionResetError")))
-  (set! py-builtin-DeprecationWarning (global-own-attr-ref-no-cache builtins-mod (& "DeprecationWarning")))
-  (set! py-builtin-EOFError (global-own-attr-ref-no-cache builtins-mod (& "EOFError")))
-  (set! py-builtin-EnvironmentError (global-own-attr-ref-no-cache builtins-mod (& "EnvironmentError")))
-  (set! py-builtin-Exception (global-own-attr-ref-no-cache builtins-mod (& "Exception")))
-  (set! py-builtin-FileExistsError (global-own-attr-ref-no-cache builtins-mod (& "FileExistsError")))
-  (set! py-builtin-FileNotFoundError (global-own-attr-ref-no-cache builtins-mod (& "FileNotFoundError")))
-  (set! py-builtin-FloatingPointError (global-own-attr-ref-no-cache builtins-mod (& "FloatingPointError")))
-  (set! py-builtin-FutureWarning (global-own-attr-ref-no-cache builtins-mod (& "FutureWarning")))
-  (set! py-builtin-GeneratorExit (global-own-attr-ref-no-cache builtins-mod (& "GeneratorExit")))
-  (set! py-builtin-IOError (global-own-attr-ref-no-cache builtins-mod (& "IOError")))
-  (set! py-builtin-ImportError (global-own-attr-ref-no-cache builtins-mod (& "ImportError")))
-  (set! py-builtin-ImportWarning (global-own-attr-ref-no-cache builtins-mod (& "ImportWarning")))
-  (set! py-builtin-IndentationError (global-own-attr-ref-no-cache builtins-mod (& "IndentationError")))
-  (set! py-builtin-IndexError (global-own-attr-ref-no-cache builtins-mod (& "IndexError")))
-  (set! py-builtin-InterruptedError (global-own-attr-ref-no-cache builtins-mod (& "InterruptedError")))
-  (set! py-builtin-IsADirectoryError (global-own-attr-ref-no-cache builtins-mod (& "IsADirectoryError")))
-  (set! py-builtin-KeyError (global-own-attr-ref-no-cache builtins-mod (& "KeyError")))
-  (set! py-builtin-KeyboardInterrupt (global-own-attr-ref-no-cache builtins-mod (& "KeyboardInterrupt")))
-  (set! py-builtin-LookupError (global-own-attr-ref-no-cache builtins-mod (& "LookupError")))
-  (set! py-builtin-MemoryError (global-own-attr-ref-no-cache builtins-mod (& "MemoryError")))
-  (set! py-builtin-ModuleNotFoundError (global-own-attr-ref-no-cache builtins-mod (& "ModuleNotFoundError")))
-  (set! py-builtin-NameError (global-own-attr-ref-no-cache builtins-mod (& "NameError")))
-  (set! py-builtin-NotADirectoryError (global-own-attr-ref-no-cache builtins-mod (& "NotADirectoryError")))
-  (set! py-builtin-NotImplementedError (global-own-attr-ref-no-cache builtins-mod (& "NotImplementedError")))
-  (set! py-builtin-OSError (global-own-attr-ref-no-cache builtins-mod (& "OSError")))
-  (set! py-builtin-OverflowError (global-own-attr-ref-no-cache builtins-mod (& "OverflowError")))
-  (set! py-builtin-PendingDeprecationWarning (global-own-attr-ref-no-cache builtins-mod (& "PendingDeprecationWarning")))
-  (set! py-builtin-PermissionError (global-own-attr-ref-no-cache builtins-mod (& "PermissionError")))
-  (set! py-builtin-ProcessLookupError (global-own-attr-ref-no-cache builtins-mod (& "ProcessLookupError")))
-  (set! py-builtin-RecursionError (global-own-attr-ref-no-cache builtins-mod (& "RecursionError")))
-  (set! py-builtin-ReferenceError (global-own-attr-ref-no-cache builtins-mod (& "ReferenceError")))
-  (set! py-builtin-ResourceWarning (global-own-attr-ref-no-cache builtins-mod (& "ResourceWarning")))
-  (set! py-builtin-RuntimeError (global-own-attr-ref-no-cache builtins-mod (& "RuntimeError")))
-  (set! py-builtin-RuntimeWarning (global-own-attr-ref-no-cache builtins-mod (& "RuntimeWarning")))
-  (set! py-builtin-StopAsyncIteration (global-own-attr-ref-no-cache builtins-mod (& "StopAsyncIteration")))
-  (set! py-builtin-StopIteration (global-own-attr-ref-no-cache builtins-mod (& "StopIteration")))
-  (set! py-builtin-SyntaxError (global-own-attr-ref-no-cache builtins-mod (& "SyntaxError")))
-  (set! py-builtin-SyntaxWarning (global-own-attr-ref-no-cache builtins-mod (& "SyntaxWarning")))
-  (set! py-builtin-SystemError (global-own-attr-ref-no-cache builtins-mod (& "SystemError")))
-  (set! py-builtin-SystemExit (global-own-attr-ref-no-cache builtins-mod (& "SystemExit")))
-  (set! py-builtin-TabError (global-own-attr-ref-no-cache builtins-mod (& "TabError")))
-  (set! py-builtin-TimeoutError (global-own-attr-ref-no-cache builtins-mod (& "TimeoutError")))
-  (set! py-builtin-TypeError (global-own-attr-ref-no-cache builtins-mod (& "TypeError")))
-  (set! py-builtin-UnboundLocalError (global-own-attr-ref-no-cache builtins-mod (& "UnboundLocalError")))
-  (set! py-builtin-UnicodeDecodeError (global-own-attr-ref-no-cache builtins-mod (& "UnicodeDecodeError")))
-  (set! py-builtin-UnicodeEncodeError (global-own-attr-ref-no-cache builtins-mod (& "UnicodeEncodeError")))
-  (set! py-builtin-UnicodeError (global-own-attr-ref-no-cache builtins-mod (& "UnicodeError")))
-  (set! py-builtin-UnicodeTranslateError (global-own-attr-ref-no-cache builtins-mod (& "UnicodeTranslateError")))
-  (set! py-builtin-UnicodeWarning (global-own-attr-ref-no-cache builtins-mod (& "UnicodeWarning")))
-  (set! py-builtin-UserWarning (global-own-attr-ref-no-cache builtins-mod (& "UserWarning")))
-  (set! py-builtin-ValueError (global-own-attr-ref-no-cache builtins-mod (& "ValueError")))
-  (set! py-builtin-Warning (global-own-attr-ref-no-cache builtins-mod (& "Warning")))
-  (set! py-builtin-ZeroDivisionError (global-own-attr-ref-no-cache builtins-mod (& "ZeroDivisionError")))
-
-  ;; Reuse sorted procedure for list.sort
-  (set! list.sort
-    (procedure->py-function
-      (lambda (self key reversed)
-        (PyObjectList-value-set!
-          self
-          (PyObjectList-value
-            ((PyObjectFunction-procedure py-builtin-sorted)
-             self key reversed)))
-        py-None)
-
-      ;;TODO: change default arguments to kwonlyargs
-      (make-signature
-        args: (self key reversed)
-        defaults: (vector py-None py-False))))
-
-  (py-own-attr-set! py-list-class (& "sort") list.sort)
-
-  (global-own-attr-put-no-cache! builtins-mod (& "None") py-None)
-  (global-own-attr-put-no-cache! builtins-mod (& "NotImplemented") py-NotImplemented)
-  (global-own-attr-put-no-cache! builtins-mod (& "False") py-False)
-  (global-own-attr-put-no-cache! builtins-mod (& "True") py-True)
-  (global-own-attr-put-no-cache! builtins-mod (& "abs") py-builtin-abs)
-  (global-own-attr-put-no-cache! builtins-mod (& "all") py-builtin-all)
-  (global-own-attr-put-no-cache! builtins-mod (& "any") py-builtin-any)
-  (global-own-attr-put-no-cache! builtins-mod (& "ascii") py-builtin-ascii)
-  (global-own-attr-put-no-cache! builtins-mod (& "bin") py-builtin-bin)
-  (global-own-attr-put-no-cache! builtins-mod (& "bool") py-builtin-bool)
-  (global-own-attr-put-no-cache! builtins-mod (& "breakpoint") py-builtin-breakpoint)
-  (global-own-attr-put-no-cache! builtins-mod (& "bytearray") py-builtin-bytearray)
-  (global-own-attr-put-no-cache! builtins-mod (& "bytes") py-builtin-bytes)
-  (global-own-attr-put-no-cache! builtins-mod (& "callable") py-builtin-callable)
-  (global-own-attr-put-no-cache! builtins-mod (& "chr") py-builtin-chr)
-  (global-own-attr-put-no-cache! builtins-mod (& "classmethod") py-builtin-classmethod)
-  (global-own-attr-put-no-cache! builtins-mod (& "compile") py-builtin-compile)
-  (global-own-attr-put-no-cache! builtins-mod (& "complex") py-builtin-complex)
-  (global-own-attr-put-no-cache! builtins-mod (& "delattr") py-builtin-delattr)
-  (global-own-attr-put-no-cache! builtins-mod (& "dict") py-builtin-dict)
-  (global-own-attr-put-no-cache! builtins-mod (& "dir") py-builtin-dir)
-  (global-own-attr-put-no-cache! builtins-mod (& "divmod") py-builtin-divmod)
-  (global-own-attr-put-no-cache! builtins-mod (& "enumerate") py-builtin-enumerate)
-  (global-own-attr-put-no-cache! builtins-mod (& "eval") py-builtin-eval)
-  (global-own-attr-put-no-cache! builtins-mod (& "exec") py-builtin-exec)
-  (global-own-attr-put-no-cache! builtins-mod (& "filter") py-builtin-filter)
-  (global-own-attr-put-no-cache! builtins-mod (& "float") py-builtin-float)
-  (global-own-attr-put-no-cache! builtins-mod (& "format") py-builtin-format)
-  (global-own-attr-put-no-cache! builtins-mod (& "frozenset") py-builtin-frozenset)
-  (global-own-attr-put-no-cache! builtins-mod (& "getattr") py-builtin-getattr)
-  (global-own-attr-put-no-cache! builtins-mod (& "globals") py-builtin-globals)
-  (global-own-attr-put-no-cache! builtins-mod (& "hasattr") py-builtin-hasattr)
-  (global-own-attr-put-no-cache! builtins-mod (& "hash") py-builtin-hash)
-  (global-own-attr-put-no-cache! builtins-mod (& "help") py-builtin-help)
-  (global-own-attr-put-no-cache! builtins-mod (& "hex") py-builtin-hex)
-  (global-own-attr-put-no-cache! builtins-mod (& "id") py-builtin-id)
-  (global-own-attr-put-no-cache! builtins-mod (& "input") py-builtin-input)
-  (global-own-attr-put-no-cache! builtins-mod (& "int") py-builtin-int)
-  (global-own-attr-put-no-cache! builtins-mod (& "isinstance") py-builtin-isinstance)
-  (global-own-attr-put-no-cache! builtins-mod (& "issubclass") py-builtin-issubclass)
-  (global-own-attr-put-no-cache! builtins-mod (& "iter") py-builtin-iter)
-  (global-own-attr-put-no-cache! builtins-mod (& "len") py-builtin-len)
-  (global-own-attr-put-no-cache! builtins-mod (& "list") py-builtin-list)
-  (global-own-attr-put-no-cache! builtins-mod (& "locals") py-builtin-locals)
-  (global-own-attr-put-no-cache! builtins-mod (& "map") py-builtin-map)
-  (global-own-attr-put-no-cache! builtins-mod (& "max") py-builtin-max)
-  (global-own-attr-put-no-cache! builtins-mod (& "memoryview") py-builtin-memoryview)
-  (global-own-attr-put-no-cache! builtins-mod (& "min") py-builtin-min)
-  (global-own-attr-put-no-cache! builtins-mod (& "next") py-builtin-next)
-  (global-own-attr-put-no-cache! builtins-mod (& "object") py-builtin-object)
-  (global-own-attr-put-no-cache! builtins-mod (& "oct") py-builtin-oct)
-  (global-own-attr-put-no-cache! builtins-mod (& "open") py-builtin-open)
-  (global-own-attr-put-no-cache! builtins-mod (& "ord") py-builtin-ord)
-  (global-own-attr-put-no-cache! builtins-mod (& "pow") py-builtin-pow)
-  (global-own-attr-put-no-cache! builtins-mod (& "print") py-builtin-print)
-  (global-own-attr-put-no-cache! builtins-mod (& "property") py-builtin-property)
-  (global-own-attr-put-no-cache! builtins-mod (& "repr") py-builtin-repr)
-  (global-own-attr-put-no-cache! builtins-mod (& "reversed") py-builtin-reversed)
-  (global-own-attr-put-no-cache! builtins-mod (& "round") py-builtin-round)
-  (global-own-attr-put-no-cache! builtins-mod (& "set") py-builtin-set)
-  (global-own-attr-put-no-cache! builtins-mod (& "setattr") py-builtin-setattr)
-  (global-own-attr-put-no-cache! builtins-mod (& "slice") py-builtin-slice)
-  (global-own-attr-put-no-cache! builtins-mod (& "sorted") py-builtin-sorted)
-  (global-own-attr-put-no-cache! builtins-mod (& "staticmethod") py-builtin-staticmethod)
-  (global-own-attr-put-no-cache! builtins-mod (& "str") py-builtin-str)
-  (global-own-attr-put-no-cache! builtins-mod (& "sum") py-builtin-sum)
-  (global-own-attr-put-no-cache! builtins-mod (& "super") py-builtin-super)
-  (global-own-attr-put-no-cache! builtins-mod (& "tuple") py-builtin-tuple)
-  (global-own-attr-put-no-cache! builtins-mod (& "type") py-builtin-type)
-  (global-own-attr-put-no-cache! builtins-mod (& "vars") py-builtin-vars)
-  (global-own-attr-put-no-cache! builtins-mod (& "zip") py-builtin-zip)
-  (global-own-attr-put-no-cache! builtins-mod (& "__import__") py-builtin-__import__)
-
-  (set! py-builtin-range (global-own-attr-ref-no-cache builtins-mod (& "range")))
-  (set! py-builtin-range_iterator (global-own-attr-ref-no-cache builtins-mod (& "range_iterator"))))
-
-(define (py-make-builtins-mod)
-  (let ((builtins-mod (builtin-__import__ "builtins")))
-     (bootstrap-builtins builtins-mod)
-    builtins-mod))
-
-(define builtins-mod #f)
-
-(define (build-builtins)
-  (if (not builtins-mod)
-      (set! builtins-mod (py-make-builtins-mod))))
+(define builtins-mod (bootstrap-builtins))
 
 (end-registering-constants)

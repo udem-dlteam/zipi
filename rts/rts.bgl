@@ -256,6 +256,7 @@
            (py-test-le-behavior-call-with-rhs-index-fallback lhs index rhs)
            (py-test-lt-behavior-call-with-rhs-index-fallback lhs index rhs)
 
+           py-object-hclass-of-instances
            py-type-hclass-of-instances
            py-int-hclass-of-instances
            py-float-hclass-of-instances
@@ -265,13 +266,11 @@
            py-range-hclass-of-instances
            py-range_iterator-hclass-of-instances
 
-           py-builtin-range
-           py-builtin-range_iterator
 
            (inline PyObject-type-get o)
            (inline PyObjectStr-type-get o)
 
-           (build-builtins)
+           (bootstrap-builtins)
            (compile-flag-set! flag)
            (expansion-flag-set! value)
            (debug-flag-set! flag)
@@ -285,7 +284,7 @@
            ;; (object-get ::obj ::obj ::obj)
            (getattribute-from-obj-mro-fallback ::obj ::obj)
 
-           (py-make-module name package path)
+           (py-make-module name package #!optional (path #f))
            (py-make-list . elements)
 
            ;; (py-getitem ::PyObject ::obj ::obj)
@@ -305,8 +304,7 @@
            (py-make-global)
            (py-make-caches ::int)
 
-           int-cache
-
+           (py-extend-builtin-core-class cls . attrs)
            (py-make-class name module bases . atrs)
            (py-make-builtin-class-with-class-index class-index name module bases hclass-of-instances . attrs)
 
@@ -314,7 +312,6 @@
 
            (py-in x y)
            (py-notin x y)
-           (py-not x)
 
            py-None
            py-absent
@@ -324,9 +321,14 @@
            py-NotImplemented
 
            py-object-class
-           py-module-class
+           py-type-class
+           py-tuple-class
+           py-str-class
            py-int-class
+           py-bool-class
            py-float-class
+
+           py-module-class
            py-function-class
            (py-own-attr-set! obj attr val)
 
@@ -379,10 +381,16 @@
 
            (py-make-tuple . els)
 
+
            py-builtin-super
            py-builtin-tuple
            py-builtin-type
+           py-builtin-range
+           py-builtin-range_iterator
+           py-builtin-int
            py-builtin-bool
+           py-builtin-float
+           py-builtin-str
 
            py-builtin-ArithmeticError
            py-builtin-AssertionError
@@ -809,3 +817,6 @@
 ;*---------------------------------------------------------------------*/
 (define-method (exception-notify o::PyObject)
    (print-exception o))
+
+(define (bootstrap-builtins)
+  (error "NotImplemented:" "builtins.py bootstrap as module" ""))

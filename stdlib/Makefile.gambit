@@ -1,10 +1,13 @@
-do.gambit: zemantics.scm behaviors.scm
+do.gambit: zemantics.scm behaviors.scm builtins.sld
 
 zemantics.scm:
 	../bin/zpc.gambit zemantics.py > zemantics.scm
 
 behaviors.scm:
 	../bin/zpc.gambit behaviors.py > behaviors.scm
+
+builtins.sld: builtins.py
+	../bin/zpc.gambit builtins.py > builtins.sld
 
 clean.gambit:
 	rm -f builtins.scm
