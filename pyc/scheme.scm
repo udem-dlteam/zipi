@@ -940,7 +940,6 @@
         (error "scheme::PycBinary" "operation between lhs native type and non-native type" rhs-type-hint))
       (if (and rhs-type-hint (memq rhs-type-hint native-types))
         (begin
-          (pp this)
         (error "scheme::PycBinary" "operation between rhs native type and non-native type" lhs-type-hint))
         (python-op)))))
 
@@ -1159,10 +1158,12 @@
 
 (define-walk-method (scheme this::PycCall conf)
 
-   (define (correct-arity? fun args)
-      (=fx
-        (+ (length (PycFun-args fun)) (length (PycFun-posonlyargs fun)))
-        (length args)))
+   (define (correct-arity? fun this)
+      (and
+        (null? (PycCall-keywords-names this))
+        (=fx
+          (+ (length (PycFun-args fun)) (length (PycFun-posonlyargs fun)))
+          (length (PycCall-args this)))))
 
    (define (invoke-global fun args)
     (let ((f (PycCall-fun this)))
@@ -1175,7 +1176,7 @@
                     (init-val (and global-funs (get-def-with-var global-funs var))))
                  (if (and (PycFun? init-val)
                           (symbol? (PycFun-&proc init-val))
-                          (correct-arity? init-val args))
+                          (correct-arity? init-val this))
                   (if (PycVar-global-ref-to-init-def var)
                     `(,(PycFun-&proc init-val) ,@args)
                     `(py-global-call
