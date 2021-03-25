@@ -151,6 +151,7 @@
 
     py-test
     py-test-from-scheme
+    py-truth
 
     py-not
     py-next
