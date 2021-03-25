@@ -461,6 +461,7 @@
     py-iter
     iterator-next
     iterator->list
+    py-ternary-unpack
 
     py-generator-yield
     py-make-generator

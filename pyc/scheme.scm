@@ -806,20 +806,81 @@
         py-builtin-ValueError
         ,(string-append "too many values to unpack (expected " (number->string (length lhs-elts)) ")"))))
 
+(define (parse-mutliple-assig-lhs lhs-elts)
+  (define (parse-left rev-left tail)
+    (cond
+      ((null? tail)
+        (list (reverse rev-left) #f '()))
+      ((isa? (car tail) PycStarredExpr)
+        (list (reverse rev-left) (car tail) (parse-right (cdr tail))))
+      (else
+        (parse-left (cons (car tail) rev-left) (cdr tail)))))
+
+  (define (parse-right tail)
+    (if (every? (lambda (e) (not (isa? e PycStarredExpr))) tail)
+      tail
+      (error "SyntaxError" "multiple starred expressions in assignment" "")))
+
+  (parse-left '() lhs-elts))
+
 (define (scheme-multiple-assig-fallback lhs-elts rhs conf)
-  `(py-throw-exception-with-message
-      py-builtin-NotImplementedError))
+  (let* ((left-star-right (parse-mutliple-assig-lhs lhs-elts))
+         (left (car left-star-right))
+         (left-len (length left))
+         (starred (cadr left-star-right))
+         (right (caddr left-star-right))
+         (right-len (length right))
+         (unpack-sym (my-gensym 'unpacked))
+         (left-sym (my-gensym 'left))
+         (mid-sym (my-gensym 'mid))
+         (right-sym (my-gensym 'right)))
+    (if starred
+      ;; TODO: optimize case where right is null
+      `(let* ((,unpack-sym (py-ternary-unpack ,(scheme rhs conf) ,left-len ,right-len))
+              (,left-sym (vector-ref ,unpack-sym 0))
+              (,mid-sym (vector-ref ,unpack-sym 1))
+              (,right-sym (vector-ref ,unpack-sym 2)))
+        ,@(map
+            (lambda (expr index)
+              (scheme-simple-assig
+                expr
+                (new-PycPragma (PycNode-loc expr) `(vector-ref ,left-sym ,index))
+                conf))
+            left
+            (iota (length left)))
+        ,(scheme-simple-assig
+          (PycStarredExpr-expr starred)
+          (new-PycPragma (PycNode-loc starred) mid-sym)
+          conf)
+        ,@(map
+            (lambda (expr index)
+              (scheme-simple-assig
+                expr
+                (new-PycPragma (PycNode-loc expr) `(vector-ref ,right-sym ,index))
+                conf))
+            right
+            (iota (length right))))
+      `(let* ((,unpack-sym (list->vector (py-unpack ,(scheme rhs conf)))))
+        ,@(map
+            (lambda (expr index)
+              (scheme-simple-assig
+                expr
+                (new-PycPragma (PycNode-loc expr) `(vector-ref ,unpack-sym ,index))
+                conf))
+            left
+            (iota (length left)))))))
+
 
 (define (scheme-multiple-assig tuple-lhs rhs conf)
-  (if (assignable-collection? rhs)
-    (let ((lhs-elts (PycCollection-elts tuple-lhs))
-          (rhs-elts (PycCollection-elts rhs)))
-      (if (and
-            (every? (lambda (e) (not (isa? e PycStarredExpr))) lhs-elts)
-            (every? (lambda (e) (not (isa? e PycStarredExpr))) rhs-elts))
-        (scheme-simple-multiple-assig lhs-elts rhs-elts conf)
-        (scheme-multiple-assig-fallback lhs-elts rhs conf)))
-    (scheme-multiple-assig-fallback lhs-elts rhs conf)))
+  (let ((lhs-elts (PycCollection-elts tuple-lhs)))
+    (if (assignable-collection? rhs)
+      (let ((rhs-elts (PycCollection-elts rhs)))
+        (if (and
+              (every? (lambda (e) (not (isa? e PycStarredExpr))) lhs-elts)
+              (every? (lambda (e) (not (isa? e PycStarredExpr))) rhs-elts))
+          (scheme-simple-multiple-assig lhs-elts rhs-elts conf)
+          (scheme-multiple-assig-fallback lhs-elts rhs conf)))
+      (scheme-multiple-assig-fallback lhs-elts rhs conf))))
 
 (define-walk-method (scheme this::PycAssig conf)
   (let* ((lhs (PycAssig-lhs this))

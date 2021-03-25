@@ -286,6 +286,7 @@
 
            (py-make-module name package #!optional (path #f))
            (py-make-list . elements)
+           (py-make-list-vec vec)
 
            ;; (py-getitem ::PyObject ::obj ::obj)
            ;; (py-delitem ::PyObject ::obj ::obj)
@@ -300,6 +301,8 @@
            (py-iter ::obj)
            (py-call-wrong-arity arity nargs nargs-string)
            (pack-extra-args arity args)
+           (py-ternary-unpack it nleft nright)
+           (py-unpack it)
 
            (py-make-global)
            (py-make-caches ::int)
