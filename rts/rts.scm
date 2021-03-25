@@ -2745,6 +2745,49 @@
         (loop (cons nxt acc))
         (reverse! acc)))))
 
+(define (py-unpack it)
+  (iterator->list (py-iter it)))
+
+(define (py-ternary-unpack it nleft nright)
+  ;; return a 3-vector (left-elements list right-elements)
+  ;;  left-elements is a vector containing the nleft elements
+  ;;  list is a Python list containing the middle elements
+  ;;  right-elements is a vector containing the nright elements
+  (let* ((elts (py-unpack it))
+         (min-required (fx+ nleft nright))
+         (len-elts (length elts)))
+    (if (< len-elts min-required)
+      (py-throw-exception-with-message
+        py-builtin-ValueError
+        "not enough values to unpack (expected at least "
+        (number->string min-required)
+        ", got "
+        (number->string len-elts)
+        ")")
+      (let* ((lefts (make-vector nleft))
+            (mids-len (- len-elts min-required))
+            (mids (make-vector mids-len))
+            (rights (make-vector nright)))
+
+        (define (fill-left i tail)
+          (if (fx< i nleft)
+            (begin
+              (vector-set! lefts i (car tail))
+              (fill-left (fx+ i 1) (cdr tail)))
+            (fill-mid 0 tail)))
+
+        (define (fill-mid i tail)
+          (if (fx< i mids-len)
+            (begin
+              (vector-set! mids i (car tail))
+              (fill-mid (fx+ i 1) (cdr tail)))
+            (fill-right tail)))
+
+        (define (fill-right tail)
+          (vector lefts (py-make-list-vec mids) (list->vector tail)))
+
+        (fill-left 0 elts)))))
+
 (define (iterables*->list lst)
   (let outer-loop ((iterators lst) (outer-acc '()))
     (if (null? iterators)
@@ -2923,7 +2966,6 @@
           (vector-set! vec i (car elements))
           (loop (+ i 1) (cdr elements)))))))
 
-
 (define-macro (define-concat-dynamic-vector name vref vset vmake vempty-list)
 `(define (,name container1 container2)
   (let* ((len1 (car container1))
@@ -2949,12 +2991,15 @@
 (define-concat-dynamic-vector concat-dynamic-u8vectors u8vector-ref u8vector-set! make-u8vector 0)
 
 (define (py-make-list . elements)
-  (py-make-list-elems elements))
+  (let ((len-vec-pair (list->dynamic-vector elements)))
+    (py-list-from-scheme len-vec-pair)))
 
 (define (py-make-list-elems elements)
-  (let ((len (length elements))
-        (len-vec-pair (list->dynamic-vector elements)))
-  (py-list-from-scheme len-vec-pair)))
+  (let ((len-vec-pair (list->dynamic-vector elements)))
+    (py-list-from-scheme len-vec-pair)))
+
+(define (py-make-list-vec vec)
+  (py-list-from-scheme (make-dynamic-vector (vector-length vec) vec)))
 
 (define (py-list-from-scheme len-vec-pair)
   (make-PyObjectList

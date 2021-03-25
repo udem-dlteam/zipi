@@ -414,6 +414,7 @@
     py-set-from-scheme
     py-tuple-from-scheme
     py-make-list
+    py-make-list-vec
     py-make-dict
     py-make-set
     py-make-tuple
@@ -461,6 +462,8 @@
     py-iter
     iterator-next
     iterator->list
+    py-ternary-unpack
+    py-unpack
 
     py-generator-yield
     py-make-generator

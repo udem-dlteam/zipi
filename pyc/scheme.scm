@@ -8,6 +8,15 @@
 	  (caches (collect-caches ast cnt)))
       (PycModule-caches-set! ast (cell-ref cnt))))
 
+(define (every? pred? lst)
+  (cond
+    ((null? lst)
+      #t)
+    ((pred? (car lst))
+      (every? pred? (cdr lst)))
+    (else
+      #f)))
+
 (define (sort-semantics semantics)
   (define (only form)
     (let loop ((s semantics))
@@ -737,71 +746,163 @@
       ((symbol? name) `(& ,(symbol->string name)))
       (else (error "pyc-propname" "Wrong property name" name))))
 
+(define (assignable-collection? x)
+  (and (isa? x PycCollection) (not (isa? x PycDict))))
+
+(define (scheme-simple-assig lhs rhs conf)
+  (cond
+    ;; X = ...
+    ((isa? lhs PycRef)
+      (let* ((var (PycRef-decl lhs)))
+        (case (PycVar-scope var)
+          ((global)
+            (if (isa? rhs PycFun)
+              (scheme-assig-global-fun lhs rhs conf)
+              (scheme-assig-global lhs (scheme rhs conf) conf)))
+          (else
+            `(set! ,(scheme-var-name var conf) ,(scheme rhs conf))))))
+    ((isa? lhs PycRefUnresolved)
+      (error "scheme::PycAssig" "assignment to unresolved variable" lhs))
+    ;; X.attr = ...
+    ((isa? lhs PycAccess)
+      (let* ((obj (PycAccess-obj lhs))
+             (field (PycAccess-field lhs)))
+        `(py-setattribute
+          ,(scheme obj conf)
+          ,(pyc-propname field)
+          ,(scheme rhs conf))))
+    ;; l[x:y:z] = X
+    ((isa? lhs PycSlice)
+      (let* ((obj (PycSlice-obj lhs))
+             (lower (PycSlice-lower lhs))
+             (upper (PycSlice-upper lhs))
+             (step (PycSlice-step lhs)))
+        `(py-setitem
+          ,(scheme obj conf)
+          (py-slice-from-scheme
+            ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+            ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+            ,(if (PycUninit? step) 'py-None (scheme step conf)))
+          ,(scheme rhs conf))))
+    ;; l[x] = X
+    ((isa? lhs PycSubscript)
+      (let* ((obj (PycSubscript-obj lhs))
+             (index (PycSubscript-index lhs)))
+      `(py-setitem
+        ,(scheme obj conf)
+        ,(scheme index conf)
+        ,(scheme rhs conf))))
+    ;; error
+    (else
+      (error "scheme-simple-assig" "unknown assignment type" lhs))))
+
+(define (scheme-simple-multiple-assig lhs-elts rhs-elts conf)
+  (let ((lhs-len (length lhs-elts)) (rhs-len (length rhs-elts)))
+    (cond
+      ((= lhs-len rhs-len)
+        (let* ((tmps (map (lambda (a) (my-gensym 'tmp)) rhs-elts))
+              (tmp-let (map (lambda (sym r) (list sym (scheme r conf))) tmps rhs-elts)))
+          `(let ,tmp-let
+              ,@(map (lambda (l sym) (scheme-simple-assig l (new-PycPragma (PycNode-loc l) sym) conf)) lhs-elts tmps))))
+      ((> lhs-len rhs-len)
+        `(py-throw-exception-with-message
+            py-builtin-ValueError
+            ,(string-append "not enough values to unpack (expected " (number->string lhs-len) ", got " (number->string rhs-len) ")")))
+      (else
+        `(py-throw-exception-with-message
+            py-builtin-ValueError
+            ,(string-append "too many values to unpack (expected " (number->string lhs-len) ", got " (number->string rhs-len) ")"))))))
+
+(define (parse-mutliple-assig-lhs lhs-elts)
+  (define (parse-left rev-left tail)
+    (cond
+      ((null? tail)
+        (list (reverse rev-left) #f '()))
+      ((isa? (car tail) PycStarredExpr)
+        (list (reverse rev-left) (car tail) (parse-right (cdr tail))))
+      (else
+        (parse-left (cons (car tail) rev-left) (cdr tail)))))
+
+  (define (parse-right tail)
+    (if (every? (lambda (e) (not (isa? e PycStarredExpr))) tail)
+      tail
+      (error "SyntaxError" "multiple starred expressions in assignment" "")))
+
+  (parse-left '() lhs-elts))
+
+(define (scheme-multiple-assig-fallback lhs-elts rhs conf)
+  (let* ((left-star-right (parse-mutliple-assig-lhs lhs-elts))
+         (left (car left-star-right))
+         (left-len (length left))
+         (starred (cadr left-star-right))
+         (right (caddr left-star-right))
+         (right-len (length right))
+         (unpack-sym (my-gensym 'unpacked))
+         (left-sym (my-gensym 'left))
+         (mid-sym (my-gensym 'mid))
+         (right-sym (my-gensym 'right)))
+    (if starred
+      ;; TODO: optimize case where right is null
+      `(let* ((,unpack-sym (py-ternary-unpack ,(scheme rhs conf) ,left-len ,right-len))
+              (,left-sym (vector-ref ,unpack-sym 0))
+              (,mid-sym (vector-ref ,unpack-sym 1))
+              (,right-sym (vector-ref ,unpack-sym 2)))
+        ,@(map
+            (lambda (expr index)
+              (scheme-simple-assig
+                expr
+                (new-PycPragma (PycNode-loc expr) `(vector-ref ,left-sym ,index))
+                conf))
+            left
+            (iota (length left)))
+        ,(scheme-simple-assig
+          (PycStarredExpr-expr starred)
+          (new-PycPragma (PycNode-loc starred) mid-sym)
+          conf)
+        ,@(map
+            (lambda (expr index)
+              (scheme-simple-assig
+                expr
+                (new-PycPragma (PycNode-loc expr) `(vector-ref ,right-sym ,index))
+                conf))
+            right
+            (iota (length right))))
+      `(let* ((,unpack-sym (list->vector (py-unpack ,(scheme rhs conf)))))
+        (if (fx= (vector-length ,unpack-sym) ,left-len)
+          (begin
+            ,@(map
+              (lambda (expr index)
+                (scheme-simple-assig
+                  expr
+                  (new-PycPragma (PycNode-loc expr) `(vector-ref ,unpack-sym ,index))
+                  conf))
+              left
+              (iota (length left))))
+          (py-throw-exception-with-message
+            py-builtin-ValueError
+            ,(string-append
+              "too many values to unpack (expected "
+              (number->string (length left))
+              ")")))))))
+
+
+(define (scheme-multiple-assig tuple-lhs rhs conf)
+  (let ((lhs-elts (PycCollection-elts tuple-lhs)))
+    (if (assignable-collection? rhs)
+      (let ((rhs-elts (PycCollection-elts rhs)))
+        (if (and
+              (every? (lambda (e) (not (isa? e PycStarredExpr))) lhs-elts)
+              (every? (lambda (e) (not (isa? e PycStarredExpr))) rhs-elts))
+          (scheme-simple-multiple-assig lhs-elts rhs-elts conf)
+          (scheme-multiple-assig-fallback lhs-elts rhs conf)))
+      (scheme-multiple-assig-fallback lhs-elts rhs conf))))
+
 (define-walk-method (scheme this::PycAssig conf)
   (let* ((lhs (PycAssig-lhs this))
-        (rhs (PycAssig-rhs this)))
-    (cond
-      ;; foo = X
-      ;; reference which has been resolved (local or global)
-      ((isa? lhs PycRef)
-        (let* ((var (PycRef-decl lhs)))
-          (epairify this
-            (case (PycVar-scope var)
-              ((global)
-                (if (isa? rhs PycFun)
-                  (scheme-assig-global-fun lhs rhs conf)
-                  (scheme-assig-global lhs (scheme rhs conf) conf)))
-              (else
-                `(set! ,(scheme-var-name var conf) ,(scheme rhs conf)))))))
-
-      ;; reference which is not resolved this should not happen
-      ;; because and assignment always allows resolving
-      ((isa? lhs PycRefUnresolved)
-        (error "scheme::PycAssig" "assignment to unresolved variable" lhs))
-
-      ;; obj.attr = X
-      ((isa? lhs PycAccess)
-        (let* ((obj (PycAccess-obj lhs))
-               (field (PycAccess-field lhs)))
-        (epairify this
-          `(py-setattribute
-            ,(scheme obj conf)
-            ,(pyc-propname field)
-            ,(scheme rhs conf)))))
-
-      ;; l[x:y:z] = X
-      ((isa? lhs PycSlice)
-        (let* ((obj (PycSlice-obj lhs))
-               (lower (PycSlice-lower lhs))
-               (upper (PycSlice-upper lhs))
-               (step (PycSlice-step lhs)))
-          (epairify this
-            `(py-setitem
-              ,(scheme obj conf)
-              (py-slice-from-scheme
-                ,(if (PycUninit? lower) 'py-None (scheme lower conf))
-                ,(if (PycUninit? upper) 'py-None (scheme upper conf))
-                ,(if (PycUninit? step) 'py-None (scheme step conf)))
-              ,(scheme rhs conf)))))
-
-      ;; l[x] = X
-      ((isa? lhs PycSubscript)
-        (let* ((obj (PycSubscript-obj lhs))
-               (index (PycSubscript-index lhs)))
-        (epairify this
-          `(py-setitem
-            ,(scheme obj conf)
-            ,(scheme index conf)
-            ,(scheme rhs conf)))))
-
-      ((isa? lhs PycTuple)
-        `(py-throw-exception-with-message
-            py-builtin-NotImplementedError
-            "multiple assignations unimplemented at line "
-            ,(number->string (car (PycNode-loc this)))))
-      (else
-        (error "scheme:PycAssig" "unknown assignment type" lhs)))))
-
+         (rhs (PycAssig-rhs this)))
+    (if (assignable-collection? lhs)
+      (scheme-multiple-assig lhs rhs conf)
+      (scheme-simple-assig lhs rhs conf))))
 
 (define-walk-method (scheme this::PycAugAssig conf)
    (cond
