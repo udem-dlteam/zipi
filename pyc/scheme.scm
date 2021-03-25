@@ -797,14 +797,21 @@
       (error "scheme-simple-assig" "unknown assignment type" lhs))))
 
 (define (scheme-simple-multiple-assig lhs-elts rhs-elts conf)
-  (if (= (length lhs-elts) (length rhs-elts))
-    (let* ((tmps (map (lambda (a) (my-gensym 'tmp)) rhs-elts))
-          (tmp-let (map (lambda (sym r) (list sym (scheme r conf))) tmps rhs-elts)))
-      `(let ,tmp-let
-          ,@(map (lambda (l sym) (scheme-simple-assig l (new-PycPragma (PycNode-loc l) sym) conf)) lhs-elts tmps)))
-    `(py-throw-exception-with-message
-        py-builtin-ValueError
-        ,(string-append "too many values to unpack (expected " (number->string (length lhs-elts)) ")"))))
+  (let ((lhs-len (length lhs-elts)) (rhs-len (length rhs-elts)))
+    (cond
+      ((= lhs-len rhs-len)
+        (let* ((tmps (map (lambda (a) (my-gensym 'tmp)) rhs-elts))
+              (tmp-let (map (lambda (sym r) (list sym (scheme r conf))) tmps rhs-elts)))
+          `(let ,tmp-let
+              ,@(map (lambda (l sym) (scheme-simple-assig l (new-PycPragma (PycNode-loc l) sym) conf)) lhs-elts tmps))))
+      ((> lhs-len rhs-len)
+        `(py-throw-exception-with-message
+            py-builtin-ValueError
+            ,(string-append "not enough values to unpack (expected " (number->string lhs-len) ", got " (number->string rhs-len) ")")))
+      (else
+        `(py-throw-exception-with-message
+            py-builtin-ValueError
+            ,(string-append "too many values to unpack (expected " (number->string lhs-len) ", got " (number->string rhs-len) ")"))))))
 
 (define (parse-mutliple-assig-lhs lhs-elts)
   (define (parse-left rev-left tail)
@@ -861,14 +868,22 @@
             right
             (iota (length right))))
       `(let* ((,unpack-sym (list->vector (py-unpack ,(scheme rhs conf)))))
-        ,@(map
-            (lambda (expr index)
-              (scheme-simple-assig
-                expr
-                (new-PycPragma (PycNode-loc expr) `(vector-ref ,unpack-sym ,index))
-                conf))
-            left
-            (iota (length left)))))))
+        (if (fx= (vector-length ,unpack-sym) ,left-len)
+          (begin
+            ,@(map
+              (lambda (expr index)
+                (scheme-simple-assig
+                  expr
+                  (new-PycPragma (PycNode-loc expr) `(vector-ref ,unpack-sym ,index))
+                  conf))
+              left
+              (iota (length left))))
+          (py-throw-exception-with-message
+            py-builtin-ValueError
+            ,(string-append
+              "too many values to unpack (expected "
+              (number->string (length left))
+              ")")))))))
 
 
 (define (scheme-multiple-assig tuple-lhs rhs conf)

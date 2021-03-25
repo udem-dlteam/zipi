@@ -2762,7 +2762,8 @@
         "not enough values to unpack (expected at least "
         (number->string min-required)
         ", got "
-        (number->string len-elts))
+        (number->string len-elts)
+        ")")
       (let* ((lefts (make-vector nleft))
             (mids-len (- len-elts min-required))
             (mids (make-vector mids-len))
