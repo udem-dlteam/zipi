@@ -204,7 +204,7 @@
     (do-alloc 'make-PyObjectMethodWrapper '((cls py-builtin-classmethod) method) 'py-object-hclass-of-instances))
 
   (define alloc-method
-    (do-alloc 'make-PyObjectMethod '((cls py-builtin-method) self method) 'py-object-hclass-of-instances))
+    (do-alloc 'make-PyObjectMethod '((cls py-method-class) self method) 'py-method-hclass-of-instances))
 
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this))

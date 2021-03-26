@@ -78,315 +78,317 @@
          &py-builtin-ZeroDivisionError
          &py-builtin-ValueError
          &py-builtin-int
+         &py-builtin-convert_to_int
+         &py-builtin-classmethod
          &py-builtin-TypeError
-         &py-builtin-convert_to_int)
+         &py-builtin-method)
  (import (gambit) (zipi rts))
  (begin
    (py-begin-module)
    (define procedure:&py-builtin-convert_to_int
-     (lambda (obj-2)
-       (letrec* ((trunc_conversion-318 #f)
-                 (index_conversion-315 #f)
-                 (int_conversion-310 #f))
+     (lambda (obj-13)
+       (letrec* ((trunc_conversion-363 #f)
+                 (index_conversion-360 #f)
+                 (int_conversion-355 #f))
          (begin
-           (set! int_conversion-310 (py-maybe-to-int obj-2))
-           (if (py-test (py-is int_conversion-310 py-absent))
+           (set! int_conversion-355 (py-maybe-to-int obj-13))
+           (if (py-test (py-is int_conversion-355 py-absent))
                (begin
-                 (set! index_conversion-315 (py-maybe-index obj-2))
-                 (if (py-test (py-is index_conversion-315 py-absent))
+                 (set! index_conversion-360 (py-maybe-index obj-13))
+                 (if (py-test (py-is index_conversion-360 py-absent))
                      (begin
-                       (set! trunc_conversion-318 (py-maybe-trunc obj-2))
-                       (if (py-test (py-is trunc_conversion-318 py-absent))
+                       (set! trunc_conversion-363 (py-maybe-trunc obj-13))
+                       (if (py-test (py-is trunc_conversion-363 py-absent))
                            (py-throw
                             (py-call &py-builtin-TypeError
                                      (py-add (py-add (&& "int() argument must be a string, a bytes-like object or a number, not '")
                                                      (py-getattribute
-                                                      (py-obj-cls obj-2)
+                                                      (py-obj-cls obj-13)
                                                       (& "__name__")))
                                              (&& "'"))))
-                           trunc_conversion-318))
-                     index_conversion-315))
-               int_conversion-310)))))
+                           trunc_conversion-363))
+                     index_conversion-360))
+               int_conversion-355)))))
    (define procedure:&py-builtin-convert_to_float
-     (lambda (obj-110)
-       (letrec* ((float_conversion-952 #f))
+     (lambda (obj-121)
+       (letrec* ((float_conversion-997 #f))
          (begin
-           (set! float_conversion-952 (py-maybe-to-float obj-110))
-           (if (py-test (py-is float_conversion-952 py-absent))
+           (set! float_conversion-997 (py-maybe-to-float obj-121))
+           (if (py-test (py-is float_conversion-997 py-absent))
                (py-throw
                 (py-call &py-builtin-TypeError
                          (py-add (py-add (&& "float() argument must be a string or a number, not '")
                                          (py-getattribute
-                                          (py-obj-cls obj-110)
+                                          (py-obj-cls obj-121)
                                           (& "__name__")))
                                  (&& "'"))))
-               float_conversion-952)))))
+               float_conversion-997)))))
    (define procedure:&py-builtin-__merge
-     (lambda (l1-202 l2-203)
-       (letrec* ((output-1537 #f) (i-1535 #f) (j-1533 #f))
+     (lambda (l1-213 l2-214)
+       (letrec* ((output-1582 #f) (i-1580 #f) (j-1578 #f))
          (begin
            (&& "\n    Merge all items from two sorted list into one sorted list.\n    Time complexity: O(n) where n is the total number of elements\n    ")
-           (letrec* ((%tmp0-204 (py-int-from-scheme 0)))
+           (letrec* ((%tmp0-215 (py-int-from-scheme 0)))
              (begin
-               (set! j-1533
-                     (or %tmp0-204
+               (set! j-1578
+                     (or %tmp0-215
                          (py-throw-exception-with-message
                           py-builtin-UnboundLocalError
                           "local variable '%tmp0' referenced before assignment")))
-               (set! i-1535
-                     (or %tmp0-204
+               (set! i-1580
+                     (or %tmp0-215
                          (py-throw-exception-with-message
                           py-builtin-UnboundLocalError
                           "local variable '%tmp0' referenced before assignment")))))
-           (set! output-1537 (py-make-list))
-           (let $%while_75 ()
+           (set! output-1582 (py-make-list))
+           (let $%while_77 ()
              (when (and
-                    (py-test (py-lt (or i-1535
+                    (py-test (py-lt (or i-1580
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'i' referenced before assignment"))
                                     (py-call (global-get
                                               %global
                                               (& "len")
-                                              (vector-ref %caches 564))
-                                             l1-202)))
-                    (py-test (py-lt (or j-1533
+                                              (vector-ref %caches 574))
+                                             l1-213)))
+                    (py-test (py-lt (or j-1578
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'j' referenced before assignment"))
                                     (py-call (global-get
                                               %global
                                               (& "len")
-                                              (vector-ref %caches 565))
-                                             l2-203))))
+                                              (vector-ref %caches 575))
+                                             l2-214))))
                (if (py-test (py-le (py-getitem
-                                    l1-202
-                                    (or i-1535
+                                    l1-213
+                                    (or i-1580
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'i' referenced before assignment")))
                                    (py-getitem
-                                    l2-203
-                                    (or j-1533
+                                    l2-214
+                                    (or j-1578
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'j' referenced before assignment")))))
                    (begin
-                     (py-call (py-getattribute output-1537 (& "append"))
+                     (py-call (py-getattribute output-1582 (& "append"))
                               (py-getitem
-                               l1-202
-                               (or i-1535
+                               l1-213
+                               (or i-1580
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'i' referenced before assignment"))))
-                     (set! i-1535
-                           (py-iadd (or i-1535
+                     (set! i-1580
+                           (py-iadd (or i-1580
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'i' referenced before assignment"))
                                     (py-int-from-scheme 1))))
                    (begin
-                     (py-call (py-getattribute output-1537 (& "append"))
+                     (py-call (py-getattribute output-1582 (& "append"))
                               (py-getitem
-                               l2-203
-                               (or j-1533
+                               l2-214
+                               (or j-1578
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'j' referenced before assignment"))))
-                     (set! j-1533
-                           (py-iadd (or j-1533
+                     (set! j-1578
+                           (py-iadd (or j-1578
                                         (py-throw-exception-with-message
                                          py-builtin-UnboundLocalError
                                          "local variable 'j' referenced before assignment"))
                                     (py-int-from-scheme 1)))))
-               ($%while_75)))
-           (py-call (py-getattribute output-1537 (& "extend"))
+               ($%while_77)))
+           (py-call (py-getattribute output-1582 (& "extend"))
                     (py-add (py-getitem
-                             l1-202
+                             l1-213
                              (py-slice-from-scheme
-                              (or i-1535
+                              (or i-1580
                                   (py-throw-exception-with-message
                                    py-builtin-UnboundLocalError
                                    "local variable 'i' referenced before assignment"))
                               py-None
                               py-None))
                             (py-getitem
-                             l2-203
+                             l2-214
                              (py-slice-from-scheme
-                              (or j-1533
+                              (or j-1578
                                   (py-throw-exception-with-message
                                    py-builtin-UnboundLocalError
                                    "local variable 'j' referenced before assignment"))
                               py-None
                               py-None))))
-           output-1537))))
+           output-1582))))
    (define procedure:&py-builtin-__merge_many
-     (lambda (lsts-205)
-       (letrec* ((right-1547 #f) (left-1545 #f))
+     (lambda (lsts-216)
+       (letrec* ((right-1592 #f) (left-1590 #f))
          (begin
            (&& "\n    Merge all items from k lists into one sorted list.\n    Time complexity: O(n log(k)) where n is the total number of elements and k the number of lists\n    ")
-           (if (py-test (py-not lsts-205))
+           (if (py-test (py-not lsts-216))
                (py-make-list)
                (if (py-test (py-eq (py-call (global-get
                                              %global
                                              (& "len")
-                                             (vector-ref %caches 573))
-                                            lsts-205)
+                                             (vector-ref %caches 583))
+                                            lsts-216)
                                    (py-int-from-scheme 1)))
                    (py-getitem
-                    (py-getitem lsts-205 (py-int-from-scheme 0))
+                    (py-getitem lsts-216 (py-int-from-scheme 0))
                     (py-slice-from-scheme py-None py-None py-None))
                    (if (py-test (py-eq (py-call (global-get
                                                  %global
                                                  (& "len")
-                                                 (vector-ref %caches 574))
-                                                lsts-205)
+                                                 (vector-ref %caches 584))
+                                                lsts-216)
                                        (py-int-from-scheme 2)))
                        (procedure:&py-builtin-__merge
-                        (py-getitem lsts-205 (py-int-from-scheme 0))
-                        (py-getitem lsts-205 (py-int-from-scheme 1)))
+                        (py-getitem lsts-216 (py-int-from-scheme 0))
+                        (py-getitem lsts-216 (py-int-from-scheme 1)))
                        (begin
-                         (set! left-1545
+                         (set! left-1590
                                (py-getitem
-                                lsts-205
+                                lsts-216
                                 (py-slice-from-scheme
                                  (py-floordiv
                                   (py-call (global-get
                                             %global
                                             (& "len")
-                                            (vector-ref %caches 576))
-                                           lsts-205)
+                                            (vector-ref %caches 586))
+                                           lsts-216)
                                   (py-int-from-scheme 2))
                                  py-None
                                  py-None)))
-                         (set! right-1547
+                         (set! right-1592
                                (py-getitem
-                                lsts-205
+                                lsts-216
                                 (py-slice-from-scheme
                                  py-None
                                  (py-floordiv
                                   (py-call (global-get
                                             %global
                                             (& "len")
-                                            (vector-ref %caches 577))
-                                           lsts-205)
+                                            (vector-ref %caches 587))
+                                           lsts-216)
                                   (py-int-from-scheme 2))
                                  py-None)))
                          (procedure:&py-builtin-__merge
-                          (procedure:&py-builtin-__merge_many left-1545)
+                          (procedure:&py-builtin-__merge_many left-1590)
                           (procedure:&py-builtin-__merge_many
-                           right-1547))))))))))
+                           right-1592))))))))))
    (define procedure:&py-builtin-sorted
-     (lambda (lst-206 key-207 reversed-208)
-       (letrec* ((i-1552 #f) (sublsts-1550 #f))
+     (lambda (lst-217 key-218 reversed-219)
+       (letrec* ((i-1597 #f) (sublsts-1595 #f))
          (begin
            (&& "\n    Timsort is an improved version of Merge Sort which splits the list into monotonic sub-lists before merging them\n    into a sorted list.\n    Worst case time complexity: O(n log(n))\n    Best cast time complexity:  O(n) when the list is almost sorted\n        where n is the number of elements in the list\n    ")
-           (set! sublsts-1550 (py-make-list))
-           (set! i-1552 (py-int-from-scheme 0))
-           (let $%while_76 ()
+           (set! sublsts-1595 (py-make-list))
+           (set! i-1597 (py-int-from-scheme 0))
+           (let $%while_78 ()
              (when (py-test
-                    (py-lt i-1552
+                    (py-lt i-1597
                            (py-call (global-get
                                      %global
                                      (& "len")
-                                     (vector-ref %caches 582))
-                                    lst-206)))
+                                     (vector-ref %caches 592))
+                                    lst-217)))
                (begin
-                 (py-call (py-getattribute sublsts-1550 (& "append"))
-                          (py-make-list (py-getitem lst-206 i-1552)))
-                 (set! i-1552
-                       (py-iadd (or i-1552
+                 (py-call (py-getattribute sublsts-1595 (& "append"))
+                          (py-make-list (py-getitem lst-217 i-1597)))
+                 (set! i-1597
+                       (py-iadd (or i-1597
                                     (py-throw-exception-with-message
                                      py-builtin-UnboundLocalError
                                      "local variable 'i' referenced before assignment"))
                                 (py-int-from-scheme 1)))
-                 (if (and (py-test (py-lt i-1552
+                 (if (and (py-test (py-lt i-1597
                                           (py-call (global-get
                                                     %global
                                                     (& "len")
-                                                    (vector-ref %caches 585))
-                                                   lst-206)))
-                          (py-test (py-ge (py-getitem lst-206 i-1552)
+                                                    (vector-ref %caches 595))
+                                                   lst-217)))
+                          (py-test (py-ge (py-getitem lst-217 i-1597)
                                           (py-getitem
-                                           lst-206
-                                           (py-sub i-1552
+                                           lst-217
+                                           (py-sub i-1597
                                                    (py-int-from-scheme 1))))))
-                     (let $%while_77 ()
+                     (let $%while_79 ()
                        (when (and
-                              (py-test (py-lt i-1552
+                              (py-test (py-lt i-1597
                                               (py-call (global-get
                                                         %global
                                                         (& "len")
                                                         (vector-ref
                                                          %caches
-                                                         586))
-                                                       lst-206)))
-                              (py-test (py-ge (py-getitem lst-206 i-1552)
+                                                         596))
+                                                       lst-217)))
+                              (py-test (py-ge (py-getitem lst-217 i-1597)
                                               (py-getitem
-                                               lst-206
-                                               (py-sub i-1552
+                                               lst-217
+                                               (py-sub i-1597
                                                        (py-int-from-scheme
                                                         1))))))
                          (begin
                            (py-call (py-getattribute
                                      (py-getitem
-                                      sublsts-1550
+                                      sublsts-1595
                                       (py-neg (py-int-from-scheme 1)))
                                      (& "append"))
-                                    (py-getitem lst-206 i-1552))
-                           (set! i-1552
-                                 (py-iadd (or i-1552
+                                    (py-getitem lst-217 i-1597))
+                           (set! i-1597
+                                 (py-iadd (or i-1597
                                               (py-throw-exception-with-message
                                                py-builtin-UnboundLocalError
                                                "local variable 'i' referenced before assignment"))
                                           (py-int-from-scheme 1))))
-                         ($%while_77)))
-                     (if (py-test (py-lt i-1552
+                         ($%while_79)))
+                     (if (py-test (py-lt i-1597
                                          (py-call (global-get
                                                    %global
                                                    (& "len")
-                                                   (vector-ref %caches 590))
-                                                  lst-206)))
+                                                   (vector-ref %caches 600))
+                                                  lst-217)))
                          (begin
-                           (let $%while_78 ()
+                           (let $%while_80 ()
                              (when (and
-                                    (py-test (py-lt i-1552
+                                    (py-test (py-lt i-1597
                                                     (py-call (global-get
                                                               %global
                                                               (& "len")
                                                               (vector-ref
                                                                %caches
-                                                               591))
-                                                             lst-206)))
-                                    (py-test (py-lt (py-getitem lst-206 i-1552)
+                                                               601))
+                                                             lst-217)))
+                                    (py-test (py-lt (py-getitem lst-217 i-1597)
                                                     (py-getitem
-                                                     lst-206
-                                                     (py-sub i-1552
+                                                     lst-217
+                                                     (py-sub i-1597
                                                              (py-int-from-scheme
                                                               1))))))
                                (begin
                                  (py-call (py-getattribute
                                            (py-getitem
-                                            sublsts-1550
+                                            sublsts-1595
                                             (py-neg (py-int-from-scheme 1)))
                                            (& "append"))
-                                          (py-getitem lst-206 i-1552))
-                                 (set! i-1552
-                                       (py-iadd (or i-1552
+                                          (py-getitem lst-217 i-1597))
+                                 (set! i-1597
+                                       (py-iadd (or i-1597
                                                     (py-throw-exception-with-message
                                                      py-builtin-UnboundLocalError
                                                      "local variable 'i' referenced before assignment"))
                                                 (py-int-from-scheme 1))))
-                               ($%while_78)))
+                               ($%while_80)))
                            (py-setitem
-                            (or sublsts-1550
+                            (or sublsts-1595
                                 (py-throw-exception-with-message
                                  py-builtin-UnboundLocalError
                                  "local variable 'sublsts' referenced before assignment"))
                             (py-neg (py-int-from-scheme 1))
                             (py-getitem
                              (py-getitem
-                              (or sublsts-1550
+                              (or sublsts-1595
                                   (py-throw-exception-with-message
                                    py-builtin-UnboundLocalError
                                    "local variable 'sublsts' referenced before assignment"))
@@ -396,8 +398,8 @@
                               py-None
                               (py-neg (py-int-from-scheme 1))))))
                          #f)))
-               ($%while_76)))
-           (procedure:&py-builtin-__merge_many sublsts-1550)))))
+               ($%while_78)))
+           (procedure:&py-builtin-__merge_many sublsts-1595)))))
    (declare (separate))
    (define %global #f)
    (define %caches #f)
@@ -482,8 +484,10 @@
    (define &py-builtin-ZeroDivisionError #f)
    (define &py-builtin-ValueError #f)
    (define &py-builtin-int #f)
-   (define &py-builtin-TypeError #f)
    (define &py-builtin-convert_to_int #f)
+   (define &py-builtin-classmethod #f)
+   (define &py-builtin-TypeError #f)
+   (define &py-builtin-method #f)
    (declare (block))
    (define (py-module global caches)
      (set! %global global)
@@ -850,9 +854,132 @@
       (lambda (v) (set! &py-builtin-int v)))
      (global-register!
       %global
+      (& "classmethod")
+      (lambda () &py-builtin-classmethod)
+      (lambda (v) (set! &py-builtin-classmethod v)))
+     (global-register!
+      %global
       (& "TypeError")
       (lambda () &py-builtin-TypeError)
       (lambda (v) (set! &py-builtin-TypeError v)))
+     (set! &py-builtin-method
+           (let (($%cls_0 py-absent))
+             (letrec* ((__call__-325 #f) (__new__-323 #f))
+               (begin
+                 (set! __new__-323
+                       (procedure->py-function
+                        (lambda (cls-2 method_-3 self-4)
+                          (letrec* ()
+                            (begin
+                              (if (py-test (py-is cls-2 &py-builtin-method))
+                                  (make-PyObjectMethod
+                                   py-method-hclass-of-instances
+                                   '#()
+                                   py-method-class
+                                   self-4
+                                   method_-3)
+                                  (py-throw
+                                   (py-call &py-builtin-TypeError
+                                            (&& "method.__new__ expected a subtype of 'method' as first argument"))))
+                              py-None)))
+                        (make-signature args: (cls method_ self))))
+                 (set! __call__-325
+                       (procedure->py-function
+                        (lambda (self-5 args-6 kwargs-7)
+                          (letrec* ()
+                            (py-call (PyObjectMethod-method self-5)
+                                     (PyObjectMethod-self self-5)
+                                     *:
+                                     args-6
+                                     **:
+                                     kwargs-7)))
+                        (make-signature
+                         args:
+                         (self)
+                         vararg:
+                         args
+                         kwarg:
+                         kwargs))))
+               (begin
+                 (set! $%cls_0
+                       (py-make-builtin-class
+                        (&& "method")
+                        (&& "__main__")
+                        (list)
+                        (& "__call__")
+                        __call__-325
+                        (& "__new__")
+                        __new__-323))
+                 $%cls_0))))
+     (set! &py-builtin-classmethod
+           (let (($%cls_1 py-absent))
+             (letrec* ((__get__-338 #f) (__new__-336 #f))
+               (begin
+                 (set! __new__-336
+                       (procedure->py-function
+                        (lambda (cls-8 obj-9)
+                          (letrec* ()
+                            (if (py-test (py-is cls-8 &py-builtin-classmethod))
+                                (make-PyObjectMethodWrapper
+                                 py-object-hclass-of-instances
+                                 '#()
+                                 py-builtin-classmethod
+                                 obj-9)
+                                (if (py-isinstance?
+                                     cls-8
+                                     &py-builtin-classmethod)
+                                    (make-PyObjectMethodWrapper
+                                     py-object-hclass-of-instances
+                                     '#()
+                                     cls-8
+                                     obj-9)
+                                    (py-throw
+                                     (py-call &py-builtin-TypeError
+                                              (&& "classmethod.__new__ expected a subtype of 'classmethod' as first argument")))))))
+                        (make-signature args: (cls obj))))
+                 (set! __get__-338
+                       (procedure->py-function
+                        (lambda (self-10 instance-11 owner-12)
+                          (letrec* ()
+                            (if (py-isinstance?
+                                 self-10
+                                 &py-builtin-classmethod)
+                                (if (py-test (py-is owner-12 py-None))
+                                    (make-PyObjectMethod
+                                     py-method-hclass-of-instances
+                                     '#()
+                                     py-method-class
+                                     (py-obj-cls instance-11)
+                                     (PyObjectMethodWrapper-method self-10))
+                                    (make-PyObjectMethod
+                                     py-method-hclass-of-instances
+                                     '#()
+                                     py-method-class
+                                     owner-12
+                                     (PyObjectMethodWrapper-method self-10)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__get__' requires a 'classmethod' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-10)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature
+                         args:
+                         (self instance owner)
+                         defaults:
+                         (vector py-None)))))
+               (begin
+                 (set! $%cls_1
+                       (py-make-builtin-class
+                        (&& "classmethod")
+                        (&& "__main__")
+                        (list)
+                        (& "__get__")
+                        __get__-338
+                        (& "__new__")
+                        __new__-336))
+                 $%cls_1))))
      (let (($fun-obj
             (procedure->py-function
              procedure:&py-builtin-convert_to_int
@@ -860,93 +987,93 @@
        (set! &py-builtin-convert_to_int $fun-obj)
        (set! init:&py-builtin-convert_to_int $fun-obj))
      (set! &py-builtin-int
-           (let (($%cls_0 py-absent))
-             (letrec* ((__lt__-420 #f)
-                       (__le__-418 #f)
-                       (__gt__-416 #f)
-                       (__ge__-414 #f)
-                       (__ne__-412 #f)
-                       (__eq__-410 #f)
-                       (__imod__-408 #f)
-                       (__rmod__-406 #f)
-                       (__mod__-404 #f)
-                       (__itruediv__-402 #f)
-                       (__rtruediv__-400 #f)
-                       (__truediv__-398 #f)
-                       (__ifloordiv__-396 #f)
-                       (__rfloordiv__-394 #f)
-                       (__floordiv__-392 #f)
-                       (__invert__-390 #f)
-                       (__neg__-388 #f)
-                       (__pos__-386 #f)
-                       (__irshift__-384 #f)
-                       (__rrshift__-382 #f)
-                       (__rshift__-380 #f)
-                       (__ilshift__-378 #f)
-                       (__rlshift__-376 #f)
-                       (__lshift__-374 #f)
-                       (__ixor__-372 #f)
-                       (__rxor__-370 #f)
-                       (__xor__-368 #f)
-                       (__isub__-366 #f)
-                       (__rsub__-364 #f)
-                       (__sub__-362 #f)
-                       (__ipow__-360 #f)
-                       (__rpow__-358 #f)
-                       (__pow__-356 #f)
-                       (__imul__-354 #f)
-                       (__rmul__-352 #f)
-                       (__mul__-350 #f)
-                       (__ior__-348 #f)
-                       (__ror__-346 #f)
-                       (__or__-344 #f)
-                       (__iand__-342 #f)
-                       (__rand__-340 #f)
-                       (__and__-338 #f)
-                       (__iadd__-336 #f)
-                       (__radd__-334 #f)
-                       (__add__-332 #f)
-                       (__abs__-330 #f)
-                       (__index__-328 #f)
-                       (__bool__-326 #f)
-                       (__new__-323 #f))
+           (let (($%cls_2 py-absent))
+             (letrec* ((__lt__-465 #f)
+                       (__le__-463 #f)
+                       (__gt__-461 #f)
+                       (__ge__-459 #f)
+                       (__ne__-457 #f)
+                       (__eq__-455 #f)
+                       (__imod__-453 #f)
+                       (__rmod__-451 #f)
+                       (__mod__-449 #f)
+                       (__itruediv__-447 #f)
+                       (__rtruediv__-445 #f)
+                       (__truediv__-443 #f)
+                       (__ifloordiv__-441 #f)
+                       (__rfloordiv__-439 #f)
+                       (__floordiv__-437 #f)
+                       (__invert__-435 #f)
+                       (__neg__-433 #f)
+                       (__pos__-431 #f)
+                       (__irshift__-429 #f)
+                       (__rrshift__-427 #f)
+                       (__rshift__-425 #f)
+                       (__ilshift__-423 #f)
+                       (__rlshift__-421 #f)
+                       (__lshift__-419 #f)
+                       (__ixor__-417 #f)
+                       (__rxor__-415 #f)
+                       (__xor__-413 #f)
+                       (__isub__-411 #f)
+                       (__rsub__-409 #f)
+                       (__sub__-407 #f)
+                       (__ipow__-405 #f)
+                       (__rpow__-403 #f)
+                       (__pow__-401 #f)
+                       (__imul__-399 #f)
+                       (__rmul__-397 #f)
+                       (__mul__-395 #f)
+                       (__ior__-393 #f)
+                       (__ror__-391 #f)
+                       (__or__-389 #f)
+                       (__iand__-387 #f)
+                       (__rand__-385 #f)
+                       (__and__-383 #f)
+                       (__iadd__-381 #f)
+                       (__radd__-379 #f)
+                       (__add__-377 #f)
+                       (__abs__-375 #f)
+                       (__index__-373 #f)
+                       (__bool__-371 #f)
+                       (__new__-368 #f))
                (begin
-                 (set! __new__-323
+                 (set! __new__-368
                        (procedure->py-function
-                        (lambda (cls-3 val-4)
+                        (lambda (cls-14 val-15)
                           (letrec* ()
-                            (if (py-test (py-is cls-3 &py-builtin-int))
-                                (if (py-test (py-is val-4 py-absent))
+                            (if (py-test (py-is cls-14 &py-builtin-int))
+                                (if (py-test (py-is val-15 py-absent))
                                     (py-int-from-scheme 0)
                                     (procedure:&py-builtin-convert_to_int
-                                     val-4))
+                                     val-15))
                                 (if (and (py-isinstance?
-                                          cls-3
+                                          cls-14
                                           (global-get
                                            %global
                                            (& "type")
-                                           (vector-ref %caches 6)))
+                                           (vector-ref %caches 16)))
                                          (py-test (py-call (global-get
                                                             %global
                                                             (& "issubclass")
                                                             (vector-ref
                                                              %caches
-                                                             7))
-                                                           cls-3
+                                                             17))
+                                                           cls-14
                                                            &py-builtin-int)))
-                                    (if (py-test (py-is val-4 py-absent))
+                                    (if (py-test (py-is val-15 py-absent))
                                         (make-PyObjectInt
                                          py-int-hclass-of-instances
                                          '#()
-                                         cls-3
+                                         cls-14
                                          0)
                                         (make-PyObjectInt
                                          py-int-hclass-of-instances
                                          '#()
-                                         cls-3
+                                         cls-14
                                          (py-int-to-scheme
                                           (procedure:&py-builtin-convert_to_int
-                                           val-4))))
+                                           val-15))))
                                     (py-throw
                                      (py-call &py-builtin-TypeError
                                               (&& "int.__new__ expected a subtype of 'int' as first argument")))))))
@@ -955,1199 +1082,1202 @@
                          (cls val)
                          defaults:
                          (vector py-absent))))
-                 (set! __bool__-326
+                 (set! __bool__-371
                        (procedure->py-function
-                        (lambda (self-5)
+                        (lambda (self-16)
                           (letrec* ()
-                            (if (py-isinstance? self-5 &py-builtin-int)
-                                (py-ne self-5 (py-int-from-scheme 0))
+                            (if (py-isinstance? self-16 &py-builtin-int)
+                                (py-ne self-16 (py-int-from-scheme 0))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__bool__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-5)
+                                                           (py-obj-cls self-16)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __index__-328
+                 (set! __index__-373
                        (procedure->py-function
-                        (lambda (self-6)
+                        (lambda (self-17)
                           (letrec* ()
-                            (if (py-isinstance? self-6 &py-builtin-int)
-                                (py-int-from-scheme (py-int-to-scheme self-6))
+                            (if (py-isinstance? self-17 &py-builtin-int)
+                                (py-int-from-scheme (py-int-to-scheme self-17))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__index__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-6)
+                                                           (py-obj-cls self-17)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __abs__-330
+                 (set! __abs__-375
                        (procedure->py-function
-                        (lambda (self-7)
+                        (lambda (self-18)
                           (letrec* ()
-                            (if (py-isinstance? self-7 &py-builtin-int)
-                                (if (py-test (py-lt self-7
+                            (if (py-isinstance? self-18 &py-builtin-int)
+                                (if (py-test (py-lt self-18
                                                     (py-int-from-scheme 0)))
                                     (py-int-from-scheme
-                                     (pyneg (py-int-to-scheme self-7)))
+                                     (pyneg (py-int-to-scheme self-18)))
                                     (py-int-from-scheme
-                                     (py-int-to-scheme self-7)))
+                                     (py-int-to-scheme self-18)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__abs__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-7)
+                                                           (py-obj-cls self-18)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __add__-332
+                 (set! __add__-377
                        (procedure->py-function
-                        (lambda (self-8 other-9)
+                        (lambda (self-19 other-20)
                           (letrec* ()
-                            (if (py-isinstance? self-8 &py-builtin-int)
-                                (if (py-isinstance? other-9 &py-builtin-int)
+                            (if (py-isinstance? self-19 &py-builtin-int)
+                                (if (py-isinstance? other-20 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py+ (py-int-to-scheme self-8)
-                                          (py-int-to-scheme other-9)))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 23)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__add__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-8)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __radd__-334
-                       (procedure->py-function
-                        (lambda (self-10 other-11)
-                          (letrec* ()
-                            (if (py-isinstance? self-10 &py-builtin-int)
-                                (if (py-isinstance? other-11 &py-builtin-int)
-                                    (py-int-from-scheme
-                                     (py+ (py-int-to-scheme other-11)
-                                          (py-int-to-scheme self-10)))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 28)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__radd__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-10)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __iadd__-336
-                       (procedure->py-function
-                        (lambda (self-12 other-13)
-                          (letrec* ()
-                            (if (py-isinstance? self-12 &py-builtin-int)
-                                (if (py-isinstance? other-13 &py-builtin-int)
-                                    (py-int-from-scheme
-                                     (py+ (py-int-to-scheme self-12)
-                                          (py-int-to-scheme other-13)))
+                                     (py+ (py-int-to-scheme self-19)
+                                          (py-int-to-scheme other-20)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 33)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__iadd__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__add__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-12)
+                                                           (py-obj-cls self-19)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __and__-338
+                 (set! __radd__-379
                        (procedure->py-function
-                        (lambda (self-14 other-15)
+                        (lambda (self-21 other-22)
                           (letrec* ()
-                            (if (py-isinstance? self-14 &py-builtin-int)
-                                (if (py-isinstance? other-15 &py-builtin-int)
+                            (if (py-isinstance? self-21 &py-builtin-int)
+                                (if (py-isinstance? other-22 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py& (py-int-to-scheme self-14)
-                                          (py-int-to-scheme other-15)))
+                                     (py+ (py-int-to-scheme other-22)
+                                          (py-int-to-scheme self-21)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 38)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__and__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__radd__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-14)
+                                                           (py-obj-cls self-21)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rand__-340
+                 (set! __iadd__-381
                        (procedure->py-function
-                        (lambda (self-16 other-17)
+                        (lambda (self-23 other-24)
                           (letrec* ()
-                            (if (py-isinstance? self-16 &py-builtin-int)
-                                (if (py-isinstance? other-17 &py-builtin-int)
+                            (if (py-isinstance? self-23 &py-builtin-int)
+                                (if (py-isinstance? other-24 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py& (py-int-to-scheme other-17)
-                                          (py-int-to-scheme self-16)))
+                                     (py+ (py-int-to-scheme self-23)
+                                          (py-int-to-scheme other-24)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 43)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__rand__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__iadd__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-16)
+                                                           (py-obj-cls self-23)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __iand__-342
+                 (set! __and__-383
                        (procedure->py-function
-                        (lambda (self-18 other-19)
+                        (lambda (self-25 other-26)
                           (letrec* ()
-                            (if (py-isinstance? self-18 &py-builtin-int)
-                                (if (py-isinstance? other-19 &py-builtin-int)
+                            (if (py-isinstance? self-25 &py-builtin-int)
+                                (if (py-isinstance? other-26 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py& (py-int-to-scheme self-18)
-                                          (py-int-to-scheme other-19)))
+                                     (py& (py-int-to-scheme self-25)
+                                          (py-int-to-scheme other-26)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 48)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__iand__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__and__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-18)
+                                                           (py-obj-cls self-25)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __or__-344
+                 (set! __rand__-385
                        (procedure->py-function
-                        (lambda (self-20 other-21)
+                        (lambda (self-27 other-28)
                           (letrec* ()
-                            (if (py-isinstance? self-20 &py-builtin-int)
-                                (if (py-isinstance? other-21 &py-builtin-int)
+                            (if (py-isinstance? self-27 &py-builtin-int)
+                                (if (py-isinstance? other-28 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py+b (py-int-to-scheme self-20)
-                                           (py-int-to-scheme other-21)))
+                                     (py& (py-int-to-scheme other-28)
+                                          (py-int-to-scheme self-27)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 53)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__or__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__rand__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-20)
+                                                           (py-obj-cls self-27)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ror__-346
+                 (set! __iand__-387
                        (procedure->py-function
-                        (lambda (self-22 other-23)
+                        (lambda (self-29 other-30)
                           (letrec* ()
-                            (if (py-isinstance? self-22 &py-builtin-int)
-                                (if (py-isinstance? other-23 &py-builtin-int)
+                            (if (py-isinstance? self-29 &py-builtin-int)
+                                (if (py-isinstance? other-30 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py+b (py-int-to-scheme other-23)
-                                           (py-int-to-scheme self-22)))
+                                     (py& (py-int-to-scheme self-29)
+                                          (py-int-to-scheme other-30)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 58)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ror__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__iand__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-22)
+                                                           (py-obj-cls self-29)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ior__-348
+                 (set! __or__-389
                        (procedure->py-function
-                        (lambda (self-24 other-25)
+                        (lambda (self-31 other-32)
                           (letrec* ()
-                            (if (py-isinstance? self-24 &py-builtin-int)
-                                (if (py-isinstance? other-25 &py-builtin-int)
+                            (if (py-isinstance? self-31 &py-builtin-int)
+                                (if (py-isinstance? other-32 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py+b (py-int-to-scheme self-24)
-                                           (py-int-to-scheme other-25)))
+                                     (py+b (py-int-to-scheme self-31)
+                                           (py-int-to-scheme other-32)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 63)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ior__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__or__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-24)
+                                                           (py-obj-cls self-31)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mul__-350
+                 (set! __ror__-391
                        (procedure->py-function
-                        (lambda (self-26 other-27)
+                        (lambda (self-33 other-34)
                           (letrec* ()
-                            (if (py-isinstance? self-26 &py-builtin-int)
-                                (if (py-isinstance? other-27 &py-builtin-int)
+                            (if (py-isinstance? self-33 &py-builtin-int)
+                                (if (py-isinstance? other-34 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py* (py-int-to-scheme self-26)
-                                          (py-int-to-scheme other-27)))
+                                     (py+b (py-int-to-scheme other-34)
+                                           (py-int-to-scheme self-33)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 68)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__mul__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ror__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-26)
+                                                           (py-obj-cls self-33)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmul__-352
+                 (set! __ior__-393
                        (procedure->py-function
-                        (lambda (self-28 other-29)
+                        (lambda (self-35 other-36)
                           (letrec* ()
-                            (if (py-isinstance? self-28 &py-builtin-int)
-                                (if (py-isinstance? other-29 &py-builtin-int)
+                            (if (py-isinstance? self-35 &py-builtin-int)
+                                (if (py-isinstance? other-36 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py* (py-int-to-scheme other-29)
-                                          (py-int-to-scheme self-28)))
+                                     (py+b (py-int-to-scheme self-35)
+                                           (py-int-to-scheme other-36)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 73)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__rmul__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ior__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-28)
+                                                           (py-obj-cls self-35)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imul__-354
+                 (set! __mul__-395
                        (procedure->py-function
-                        (lambda (self-30 other-31)
+                        (lambda (self-37 other-38)
                           (letrec* ()
-                            (if (py-isinstance? self-30 &py-builtin-int)
-                                (if (py-isinstance? other-31 &py-builtin-int)
+                            (if (py-isinstance? self-37 &py-builtin-int)
+                                (if (py-isinstance? other-38 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py* (py-int-to-scheme self-30)
-                                          (py-int-to-scheme other-31)))
+                                     (py* (py-int-to-scheme self-37)
+                                          (py-int-to-scheme other-38)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 78)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__imul__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__mul__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-30)
+                                                           (py-obj-cls self-37)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __pow__-356
+                 (set! __rmul__-397
                        (procedure->py-function
-                        (lambda (self-32 other-33)
+                        (lambda (self-39 other-40)
                           (letrec* ()
-                            (if (py-isinstance? self-32 &py-builtin-int)
-                                (if (py-isinstance? other-33 &py-builtin-int)
+                            (if (py-isinstance? self-39 &py-builtin-int)
+                                (if (py-isinstance? other-40 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py** (py-int-to-scheme self-32)
-                                           (py-int-to-scheme other-33)))
+                                     (py* (py-int-to-scheme other-40)
+                                          (py-int-to-scheme self-39)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 83)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__pow__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__rmul__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-32)
+                                                           (py-obj-cls self-39)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rpow__-358
+                 (set! __imul__-399
                        (procedure->py-function
-                        (lambda (self-34 other-35)
+                        (lambda (self-41 other-42)
                           (letrec* ()
-                            (if (py-isinstance? self-34 &py-builtin-int)
-                                (if (py-isinstance? other-35 &py-builtin-int)
+                            (if (py-isinstance? self-41 &py-builtin-int)
+                                (if (py-isinstance? other-42 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py** (py-int-to-scheme other-35)
-                                           (py-int-to-scheme self-34)))
+                                     (py* (py-int-to-scheme self-41)
+                                          (py-int-to-scheme other-42)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 88)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__rpow__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__imul__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-34)
+                                                           (py-obj-cls self-41)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ipow__-360
+                 (set! __pow__-401
                        (procedure->py-function
-                        (lambda (self-36 other-37)
+                        (lambda (self-43 other-44)
                           (letrec* ()
-                            (if (py-isinstance? self-36 &py-builtin-int)
-                                (if (py-isinstance? other-37 &py-builtin-int)
+                            (if (py-isinstance? self-43 &py-builtin-int)
+                                (if (py-isinstance? other-44 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py** (py-int-to-scheme self-36)
-                                           (py-int-to-scheme other-37)))
+                                     (py** (py-int-to-scheme self-43)
+                                           (py-int-to-scheme other-44)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 93)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ipow__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__pow__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-36)
+                                                           (py-obj-cls self-43)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __sub__-362
+                 (set! __rpow__-403
                        (procedure->py-function
-                        (lambda (self-38 other-39)
+                        (lambda (self-45 other-46)
                           (letrec* ()
-                            (if (py-isinstance? self-38 &py-builtin-int)
-                                (if (py-isinstance? other-39 &py-builtin-int)
+                            (if (py-isinstance? self-45 &py-builtin-int)
+                                (if (py-isinstance? other-46 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py- (py-int-to-scheme self-38)
-                                          (py-int-to-scheme other-39)))
+                                     (py** (py-int-to-scheme other-46)
+                                           (py-int-to-scheme self-45)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 98)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__sub__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__rpow__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-38)
+                                                           (py-obj-cls self-45)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rsub__-364
+                 (set! __ipow__-405
                        (procedure->py-function
-                        (lambda (self-40 other-41)
+                        (lambda (self-47 other-48)
                           (letrec* ()
-                            (if (py-isinstance? self-40 &py-builtin-int)
-                                (if (py-isinstance? other-41 &py-builtin-int)
+                            (if (py-isinstance? self-47 &py-builtin-int)
+                                (if (py-isinstance? other-48 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py- (py-int-to-scheme other-41)
-                                          (py-int-to-scheme self-40)))
+                                     (py** (py-int-to-scheme self-47)
+                                           (py-int-to-scheme other-48)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 103)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__rsub__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ipow__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-40)
+                                                           (py-obj-cls self-47)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __isub__-366
+                 (set! __sub__-407
                        (procedure->py-function
-                        (lambda (self-42 other-43)
+                        (lambda (self-49 other-50)
                           (letrec* ()
-                            (if (py-isinstance? self-42 &py-builtin-int)
-                                (if (py-isinstance? other-43 &py-builtin-int)
+                            (if (py-isinstance? self-49 &py-builtin-int)
+                                (if (py-isinstance? other-50 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py- (py-int-to-scheme self-42)
-                                          (py-int-to-scheme other-43)))
+                                     (py- (py-int-to-scheme self-49)
+                                          (py-int-to-scheme other-50)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 108)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__isub__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__sub__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-42)
+                                                           (py-obj-cls self-49)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __xor__-368
+                 (set! __rsub__-409
                        (procedure->py-function
-                        (lambda (self-44 other-45)
+                        (lambda (self-51 other-52)
                           (letrec* ()
-                            (if (py-isinstance? self-44 &py-builtin-int)
-                                (if (py-isinstance? other-45 &py-builtin-int)
+                            (if (py-isinstance? self-51 &py-builtin-int)
+                                (if (py-isinstance? other-52 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py^ (py-int-to-scheme self-44)
-                                          (py-int-to-scheme other-45)))
+                                     (py- (py-int-to-scheme other-52)
+                                          (py-int-to-scheme self-51)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 113)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__xor__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__rsub__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-44)
+                                                           (py-obj-cls self-51)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rxor__-370
+                 (set! __isub__-411
                        (procedure->py-function
-                        (lambda (self-46 other-47)
+                        (lambda (self-53 other-54)
                           (letrec* ()
-                            (if (py-isinstance? self-46 &py-builtin-int)
-                                (if (py-isinstance? other-47 &py-builtin-int)
+                            (if (py-isinstance? self-53 &py-builtin-int)
+                                (if (py-isinstance? other-54 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py^ (py-int-to-scheme other-47)
-                                          (py-int-to-scheme self-46)))
+                                     (py- (py-int-to-scheme self-53)
+                                          (py-int-to-scheme other-54)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 118)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__rxor__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__isub__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-46)
+                                                           (py-obj-cls self-53)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ixor__-372
+                 (set! __xor__-413
                        (procedure->py-function
-                        (lambda (self-48 other-49)
+                        (lambda (self-55 other-56)
                           (letrec* ()
-                            (if (py-isinstance? self-48 &py-builtin-int)
-                                (if (py-isinstance? other-49 &py-builtin-int)
+                            (if (py-isinstance? self-55 &py-builtin-int)
+                                (if (py-isinstance? other-56 &py-builtin-int)
                                     (py-int-from-scheme
-                                     (py^ (py-int-to-scheme self-48)
-                                          (py-int-to-scheme other-49)))
+                                     (py^ (py-int-to-scheme self-55)
+                                          (py-int-to-scheme other-56)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 123)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ixor__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__xor__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-48)
+                                                           (py-obj-cls self-55)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __lshift__-374
+                 (set! __rxor__-415
                        (procedure->py-function
-                        (lambda (self-50 other-51)
+                        (lambda (self-57 other-58)
                           (letrec* ()
-                            (if (py-isinstance? self-50 &py-builtin-int)
-                                (if (py-isinstance? other-51 &py-builtin-int)
-                                    (if (py-test (py-ge other-51
+                            (if (py-isinstance? self-57 &py-builtin-int)
+                                (if (py-isinstance? other-58 &py-builtin-int)
+                                    (py-int-from-scheme
+                                     (py^ (py-int-to-scheme other-58)
+                                          (py-int-to-scheme self-57)))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 128)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__rxor__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-57)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __ixor__-417
+                       (procedure->py-function
+                        (lambda (self-59 other-60)
+                          (letrec* ()
+                            (if (py-isinstance? self-59 &py-builtin-int)
+                                (if (py-isinstance? other-60 &py-builtin-int)
+                                    (py-int-from-scheme
+                                     (py^ (py-int-to-scheme self-59)
+                                          (py-int-to-scheme other-60)))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 133)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__ixor__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-59)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __lshift__-419
+                       (procedure->py-function
+                        (lambda (self-61 other-62)
+                          (letrec* ()
+                            (if (py-isinstance? self-61 &py-builtin-int)
+                                (if (py-isinstance? other-62 &py-builtin-int)
+                                    (if (py-test (py-ge other-62
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-int-from-scheme
-                                         (py<< (py-int-to-scheme self-50)
-                                               (py-int-to-scheme other-51)))
+                                         (py<< (py-int-to-scheme self-61)
+                                               (py-int-to-scheme other-62)))
                                         (py-throw
                                          (py-call &py-builtin-ValueError
                                                   (&& "negative shift count"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 129)))
+                                     (vector-ref %caches 139)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__lshift__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-50)
+                                                           (py-obj-cls self-61)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rlshift__-376
+                 (set! __rlshift__-421
                        (procedure->py-function
-                        (lambda (self-52 other-53)
+                        (lambda (self-63 other-64)
                           (letrec* ()
-                            (if (py-isinstance? self-52 &py-builtin-int)
-                                (if (py-isinstance? other-53 &py-builtin-int)
-                                    (if (py-test (py-ge self-52
+                            (if (py-isinstance? self-63 &py-builtin-int)
+                                (if (py-isinstance? other-64 &py-builtin-int)
+                                    (if (py-test (py-ge self-63
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-int-from-scheme
-                                         (py<< (py-int-to-scheme self-52)
-                                               (py-int-to-scheme other-53)))
+                                         (py<< (py-int-to-scheme self-63)
+                                               (py-int-to-scheme other-64)))
                                         (py-throw
                                          (py-call &py-builtin-ValueError
                                                   (&& "negative shift count"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 135)))
+                                     (vector-ref %caches 145)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rlshift__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-52)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __ilshift__-378
-                       (procedure->py-function
-                        (lambda (self-54 other-55)
-                          (letrec* ()
-                            (if (py-isinstance? self-54 &py-builtin-int)
-                                (if (py-isinstance? other-55 &py-builtin-int)
-                                    (if (py-test (py-ge other-55
-                                                        (py-int-from-scheme
-                                                         0)))
-                                        (py-int-from-scheme
-                                         (py<< (py-int-to-scheme self-54)
-                                               (py-int-to-scheme other-55)))
-                                        (py-throw
-                                         (py-call &py-builtin-ValueError
-                                                  (&& "negative shift count"))))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 141)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ilshift__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-54)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __rshift__-380
-                       (procedure->py-function
-                        (lambda (self-56 other-57)
-                          (letrec* ()
-                            (if (py-isinstance? self-56 &py-builtin-int)
-                                (if (py-isinstance? other-57 &py-builtin-int)
-                                    (if (py-test (py-ge other-57
-                                                        (py-int-from-scheme
-                                                         0)))
-                                        (py-int-from-scheme
-                                         (py>> (py-int-to-scheme self-56)
-                                               (py-int-to-scheme other-57)))
-                                        (py-throw
-                                         (py-call &py-builtin-ValueError
-                                                  (&& "negative shift count"))))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 147)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__rshift__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-56)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __rrshift__-382
-                       (procedure->py-function
-                        (lambda (self-58 other-59)
-                          (letrec* ()
-                            (if (py-isinstance? self-58 &py-builtin-int)
-                                (if (py-isinstance? other-59 &py-builtin-int)
-                                    (if (py-test (py-ge self-58
-                                                        (py-int-from-scheme
-                                                         0)))
-                                        (py-int-from-scheme
-                                         (py>> (py-int-to-scheme self-58)
-                                               (py-int-to-scheme other-59)))
-                                        (py-throw
-                                         (py-call &py-builtin-ValueError
-                                                  (&& "negative shift count"))))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 153)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__rrshift__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-58)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __irshift__-384
-                       (procedure->py-function
-                        (lambda (self-60 other-61)
-                          (letrec* ()
-                            (if (py-isinstance? self-60 &py-builtin-int)
-                                (if (py-isinstance? other-61 &py-builtin-int)
-                                    (if (py-test (py-ge other-61
-                                                        (py-int-from-scheme
-                                                         0)))
-                                        (py-int-from-scheme
-                                         (py>> (py-int-to-scheme self-60)
-                                               (py-int-to-scheme other-61)))
-                                        (py-throw
-                                         (py-call &py-builtin-ValueError
-                                                  (&& "negative shift count"))))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 159)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__irshift__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-60)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __pos__-386
-                       (procedure->py-function
-                        (lambda (self-62)
-                          (letrec* ()
-                            (if (py-isinstance? self-62 &py-builtin-int)
-                                (py-int-from-scheme (py-int-to-scheme self-62))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__pos__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-62)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self))))
-                 (set! __neg__-388
-                       (procedure->py-function
-                        (lambda (self-63)
-                          (letrec* ()
-                            (if (py-isinstance? self-63 &py-builtin-int)
-                                (py-int-from-scheme
-                                 (pyneg (py-int-to-scheme self-63)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__neg__' requires a 'int' object but received a '")
-                                                          (py-getattribute
                                                            (py-obj-cls self-63)
                                                            (& "__name__")))
                                                   (&& "'")))))))
-                        (make-signature args: (self))))
-                 (set! __invert__-390
-                       (procedure->py-function
-                        (lambda (self-64)
-                          (letrec* ()
-                            (if (py-isinstance? self-64 &py-builtin-int)
-                                (py-int-from-scheme
-                                 (pyinvert (py-int-to-scheme self-64)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__invert__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-64)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self))))
-                 (set! __floordiv__-392
+                        (make-signature args: (self other))))
+                 (set! __ilshift__-423
                        (procedure->py-function
                         (lambda (self-65 other-66)
                           (letrec* ()
                             (if (py-isinstance? self-65 &py-builtin-int)
                                 (if (py-isinstance? other-66 &py-builtin-int)
-                                    (if (py-test (py-ne other-66
+                                    (if (py-test (py-ge other-66
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-int-from-scheme
-                                         (py// (py-int-to-scheme self-65)
+                                         (py<< (py-int-to-scheme self-65)
                                                (py-int-to-scheme other-66)))
                                         (py-throw
-                                         (py-call &py-builtin-ZeroDivisionError
-                                                  (&& "integer division by zero"))))
+                                         (py-call &py-builtin-ValueError
+                                                  (&& "negative shift count"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 176)))
+                                     (vector-ref %caches 151)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__floordiv__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ilshift__' requires a 'int' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls self-65)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rfloordiv__-394
+                 (set! __rshift__-425
                        (procedure->py-function
                         (lambda (self-67 other-68)
                           (letrec* ()
                             (if (py-isinstance? self-67 &py-builtin-int)
                                 (if (py-isinstance? other-68 &py-builtin-int)
-                                    (if (py-test (py-ne self-67
+                                    (if (py-test (py-ge other-68
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-int-from-scheme
-                                         (py// (py-int-to-scheme other-68)
-                                               (py-int-to-scheme self-67)))
+                                         (py>> (py-int-to-scheme self-67)
+                                               (py-int-to-scheme other-68)))
                                         (py-throw
-                                         (py-call &py-builtin-ZeroDivisionError
-                                                  (&& "integer division by zero"))))
+                                         (py-call &py-builtin-ValueError
+                                                  (&& "negative shift count"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 182)))
+                                     (vector-ref %caches 157)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__rfloordiv__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__rshift__' requires a 'int' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls self-67)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ifloordiv__-396
+                 (set! __rrshift__-427
                        (procedure->py-function
                         (lambda (self-69 other-70)
                           (letrec* ()
                             (if (py-isinstance? self-69 &py-builtin-int)
                                 (if (py-isinstance? other-70 &py-builtin-int)
-                                    (if (py-test (py-ne other-70
+                                    (if (py-test (py-ge self-69
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-int-from-scheme
-                                         (py// (py-int-to-scheme self-69)
+                                         (py>> (py-int-to-scheme self-69)
                                                (py-int-to-scheme other-70)))
+                                        (py-throw
+                                         (py-call &py-builtin-ValueError
+                                                  (&& "negative shift count"))))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 163)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__rrshift__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-69)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __irshift__-429
+                       (procedure->py-function
+                        (lambda (self-71 other-72)
+                          (letrec* ()
+                            (if (py-isinstance? self-71 &py-builtin-int)
+                                (if (py-isinstance? other-72 &py-builtin-int)
+                                    (if (py-test (py-ge other-72
+                                                        (py-int-from-scheme
+                                                         0)))
+                                        (py-int-from-scheme
+                                         (py>> (py-int-to-scheme self-71)
+                                               (py-int-to-scheme other-72)))
+                                        (py-throw
+                                         (py-call &py-builtin-ValueError
+                                                  (&& "negative shift count"))))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 169)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__irshift__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-71)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __pos__-431
+                       (procedure->py-function
+                        (lambda (self-73)
+                          (letrec* ()
+                            (if (py-isinstance? self-73 &py-builtin-int)
+                                (py-int-from-scheme (py-int-to-scheme self-73))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__pos__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-73)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self))))
+                 (set! __neg__-433
+                       (procedure->py-function
+                        (lambda (self-74)
+                          (letrec* ()
+                            (if (py-isinstance? self-74 &py-builtin-int)
+                                (py-int-from-scheme
+                                 (pyneg (py-int-to-scheme self-74)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__neg__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-74)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self))))
+                 (set! __invert__-435
+                       (procedure->py-function
+                        (lambda (self-75)
+                          (letrec* ()
+                            (if (py-isinstance? self-75 &py-builtin-int)
+                                (py-int-from-scheme
+                                 (pyinvert (py-int-to-scheme self-75)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__invert__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-75)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self))))
+                 (set! __floordiv__-437
+                       (procedure->py-function
+                        (lambda (self-76 other-77)
+                          (letrec* ()
+                            (if (py-isinstance? self-76 &py-builtin-int)
+                                (if (py-isinstance? other-77 &py-builtin-int)
+                                    (if (py-test (py-ne other-77
+                                                        (py-int-from-scheme
+                                                         0)))
+                                        (py-int-from-scheme
+                                         (py// (py-int-to-scheme self-76)
+                                               (py-int-to-scheme other-77)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "integer division by zero"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 188)))
+                                     (vector-ref %caches 186)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__floordiv__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-76)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __rfloordiv__-439
+                       (procedure->py-function
+                        (lambda (self-78 other-79)
+                          (letrec* ()
+                            (if (py-isinstance? self-78 &py-builtin-int)
+                                (if (py-isinstance? other-79 &py-builtin-int)
+                                    (if (py-test (py-ne self-78
+                                                        (py-int-from-scheme
+                                                         0)))
+                                        (py-int-from-scheme
+                                         (py// (py-int-to-scheme other-79)
+                                               (py-int-to-scheme self-78)))
+                                        (py-throw
+                                         (py-call &py-builtin-ZeroDivisionError
+                                                  (&& "integer division by zero"))))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 192)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__rfloordiv__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls self-78)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __ifloordiv__-441
+                       (procedure->py-function
+                        (lambda (self-80 other-81)
+                          (letrec* ()
+                            (if (py-isinstance? self-80 &py-builtin-int)
+                                (if (py-isinstance? other-81 &py-builtin-int)
+                                    (if (py-test (py-ne other-81
+                                                        (py-int-from-scheme
+                                                         0)))
+                                        (py-int-from-scheme
+                                         (py// (py-int-to-scheme self-80)
+                                               (py-int-to-scheme other-81)))
+                                        (py-throw
+                                         (py-call &py-builtin-ZeroDivisionError
+                                                  (&& "integer division by zero"))))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 198)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ifloordiv__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-69)
+                                                           (py-obj-cls self-80)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __truediv__-398
+                 (set! __truediv__-443
                        (procedure->py-function
-                        (lambda (self-71 other-72)
+                        (lambda (self-82 other-83)
                           (letrec* ()
-                            (if (py-isinstance? self-71 &py-builtin-int)
-                                (if (py-isinstance? other-72 &py-builtin-int)
-                                    (if (py-test (py-ne other-72
+                            (if (py-isinstance? self-82 &py-builtin-int)
+                                (if (py-isinstance? other-83 &py-builtin-int)
+                                    (if (py-test (py-ne other-83
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-float-from-scheme
-                                         (py/ (py-int-to-scheme self-71)
-                                              (py-int-to-scheme other-72)))
+                                         (py/ (py-int-to-scheme self-82)
+                                              (py-int-to-scheme other-83)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "division by zero"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 194)))
+                                     (vector-ref %caches 204)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__truediv__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-71)
+                                                           (py-obj-cls self-82)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rtruediv__-400
+                 (set! __rtruediv__-445
                        (procedure->py-function
-                        (lambda (self-73 other-74)
+                        (lambda (self-84 other-85)
                           (letrec* ()
-                            (if (py-isinstance? self-73 &py-builtin-int)
-                                (if (py-isinstance? other-74 &py-builtin-int)
-                                    (if (py-test (py-ne self-73
+                            (if (py-isinstance? self-84 &py-builtin-int)
+                                (if (py-isinstance? other-85 &py-builtin-int)
+                                    (if (py-test (py-ne self-84
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-float-from-scheme
-                                         (py/ (py-int-to-scheme other-74)
-                                              (py-int-to-scheme self-73)))
+                                         (py/ (py-int-to-scheme other-85)
+                                              (py-int-to-scheme self-84)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "division by zero"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 200)))
+                                     (vector-ref %caches 210)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rtruediv__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-73)
+                                                           (py-obj-cls self-84)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __itruediv__-402
+                 (set! __itruediv__-447
                        (procedure->py-function
-                        (lambda (self-75 other-76)
+                        (lambda (self-86 other-87)
                           (letrec* ()
-                            (if (py-isinstance? self-75 &py-builtin-int)
-                                (if (py-isinstance? other-76 &py-builtin-int)
-                                    (if (py-test (py-ne other-76
+                            (if (py-isinstance? self-86 &py-builtin-int)
+                                (if (py-isinstance? other-87 &py-builtin-int)
+                                    (if (py-test (py-ne other-87
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-float-from-scheme
-                                         (py/ (py-int-to-scheme self-75)
-                                              (py-int-to-scheme other-76)))
+                                         (py/ (py-int-to-scheme self-86)
+                                              (py-int-to-scheme other-87)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "division by zero"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 206)))
+                                     (vector-ref %caches 216)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__itruediv__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-75)
+                                                           (py-obj-cls self-86)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mod__-404
+                 (set! __mod__-449
                        (procedure->py-function
-                        (lambda (self-77 other-78)
+                        (lambda (self-88 other-89)
                           (letrec* ()
-                            (if (py-isinstance? self-77 &py-builtin-int)
-                                (if (py-isinstance? other-78 &py-builtin-int)
-                                    (if (py-test (py-ne other-78
+                            (if (py-isinstance? self-88 &py-builtin-int)
+                                (if (py-isinstance? other-89 &py-builtin-int)
+                                    (if (py-test (py-ne other-89
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-int-from-scheme
-                                         (py% (py-int-to-scheme self-77)
-                                              (py-int-to-scheme other-78)))
+                                         (py% (py-int-to-scheme self-88)
+                                              (py-int-to-scheme other-89)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "modulo by zero"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 212)))
+                                     (vector-ref %caches 222)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__mod__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-77)
+                                                           (py-obj-cls self-88)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmod__-406
+                 (set! __rmod__-451
                        (procedure->py-function
-                        (lambda (self-79 other-80)
+                        (lambda (self-90 other-91)
                           (letrec* ()
-                            (if (py-isinstance? self-79 &py-builtin-int)
-                                (if (py-isinstance? other-80 &py-builtin-int)
-                                    (if (py-test (py-ne self-79
+                            (if (py-isinstance? self-90 &py-builtin-int)
+                                (if (py-isinstance? other-91 &py-builtin-int)
+                                    (if (py-test (py-ne self-90
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-int-from-scheme
-                                         (py% (py-int-to-scheme other-80)
-                                              (py-int-to-scheme self-79)))
+                                         (py% (py-int-to-scheme other-91)
+                                              (py-int-to-scheme self-90)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "modulo by zero"))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
-                                     (vector-ref %caches 218)))
+                                     (vector-ref %caches 228)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rmod__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-79)
+                                                           (py-obj-cls self-90)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imod__-408
+                 (set! __imod__-453
                        (procedure->py-function
-                        (lambda (self-81 other-82)
+                        (lambda (self-92 other-93)
                           (letrec* ()
-                            (if (py-isinstance? self-81 &py-builtin-int)
-                                (if (py-isinstance? other-82 &py-builtin-int)
-                                    (if (py-test (py-ne other-82
+                            (if (py-isinstance? self-92 &py-builtin-int)
+                                (if (py-isinstance? other-93 &py-builtin-int)
+                                    (if (py-test (py-ne other-93
                                                         (py-int-from-scheme
                                                          0)))
                                         (py-int-from-scheme
-                                         (py% (py-int-to-scheme self-81)
-                                              (py-int-to-scheme other-82)))
+                                         (py% (py-int-to-scheme self-92)
+                                              (py-int-to-scheme other-93)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "modulo by zero"))))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 224)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__imod__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-81)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __eq__-410
-                       (procedure->py-function
-                        (lambda (self-83 other-84)
-                          (letrec* ()
-                            (if (py-isinstance? self-83 &py-builtin-int)
-                                (if (py-isinstance? other-84 &py-builtin-int)
-                                    (py-bool-from-scheme-bool
-                                     (py-test-from-scheme
-                                      (py== (py-int-to-scheme self-83)
-                                            (py-int-to-scheme other-84))))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 229)))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__eq__' requires a 'int' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls self-83)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __ne__-412
-                       (procedure->py-function
-                        (lambda (self-85 other-86)
-                          (letrec* ()
-                            (if (py-isinstance? self-85 &py-builtin-int)
-                                (if (py-isinstance? other-86 &py-builtin-int)
-                                    (py-bool-from-scheme-bool
-                                     (py-test-from-scheme
-                                      (py!= (py-int-to-scheme self-85)
-                                            (py-int-to-scheme other-86))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 234)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ne__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__imod__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-85)
+                                                           (py-obj-cls self-92)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ge__-414
+                 (set! __eq__-455
                        (procedure->py-function
-                        (lambda (self-87 other-88)
+                        (lambda (self-94 other-95)
                           (letrec* ()
-                            (if (py-isinstance? self-87 &py-builtin-int)
-                                (if (py-isinstance? other-88 &py-builtin-int)
+                            (if (py-isinstance? self-94 &py-builtin-int)
+                                (if (py-isinstance? other-95 &py-builtin-int)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py>= (py-int-to-scheme self-87)
-                                            (py-int-to-scheme other-88))))
+                                      (py== (py-int-to-scheme self-94)
+                                            (py-int-to-scheme other-95))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 239)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ge__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__eq__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-87)
+                                                           (py-obj-cls self-94)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __gt__-416
+                 (set! __ne__-457
                        (procedure->py-function
-                        (lambda (self-89 other-90)
+                        (lambda (self-96 other-97)
                           (letrec* ()
-                            (if (py-isinstance? self-89 &py-builtin-int)
-                                (if (py-isinstance? other-90 &py-builtin-int)
+                            (if (py-isinstance? self-96 &py-builtin-int)
+                                (if (py-isinstance? other-97 &py-builtin-int)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py> (py-int-to-scheme self-89)
-                                           (py-int-to-scheme other-90))))
+                                      (py!= (py-int-to-scheme self-96)
+                                            (py-int-to-scheme other-97))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 244)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__gt__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ne__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-89)
+                                                           (py-obj-cls self-96)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __le__-418
+                 (set! __ge__-459
                        (procedure->py-function
-                        (lambda (self-91 other-92)
+                        (lambda (self-98 other-99)
                           (letrec* ()
-                            (if (py-isinstance? self-91 &py-builtin-int)
-                                (if (py-isinstance? other-92 &py-builtin-int)
+                            (if (py-isinstance? self-98 &py-builtin-int)
+                                (if (py-isinstance? other-99 &py-builtin-int)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py<= (py-int-to-scheme self-91)
-                                            (py-int-to-scheme other-92))))
+                                      (py>= (py-int-to-scheme self-98)
+                                            (py-int-to-scheme other-99))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 249)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__le__' requires a 'int' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ge__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-91)
+                                                           (py-obj-cls self-98)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __lt__-420
+                 (set! __gt__-461
                        (procedure->py-function
-                        (lambda (self-93 other-94)
+                        (lambda (self-100 other-101)
                           (letrec* ()
-                            (if (py-isinstance? self-93 &py-builtin-int)
-                                (if (py-isinstance? other-94 &py-builtin-int)
+                            (if (py-isinstance? self-100 &py-builtin-int)
+                                (if (py-isinstance? other-101 &py-builtin-int)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py< (py-int-to-scheme self-93)
-                                           (py-int-to-scheme other-94))))
+                                      (py> (py-int-to-scheme self-100)
+                                           (py-int-to-scheme other-101))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 254)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__gt__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls
+                                                            self-100)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __le__-463
+                       (procedure->py-function
+                        (lambda (self-102 other-103)
+                          (letrec* ()
+                            (if (py-isinstance? self-102 &py-builtin-int)
+                                (if (py-isinstance? other-103 &py-builtin-int)
+                                    (py-bool-from-scheme-bool
+                                     (py-test-from-scheme
+                                      (py<= (py-int-to-scheme self-102)
+                                            (py-int-to-scheme other-103))))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 259)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__le__' requires a 'int' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls
+                                                            self-102)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __lt__-465
+                       (procedure->py-function
+                        (lambda (self-104 other-105)
+                          (letrec* ()
+                            (if (py-isinstance? self-104 &py-builtin-int)
+                                (if (py-isinstance? other-105 &py-builtin-int)
+                                    (py-bool-from-scheme-bool
+                                     (py-test-from-scheme
+                                      (py< (py-int-to-scheme self-104)
+                                           (py-int-to-scheme other-105))))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 264)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__lt__' requires a 'int' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-93)
+                                                           (py-obj-cls
+                                                            self-104)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other)))))
                (begin
-                 (set! $%cls_0
+                 (set! $%cls_2
                        (py-make-builtin-class
                         (&& "int")
                         (&& "__main__")
                         (list)
                         (& "__lt__")
-                        __lt__-420
+                        __lt__-465
                         (& "__le__")
-                        __le__-418
+                        __le__-463
                         (& "__gt__")
-                        __gt__-416
+                        __gt__-461
                         (& "__ge__")
-                        __ge__-414
+                        __ge__-459
                         (& "__ne__")
-                        __ne__-412
+                        __ne__-457
                         (& "__eq__")
-                        __eq__-410
+                        __eq__-455
                         (& "__imod__")
-                        __imod__-408
+                        __imod__-453
                         (& "__rmod__")
-                        __rmod__-406
+                        __rmod__-451
                         (& "__mod__")
-                        __mod__-404
+                        __mod__-449
                         (& "__itruediv__")
-                        __itruediv__-402
+                        __itruediv__-447
                         (& "__rtruediv__")
-                        __rtruediv__-400
+                        __rtruediv__-445
                         (& "__truediv__")
-                        __truediv__-398
+                        __truediv__-443
                         (& "__ifloordiv__")
-                        __ifloordiv__-396
+                        __ifloordiv__-441
                         (& "__rfloordiv__")
-                        __rfloordiv__-394
+                        __rfloordiv__-439
                         (& "__floordiv__")
-                        __floordiv__-392
+                        __floordiv__-437
                         (& "__invert__")
-                        __invert__-390
+                        __invert__-435
                         (& "__neg__")
-                        __neg__-388
+                        __neg__-433
                         (& "__pos__")
-                        __pos__-386
+                        __pos__-431
                         (& "__irshift__")
-                        __irshift__-384
+                        __irshift__-429
                         (& "__rrshift__")
-                        __rrshift__-382
+                        __rrshift__-427
                         (& "__rshift__")
-                        __rshift__-380
+                        __rshift__-425
                         (& "__ilshift__")
-                        __ilshift__-378
+                        __ilshift__-423
                         (& "__rlshift__")
-                        __rlshift__-376
+                        __rlshift__-421
                         (& "__lshift__")
-                        __lshift__-374
+                        __lshift__-419
                         (& "__ixor__")
-                        __ixor__-372
+                        __ixor__-417
                         (& "__rxor__")
-                        __rxor__-370
+                        __rxor__-415
                         (& "__xor__")
-                        __xor__-368
+                        __xor__-413
                         (& "__isub__")
-                        __isub__-366
+                        __isub__-411
                         (& "__rsub__")
-                        __rsub__-364
+                        __rsub__-409
                         (& "__sub__")
-                        __sub__-362
+                        __sub__-407
                         (& "__ipow__")
-                        __ipow__-360
+                        __ipow__-405
                         (& "__rpow__")
-                        __rpow__-358
+                        __rpow__-403
                         (& "__pow__")
-                        __pow__-356
+                        __pow__-401
                         (& "__imul__")
-                        __imul__-354
+                        __imul__-399
                         (& "__rmul__")
-                        __rmul__-352
+                        __rmul__-397
                         (& "__mul__")
-                        __mul__-350
+                        __mul__-395
                         (& "__ior__")
-                        __ior__-348
+                        __ior__-393
                         (& "__ror__")
-                        __ror__-346
+                        __ror__-391
                         (& "__or__")
-                        __or__-344
+                        __or__-389
                         (& "__iand__")
-                        __iand__-342
+                        __iand__-387
                         (& "__rand__")
-                        __rand__-340
+                        __rand__-385
                         (& "__and__")
-                        __and__-338
+                        __and__-383
                         (& "__iadd__")
-                        __iadd__-336
+                        __iadd__-381
                         (& "__radd__")
-                        __radd__-334
+                        __radd__-379
                         (& "__add__")
-                        __add__-332
+                        __add__-377
                         (& "__abs__")
-                        __abs__-330
+                        __abs__-375
                         (& "__index__")
-                        __index__-328
+                        __index__-373
                         (& "__bool__")
-                        __bool__-326
+                        __bool__-371
                         (& "__new__")
-                        __new__-323))
-                 $%cls_0))))
+                        __new__-368))
+                 $%cls_2))))
      (set! &py-builtin-bool
-           (let (($%cls_1 py-absent))
-             (letrec* ((__rxor__-881 #f)
-                       (__xor__-879 #f)
-                       (__ror__-877 #f)
-                       (__or__-875 #f)
-                       (__rand__-873 #f)
-                       (__and__-871 #f)
-                       (__repr__-869 #f)
-                       (__new__-866 #f))
+           (let (($%cls_3 py-absent))
+             (letrec* ((__rxor__-926 #f)
+                       (__xor__-924 #f)
+                       (__ror__-922 #f)
+                       (__or__-920 #f)
+                       (__rand__-918 #f)
+                       (__and__-916 #f)
+                       (__repr__-914 #f)
+                       (__new__-911 #f))
                (begin
-                 (set! __new__-866
+                 (set! __new__-911
                        (procedure->py-function
-                        (lambda (cls-95 val-96)
+                        (lambda (cls-106 val-107)
                           (letrec* ()
-                            (if (py-test (py-is cls-95 &py-builtin-bool))
-                                (if (py-test (py-is val-96 py-absent))
+                            (if (py-test (py-is cls-106 &py-builtin-bool))
+                                (if (py-test (py-is val-107 py-absent))
                                     py-False
-                                    (py-truth val-96))
+                                    (py-truth val-107))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (&& "bool.__new__ expected a subtype of 'bool' as first argument"))))))
@@ -2156,221 +2286,222 @@
                          (cls val)
                          defaults:
                          (vector py-absent))))
-                 (set! __repr__-869
+                 (set! __repr__-914
                        (procedure->py-function
-                        (lambda (self-97)
+                        (lambda (self-108)
                           (letrec* ()
-                            (if (py-test (py-is self-97 py-True))
+                            (if (py-test (py-is self-108 py-True))
                                 (&& "True")
-                                (if (py-test (py-is self-97 py-False))
+                                (if (py-test (py-is self-108 py-False))
                                     (&& "False")
                                     (py-throw
                                      (py-call &py-builtin-TypeError
                                               (py-add (py-add (&& "descriptor '__repr__' requires a 'bool' object but received a '")
                                                               (py-getattribute
                                                                (py-obj-cls
-                                                                self-97)
+                                                                self-108)
                                                                (& "__name__")))
                                                       (&& "'"))))))))
                         (make-signature args: (self))))
-                 (set! __and__-871
+                 (set! __and__-916
                        (procedure->py-function
-                        (lambda (self-98 other-99)
+                        (lambda (self-109 other-110)
                           (letrec* ()
-                            (if (py-test (py-is (py-obj-cls self-98)
+                            (if (py-test (py-is (py-obj-cls self-109)
                                                 &py-builtin-bool))
-                                (if (py-test (py-is (py-obj-cls other-99)
+                                (if (py-test (py-is (py-obj-cls other-110)
                                                     &py-builtin-bool))
-                                    (if (py-test (py-is self-98 py-True))
-                                        other-99
+                                    (if (py-test (py-is self-109 py-True))
+                                        other-110
                                         py-False)
                                     (if (py-isinstance?
-                                         other-99
+                                         other-110
                                          &py-builtin-int)
                                         (py-int-from-scheme
-                                         (py& (py-int-to-scheme self-98)
-                                              (py-int-to-scheme other-99)))
+                                         (py& (py-int-to-scheme self-109)
+                                              (py-int-to-scheme other-110)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 265))))
+                                         (vector-ref %caches 275))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__and__' requires a 'bool' object but received a '")
                                                           (py-getattribute
-                                                           (py-obj-cls self-98)
+                                                           (py-obj-cls
+                                                            self-109)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rand__-873
+                 (set! __rand__-918
                        (procedure->py-function
-                        (lambda (self-100 other-101)
+                        (lambda (self-111 other-112)
                           (letrec* ()
-                            (if (py-test (py-is (py-obj-cls self-100)
+                            (if (py-test (py-is (py-obj-cls self-111)
                                                 &py-builtin-bool))
-                                (if (py-test (py-is (py-obj-cls other-101)
+                                (if (py-test (py-is (py-obj-cls other-112)
                                                     &py-builtin-bool))
-                                    (if (py-test (py-is self-100 py-True))
-                                        other-101
+                                    (if (py-test (py-is self-111 py-True))
+                                        other-112
                                         py-False)
                                     (if (py-isinstance?
-                                         other-101
+                                         other-112
                                          &py-builtin-int)
                                         (py-int-from-scheme
-                                         (py& (py-int-to-scheme other-101)
-                                              (py-int-to-scheme self-100)))
+                                         (py& (py-int-to-scheme other-112)
+                                              (py-int-to-scheme self-111)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 271))))
+                                         (vector-ref %caches 281))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rand__' requires a 'bool' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-100)
+                                                            self-111)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __or__-875
+                 (set! __or__-920
                        (procedure->py-function
-                        (lambda (self-102 other-103)
+                        (lambda (self-113 other-114)
                           (letrec* ()
-                            (if (py-test (py-is (py-obj-cls self-102)
+                            (if (py-test (py-is (py-obj-cls self-113)
                                                 &py-builtin-bool))
-                                (if (py-test (py-is (py-obj-cls other-103)
+                                (if (py-test (py-is (py-obj-cls other-114)
                                                     &py-builtin-bool))
-                                    (if (py-test (py-is self-102 py-True))
+                                    (if (py-test (py-is self-113 py-True))
                                         py-True
-                                        other-103)
+                                        other-114)
                                     (if (py-isinstance?
-                                         other-103
+                                         other-114
                                          &py-builtin-int)
                                         (py-int-from-scheme
-                                         (py+b (py-int-to-scheme self-102)
-                                               (py-int-to-scheme other-103)))
+                                         (py+b (py-int-to-scheme self-113)
+                                               (py-int-to-scheme other-114)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 277))))
+                                         (vector-ref %caches 287))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__or__' requires a 'bool' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-102)
+                                                            self-113)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ror__-877
+                 (set! __ror__-922
                        (procedure->py-function
-                        (lambda (self-104 other-105)
+                        (lambda (self-115 other-116)
                           (letrec* ()
-                            (if (py-test (py-is (py-obj-cls self-104)
+                            (if (py-test (py-is (py-obj-cls self-115)
                                                 &py-builtin-bool))
-                                (if (py-test (py-is (py-obj-cls other-105)
+                                (if (py-test (py-is (py-obj-cls other-116)
                                                     &py-builtin-bool))
-                                    (if (py-test (py-is self-104 py-True))
+                                    (if (py-test (py-is self-115 py-True))
                                         py-True
-                                        other-105)
+                                        other-116)
                                     (if (py-isinstance?
-                                         other-105
+                                         other-116
                                          &py-builtin-int)
                                         (py-int-from-scheme
-                                         (py+b (py-int-to-scheme other-105)
-                                               (py-int-to-scheme self-104)))
+                                         (py+b (py-int-to-scheme other-116)
+                                               (py-int-to-scheme self-115)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 283))))
+                                         (vector-ref %caches 293))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ror__' requires a 'bool' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-104)
+                                                            self-115)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __xor__-879
+                 (set! __xor__-924
                        (procedure->py-function
-                        (lambda (self-106 other-107)
+                        (lambda (self-117 other-118)
                           (letrec* ()
-                            (if (py-test (py-is (py-obj-cls self-106)
+                            (if (py-test (py-is (py-obj-cls self-117)
                                                 &py-builtin-bool))
-                                (if (py-test (py-is (py-obj-cls other-107)
+                                (if (py-test (py-is (py-obj-cls other-118)
                                                     &py-builtin-bool))
-                                    (py-isnot self-106 other-107)
+                                    (py-isnot self-117 other-118)
                                     (if (py-isinstance?
-                                         other-107
+                                         other-118
                                          &py-builtin-int)
                                         (py-int-from-scheme
-                                         (py^ (py-int-to-scheme self-106)
-                                              (py-int-to-scheme other-107)))
+                                         (py^ (py-int-to-scheme self-117)
+                                              (py-int-to-scheme other-118)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 289))))
+                                         (vector-ref %caches 299))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__xor__' requires a 'bool' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-106)
+                                                            self-117)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rxor__-881
+                 (set! __rxor__-926
                        (procedure->py-function
-                        (lambda (self-108 other-109)
+                        (lambda (self-119 other-120)
                           (letrec* ()
-                            (if (py-test (py-is (py-obj-cls self-108)
+                            (if (py-test (py-is (py-obj-cls self-119)
                                                 &py-builtin-bool))
-                                (if (py-test (py-is (py-obj-cls other-109)
+                                (if (py-test (py-is (py-obj-cls other-120)
                                                     &py-builtin-bool))
-                                    (py-isnot self-108 other-109)
+                                    (py-isnot self-119 other-120)
                                     (if (py-isinstance?
-                                         other-109
+                                         other-120
                                          &py-builtin-int)
                                         (py-int-from-scheme
-                                         (py^ (py-int-to-scheme other-109)
-                                              (py-int-to-scheme self-108)))
+                                         (py^ (py-int-to-scheme other-120)
+                                              (py-int-to-scheme self-119)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 295))))
+                                         (vector-ref %caches 305))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rxor__' requires a 'bool' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-108)
+                                                            self-119)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other)))))
                (begin
-                 (set! $%cls_1
+                 (set! $%cls_3
                        (py-make-builtin-class
                         (&& "bool")
                         (&& "__main__")
                         (list &py-builtin-int)
                         (& "__rxor__")
-                        __rxor__-881
+                        __rxor__-926
                         (& "__xor__")
-                        __xor__-879
+                        __xor__-924
                         (& "__ror__")
-                        __ror__-877
+                        __ror__-922
                         (& "__or__")
-                        __or__-875
+                        __or__-920
                         (& "__rand__")
-                        __rand__-873
+                        __rand__-918
                         (& "__and__")
-                        __and__-871
+                        __and__-916
                         (& "__repr__")
-                        __repr__-869
+                        __repr__-914
                         (& "__new__")
-                        __new__-866))
-                 $%cls_1))))
+                        __new__-911))
+                 $%cls_3))))
      (let (($fun-obj
             (procedure->py-function
              procedure:&py-builtin-convert_to_float
@@ -2378,77 +2509,77 @@
        (set! &py-builtin-convert_to_float $fun-obj)
        (set! init:&py-builtin-convert_to_float $fun-obj))
      (set! &py-builtin-float
-           (let (($%cls_2 py-absent))
-             (letrec* ((__lt__-1022 #f)
-                       (__le__-1020 #f)
-                       (__gt__-1018 #f)
-                       (__ge__-1016 #f)
-                       (__ne__-1014 #f)
-                       (__eq__-1012 #f)
-                       (__imod__-1010 #f)
-                       (__rmod__-1008 #f)
-                       (__mod__-1006 #f)
-                       (__itruediv__-1004 #f)
-                       (__rtruediv__-1002 #f)
-                       (__truediv__-1000 #f)
-                       (__ifloordiv__-998 #f)
-                       (__rfloordiv__-996 #f)
-                       (__floordiv__-994 #f)
-                       (__neg__-992 #f)
-                       (__pos__-990 #f)
-                       (__isub__-988 #f)
-                       (__rsub__-986 #f)
-                       (__sub__-984 #f)
-                       (__ipow__-982 #f)
-                       (__rpow__-980 #f)
-                       (__pow__-978 #f)
-                       (__imul__-976 #f)
-                       (__rmul__-974 #f)
-                       (__mul__-972 #f)
-                       (__iadd__-970 #f)
-                       (__radd__-968 #f)
-                       (__add__-966 #f)
-                       (__bool__-964 #f)
-                       (__float__-962 #f)
-                       (__new__-959 #f))
+           (let (($%cls_4 py-absent))
+             (letrec* ((__lt__-1067 #f)
+                       (__le__-1065 #f)
+                       (__gt__-1063 #f)
+                       (__ge__-1061 #f)
+                       (__ne__-1059 #f)
+                       (__eq__-1057 #f)
+                       (__imod__-1055 #f)
+                       (__rmod__-1053 #f)
+                       (__mod__-1051 #f)
+                       (__itruediv__-1049 #f)
+                       (__rtruediv__-1047 #f)
+                       (__truediv__-1045 #f)
+                       (__ifloordiv__-1043 #f)
+                       (__rfloordiv__-1041 #f)
+                       (__floordiv__-1039 #f)
+                       (__neg__-1037 #f)
+                       (__pos__-1035 #f)
+                       (__isub__-1033 #f)
+                       (__rsub__-1031 #f)
+                       (__sub__-1029 #f)
+                       (__ipow__-1027 #f)
+                       (__rpow__-1025 #f)
+                       (__pow__-1023 #f)
+                       (__imul__-1021 #f)
+                       (__rmul__-1019 #f)
+                       (__mul__-1017 #f)
+                       (__iadd__-1015 #f)
+                       (__radd__-1013 #f)
+                       (__add__-1011 #f)
+                       (__bool__-1009 #f)
+                       (__float__-1007 #f)
+                       (__new__-1004 #f))
                (begin
-                 (set! __new__-959
+                 (set! __new__-1004
                        (procedure->py-function
-                        (lambda (cls-111 val-112)
+                        (lambda (cls-122 val-123)
                           (letrec* ()
-                            (if (py-test (py-is cls-111 &py-builtin-float))
-                                (if (py-test (py-is val-112 py-absent))
+                            (if (py-test (py-is cls-122 &py-builtin-float))
+                                (if (py-test (py-is val-123 py-absent))
                                     (py-float-from-scheme 0.)
                                     (py-throw
                                      (procedure:&py-builtin-convert_to_float
-                                      val-112)))
+                                      val-123)))
                                 (if (and (py-isinstance?
-                                          cls-111
+                                          cls-122
                                           (global-get
                                            %global
                                            (& "type")
-                                           (vector-ref %caches 305)))
+                                           (vector-ref %caches 315)))
                                          (py-test (py-call (global-get
                                                             %global
                                                             (& "issubclass")
                                                             (vector-ref
                                                              %caches
-                                                             306))
-                                                           cls-111
+                                                             316))
+                                                           cls-122
                                                            &py-builtin-float)))
-                                    (if (py-test (py-is val-112 py-absent))
+                                    (if (py-test (py-is val-123 py-absent))
                                         (make-PyObjectFloat
                                          py-float-hclass-of-instances
                                          '#()
-                                         cls-111
+                                         cls-122
                                          0.)
                                         (make-PyObjectFloat
                                          py-float-hclass-of-instances
                                          '#()
-                                         cls-111
+                                         cls-122
                                          (py-float-to-scheme
                                           (procedure:&py-builtin-convert_to_float
-                                           val-112))))
+                                           val-123))))
                                     (py-throw
                                      (py-call &py-builtin-TypeError
                                               (&& "float.__new__ expected a subtype of 'float' as first argument")))))))
@@ -2457,1437 +2588,1437 @@
                          (cls val)
                          defaults:
                          (vector py-absent))))
-                 (set! __float__-962
+                 (set! __float__-1007
                        (procedure->py-function
-                        (lambda (self-113)
+                        (lambda (self-124)
                           (letrec* ()
-                            (if (py-isinstance? self-113 &py-builtin-float)
+                            (if (py-isinstance? self-124 &py-builtin-float)
                                 (py-float-from-scheme
-                                 (py-float-to-scheme self-113))
+                                 (py-float-to-scheme self-124))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__float__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-113)
+                                                            self-124)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __bool__-964
+                 (set! __bool__-1009
                        (procedure->py-function
-                        (lambda (self-114)
+                        (lambda (self-125)
                           (letrec* ()
-                            (if (py-isinstance? self-114 &py-builtin-float)
-                                (py-ne self-114 (py-float-from-scheme 0.))
+                            (if (py-isinstance? self-125 &py-builtin-float)
+                                (py-ne self-125 (py-float-from-scheme 0.))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__bool__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-114)
+                                                            self-125)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __add__-966
+                 (set! __add__-1011
                        (procedure->py-function
-                        (lambda (self-115 other-116)
+                        (lambda (self-126 other-127)
                           (letrec* ()
-                            (if (py-isinstance? self-115 &py-builtin-float)
+                            (if (py-isinstance? self-126 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-116
+                                     other-127
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py+ (py-float-to-scheme self-115)
-                                          (py-float-to-scheme other-116)))
+                                     (py+ (py-float-to-scheme self-126)
+                                          (py-float-to-scheme other-127)))
                                     (if (py-isinstance?
-                                         other-116
+                                         other-127
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py+ (py-float-to-scheme self-115)
-                                              (py-int-to-scheme other-116)))
+                                         (py+ (py-float-to-scheme self-126)
+                                              (py-int-to-scheme other-127)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 319))))
+                                         (vector-ref %caches 329))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__add__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-115)
+                                                            self-126)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __radd__-968
+                 (set! __radd__-1013
                        (procedure->py-function
-                        (lambda (self-117 other-118)
+                        (lambda (self-128 other-129)
                           (letrec* ()
-                            (if (py-isinstance? self-117 &py-builtin-float)
+                            (if (py-isinstance? self-128 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-118
+                                     other-129
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py+ (py-float-to-scheme other-118)
-                                          (py-float-to-scheme self-117)))
+                                     (py+ (py-float-to-scheme other-129)
+                                          (py-float-to-scheme self-128)))
                                     (if (py-isinstance?
-                                         other-118
+                                         other-129
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py+ (py-int-to-scheme other-118)
-                                              (py-float-to-scheme self-117)))
+                                         (py+ (py-int-to-scheme other-129)
+                                              (py-float-to-scheme self-128)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 325))))
+                                         (vector-ref %caches 335))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__radd__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-117)
+                                                            self-128)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __iadd__-970
+                 (set! __iadd__-1015
                        (procedure->py-function
-                        (lambda (self-119 other-120)
+                        (lambda (self-130 other-131)
                           (letrec* ()
-                            (if (py-isinstance? self-119 &py-builtin-float)
+                            (if (py-isinstance? self-130 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-120
+                                     other-131
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py+ (py-float-to-scheme self-119)
-                                          (py-float-to-scheme other-120)))
+                                     (py+ (py-float-to-scheme self-130)
+                                          (py-float-to-scheme other-131)))
                                     (if (py-isinstance?
-                                         self-119
+                                         self-130
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py+ (py-float-to-scheme self-119)
-                                              (py-int-to-scheme other-120)))
+                                         (py+ (py-float-to-scheme self-130)
+                                              (py-int-to-scheme other-131)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 331))))
+                                         (vector-ref %caches 341))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__iadd__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-119)
+                                                            self-130)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mul__-972
+                 (set! __mul__-1017
                        (procedure->py-function
-                        (lambda (self-121 other-122)
+                        (lambda (self-132 other-133)
                           (letrec* ()
-                            (if (py-isinstance? self-121 &py-builtin-float)
+                            (if (py-isinstance? self-132 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-122
+                                     other-133
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py* (py-float-to-scheme self-121)
-                                          (py-float-to-scheme other-122)))
+                                     (py* (py-float-to-scheme self-132)
+                                          (py-float-to-scheme other-133)))
                                     (if (py-isinstance?
-                                         other-122
+                                         other-133
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py* (py-float-to-scheme self-121)
-                                              (py-int-to-scheme other-122)))
+                                         (py* (py-float-to-scheme self-132)
+                                              (py-int-to-scheme other-133)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 337))))
+                                         (vector-ref %caches 347))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__mul__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-121)
+                                                            self-132)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmul__-974
+                 (set! __rmul__-1019
                        (procedure->py-function
-                        (lambda (self-123 other-124)
+                        (lambda (self-134 other-135)
                           (letrec* ()
-                            (if (py-isinstance? self-123 &py-builtin-float)
+                            (if (py-isinstance? self-134 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-124
+                                     other-135
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py* (py-float-to-scheme other-124)
-                                          (py-float-to-scheme self-123)))
+                                     (py* (py-float-to-scheme other-135)
+                                          (py-float-to-scheme self-134)))
                                     (if (py-isinstance?
-                                         other-124
+                                         other-135
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py* (py-int-to-scheme other-124)
-                                              (py-float-to-scheme self-123)))
+                                         (py* (py-int-to-scheme other-135)
+                                              (py-float-to-scheme self-134)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 343))))
+                                         (vector-ref %caches 353))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rmul__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-123)
+                                                            self-134)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imul__-976
+                 (set! __imul__-1021
                        (procedure->py-function
-                        (lambda (self-125 other-126)
+                        (lambda (self-136 other-137)
                           (letrec* ()
-                            (if (py-isinstance? self-125 &py-builtin-float)
+                            (if (py-isinstance? self-136 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-126
+                                     other-137
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py* (py-float-to-scheme self-125)
-                                          (py-float-to-scheme other-126)))
+                                     (py* (py-float-to-scheme self-136)
+                                          (py-float-to-scheme other-137)))
                                     (if (py-isinstance?
-                                         self-125
+                                         self-136
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py* (py-float-to-scheme self-125)
-                                              (py-int-to-scheme other-126)))
+                                         (py* (py-float-to-scheme self-136)
+                                              (py-int-to-scheme other-137)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 349))))
+                                         (vector-ref %caches 359))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__imul__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-125)
+                                                            self-136)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __pow__-978
+                 (set! __pow__-1023
                        (procedure->py-function
-                        (lambda (self-127 other-128)
+                        (lambda (self-138 other-139)
                           (letrec* ()
-                            (if (py-isinstance? self-127 &py-builtin-float)
+                            (if (py-isinstance? self-138 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-128
+                                     other-139
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py** (py-float-to-scheme self-127)
-                                           (py-float-to-scheme other-128)))
+                                     (py** (py-float-to-scheme self-138)
+                                           (py-float-to-scheme other-139)))
                                     (if (py-isinstance?
-                                         other-128
+                                         other-139
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py** (py-float-to-scheme self-127)
-                                               (py-int-to-scheme other-128)))
+                                         (py** (py-float-to-scheme self-138)
+                                               (py-int-to-scheme other-139)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 355))))
+                                         (vector-ref %caches 365))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__pow__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-127)
+                                                            self-138)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rpow__-980
+                 (set! __rpow__-1025
                        (procedure->py-function
-                        (lambda (self-129 other-130)
+                        (lambda (self-140 other-141)
                           (letrec* ()
-                            (if (py-isinstance? self-129 &py-builtin-float)
+                            (if (py-isinstance? self-140 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-130
+                                     other-141
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py** (py-float-to-scheme other-130)
-                                           (py-float-to-scheme self-129)))
+                                     (py** (py-float-to-scheme other-141)
+                                           (py-float-to-scheme self-140)))
                                     (if (py-isinstance?
-                                         other-130
+                                         other-141
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py** (py-int-to-scheme other-130)
-                                               (py-float-to-scheme self-129)))
+                                         (py** (py-int-to-scheme other-141)
+                                               (py-float-to-scheme self-140)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 361))))
+                                         (vector-ref %caches 371))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rpow__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-129)
+                                                            self-140)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ipow__-982
+                 (set! __ipow__-1027
                        (procedure->py-function
-                        (lambda (self-131 other-132)
+                        (lambda (self-142 other-143)
                           (letrec* ()
-                            (if (py-isinstance? self-131 &py-builtin-float)
+                            (if (py-isinstance? self-142 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-132
+                                     other-143
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py** (py-float-to-scheme self-131)
-                                           (py-float-to-scheme other-132)))
+                                     (py** (py-float-to-scheme self-142)
+                                           (py-float-to-scheme other-143)))
                                     (if (py-isinstance?
-                                         self-131
+                                         self-142
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py** (py-float-to-scheme self-131)
-                                               (py-int-to-scheme other-132)))
+                                         (py** (py-float-to-scheme self-142)
+                                               (py-int-to-scheme other-143)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 367))))
+                                         (vector-ref %caches 377))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ipow__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-131)
+                                                            self-142)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __sub__-984
+                 (set! __sub__-1029
                        (procedure->py-function
-                        (lambda (self-133 other-134)
+                        (lambda (self-144 other-145)
                           (letrec* ()
-                            (if (py-isinstance? self-133 &py-builtin-float)
+                            (if (py-isinstance? self-144 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-134
+                                     other-145
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py- (py-float-to-scheme self-133)
-                                          (py-float-to-scheme other-134)))
+                                     (py- (py-float-to-scheme self-144)
+                                          (py-float-to-scheme other-145)))
                                     (if (py-isinstance?
-                                         other-134
+                                         other-145
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py- (py-float-to-scheme self-133)
-                                              (py-int-to-scheme other-134)))
+                                         (py- (py-float-to-scheme self-144)
+                                              (py-int-to-scheme other-145)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 373))))
+                                         (vector-ref %caches 383))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__sub__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-133)
+                                                            self-144)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rsub__-986
+                 (set! __rsub__-1031
                        (procedure->py-function
-                        (lambda (self-135 other-136)
+                        (lambda (self-146 other-147)
                           (letrec* ()
-                            (if (py-isinstance? self-135 &py-builtin-float)
+                            (if (py-isinstance? self-146 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-136
+                                     other-147
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py- (py-float-to-scheme other-136)
-                                          (py-float-to-scheme self-135)))
+                                     (py- (py-float-to-scheme other-147)
+                                          (py-float-to-scheme self-146)))
                                     (if (py-isinstance?
-                                         other-136
+                                         other-147
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py- (py-int-to-scheme other-136)
-                                              (py-float-to-scheme self-135)))
+                                         (py- (py-int-to-scheme other-147)
+                                              (py-float-to-scheme self-146)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 379))))
+                                         (vector-ref %caches 389))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rsub__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-135)
+                                                            self-146)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __isub__-988
+                 (set! __isub__-1033
                        (procedure->py-function
-                        (lambda (self-137 other-138)
+                        (lambda (self-148 other-149)
                           (letrec* ()
-                            (if (py-isinstance? self-137 &py-builtin-float)
+                            (if (py-isinstance? self-148 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-138
+                                     other-149
                                      &py-builtin-float)
                                     (py-float-from-scheme
-                                     (py- (py-float-to-scheme self-137)
-                                          (py-float-to-scheme other-138)))
+                                     (py- (py-float-to-scheme self-148)
+                                          (py-float-to-scheme other-149)))
                                     (if (py-isinstance?
-                                         self-137
+                                         self-148
                                          &py-builtin-int)
                                         (py-float-from-scheme
-                                         (py- (py-float-to-scheme self-137)
-                                              (py-int-to-scheme other-138)))
+                                         (py- (py-float-to-scheme self-148)
+                                              (py-int-to-scheme other-149)))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 385))))
+                                         (vector-ref %caches 395))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__isub__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-137)
+                                                            self-148)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __pos__-990
+                 (set! __pos__-1035
                        (procedure->py-function
-                        (lambda (self-139)
+                        (lambda (self-150)
                           (letrec* ()
-                            (if (py-isinstance? self-139 &py-builtin-float)
-                                self-139
+                            (if (py-isinstance? self-150 &py-builtin-float)
+                                self-150
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__pos__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-139)
+                                                            self-150)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __neg__-992
+                 (set! __neg__-1037
                        (procedure->py-function
-                        (lambda (self-140)
+                        (lambda (self-151)
                           (letrec* ()
-                            (if (py-isinstance? self-140 &py-builtin-float)
+                            (if (py-isinstance? self-151 &py-builtin-float)
                                 (py-float-from-scheme
-                                 (pyneg (py-float-to-scheme self-140)))
+                                 (pyneg (py-float-to-scheme self-151)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__neg__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-140)
+                                                            self-151)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self))))
-                 (set! __floordiv__-994
+                 (set! __floordiv__-1039
                        (procedure->py-function
-                        (lambda (self-141 other-142)
+                        (lambda (self-152 other-153)
                           (letrec* ()
-                            (if (py-isinstance? self-141 &py-builtin-float)
+                            (if (py-isinstance? self-152 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-142
+                                     other-153
                                      &py-builtin-float)
-                                    (if (py-test (py-ne other-142
+                                    (if (py-test (py-ne other-153
                                                         (py-float-from-scheme
                                                          0.)))
                                         (py-float-from-scheme
-                                         (py// (py-float-to-scheme self-141)
-                                               (py-float-to-scheme other-142)))
+                                         (py// (py-float-to-scheme self-152)
+                                               (py-float-to-scheme other-153)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "float division by zero"))))
                                     (if (py-isinstance?
-                                         other-142
+                                         other-153
                                          &py-builtin-int)
-                                        (if (py-test (py-ne other-142
+                                        (if (py-test (py-ne other-153
                                                             (py-int-from-scheme
                                                              0)))
                                             (py-float-from-scheme
                                              (py// (py-float-to-scheme
-                                                    self-141)
+                                                    self-152)
                                                    (py-int-to-scheme
-                                                    other-142)))
+                                                    other-153)))
                                             (py-throw
                                              (py-call &py-builtin-ZeroDivisionError
                                                       (&& "float division by zero"))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 400))))
+                                         (vector-ref %caches 410))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__floordiv__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-141)
+                                                            self-152)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rfloordiv__-996
+                 (set! __rfloordiv__-1041
                        (procedure->py-function
-                        (lambda (self-143 other-144)
+                        (lambda (self-154 other-155)
                           (letrec* ()
-                            (if (py-isinstance? self-143 &py-builtin-float)
+                            (if (py-isinstance? self-154 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-144
+                                     other-155
                                      &py-builtin-float)
-                                    (if (py-test (py-ne self-143
+                                    (if (py-test (py-ne self-154
                                                         (py-float-from-scheme
                                                          0.)))
                                         (py-float-from-scheme
-                                         (py// (py-float-to-scheme other-144)
-                                               (py-float-to-scheme self-143)))
+                                         (py// (py-float-to-scheme other-155)
+                                               (py-float-to-scheme self-154)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "float division by zero"))))
                                     (if (py-isinstance?
-                                         other-144
+                                         other-155
                                          &py-builtin-int)
-                                        (if (py-test (py-ne self-143
+                                        (if (py-test (py-ne self-154
                                                             (py-float-from-scheme
                                                              0.)))
                                             (py-float-from-scheme
-                                             (py// (py-int-to-scheme other-144)
+                                             (py// (py-int-to-scheme other-155)
                                                    (py-float-to-scheme
-                                                    self-143)))
+                                                    self-154)))
                                             (py-throw
                                              (py-call &py-builtin-ZeroDivisionError
                                                       (&& "float division by zero"))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 408))))
+                                         (vector-ref %caches 418))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rfloordiv__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-143)
+                                                            self-154)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ifloordiv__-998
+                 (set! __ifloordiv__-1043
                        (procedure->py-function
-                        (lambda (self-145 other-146)
+                        (lambda (self-156 other-157)
                           (letrec* ()
-                            (if (py-isinstance? self-145 &py-builtin-float)
+                            (if (py-isinstance? self-156 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-146
+                                     other-157
                                      &py-builtin-float)
-                                    (if (py-test (py-ne other-146
+                                    (if (py-test (py-ne other-157
                                                         (py-float-from-scheme
                                                          0.)))
                                         (py-float-from-scheme
-                                         (py// (py-float-to-scheme self-145)
-                                               (py-float-to-scheme other-146)))
+                                         (py// (py-float-to-scheme self-156)
+                                               (py-float-to-scheme other-157)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "float division by zero"))))
                                     (if (py-isinstance?
-                                         other-146
+                                         other-157
                                          &py-builtin-int)
-                                        (if (py-test (py-ne other-146
+                                        (if (py-test (py-ne other-157
                                                             (py-int-from-scheme
                                                              0)))
                                             (py-float-from-scheme
                                              (py// (py-float-to-scheme
-                                                    self-145)
+                                                    self-156)
                                                    (py-int-to-scheme
-                                                    other-146)))
+                                                    other-157)))
                                             (py-throw
                                              (py-call &py-builtin-ZeroDivisionError
                                                       (&& "float division by zero"))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 416))))
+                                         (vector-ref %caches 426))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__ifloordiv__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-145)
+                                                            self-156)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __truediv__-1000
+                 (set! __truediv__-1045
                        (procedure->py-function
-                        (lambda (self-147 other-148)
+                        (lambda (self-158 other-159)
                           (letrec* ()
-                            (if (py-isinstance? self-147 &py-builtin-float)
+                            (if (py-isinstance? self-158 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-148
+                                     other-159
                                      &py-builtin-float)
-                                    (if (py-test (py-ne other-148
+                                    (if (py-test (py-ne other-159
                                                         (py-float-from-scheme
                                                          0.)))
                                         (py-float-from-scheme
-                                         (py/ (py-float-to-scheme self-147)
-                                              (py-float-to-scheme other-148)))
+                                         (py/ (py-float-to-scheme self-158)
+                                              (py-float-to-scheme other-159)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "float division by zero"))))
                                     (if (py-isinstance?
-                                         other-148
+                                         other-159
                                          &py-builtin-int)
-                                        (if (py-test (py-ne other-148
+                                        (if (py-test (py-ne other-159
                                                             (py-int-from-scheme
                                                              0)))
                                             (py-float-from-scheme
-                                             (py/ (py-float-to-scheme self-147)
+                                             (py/ (py-float-to-scheme self-158)
                                                   (py-int-to-scheme
-                                                   other-148)))
+                                                   other-159)))
                                             (py-throw
                                              (py-call &py-builtin-ZeroDivisionError
                                                       (&& "float division by zero"))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 424))))
+                                         (vector-ref %caches 434))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__truediv__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-147)
+                                                            self-158)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rtruediv__-1002
+                 (set! __rtruediv__-1047
                        (procedure->py-function
-                        (lambda (self-149 other-150)
+                        (lambda (self-160 other-161)
                           (letrec* ()
-                            (if (py-isinstance? self-149 &py-builtin-float)
+                            (if (py-isinstance? self-160 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-150
+                                     other-161
                                      &py-builtin-float)
-                                    (if (py-test (py-ne self-149
+                                    (if (py-test (py-ne self-160
                                                         (py-float-from-scheme
                                                          0.)))
                                         (py-float-from-scheme
-                                         (py/ (py-float-to-scheme other-150)
-                                              (py-float-to-scheme self-149)))
+                                         (py/ (py-float-to-scheme other-161)
+                                              (py-float-to-scheme self-160)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "float division by zero"))))
                                     (if (py-isinstance?
-                                         other-150
+                                         other-161
                                          &py-builtin-int)
-                                        (if (py-test (py-ne self-149
+                                        (if (py-test (py-ne self-160
                                                             (py-float-from-scheme
                                                              0.)))
                                             (py-float-from-scheme
-                                             (py/ (py-int-to-scheme other-150)
+                                             (py/ (py-int-to-scheme other-161)
                                                   (py-float-to-scheme
-                                                   self-149)))
+                                                   self-160)))
                                             (py-throw
                                              (py-call &py-builtin-ZeroDivisionError
                                                       (&& "float division by zero"))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 432))))
+                                         (vector-ref %caches 442))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rtruediv__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-149)
+                                                            self-160)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __itruediv__-1004
+                 (set! __itruediv__-1049
                        (procedure->py-function
-                        (lambda (self-151 other-152)
+                        (lambda (self-162 other-163)
                           (letrec* ()
-                            (if (py-isinstance? self-151 &py-builtin-float)
+                            (if (py-isinstance? self-162 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-152
+                                     other-163
                                      &py-builtin-float)
-                                    (if (py-test (py-ne other-152
+                                    (if (py-test (py-ne other-163
                                                         (py-float-from-scheme
                                                          0.)))
                                         (py-float-from-scheme
-                                         (py/ (py-float-to-scheme self-151)
-                                              (py-float-to-scheme other-152)))
+                                         (py/ (py-float-to-scheme self-162)
+                                              (py-float-to-scheme other-163)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "float division by zero"))))
                                     (if (py-isinstance?
-                                         other-152
+                                         other-163
                                          &py-builtin-int)
-                                        (if (py-test (py-ne other-152
+                                        (if (py-test (py-ne other-163
                                                             (py-int-from-scheme
                                                              0)))
                                             (py-float-from-scheme
-                                             (py/ (py-float-to-scheme self-151)
+                                             (py/ (py-float-to-scheme self-162)
                                                   (py-int-to-scheme
-                                                   other-152)))
+                                                   other-163)))
                                             (py-throw
                                              (py-call &py-builtin-ZeroDivisionError
                                                       (&& "float division by zero"))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 440))))
+                                         (vector-ref %caches 450))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__itruediv__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-151)
+                                                            self-162)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mod__-1006
+                 (set! __mod__-1051
                        (procedure->py-function
-                        (lambda (self-153 other-154)
+                        (lambda (self-164 other-165)
                           (letrec* ()
-                            (if (py-isinstance? self-153 &py-builtin-float)
+                            (if (py-isinstance? self-164 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-154
+                                     other-165
                                      &py-builtin-float)
-                                    (if (py-test (py-ne other-154
+                                    (if (py-test (py-ne other-165
                                                         (py-float-from-scheme
                                                          0.)))
                                         (py-float-from-scheme
-                                         (py% (py-float-to-scheme self-153)
-                                              (py-float-to-scheme other-154)))
+                                         (py% (py-float-to-scheme self-164)
+                                              (py-float-to-scheme other-165)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "float modulo by zero"))))
                                     (if (py-isinstance?
-                                         other-154
+                                         other-165
                                          &py-builtin-int)
-                                        (if (py-test (py-ne other-154
+                                        (if (py-test (py-ne other-165
                                                             (py-int-from-scheme
                                                              0)))
                                             (py-float-from-scheme
-                                             (py% (py-float-to-scheme self-153)
+                                             (py% (py-float-to-scheme self-164)
                                                   (py-int-to-scheme
-                                                   other-154)))
+                                                   other-165)))
                                             (py-throw
                                              (py-call &py-builtin-ZeroDivisionError
                                                       (&& "float modulo by zero"))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 448))))
+                                         (vector-ref %caches 458))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__mod__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-153)
+                                                            self-164)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmod__-1008
+                 (set! __rmod__-1053
                        (procedure->py-function
-                        (lambda (self-155 other-156)
+                        (lambda (self-166 other-167)
                           (letrec* ()
-                            (if (py-isinstance? self-155 &py-builtin-float)
+                            (if (py-isinstance? self-166 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-156
+                                     other-167
                                      &py-builtin-float)
-                                    (if (py-test (py-ne self-155
+                                    (if (py-test (py-ne self-166
                                                         (py-float-from-scheme
                                                          0.)))
                                         (py-float-from-scheme
-                                         (py% (py-float-to-scheme other-156)
-                                              (py-float-to-scheme self-155)))
+                                         (py% (py-float-to-scheme other-167)
+                                              (py-float-to-scheme self-166)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "float modulo by zero"))))
                                     (if (py-isinstance?
-                                         other-156
+                                         other-167
                                          &py-builtin-int)
-                                        (if (py-test (py-ne self-155
+                                        (if (py-test (py-ne self-166
                                                             (py-float-from-scheme
                                                              0.)))
                                             (py-float-from-scheme
-                                             (py% (py-int-to-scheme other-156)
+                                             (py% (py-int-to-scheme other-167)
                                                   (py-float-to-scheme
-                                                   self-155)))
+                                                   self-166)))
                                             (py-throw
                                              (py-call &py-builtin-ZeroDivisionError
                                                       (&& "float modulo by zero"))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 456))))
+                                         (vector-ref %caches 466))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__rmod__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-155)
+                                                            self-166)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __imod__-1010
+                 (set! __imod__-1055
                        (procedure->py-function
-                        (lambda (self-157 other-158)
+                        (lambda (self-168 other-169)
                           (letrec* ()
-                            (if (py-isinstance? self-157 &py-builtin-float)
+                            (if (py-isinstance? self-168 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-158
+                                     other-169
                                      &py-builtin-float)
-                                    (if (py-test (py-ne other-158
+                                    (if (py-test (py-ne other-169
                                                         (py-float-from-scheme
                                                          0.)))
                                         (py-float-from-scheme
-                                         (py% (py-float-to-scheme self-157)
-                                              (py-float-to-scheme other-158)))
+                                         (py% (py-float-to-scheme self-168)
+                                              (py-float-to-scheme other-169)))
                                         (py-throw
                                          (py-call &py-builtin-ZeroDivisionError
                                                   (&& "float modulo by zero"))))
                                     (if (py-isinstance?
-                                         other-158
+                                         other-169
                                          &py-builtin-int)
-                                        (if (py-test (py-ne other-158
+                                        (if (py-test (py-ne other-169
                                                             (py-int-from-scheme
                                                              0)))
                                             (py-float-from-scheme
-                                             (py% (py-float-to-scheme self-157)
+                                             (py% (py-float-to-scheme self-168)
                                                   (py-int-to-scheme
-                                                   other-158)))
+                                                   other-169)))
                                             (py-throw
                                              (py-call &py-builtin-ZeroDivisionError
                                                       (&& "float modulo by zero"))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 464))))
+                                         (vector-ref %caches 474))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__imod__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-157)
+                                                            self-168)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __eq__-1012
+                 (set! __eq__-1057
                        (procedure->py-function
-                        (lambda (self-159 other-160)
+                        (lambda (self-170 other-171)
                           (letrec* ()
-                            (if (py-isinstance? self-159 &py-builtin-float)
+                            (if (py-isinstance? self-170 &py-builtin-float)
                                 (if (py-isinstance?
-                                     other-160
+                                     other-171
                                      &py-builtin-float)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py== (py-float-to-scheme self-159)
-                                            (py-float-to-scheme other-160))))
+                                      (py== (py-float-to-scheme self-170)
+                                            (py-float-to-scheme other-171))))
                                     (if (py-isinstance?
-                                         other-160
+                                         other-171
                                          &py-builtin-int)
                                         (py-bool-from-scheme-bool
                                          (py-test-from-scheme
-                                          (py== (py-float-to-scheme self-159)
-                                                (py-int-to-scheme other-160))))
+                                          (py== (py-float-to-scheme self-170)
+                                                (py-int-to-scheme other-171))))
                                         (global-get
                                          %global
                                          (& "NotImplemented")
-                                         (vector-ref %caches 470))))
+                                         (vector-ref %caches 480))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__eq__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-159)
+                                                            self-170)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ne__-1014
-                       (procedure->py-function
-                        (lambda (self-161 other-162)
-                          (letrec* ()
-                            (if (py-isinstance? self-161 &py-builtin-float)
-                                (if (py-isinstance?
-                                     other-162
-                                     &py-builtin-float)
-                                    (py-bool-from-scheme-bool
-                                     (py-test-from-scheme
-                                      (py!= (py-float-to-scheme self-161)
-                                            (py-float-to-scheme other-162))))
-                                    (if (py-isinstance?
-                                         other-162
-                                         &py-builtin-int)
-                                        (py-bool-from-scheme-bool
-                                         (py-test-from-scheme
-                                          (py!= (py-float-to-scheme self-161)
-                                                (py-int-to-scheme other-162))))
-                                        (global-get
-                                         %global
-                                         (& "NotImplemented")
-                                         (vector-ref %caches 476))))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ne__' requires a 'float' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls
-                                                            self-161)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __ge__-1016
-                       (procedure->py-function
-                        (lambda (self-163 other-164)
-                          (letrec* ()
-                            (if (py-isinstance? self-163 &py-builtin-float)
-                                (if (py-isinstance?
-                                     other-164
-                                     &py-builtin-float)
-                                    (py-bool-from-scheme-bool
-                                     (py-test-from-scheme
-                                      (py>= (py-float-to-scheme self-163)
-                                            (py-float-to-scheme other-164))))
-                                    (if (py-isinstance?
-                                         other-164
-                                         &py-builtin-int)
-                                        (py-bool-from-scheme-bool
-                                         (py-test-from-scheme
-                                          (py>= (py-float-to-scheme self-163)
-                                                (py-int-to-scheme other-164))))
-                                        (global-get
-                                         %global
-                                         (& "NotImplemented")
-                                         (vector-ref %caches 482))))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ge__' requires a 'float' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls
-                                                            self-163)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __gt__-1018
-                       (procedure->py-function
-                        (lambda (self-165 other-166)
-                          (letrec* ()
-                            (if (py-isinstance? self-165 &py-builtin-float)
-                                (if (py-isinstance?
-                                     other-166
-                                     &py-builtin-float)
-                                    (py-bool-from-scheme-bool
-                                     (py-test-from-scheme
-                                      (py> (py-float-to-scheme self-165)
-                                           (py-float-to-scheme other-166))))
-                                    (if (py-isinstance?
-                                         other-166
-                                         &py-builtin-int)
-                                        (py-bool-from-scheme-bool
-                                         (py-test-from-scheme
-                                          (py> (py-float-to-scheme self-165)
-                                               (py-int-to-scheme other-166))))
-                                        (global-get
-                                         %global
-                                         (& "NotImplemented")
-                                         (vector-ref %caches 488))))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__gt__' requires a 'float' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls
-                                                            self-165)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __le__-1020
-                       (procedure->py-function
-                        (lambda (self-167 other-168)
-                          (letrec* ()
-                            (if (py-isinstance? self-167 &py-builtin-float)
-                                (if (py-isinstance?
-                                     other-168
-                                     &py-builtin-float)
-                                    (py-bool-from-scheme-bool
-                                     (py-test-from-scheme
-                                      (py<= (py-float-to-scheme self-167)
-                                            (py-float-to-scheme other-168))))
-                                    (if (py-isinstance?
-                                         other-168
-                                         &py-builtin-int)
-                                        (py-bool-from-scheme-bool
-                                         (py-test-from-scheme
-                                          (py<= (py-float-to-scheme self-167)
-                                                (py-int-to-scheme other-168))))
-                                        (global-get
-                                         %global
-                                         (& "NotImplemented")
-                                         (vector-ref %caches 494))))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__le__' requires a 'float' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls
-                                                            self-167)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other))))
-                 (set! __lt__-1022
-                       (procedure->py-function
-                        (lambda (self-169 other-170)
-                          (letrec* ()
-                            (if (py-isinstance? self-169 &py-builtin-float)
-                                (if (py-isinstance?
-                                     other-170
-                                     &py-builtin-float)
-                                    (py-bool-from-scheme-bool
-                                     (py-test-from-scheme
-                                      (py< (py-float-to-scheme self-169)
-                                           (py-float-to-scheme other-170))))
-                                    (if (py-isinstance?
-                                         other-170
-                                         &py-builtin-int)
-                                        (py-bool-from-scheme-bool
-                                         (py-test-from-scheme
-                                          (py< (py-float-to-scheme self-169)
-                                               (py-int-to-scheme other-170))))
-                                        (global-get
-                                         %global
-                                         (& "NotImplemented")
-                                         (vector-ref %caches 500))))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__lt__' requires a 'float' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls
-                                                            self-169)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self other)))))
-               (begin
-                 (set! $%cls_2
-                       (py-make-builtin-class
-                        (&& "float")
-                        (&& "__main__")
-                        (list)
-                        (& "__lt__")
-                        __lt__-1022
-                        (& "__le__")
-                        __le__-1020
-                        (& "__gt__")
-                        __gt__-1018
-                        (& "__ge__")
-                        __ge__-1016
-                        (& "__ne__")
-                        __ne__-1014
-                        (& "__eq__")
-                        __eq__-1012
-                        (& "__imod__")
-                        __imod__-1010
-                        (& "__rmod__")
-                        __rmod__-1008
-                        (& "__mod__")
-                        __mod__-1006
-                        (& "__itruediv__")
-                        __itruediv__-1004
-                        (& "__rtruediv__")
-                        __rtruediv__-1002
-                        (& "__truediv__")
-                        __truediv__-1000
-                        (& "__ifloordiv__")
-                        __ifloordiv__-998
-                        (& "__rfloordiv__")
-                        __rfloordiv__-996
-                        (& "__floordiv__")
-                        __floordiv__-994
-                        (& "__neg__")
-                        __neg__-992
-                        (& "__pos__")
-                        __pos__-990
-                        (& "__isub__")
-                        __isub__-988
-                        (& "__rsub__")
-                        __rsub__-986
-                        (& "__sub__")
-                        __sub__-984
-                        (& "__ipow__")
-                        __ipow__-982
-                        (& "__rpow__")
-                        __rpow__-980
-                        (& "__pow__")
-                        __pow__-978
-                        (& "__imul__")
-                        __imul__-976
-                        (& "__rmul__")
-                        __rmul__-974
-                        (& "__mul__")
-                        __mul__-972
-                        (& "__iadd__")
-                        __iadd__-970
-                        (& "__radd__")
-                        __radd__-968
-                        (& "__add__")
-                        __add__-966
-                        (& "__bool__")
-                        __bool__-964
-                        (& "__float__")
-                        __float__-962
-                        (& "__new__")
-                        __new__-959))
-                 $%cls_2))))
-     (set! &py-builtin-str
-           (let (($%cls_3 py-absent))
-             (letrec* ((__lt__-1383 #f)
-                       (__le__-1381 #f)
-                       (__gt__-1379 #f)
-                       (__ge__-1377 #f)
-                       (__ne__-1375 #f)
-                       (__eq__-1373 #f)
-                       (__rmul__-1371 #f)
-                       (__mul__-1369 #f)
-                       (__add__-1367 #f)
-                       (__len__-1365 #f))
-               (begin
-                 (set! __len__-1365
-                       (procedure->py-function
-                        (lambda (self-171)
-                          (letrec* ()
-                            (if (py-isinstance? self-171 &py-builtin-str)
-                                (py-int-from-scheme
-                                 (py-str-len-to-scheme self-171))
-                                (py-throw
-                                 (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__len__' requires a 'str' object but received a '")
-                                                          (py-getattribute
-                                                           (py-obj-cls
-                                                            self-171)
-                                                           (& "__name__")))
-                                                  (&& "'")))))))
-                        (make-signature args: (self))))
-                 (set! __add__-1367
+                 (set! __ne__-1059
                        (procedure->py-function
                         (lambda (self-172 other-173)
                           (letrec* ()
-                            (if (py-isinstance? self-172 &py-builtin-str)
-                                (if (py-isinstance? other-173 &py-builtin-str)
-                                    (py-str-from-scheme
-                                     (py+ (py-str-to-scheme self-172)
-                                          (py-str-to-scheme other-173)))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 509)))
+                            (if (py-isinstance? self-172 &py-builtin-float)
+                                (if (py-isinstance?
+                                     other-173
+                                     &py-builtin-float)
+                                    (py-bool-from-scheme-bool
+                                     (py-test-from-scheme
+                                      (py!= (py-float-to-scheme self-172)
+                                            (py-float-to-scheme other-173))))
+                                    (if (py-isinstance?
+                                         other-173
+                                         &py-builtin-int)
+                                        (py-bool-from-scheme-bool
+                                         (py-test-from-scheme
+                                          (py!= (py-float-to-scheme self-172)
+                                                (py-int-to-scheme other-173))))
+                                        (global-get
+                                         %global
+                                         (& "NotImplemented")
+                                         (vector-ref %caches 486))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__add__' requires a 'str' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ne__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
                                                             self-172)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __mul__-1369
+                 (set! __ge__-1061
                        (procedure->py-function
                         (lambda (self-174 other-175)
                           (letrec* ()
-                            (if (py-isinstance? self-174 &py-builtin-str)
-                                (if (py-isinstance? other-175 &py-builtin-int)
-                                    (py-str-from-scheme
-                                     (py* (py-str-to-scheme self-174)
-                                          (py-int-to-scheme other-175)))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 514)))
+                            (if (py-isinstance? self-174 &py-builtin-float)
+                                (if (py-isinstance?
+                                     other-175
+                                     &py-builtin-float)
+                                    (py-bool-from-scheme-bool
+                                     (py-test-from-scheme
+                                      (py>= (py-float-to-scheme self-174)
+                                            (py-float-to-scheme other-175))))
+                                    (if (py-isinstance?
+                                         other-175
+                                         &py-builtin-int)
+                                        (py-bool-from-scheme-bool
+                                         (py-test-from-scheme
+                                          (py>= (py-float-to-scheme self-174)
+                                                (py-int-to-scheme other-175))))
+                                        (global-get
+                                         %global
+                                         (& "NotImplemented")
+                                         (vector-ref %caches 492))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__mul__' requires a 'str' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ge__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
                                                             self-174)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __rmul__-1371
+                 (set! __gt__-1063
                        (procedure->py-function
                         (lambda (self-176 other-177)
                           (letrec* ()
-                            (if (py-isinstance? self-176 &py-builtin-str)
-                                (if (py-isinstance? other-177 &py-builtin-int)
-                                    (py-str-from-scheme
-                                     (py* (py-str-to-scheme self-176)
-                                          (py-int-to-scheme other-177)))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 519)))
+                            (if (py-isinstance? self-176 &py-builtin-float)
+                                (if (py-isinstance?
+                                     other-177
+                                     &py-builtin-float)
+                                    (py-bool-from-scheme-bool
+                                     (py-test-from-scheme
+                                      (py> (py-float-to-scheme self-176)
+                                           (py-float-to-scheme other-177))))
+                                    (if (py-isinstance?
+                                         other-177
+                                         &py-builtin-int)
+                                        (py-bool-from-scheme-bool
+                                         (py-test-from-scheme
+                                          (py> (py-float-to-scheme self-176)
+                                               (py-int-to-scheme other-177))))
+                                        (global-get
+                                         %global
+                                         (& "NotImplemented")
+                                         (vector-ref %caches 498))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__rmul__' requires a 'str' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__gt__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
                                                             self-176)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __eq__-1373
+                 (set! __le__-1065
                        (procedure->py-function
                         (lambda (self-178 other-179)
                           (letrec* ()
-                            (if (py-isinstance? self-178 &py-builtin-str)
-                                (if (py-isinstance? other-179 &py-builtin-str)
+                            (if (py-isinstance? self-178 &py-builtin-float)
+                                (if (py-isinstance?
+                                     other-179
+                                     &py-builtin-float)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py== (py-str-to-scheme self-178)
-                                            (py-str-to-scheme other-179))))
-                                    (global-get
-                                     %global
-                                     (& "NotImplemented")
-                                     (vector-ref %caches 524)))
+                                      (py<= (py-float-to-scheme self-178)
+                                            (py-float-to-scheme other-179))))
+                                    (if (py-isinstance?
+                                         other-179
+                                         &py-builtin-int)
+                                        (py-bool-from-scheme-bool
+                                         (py-test-from-scheme
+                                          (py<= (py-float-to-scheme self-178)
+                                                (py-int-to-scheme other-179))))
+                                        (global-get
+                                         %global
+                                         (& "NotImplemented")
+                                         (vector-ref %caches 504))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__eq__' requires a 'str' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__le__' requires a 'float' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
                                                             self-178)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ne__-1375
+                 (set! __lt__-1067
                        (procedure->py-function
                         (lambda (self-180 other-181)
                           (letrec* ()
-                            (if (py-isinstance? self-180 &py-builtin-str)
-                                (if (py-isinstance? other-181 &py-builtin-str)
+                            (if (py-isinstance? self-180 &py-builtin-float)
+                                (if (py-isinstance?
+                                     other-181
+                                     &py-builtin-float)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py!= (py-str-to-scheme self-180)
-                                            (py-str-to-scheme other-181))))
+                                      (py< (py-float-to-scheme self-180)
+                                           (py-float-to-scheme other-181))))
+                                    (if (py-isinstance?
+                                         other-181
+                                         &py-builtin-int)
+                                        (py-bool-from-scheme-bool
+                                         (py-test-from-scheme
+                                          (py< (py-float-to-scheme self-180)
+                                               (py-int-to-scheme other-181))))
+                                        (global-get
+                                         %global
+                                         (& "NotImplemented")
+                                         (vector-ref %caches 510))))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__lt__' requires a 'float' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls
+                                                            self-180)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other)))))
+               (begin
+                 (set! $%cls_4
+                       (py-make-builtin-class
+                        (&& "float")
+                        (&& "__main__")
+                        (list)
+                        (& "__lt__")
+                        __lt__-1067
+                        (& "__le__")
+                        __le__-1065
+                        (& "__gt__")
+                        __gt__-1063
+                        (& "__ge__")
+                        __ge__-1061
+                        (& "__ne__")
+                        __ne__-1059
+                        (& "__eq__")
+                        __eq__-1057
+                        (& "__imod__")
+                        __imod__-1055
+                        (& "__rmod__")
+                        __rmod__-1053
+                        (& "__mod__")
+                        __mod__-1051
+                        (& "__itruediv__")
+                        __itruediv__-1049
+                        (& "__rtruediv__")
+                        __rtruediv__-1047
+                        (& "__truediv__")
+                        __truediv__-1045
+                        (& "__ifloordiv__")
+                        __ifloordiv__-1043
+                        (& "__rfloordiv__")
+                        __rfloordiv__-1041
+                        (& "__floordiv__")
+                        __floordiv__-1039
+                        (& "__neg__")
+                        __neg__-1037
+                        (& "__pos__")
+                        __pos__-1035
+                        (& "__isub__")
+                        __isub__-1033
+                        (& "__rsub__")
+                        __rsub__-1031
+                        (& "__sub__")
+                        __sub__-1029
+                        (& "__ipow__")
+                        __ipow__-1027
+                        (& "__rpow__")
+                        __rpow__-1025
+                        (& "__pow__")
+                        __pow__-1023
+                        (& "__imul__")
+                        __imul__-1021
+                        (& "__rmul__")
+                        __rmul__-1019
+                        (& "__mul__")
+                        __mul__-1017
+                        (& "__iadd__")
+                        __iadd__-1015
+                        (& "__radd__")
+                        __radd__-1013
+                        (& "__add__")
+                        __add__-1011
+                        (& "__bool__")
+                        __bool__-1009
+                        (& "__float__")
+                        __float__-1007
+                        (& "__new__")
+                        __new__-1004))
+                 $%cls_4))))
+     (set! &py-builtin-str
+           (let (($%cls_5 py-absent))
+             (letrec* ((__lt__-1428 #f)
+                       (__le__-1426 #f)
+                       (__gt__-1424 #f)
+                       (__ge__-1422 #f)
+                       (__ne__-1420 #f)
+                       (__eq__-1418 #f)
+                       (__rmul__-1416 #f)
+                       (__mul__-1414 #f)
+                       (__add__-1412 #f)
+                       (__len__-1410 #f))
+               (begin
+                 (set! __len__-1410
+                       (procedure->py-function
+                        (lambda (self-182)
+                          (letrec* ()
+                            (if (py-isinstance? self-182 &py-builtin-str)
+                                (py-int-from-scheme
+                                 (py-str-len-to-scheme self-182))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__len__' requires a 'str' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls
+                                                            self-182)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self))))
+                 (set! __add__-1412
+                       (procedure->py-function
+                        (lambda (self-183 other-184)
+                          (letrec* ()
+                            (if (py-isinstance? self-183 &py-builtin-str)
+                                (if (py-isinstance? other-184 &py-builtin-str)
+                                    (py-str-from-scheme
+                                     (py+ (py-str-to-scheme self-183)
+                                          (py-str-to-scheme other-184)))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 519)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__add__' requires a 'str' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls
+                                                            self-183)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __mul__-1414
+                       (procedure->py-function
+                        (lambda (self-185 other-186)
+                          (letrec* ()
+                            (if (py-isinstance? self-185 &py-builtin-str)
+                                (if (py-isinstance? other-186 &py-builtin-int)
+                                    (py-str-from-scheme
+                                     (py* (py-str-to-scheme self-185)
+                                          (py-int-to-scheme other-186)))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 524)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__mul__' requires a 'str' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls
+                                                            self-185)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __rmul__-1416
+                       (procedure->py-function
+                        (lambda (self-187 other-188)
+                          (letrec* ()
+                            (if (py-isinstance? self-187 &py-builtin-str)
+                                (if (py-isinstance? other-188 &py-builtin-int)
+                                    (py-str-from-scheme
+                                     (py* (py-str-to-scheme self-187)
+                                          (py-int-to-scheme other-188)))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 529)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ne__' requires a 'str' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__rmul__' requires a 'str' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-180)
+                                                            self-187)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __ge__-1377
+                 (set! __eq__-1418
                        (procedure->py-function
-                        (lambda (self-182 other-183)
+                        (lambda (self-189 other-190)
                           (letrec* ()
-                            (if (py-isinstance? self-182 &py-builtin-str)
-                                (if (py-isinstance? other-183 &py-builtin-str)
+                            (if (py-isinstance? self-189 &py-builtin-str)
+                                (if (py-isinstance? other-190 &py-builtin-str)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py>= (py-str-to-scheme self-182)
-                                            (py-str-to-scheme other-183))))
+                                      (py== (py-str-to-scheme self-189)
+                                            (py-str-to-scheme other-190))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 534)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__ge__' requires a 'str' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__eq__' requires a 'str' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-182)
+                                                            self-189)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __gt__-1379
+                 (set! __ne__-1420
                        (procedure->py-function
-                        (lambda (self-184 other-185)
+                        (lambda (self-191 other-192)
                           (letrec* ()
-                            (if (py-isinstance? self-184 &py-builtin-str)
-                                (if (py-isinstance? other-185 &py-builtin-str)
+                            (if (py-isinstance? self-191 &py-builtin-str)
+                                (if (py-isinstance? other-192 &py-builtin-str)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py> (py-str-to-scheme self-184)
-                                           (py-str-to-scheme other-185))))
+                                      (py!= (py-str-to-scheme self-191)
+                                            (py-str-to-scheme other-192))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 539)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__gt__' requires a 'str' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ne__' requires a 'str' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-184)
+                                                            self-191)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __le__-1381
+                 (set! __ge__-1422
                        (procedure->py-function
-                        (lambda (self-186 other-187)
+                        (lambda (self-193 other-194)
                           (letrec* ()
-                            (if (py-isinstance? self-186 &py-builtin-str)
-                                (if (py-isinstance? other-187 &py-builtin-str)
+                            (if (py-isinstance? self-193 &py-builtin-str)
+                                (if (py-isinstance? other-194 &py-builtin-str)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py<= (py-str-to-scheme self-186)
-                                            (py-str-to-scheme other-187))))
+                                      (py>= (py-str-to-scheme self-193)
+                                            (py-str-to-scheme other-194))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 544)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
-                                          (py-add (py-add (&& "descriptor '__le__' requires a 'str' object but received a '")
+                                          (py-add (py-add (&& "descriptor '__ge__' requires a 'str' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-186)
+                                                            self-193)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other))))
-                 (set! __lt__-1383
+                 (set! __gt__-1424
                        (procedure->py-function
-                        (lambda (self-188 other-189)
+                        (lambda (self-195 other-196)
                           (letrec* ()
-                            (if (py-isinstance? self-188 &py-builtin-str)
-                                (if (py-isinstance? other-189 &py-builtin-str)
+                            (if (py-isinstance? self-195 &py-builtin-str)
+                                (if (py-isinstance? other-196 &py-builtin-str)
                                     (py-bool-from-scheme-bool
                                      (py-test-from-scheme
-                                      (py< (py-str-to-scheme self-188)
-                                           (py-str-to-scheme other-189))))
+                                      (py> (py-str-to-scheme self-195)
+                                           (py-str-to-scheme other-196))))
                                     (global-get
                                      %global
                                      (& "NotImplemented")
                                      (vector-ref %caches 549)))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__gt__' requires a 'str' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls
+                                                            self-195)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __le__-1426
+                       (procedure->py-function
+                        (lambda (self-197 other-198)
+                          (letrec* ()
+                            (if (py-isinstance? self-197 &py-builtin-str)
+                                (if (py-isinstance? other-198 &py-builtin-str)
+                                    (py-bool-from-scheme-bool
+                                     (py-test-from-scheme
+                                      (py<= (py-str-to-scheme self-197)
+                                            (py-str-to-scheme other-198))))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 554)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
+                                          (py-add (py-add (&& "descriptor '__le__' requires a 'str' object but received a '")
+                                                          (py-getattribute
+                                                           (py-obj-cls
+                                                            self-197)
+                                                           (& "__name__")))
+                                                  (&& "'")))))))
+                        (make-signature args: (self other))))
+                 (set! __lt__-1428
+                       (procedure->py-function
+                        (lambda (self-199 other-200)
+                          (letrec* ()
+                            (if (py-isinstance? self-199 &py-builtin-str)
+                                (if (py-isinstance? other-200 &py-builtin-str)
+                                    (py-bool-from-scheme-bool
+                                     (py-test-from-scheme
+                                      (py< (py-str-to-scheme self-199)
+                                           (py-str-to-scheme other-200))))
+                                    (global-get
+                                     %global
+                                     (& "NotImplemented")
+                                     (vector-ref %caches 559)))
+                                (py-throw
+                                 (py-call &py-builtin-TypeError
                                           (py-add (py-add (&& "descriptor '__lt__' requires a 'str' object but received a '")
                                                           (py-getattribute
                                                            (py-obj-cls
-                                                            self-188)
+                                                            self-199)
                                                            (& "__name__")))
                                                   (&& "'")))))))
                         (make-signature args: (self other)))))
                (begin
-                 (set! $%cls_3
+                 (set! $%cls_5
                        (py-make-builtin-class
                         (&& "str")
                         (&& "__main__")
                         (list)
                         (& "__lt__")
-                        __lt__-1383
+                        __lt__-1428
                         (& "__le__")
-                        __le__-1381
+                        __le__-1426
                         (& "__gt__")
-                        __gt__-1379
+                        __gt__-1424
                         (& "__ge__")
-                        __ge__-1377
+                        __ge__-1422
                         (& "__ne__")
-                        __ne__-1375
+                        __ne__-1420
                         (& "__eq__")
-                        __eq__-1373
+                        __eq__-1418
                         (& "__rmul__")
-                        __rmul__-1371
+                        __rmul__-1416
                         (& "__mul__")
-                        __mul__-1369
+                        __mul__-1414
                         (& "__add__")
-                        __add__-1367
+                        __add__-1412
                         (& "__len__")
-                        __len__-1365))
-                 $%cls_3))))
+                        __len__-1410))
+                 $%cls_5))))
      (set! &py-builtin-range_iterator
-           (let (($%cls_4 py-absent))
-             (letrec* ((__next__-1481 #f) (__iter__-1479 #f) (__new__-1477 #f))
+           (let (($%cls_6 py-absent))
+             (letrec* ((__next__-1526 #f) (__iter__-1524 #f) (__new__-1522 #f))
                (begin
-                 (set! __new__-1477
+                 (set! __new__-1522
                        (procedure->py-function
-                        (lambda (args-190)
+                        (lambda (args-201)
                           (letrec* ()
                             (py-throw
                              (py-call &py-builtin-ValueError
                                       (&& "cannot create 'range_iterator' instances")))))
                         (make-signature vararg: args)))
-                 (set! __iter__-1479
+                 (set! __iter__-1524
                        (procedure->py-function
-                        (lambda (self-191) (letrec* () self-191))
+                        (lambda (self-202) (letrec* () self-202))
                         (make-signature posonlyargs: (self))))
-                 (set! __next__-1481
+                 (set! __next__-1526
                        (procedure->py-function
-                        (lambda (self-192)
+                        (lambda (self-203)
                           (bind-exit
-                           ($%return_73)
-                           (letrec* ((step-1488 #f)
-                                     (stop-1486 #f)
-                                     (start-1483 #f))
+                           ($%return_75)
+                           (letrec* ((step-1533 #f)
+                                     (stop-1531 #f)
+                                     (start-1528 #f))
                              (begin
-                               (set! start-1483
-                                     (PyObjectRangeIterator-start self-192))
-                               (set! stop-1486
-                                     (PyObjectRangeIterator-stop self-192))
-                               (set! step-1488
-                                     (PyObjectRangeIterator-step self-192))
-                               (if (py-test (py-lt step-1488
+                               (set! start-1528
+                                     (PyObjectRangeIterator-start self-203))
+                               (set! stop-1531
+                                     (PyObjectRangeIterator-stop self-203))
+                               (set! step-1533
+                                     (PyObjectRangeIterator-step self-203))
+                               (if (py-test (py-lt step-1533
                                                    (py-int-from-scheme 0)))
-                                   (if (py-test (py-gt start-1483 stop-1486))
+                                   (if (py-test (py-gt start-1528 stop-1531))
                                        (begin
                                          (PyObjectRangeIterator-start-set!
-                                          self-192
-                                          (py-add start-1483 step-1488))
-                                         ($%return_73 start-1483))
+                                          self-203
+                                          (py-add start-1528 step-1533))
+                                         ($%return_75 start-1528))
                                        #f)
-                                   (if (py-test (py-lt start-1483 stop-1486))
+                                   (if (py-test (py-lt start-1528 stop-1531))
                                        (begin
                                          (PyObjectRangeIterator-start-set!
-                                          self-192
-                                          (py-add start-1483 step-1488))
-                                         ($%return_73 start-1483))
+                                          self-203
+                                          (py-add start-1528 step-1533))
+                                         ($%return_75 start-1528))
                                        #f))
                                (py-throw &py-builtin-StopIteration)))))
                         (make-signature posonlyargs: (self)))))
                (begin
-                 (set! $%cls_4
+                 (set! $%cls_6
                        (py-make-builtin-class
                         (&& "range_iterator")
                         (&& "__main__")
                         (list)
                         (& "__next__")
-                        __next__-1481
+                        __next__-1526
                         (& "__iter__")
-                        __iter__-1479
+                        __iter__-1524
                         (& "__new__")
-                        __new__-1477))
-                 $%cls_4))))
+                        __new__-1522))
+                 $%cls_6))))
      (set! &py-builtin-range
-           (let (($%cls_5 py-absent))
-             (letrec* ((__repr__-1502 #f)
-                       (__iter__-1500 #f)
-                       (__contains__-1498 #f)
-                       (__len__-1496 #f)
-                       (__new__-1493 #f))
+           (let (($%cls_7 py-absent))
+             (letrec* ((__repr__-1547 #f)
+                       (__iter__-1545 #f)
+                       (__contains__-1543 #f)
+                       (__len__-1541 #f)
+                       (__new__-1538 #f))
                (begin
-                 (set! __new__-1493
+                 (set! __new__-1538
                        (procedure->py-function
-                        (lambda (cls-193 arg1-194 arg2-195 arg3-196)
+                        (lambda (cls-204 arg1-205 arg2-206 arg3-207)
                           (letrec* ()
-                            (if (py-test (py-is cls-193 &py-builtin-range))
-                                (if (py-test (py-isnot arg3-196 py-absent))
+                            (if (py-test (py-is cls-204 &py-builtin-range))
+                                (if (py-test (py-isnot arg3-207 py-absent))
                                     (make-PyObjectRange
                                      py-range-hclass-of-instances
                                      '#()
                                      py-builtin-range
-                                     (py-big-index arg1-194)
-                                     (py-big-index arg2-195)
-                                     (py-big-index arg3-196))
-                                    (if (py-test (py-isnot arg2-195 py-absent))
+                                     (py-big-index arg1-205)
+                                     (py-big-index arg2-206)
+                                     (py-big-index arg3-207))
+                                    (if (py-test (py-isnot arg2-206 py-absent))
                                         (make-PyObjectRange
                                          py-range-hclass-of-instances
                                          '#()
                                          py-builtin-range
-                                         (py-big-index arg1-194)
-                                         (py-big-index arg2-195)
+                                         (py-big-index arg1-205)
+                                         (py-big-index arg2-206)
                                          (py-int-from-scheme 1))
                                         (make-PyObjectRange
                                          py-range-hclass-of-instances
                                          '#()
                                          py-builtin-range
                                          (py-int-from-scheme 0)
-                                         (py-big-index arg1-194)
+                                         (py-big-index arg1-205)
                                          (py-int-from-scheme 1))))
                                 (py-throw
                                  (py-call &py-builtin-TypeError
@@ -3897,104 +4028,104 @@
                          (cls arg1 arg2 arg3)
                          defaults:
                          (vector py-absent py-absent))))
-                 (set! __len__-1496
+                 (set! __len__-1541
                        (procedure->py-function
-                        (lambda (self-197)
+                        (lambda (self-208)
                           (letrec* ()
                             (py-floordiv
-                             (py-sub (PyObjectRange-stop self-197)
-                                     (PyObjectRange-start self-197))
-                             (PyObjectRange-step self-197))))
+                             (py-sub (PyObjectRange-stop self-208)
+                                     (PyObjectRange-start self-208))
+                             (PyObjectRange-step self-208))))
                         (make-signature posonlyargs: (self))))
-                 (set! __contains__-1498
+                 (set! __contains__-1543
                        (procedure->py-function
-                        (lambda (self-198 item-199)
+                        (lambda (self-209 item-210)
                           (bind-exit
-                           ($%return_74)
-                           (letrec* ((step-1520 #f)
-                                     (stop-1518 #f)
-                                     (start-1515 #f))
+                           ($%return_76)
+                           (letrec* ((step-1565 #f)
+                                     (stop-1563 #f)
+                                     (start-1560 #f))
                              (begin
-                               (set! start-1515 (PyObjectRange-start self-198))
-                               (set! stop-1518 (PyObjectRange-stop self-198))
-                               (set! step-1520 (PyObjectRange-step self-198))
-                               (if (py-test (py-lt step-1520
+                               (set! start-1560 (PyObjectRange-start self-209))
+                               (set! stop-1563 (PyObjectRange-stop self-209))
+                               (set! step-1565 (PyObjectRange-step self-209))
+                               (if (py-test (py-lt step-1565
                                                    (py-int-from-scheme 0)))
-                                   (if (or (py-test (py-ge stop-1518 item-199))
-                                           (py-test (py-gt item-199
-                                                           start-1515)))
-                                       ($%return_74 py-False)
+                                   (if (or (py-test (py-ge stop-1563 item-210))
+                                           (py-test (py-gt item-210
+                                                           start-1560)))
+                                       ($%return_76 py-False)
                                        #f)
-                                   (if (or (py-test (py-gt start-1515
-                                                           item-199))
-                                           (py-test (py-ge item-199
-                                                           stop-1518)))
-                                       ($%return_74 py-False)
+                                   (if (or (py-test (py-gt start-1560
+                                                           item-210))
+                                           (py-test (py-ge item-210
+                                                           stop-1563)))
+                                       ($%return_76 py-False)
                                        #f))
-                               (py-eq (py-mod (py-sub item-199 start-1515)
-                                              step-1520)
+                               (py-eq (py-mod (py-sub item-210 start-1560)
+                                              step-1565)
                                       (py-int-from-scheme 0))))))
                         (make-signature posonlyargs: (self item))))
-                 (set! __iter__-1500
+                 (set! __iter__-1545
                        (procedure->py-function
-                        (lambda (self-200)
+                        (lambda (self-211)
                           (letrec* ()
                             (make-PyObjectRangeIterator
                              py-range_iterator-hclass-of-instances
                              '#()
                              py-builtin-range_iterator
-                             (PyObjectRange-start self-200)
-                             (PyObjectRange-stop self-200)
-                             (PyObjectRange-step self-200))))
+                             (PyObjectRange-start self-211)
+                             (PyObjectRange-stop self-211)
+                             (PyObjectRange-step self-211))))
                         (make-signature posonlyargs: (self))))
-                 (set! __repr__-1502
+                 (set! __repr__-1547
                        (procedure->py-function
-                        (lambda (self-201)
-                          (letrec* ((step-1509 #f)
-                                    (stop-1507 #f)
-                                    (start-1504 #f))
+                        (lambda (self-212)
+                          (letrec* ((step-1554 #f)
+                                    (stop-1552 #f)
+                                    (start-1549 #f))
                             (begin
-                              (set! start-1504 (PyObjectRange-start self-201))
-                              (set! stop-1507 (PyObjectRange-stop self-201))
-                              (set! step-1509 (PyObjectRange-step self-201))
-                              (if (py-test (py-eq step-1509
+                              (set! start-1549 (PyObjectRange-start self-212))
+                              (set! stop-1552 (PyObjectRange-stop self-212))
+                              (set! step-1554 (PyObjectRange-step self-212))
+                              (if (py-test (py-eq step-1554
                                                   (py-int-from-scheme 1)))
                                   (py-add (py-add (py-add (py-add (&& "range(")
 ;;<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                          (py-call &py-builtin-str start-1504))
+                          (py-call &py-builtin-str start-1549))
                   (&& ", "))
 ;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                                                   (py-call &py-builtin-str
-                                                           stop-1507))
+                                                           stop-1552))
                                           (&& ")"))
                                   (py-add (py-add (py-add (py-add (py-add (py-add (&& "range(")
 ;;<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                                          (py-call &py-builtin-str start-1504))
+                                          (py-call &py-builtin-str start-1549))
                                   (&& ", "))
-                          (py-call &py-builtin-str stop-1507))
+                          (py-call &py-builtin-str stop-1552))
                   (&& ", "))
 ;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                                                   (py-call &py-builtin-str
-                                                           step-1509))
+                                                           step-1554))
                                           (&& ")"))))))
                         (make-signature args: (self)))))
                (begin
-                 (set! $%cls_5
+                 (set! $%cls_7
                        (py-make-builtin-class
                         (&& "range")
                         (&& "__main__")
                         (list)
                         (& "__repr__")
-                        __repr__-1502
+                        __repr__-1547
                         (& "__iter__")
-                        __iter__-1500
+                        __iter__-1545
                         (& "__contains__")
-                        __contains__-1498
+                        __contains__-1543
                         (& "__len__")
-                        __len__-1496
+                        __len__-1541
                         (& "__new__")
-                        __new__-1493))
-                 $%cls_5))))
+                        __new__-1538))
+                 $%cls_7))))
      (let (($fun-obj
             (procedure->py-function
              procedure:&py-builtin-__merge
@@ -4018,793 +4149,793 @@
        (set! &py-builtin-sorted $fun-obj)
        (set! init:&py-builtin-sorted $fun-obj))
      (set! &py-builtin-BaseException
-           (let (($%cls_6 py-absent))
-             (letrec* ((__str__-1559 #f) (__init__-1557 #f))
+           (let (($%cls_8 py-absent))
+             (letrec* ((__str__-1604 #f) (__init__-1602 #f))
                (begin
-                 (set! __init__-1557
+                 (set! __init__-1602
                        (procedure->py-function
-                        (lambda (self-209 args-210)
+                        (lambda (self-220 args-221)
                           (letrec* ()
                             (begin
                               (py-setattribute
-                               (or self-209
+                               (or self-220
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'self' referenced before assignment"))
                                (& "args")
-                               (or args-210
+                               (or args-221
                                    (py-throw-exception-with-message
                                     py-builtin-UnboundLocalError
                                     "local variable 'args' referenced before assignment")))
                               py-None)))
                         (make-signature args: (self) vararg: args)))
-                 (set! __str__-1559
+                 (set! __str__-1604
                        (procedure->py-function
-                        (lambda (self-211)
-                          (letrec* ((args_len-1564 #f) (args-1561 #f))
+                        (lambda (self-222)
+                          (letrec* ((args_len-1609 #f) (args-1606 #f))
                             (begin
-                              (set! args-1561
-                                    (py-getattribute self-211 (& "args")))
-                              (set! args_len-1564
+                              (set! args-1606
+                                    (py-getattribute self-222 (& "args")))
+                              (set! args_len-1609
                                     (py-call (global-get
                                               %global
                                               (& "len")
-                                              (vector-ref %caches 602))
+                                              (vector-ref %caches 612))
                                              (py-getattribute
-                                              self-211
+                                              self-222
                                               (& "args"))))
-                              (if (py-test (py-eq args_len-1564
+                              (if (py-test (py-eq args_len-1609
                                                   (py-int-from-scheme 0)))
                                   (&& "")
-                                  (if (py-test (py-eq args_len-1564
+                                  (if (py-test (py-eq args_len-1609
                                                       (py-int-from-scheme 1)))
                                       (py-call &py-builtin-str
                                                (py-getitem
-                                                args-1561
+                                                args-1606
                                                 (py-int-from-scheme 0)))
-                                      (py-call &py-builtin-str args-1561))))))
+                                      (py-call &py-builtin-str args-1606))))))
                         (make-signature args: (self)))))
                (begin
-                 (set! $%cls_6
+                 (set! $%cls_8
                        (py-make-builtin-class
                         (&& "BaseException")
                         (&& "__main__")
                         (list)
                         (& "__str__")
-                        __str__-1559
+                        __str__-1604
                         (& "__init__")
-                        __init__-1557))
-                 $%cls_6))))
-     (set! &py-builtin-Exception
-           (let (($%cls_7 py-absent))
-             (letrec* ()
-               #f
-               (begin
-                 (set! $%cls_7
-                       (py-make-builtin-class
-                        (&& "Exception")
-                        (&& "__main__")
-                        (list &py-builtin-BaseException)))
-                 $%cls_7))))
-     (set! &py-builtin-GeneratorExit
-           (let (($%cls_8 py-absent))
-             (letrec* ()
-               #f
-               (begin
-                 (set! $%cls_8
-                       (py-make-builtin-class
-                        (&& "GeneratorExit")
-                        (&& "__main__")
-                        (list &py-builtin-BaseException)))
+                        __init__-1602))
                  $%cls_8))))
-     (set! &py-builtin-KeyboardInterrupt
+     (set! &py-builtin-Exception
            (let (($%cls_9 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_9
                        (py-make-builtin-class
-                        (&& "KeyboardInterrupt")
+                        (&& "Exception")
                         (&& "__main__")
                         (list &py-builtin-BaseException)))
                  $%cls_9))))
-     (set! &py-builtin-SystemExit
+     (set! &py-builtin-GeneratorExit
            (let (($%cls_10 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_10
                        (py-make-builtin-class
-                        (&& "SystemExit")
+                        (&& "GeneratorExit")
                         (&& "__main__")
                         (list &py-builtin-BaseException)))
                  $%cls_10))))
-     (set! &py-builtin-ArithmeticError
+     (set! &py-builtin-KeyboardInterrupt
            (let (($%cls_11 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_11
                        (py-make-builtin-class
-                        (&& "ArithmeticError")
+                        (&& "KeyboardInterrupt")
                         (&& "__main__")
-                        (list &py-builtin-Exception)))
+                        (list &py-builtin-BaseException)))
                  $%cls_11))))
-     (set! &py-builtin-AssertionError
+     (set! &py-builtin-SystemExit
            (let (($%cls_12 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_12
                        (py-make-builtin-class
-                        (&& "AssertionError")
+                        (&& "SystemExit")
                         (&& "__main__")
-                        (list &py-builtin-Exception)))
+                        (list &py-builtin-BaseException)))
                  $%cls_12))))
-     (set! &py-builtin-AttributeError
+     (set! &py-builtin-ArithmeticError
            (let (($%cls_13 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_13
                        (py-make-builtin-class
-                        (&& "AttributeError")
+                        (&& "ArithmeticError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_13))))
-     (set! &py-builtin-BufferError
+     (set! &py-builtin-AssertionError
            (let (($%cls_14 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_14
                        (py-make-builtin-class
-                        (&& "BufferError")
+                        (&& "AssertionError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_14))))
-     (set! &py-builtin-EOFError
+     (set! &py-builtin-AttributeError
            (let (($%cls_15 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_15
                        (py-make-builtin-class
-                        (&& "EOFError")
+                        (&& "AttributeError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_15))))
-     (set! &py-builtin-ImportError
+     (set! &py-builtin-BufferError
            (let (($%cls_16 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_16
                        (py-make-builtin-class
-                        (&& "ImportError")
+                        (&& "BufferError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_16))))
-     (set! &py-builtin-LookupError
+     (set! &py-builtin-EOFError
            (let (($%cls_17 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_17
                        (py-make-builtin-class
-                        (&& "LookupError")
+                        (&& "EOFError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_17))))
-     (set! &py-builtin-MemoryError
+     (set! &py-builtin-ImportError
            (let (($%cls_18 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_18
                        (py-make-builtin-class
-                        (&& "MemoryError")
+                        (&& "ImportError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_18))))
-     (set! &py-builtin-NameError
+     (set! &py-builtin-LookupError
            (let (($%cls_19 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_19
                        (py-make-builtin-class
-                        (&& "NameError")
+                        (&& "LookupError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_19))))
-     (set! &py-builtin-EnvironmentError
+     (set! &py-builtin-MemoryError
            (let (($%cls_20 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_20
                        (py-make-builtin-class
-                        (&& "EnvironmentError")
+                        (&& "MemoryError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_20))))
-     (set! &py-builtin-IOError
+     (set! &py-builtin-NameError
            (let (($%cls_21 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_21
                        (py-make-builtin-class
-                        (&& "IOError")
+                        (&& "NameError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_21))))
-     (set! &py-builtin-OSError
+     (set! &py-builtin-EnvironmentError
            (let (($%cls_22 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_22
                        (py-make-builtin-class
-                        (&& "OSError")
+                        (&& "EnvironmentError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_22))))
-     (set! &py-builtin-WindowsError
+     (set! &py-builtin-IOError
            (let (($%cls_23 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_23
                        (py-make-builtin-class
-                        (&& "WindowsError")
+                        (&& "IOError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_23))))
-     (set! &py-builtin-ReferenceError
+     (set! &py-builtin-OSError
            (let (($%cls_24 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_24
                        (py-make-builtin-class
-                        (&& "ReferenceError")
+                        (&& "OSError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_24))))
-     (set! &py-builtin-RuntimeError
+     (set! &py-builtin-WindowsError
            (let (($%cls_25 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_25
                        (py-make-builtin-class
-                        (&& "RuntimeError")
+                        (&& "WindowsError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_25))))
-     (set! &py-builtin-StopAsyncIteration
+     (set! &py-builtin-ReferenceError
            (let (($%cls_26 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_26
                        (py-make-builtin-class
-                        (&& "StopAsyncIteration")
+                        (&& "ReferenceError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_26))))
-     (set! &py-builtin-StopIteration
+     (set! &py-builtin-RuntimeError
            (let (($%cls_27 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_27
                        (py-make-builtin-class
-                        (&& "StopIteration")
+                        (&& "RuntimeError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_27))))
-     (set! &py-builtin-SyntaxError
+     (set! &py-builtin-StopAsyncIteration
            (let (($%cls_28 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_28
                        (py-make-builtin-class
-                        (&& "SyntaxError")
+                        (&& "StopAsyncIteration")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_28))))
-     (set! &py-builtin-SystemError
+     (set! &py-builtin-StopIteration
            (let (($%cls_29 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_29
                        (py-make-builtin-class
-                        (&& "SystemError")
+                        (&& "StopIteration")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_29))))
-     (set! &py-builtin-TypeError
+     (set! &py-builtin-SyntaxError
            (let (($%cls_30 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_30
                        (py-make-builtin-class
-                        (&& "TypeError")
+                        (&& "SyntaxError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_30))))
-     (set! &py-builtin-ValueError
+     (set! &py-builtin-SystemError
            (let (($%cls_31 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_31
                        (py-make-builtin-class
-                        (&& "ValueError")
+                        (&& "SystemError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_31))))
-     (set! &py-builtin-Warning
+     (set! &py-builtin-TypeError
            (let (($%cls_32 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_32
                        (py-make-builtin-class
-                        (&& "Warning")
+                        (&& "TypeError")
                         (&& "__main__")
                         (list &py-builtin-Exception)))
                  $%cls_32))))
-     (set! &py-builtin-FloatingPointError
+     (set! &py-builtin-ValueError
            (let (($%cls_33 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_33
                        (py-make-builtin-class
-                        (&& "FloatingPointError")
+                        (&& "ValueError")
                         (&& "__main__")
-                        (list &py-builtin-ArithmeticError)))
+                        (list &py-builtin-Exception)))
                  $%cls_33))))
-     (set! &py-builtin-OverflowError
+     (set! &py-builtin-Warning
            (let (($%cls_34 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_34
                        (py-make-builtin-class
-                        (&& "OverflowError")
+                        (&& "Warning")
                         (&& "__main__")
-                        (list &py-builtin-ArithmeticError)))
+                        (list &py-builtin-Exception)))
                  $%cls_34))))
-     (set! &py-builtin-ZeroDivisionError
+     (set! &py-builtin-FloatingPointError
            (let (($%cls_35 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_35
                        (py-make-builtin-class
-                        (&& "ZeroDivisionError")
+                        (&& "FloatingPointError")
                         (&& "__main__")
                         (list &py-builtin-ArithmeticError)))
                  $%cls_35))))
-     (set! &py-builtin-ModuleNotFoundError
+     (set! &py-builtin-OverflowError
            (let (($%cls_36 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_36
                        (py-make-builtin-class
-                        (&& "ModuleNotFoundError")
+                        (&& "OverflowError")
                         (&& "__main__")
-                        (list &py-builtin-ImportError)))
+                        (list &py-builtin-ArithmeticError)))
                  $%cls_36))))
-     (set! &py-builtin-IndexError
+     (set! &py-builtin-ZeroDivisionError
            (let (($%cls_37 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_37
                        (py-make-builtin-class
-                        (&& "IndexError")
+                        (&& "ZeroDivisionError")
                         (&& "__main__")
-                        (list &py-builtin-LookupError)))
+                        (list &py-builtin-ArithmeticError)))
                  $%cls_37))))
-     (set! &py-builtin-KeyError
+     (set! &py-builtin-ModuleNotFoundError
            (let (($%cls_38 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_38
                        (py-make-builtin-class
-                        (&& "KeyError")
+                        (&& "ModuleNotFoundError")
                         (&& "__main__")
-                        (list &py-builtin-LookupError)))
+                        (list &py-builtin-ImportError)))
                  $%cls_38))))
-     (set! &py-builtin-UnboundLocalError
+     (set! &py-builtin-IndexError
            (let (($%cls_39 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_39
                        (py-make-builtin-class
-                        (&& "UnboundLocalError")
+                        (&& "IndexError")
                         (&& "__main__")
-                        (list &py-builtin-NameError)))
+                        (list &py-builtin-LookupError)))
                  $%cls_39))))
-     (set! &py-builtin-BlockingIOError
+     (set! &py-builtin-KeyError
            (let (($%cls_40 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_40
                        (py-make-builtin-class
-                        (&& "BlockingIOError")
+                        (&& "KeyError")
                         (&& "__main__")
-                        (list &py-builtin-OSError)))
+                        (list &py-builtin-LookupError)))
                  $%cls_40))))
-     (set! &py-builtin-ChildProcessError
+     (set! &py-builtin-UnboundLocalError
            (let (($%cls_41 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_41
                        (py-make-builtin-class
-                        (&& "ChildProcessError")
+                        (&& "UnboundLocalError")
                         (&& "__main__")
-                        (list &py-builtin-OSError)))
+                        (list &py-builtin-NameError)))
                  $%cls_41))))
-     (set! &py-builtin-ConnectionError
+     (set! &py-builtin-BlockingIOError
            (let (($%cls_42 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_42
                        (py-make-builtin-class
-                        (&& "ConnectionError")
+                        (&& "BlockingIOError")
                         (&& "__main__")
                         (list &py-builtin-OSError)))
                  $%cls_42))))
-     (set! &py-builtin-FileExistsError
+     (set! &py-builtin-ChildProcessError
            (let (($%cls_43 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_43
                        (py-make-builtin-class
-                        (&& "FileExistsError")
+                        (&& "ChildProcessError")
                         (&& "__main__")
                         (list &py-builtin-OSError)))
                  $%cls_43))))
-     (set! &py-builtin-FileNotFoundError
+     (set! &py-builtin-ConnectionError
            (let (($%cls_44 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_44
                        (py-make-builtin-class
-                        (&& "FileNotFoundError")
+                        (&& "ConnectionError")
                         (&& "__main__")
                         (list &py-builtin-OSError)))
                  $%cls_44))))
-     (set! &py-builtin-InterruptedError
+     (set! &py-builtin-FileExistsError
            (let (($%cls_45 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_45
                        (py-make-builtin-class
-                        (&& "InterruptedError")
+                        (&& "FileExistsError")
                         (&& "__main__")
                         (list &py-builtin-OSError)))
                  $%cls_45))))
-     (set! &py-builtin-IsADirectoryError
+     (set! &py-builtin-FileNotFoundError
            (let (($%cls_46 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_46
                        (py-make-builtin-class
-                        (&& "IsADirectoryError")
+                        (&& "FileNotFoundError")
                         (&& "__main__")
                         (list &py-builtin-OSError)))
                  $%cls_46))))
-     (set! &py-builtin-NotADirectoryError
+     (set! &py-builtin-InterruptedError
            (let (($%cls_47 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_47
                        (py-make-builtin-class
-                        (&& "NotADirectoryError")
+                        (&& "InterruptedError")
                         (&& "__main__")
                         (list &py-builtin-OSError)))
                  $%cls_47))))
-     (set! &py-builtin-PermissionError
+     (set! &py-builtin-IsADirectoryError
            (let (($%cls_48 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_48
                        (py-make-builtin-class
-                        (&& "PermissionError")
+                        (&& "IsADirectoryError")
                         (&& "__main__")
                         (list &py-builtin-OSError)))
                  $%cls_48))))
-     (set! &py-builtin-ProcessLookupError
+     (set! &py-builtin-NotADirectoryError
            (let (($%cls_49 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_49
                        (py-make-builtin-class
-                        (&& "ProcessLookupError")
+                        (&& "NotADirectoryError")
                         (&& "__main__")
                         (list &py-builtin-OSError)))
                  $%cls_49))))
-     (set! &py-builtin-TimeoutError
+     (set! &py-builtin-PermissionError
            (let (($%cls_50 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_50
                        (py-make-builtin-class
-                        (&& "TimeoutError")
+                        (&& "PermissionError")
                         (&& "__main__")
                         (list &py-builtin-OSError)))
                  $%cls_50))))
-     (set! &py-builtin-NotImplementedError
+     (set! &py-builtin-ProcessLookupError
            (let (($%cls_51 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_51
                        (py-make-builtin-class
-                        (&& "NotImplementedError")
+                        (&& "ProcessLookupError")
                         (&& "__main__")
-                        (list &py-builtin-RuntimeError)))
+                        (list &py-builtin-OSError)))
                  $%cls_51))))
-     (set! &py-builtin-RecursionError
+     (set! &py-builtin-TimeoutError
            (let (($%cls_52 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_52
                        (py-make-builtin-class
-                        (&& "RecursionError")
+                        (&& "TimeoutError")
                         (&& "__main__")
-                        (list &py-builtin-RuntimeError)))
+                        (list &py-builtin-OSError)))
                  $%cls_52))))
-     (set! &py-builtin-IndentationError
+     (set! &py-builtin-NotImplementedError
            (let (($%cls_53 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_53
                        (py-make-builtin-class
-                        (&& "IndentationError")
+                        (&& "NotImplementedError")
                         (&& "__main__")
-                        (list &py-builtin-SyntaxError)))
+                        (list &py-builtin-RuntimeError)))
                  $%cls_53))))
-     (set! &py-builtin-UnicodeError
+     (set! &py-builtin-RecursionError
            (let (($%cls_54 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_54
                        (py-make-builtin-class
-                        (&& "UnicodeError")
+                        (&& "RecursionError")
                         (&& "__main__")
-                        (list &py-builtin-ValueError)))
+                        (list &py-builtin-RuntimeError)))
                  $%cls_54))))
-     (set! &py-builtin-BytesWarning
+     (set! &py-builtin-IndentationError
            (let (($%cls_55 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_55
                        (py-make-builtin-class
-                        (&& "BytesWarning")
+                        (&& "IndentationError")
                         (&& "__main__")
-                        (list &py-builtin-Warning)))
+                        (list &py-builtin-SyntaxError)))
                  $%cls_55))))
-     (set! &py-builtin-DeprecationWarning
+     (set! &py-builtin-UnicodeError
            (let (($%cls_56 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_56
                        (py-make-builtin-class
-                        (&& "DeprecationWarning")
+                        (&& "UnicodeError")
                         (&& "__main__")
-                        (list &py-builtin-Warning)))
+                        (list &py-builtin-ValueError)))
                  $%cls_56))))
-     (set! &py-builtin-FutureWarning
+     (set! &py-builtin-BytesWarning
            (let (($%cls_57 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_57
                        (py-make-builtin-class
-                        (&& "FutureWarning")
+                        (&& "BytesWarning")
                         (&& "__main__")
                         (list &py-builtin-Warning)))
                  $%cls_57))))
-     (set! &py-builtin-ImportWarning
+     (set! &py-builtin-DeprecationWarning
            (let (($%cls_58 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_58
                        (py-make-builtin-class
-                        (&& "ImportWarning")
+                        (&& "DeprecationWarning")
                         (&& "__main__")
                         (list &py-builtin-Warning)))
                  $%cls_58))))
-     (set! &py-builtin-PendingDeprecationWarning
+     (set! &py-builtin-FutureWarning
            (let (($%cls_59 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_59
                        (py-make-builtin-class
-                        (&& "PendingDeprecationWarning")
+                        (&& "FutureWarning")
                         (&& "__main__")
                         (list &py-builtin-Warning)))
                  $%cls_59))))
-     (set! &py-builtin-ResourceWarning
+     (set! &py-builtin-ImportWarning
            (let (($%cls_60 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_60
                        (py-make-builtin-class
-                        (&& "ResourceWarning")
+                        (&& "ImportWarning")
                         (&& "__main__")
                         (list &py-builtin-Warning)))
                  $%cls_60))))
-     (set! &py-builtin-RuntimeWarning
+     (set! &py-builtin-PendingDeprecationWarning
            (let (($%cls_61 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_61
                        (py-make-builtin-class
-                        (&& "RuntimeWarning")
+                        (&& "PendingDeprecationWarning")
                         (&& "__main__")
                         (list &py-builtin-Warning)))
                  $%cls_61))))
-     (set! &py-builtin-SyntaxWarning
+     (set! &py-builtin-ResourceWarning
            (let (($%cls_62 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_62
                        (py-make-builtin-class
-                        (&& "SyntaxWarning")
+                        (&& "ResourceWarning")
                         (&& "__main__")
                         (list &py-builtin-Warning)))
                  $%cls_62))))
-     (set! &py-builtin-UnicodeWarning
+     (set! &py-builtin-RuntimeWarning
            (let (($%cls_63 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_63
                        (py-make-builtin-class
-                        (&& "UnicodeWarning")
+                        (&& "RuntimeWarning")
                         (&& "__main__")
                         (list &py-builtin-Warning)))
                  $%cls_63))))
-     (set! &py-builtin-UserWarning
+     (set! &py-builtin-SyntaxWarning
            (let (($%cls_64 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_64
                        (py-make-builtin-class
-                        (&& "UserWarning")
+                        (&& "SyntaxWarning")
                         (&& "__main__")
                         (list &py-builtin-Warning)))
                  $%cls_64))))
-     (set! &py-builtin-BrokenPipeError
+     (set! &py-builtin-UnicodeWarning
            (let (($%cls_65 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_65
                        (py-make-builtin-class
-                        (&& "BrokenPipeError")
+                        (&& "UnicodeWarning")
                         (&& "__main__")
-                        (list &py-builtin-ConnectionError)))
+                        (list &py-builtin-Warning)))
                  $%cls_65))))
-     (set! &py-builtin-ConnectionAbortedError
+     (set! &py-builtin-UserWarning
            (let (($%cls_66 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_66
                        (py-make-builtin-class
-                        (&& "ConnectionAbortedError")
+                        (&& "UserWarning")
                         (&& "__main__")
-                        (list &py-builtin-ConnectionError)))
+                        (list &py-builtin-Warning)))
                  $%cls_66))))
-     (set! &py-builtin-ConnectionRefusedError
+     (set! &py-builtin-BrokenPipeError
            (let (($%cls_67 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_67
                        (py-make-builtin-class
-                        (&& "ConnectionRefusedError")
+                        (&& "BrokenPipeError")
                         (&& "__main__")
                         (list &py-builtin-ConnectionError)))
                  $%cls_67))))
-     (set! &py-builtin-ConnectionResetError
+     (set! &py-builtin-ConnectionAbortedError
            (let (($%cls_68 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_68
                        (py-make-builtin-class
-                        (&& "ConnectionResetError")
+                        (&& "ConnectionAbortedError")
                         (&& "__main__")
                         (list &py-builtin-ConnectionError)))
                  $%cls_68))))
-     (set! &py-builtin-TabError
+     (set! &py-builtin-ConnectionRefusedError
            (let (($%cls_69 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_69
                        (py-make-builtin-class
-                        (&& "TabError")
+                        (&& "ConnectionRefusedError")
                         (&& "__main__")
-                        (list &py-builtin-IndentationError)))
+                        (list &py-builtin-ConnectionError)))
                  $%cls_69))))
-     (set! &py-builtin-UnicodeDecodeError
+     (set! &py-builtin-ConnectionResetError
            (let (($%cls_70 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_70
                        (py-make-builtin-class
-                        (&& "UnicodeDecodeError")
+                        (&& "ConnectionResetError")
                         (&& "__main__")
-                        (list &py-builtin-UnicodeError)))
+                        (list &py-builtin-ConnectionError)))
                  $%cls_70))))
-     (set! &py-builtin-UnicodeEncodeError
+     (set! &py-builtin-TabError
            (let (($%cls_71 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_71
                        (py-make-builtin-class
-                        (&& "UnicodeEncodeError")
+                        (&& "TabError")
                         (&& "__main__")
-                        (list &py-builtin-UnicodeError)))
+                        (list &py-builtin-IndentationError)))
                  $%cls_71))))
-     (set! &py-builtin-UnicodeTranslateError
+     (set! &py-builtin-UnicodeDecodeError
            (let (($%cls_72 py-absent))
              (letrec* ()
                #f
                (begin
                  (set! $%cls_72
                        (py-make-builtin-class
+                        (&& "UnicodeDecodeError")
+                        (&& "__main__")
+                        (list &py-builtin-UnicodeError)))
+                 $%cls_72))))
+     (set! &py-builtin-UnicodeEncodeError
+           (let (($%cls_73 py-absent))
+             (letrec* ()
+               #f
+               (begin
+                 (set! $%cls_73
+                       (py-make-builtin-class
+                        (&& "UnicodeEncodeError")
+                        (&& "__main__")
+                        (list &py-builtin-UnicodeError)))
+                 $%cls_73))))
+     (set! &py-builtin-UnicodeTranslateError
+           (let (($%cls_74 py-absent))
+             (letrec* ()
+               #f
+               (begin
+                 (set! $%cls_74
+                       (py-make-builtin-class
                         (&& "UnicodeTranslateError")
                         (&& "__main__")
                         (list &py-builtin-UnicodeError)))
-                 $%cls_72)))))
+                 $%cls_74)))))
    (define (init name package __path__) builtins-mod)
    (define (init-builtin-module name package __path__)
      (py-init-module)
-     (let ((caches (py-make-caches 738))
+     (let ((caches (py-make-caches 748))
            (module (py-make-module name package __path__)))
        (begin)
        (py-module module caches)

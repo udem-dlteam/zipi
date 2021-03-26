@@ -93,9 +93,11 @@
            (class PyObjectFunctionArity10::PyObjectFunction)
 
            (class PyObjectMethod::PyObject
-              procedure
-              arity
-              signature)
+              self
+              method)
+
+           (class PyObjectMethodWrapper::PyObject
+              method)
 
            (class PyObjectDict::PyObject
               value)
@@ -262,6 +264,7 @@
            py-float-hclass-of-instances
            py-str-hclass-of-instances
            py-tuple-hclass-of-instances
+           py-method-hclass-of-instances
 
            py-range-hclass-of-instances
            py-range_iterator-hclass-of-instances
@@ -298,6 +301,9 @@
            (py-call0-fallback fun)
            (py-callX-fallback min-neg-arity fun . args)
 	         (py-call-generic ::obj ::obj)
+           (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
+           (py-call-hashed-kwargs obj args *args-lst kwargs-table)
+
            (py-iter ::obj)
            (py-call-wrong-arity arity nargs nargs-string)
            (pack-extra-args arity args)
@@ -330,6 +336,7 @@
            py-int-class
            py-bool-class
            py-float-class
+           py-method-class
 
            py-module-class
            py-function-class
@@ -394,6 +401,7 @@
            py-builtin-bool
            py-builtin-float
            py-builtin-str
+           py-builtin-classmethod
 
            py-builtin-ArithmeticError
            py-builtin-AssertionError

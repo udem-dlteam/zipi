@@ -426,9 +426,20 @@
     py-float-hclass-of-instances
     py-str-hclass-of-instances
     py-tuple-hclass-of-instances
+    py-method-hclass-of-instances
 
     make-PyObjectInt
     make-PyObjectFloat
+
+    make-PyObjectMethod
+    PyObjectMethod-self
+    PyObjectMethod-method
+    PyObjectMethod-self-set!
+    PyObjectMethod-method-set!
+
+    make-PyObjectMethodWrapper
+    PyObjectMethodWrapper-method
+    PyObjectMethodWrapper-method-set!
 
     py-range-hclass-of-instances
     make-PyObjectRange
@@ -664,7 +675,7 @@
     py-int-class
     py-bool-class
     py-float-class
-    int-cache
+    py-method-class
     str-representatives
 
     ;; semantics & behaviors
