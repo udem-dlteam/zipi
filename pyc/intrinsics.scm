@@ -200,6 +200,12 @@
   (define alloc-float
     (do-alloc 'make-PyObjectFloat '((cls py-builtin-float) value) 'py-float-hclass-of-instances))
 
+  (define alloc-classmethod
+    (do-alloc 'make-PyObjectMethodWrapper '((cls py-builtin-classmethod) method) 'py-object-hclass-of-instances))
+
+  (define alloc-method
+    (do-alloc 'make-PyObjectMethod '((cls py-builtin-method) self method) 'py-object-hclass-of-instances))
+
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this))
         (kw-names (PycCall-keywords-names this))
@@ -219,6 +225,8 @@
                 ((range_iterator) alloc-range-iterator)
                 ((int) alloc-int)
                 ((float) alloc-float)
+                ((classmethod) alloc-classmethod)
+                ((method) alloc-method)
                 (else (error "alloc()" "first argument cannot be allocated with alloc():" alloc-kind)))))
         (maker this (cdr args) (map cons kw-names kw-values)))
       (error "alloc()" "requires at least one argument object type to alloc" ""))))
@@ -1152,7 +1160,9 @@
 
 (define builtin-class-structure-name-assoc-list
   '((range . PyObjectRange)
-    (range_iterator . PyObjectRangeIterator)))
+    (range_iterator . PyObjectRangeIterator)
+    (method . PyObjectMethod)
+    (classmethod . PyObjectMethodWrapper)))
 
 (define-walk-method (collect-builtins-class-with-optimized-structures-usage* this::PycNode builtin-var)
   (call-default-walker))
