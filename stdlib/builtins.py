@@ -1,5 +1,23 @@
 from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_truth, semantics_maybe_to_int, semantics_maybe_to_float, semantics_maybe_index, semantics_maybe_trunc, semantics_big_index
 
+
+@builtin
+class staticmethod:
+    def __new__(cls, obj):
+        if cls is staticmethod:
+            return alloc(staticmethod, method=obj)
+        elif isinstance(cls, staticmethod):
+            return alloc(staticmethod, cls=cls, method=obj)
+        else:
+            raise TypeError("staticmethod.__new__ expected a subtype of 'staticmethod' as first argument")
+
+    def __get__(self, instance, owner=None):
+        if isinstance(self, staticmethod):
+            return self.method
+        else:
+            raise TypeError("descriptor '__get__' requires a 'staticmethod' object but received a '" + type(self).__name__ + "'")
+
+
 @private
 @builtin
 class method:

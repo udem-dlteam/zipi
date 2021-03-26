@@ -277,6 +277,7 @@
     (set! py-builtin-float &py-builtin-float)
     (set! py-builtin-str &py-builtin-str)
     (set! py-builtin-classmethod &py-builtin-classmethod)
+    (set! py-builtin-staticmethod &py-builtin-staticmethod)
     (set! py-method-class &py-builtin-method)
 
     ;; Reuse sorted procedure for list.sort

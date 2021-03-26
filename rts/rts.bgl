@@ -402,6 +402,7 @@
            py-builtin-float
            py-builtin-str
            py-builtin-classmethod
+           py-builtin-staticmethod
 
            py-builtin-ArithmeticError
            py-builtin-AssertionError
