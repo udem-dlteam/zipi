@@ -276,6 +276,9 @@
     (set! py-builtin-bool &py-builtin-bool)
     (set! py-builtin-float &py-builtin-float)
     (set! py-builtin-str &py-builtin-str)
+    (set! py-builtin-classmethod &py-builtin-classmethod)
+    (set! py-builtin-staticmethod &py-builtin-staticmethod)
+    (set! py-method-class &py-builtin-method)
 
     ;; Reuse sorted procedure for list.sort
     (set! list.sort
@@ -313,7 +316,6 @@
     (global-own-attr-put-no-cache! builtins-mod (& "bytes") py-builtin-bytes)
     (global-own-attr-put-no-cache! builtins-mod (& "callable") py-builtin-callable)
     (global-own-attr-put-no-cache! builtins-mod (& "chr") py-builtin-chr)
-    (global-own-attr-put-no-cache! builtins-mod (& "classmethod") py-builtin-classmethod)
     (global-own-attr-put-no-cache! builtins-mod (& "compile") py-builtin-compile)
     (global-own-attr-put-no-cache! builtins-mod (& "complex") py-builtin-complex)
     (global-own-attr-put-no-cache! builtins-mod (& "delattr") py-builtin-delattr)

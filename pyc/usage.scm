@@ -34,7 +34,10 @@
           (append
             (PycFun-posonlyargs this)
             (PycFun-args this)
-            (PycFun-kwonlyargs this))))
+            (PycFun-kwonlyargs this)
+            (let ((vararg (PycFun-vararg this))) (if vararg (list vararg) '()))
+            (let ((kwarg (PycFun-kwarg this))) (if kwarg (list kwarg) '()))
+            )))
     (PycFun-decorators-set!
       this
       (map (lambda (d) (mark-body-usage! d locals-can-direct-access conf)) (PycFun-decorators this)))

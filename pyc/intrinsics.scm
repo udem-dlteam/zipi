@@ -200,6 +200,15 @@
   (define alloc-float
     (do-alloc 'make-PyObjectFloat '((cls py-builtin-float) value) 'py-float-hclass-of-instances))
 
+  (define alloc-classmethod
+    (do-alloc 'make-PyObjectMethodWrapper '((cls py-builtin-classmethod) method) 'py-object-hclass-of-instances))
+
+  (define alloc-staticmethod
+    (do-alloc 'make-PyObjectMethodWrapper '((cls py-builtin-staticmethod) method) 'py-object-hclass-of-instances))
+
+  (define alloc-method
+    (do-alloc 'make-PyObjectMethod '((cls py-method-class) self method) 'py-method-hclass-of-instances))
+
   (let* ((loc (PycNode-loc this))
         (args (PycCall-args this))
         (kw-names (PycCall-keywords-names this))
@@ -219,6 +228,9 @@
                 ((range_iterator) alloc-range-iterator)
                 ((int) alloc-int)
                 ((float) alloc-float)
+                ((classmethod) alloc-classmethod)
+                ((staticmethod) alloc-staticmethod)
+                ((method) alloc-method)
                 (else (error "alloc()" "first argument cannot be allocated with alloc():" alloc-kind)))))
         (maker this (cdr args) (map cons kw-names kw-values)))
       (error "alloc()" "requires at least one argument object type to alloc" ""))))
@@ -1152,7 +1164,10 @@
 
 (define builtin-class-structure-name-assoc-list
   '((range . PyObjectRange)
-    (range_iterator . PyObjectRangeIterator)))
+    (range_iterator . PyObjectRangeIterator)
+    (method . PyObjectMethod)
+    (classmethod . PyObjectMethodWrapper)
+    (staticmethod . PyObjectMethodWrapper)))
 
 (define-walk-method (collect-builtins-class-with-optimized-structures-usage* this::PycNode builtin-var)
   (call-default-walker))

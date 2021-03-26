@@ -291,9 +291,15 @@
   copier: #f
   macros: ;; this will inline the operations on this type
   ;; attrs
-  procedure
-  arity
-  signature)
+  self
+  method)
+
+(define-type-of-PyObject PyObjectMethodWrapper
+  id: PyObjectMethodWrapper-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  macros: ;; this will inline the operations on this type
+  ;; attrs
+  method)
 
 (define-type-of-PyObject PyObjectDict
   id: PyObjectDict-C6486EB6-1522-42BA-A082-B6563F943CDF

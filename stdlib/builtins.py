@@ -2,6 +2,56 @@ from __compiler_intrinsics__ import absent, builtin, private, alloc, py_int_from
 
 
 @builtin
+class staticmethod:
+    def __new__(cls, obj):
+        if cls is staticmethod:
+            return alloc(staticmethod, method=obj)
+        elif isinstance(cls, staticmethod):
+            return alloc(staticmethod, cls=cls, method=obj)
+        else:
+            raise TypeError("staticmethod.__new__ expected a subtype of 'staticmethod' as first argument")
+
+    def __get__(self, instance, owner=None):
+        if isinstance(self, staticmethod):
+            return self.method
+        else:
+            raise TypeError("descriptor '__get__' requires a 'staticmethod' object but received a '" + type(self).__name__ + "'")
+
+
+@private
+@builtin
+class method:
+    def __new__(cls, method_, self):
+        if cls is method:
+            alloc(method, method=method_, self=self)
+        else:
+            raise TypeError("method.__new__ expected a subtype of 'method' as first argument")
+
+    def __call__(self, *args, **kwargs):
+        return self.method(self.self, *args, **kwargs)
+
+
+@builtin
+class classmethod:
+    def __new__(cls, obj):
+        if cls is classmethod:
+            return alloc(classmethod, method=obj)
+        elif isinstance(cls, classmethod):
+            return alloc(classmethod, cls=cls, method=obj)
+        else:
+            raise TypeError("classmethod.__new__ expected a subtype of 'classmethod' as first argument")
+
+    def __get__(self, instance, owner=None):
+        if isinstance(self, classmethod):
+            if owner is None:
+                return alloc(method, method=self.method, self=type(instance))
+            else:
+                return alloc(method, method=self.method, self=owner)
+        else:
+            raise TypeError("descriptor '__get__' requires a 'classmethod' object but received a '" + type(self).__name__ + "'")
+
+
+@builtin
 @private
 def convert_to_int(obj):
     int_conversion = semantics_maybe_to_int(obj)

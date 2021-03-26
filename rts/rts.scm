@@ -308,15 +308,6 @@
     '#()
     '()))
 
-;; Method for fast access to attributes defined in hidden classes
-;; Those are unsafe methods
-
-(define (method-__self__-fast-get obj)
-  (PyObject-elements-ref obj 0))
-
-(define (method-__self__-fast-set! obj value)
-  (PyObject-elements-set! obj 0 value))
-
 ;; object allocation
 
 (define (py-obj-alloc cls hclass-of-instances)
@@ -784,12 +775,9 @@
                (aligned-args (align-args-with-signature args signature)))
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
-        (let* ((procedure (PyObjectMethod-procedure obj))
-               (signature (PyObjectMethod-signature obj))
-               (__self__ (method-__self__-fast-get obj))
-               (bound-args (cons __self__ args))
-               (aligned-args (align-args-with-signature bound-args signature)))
-          (apply procedure aligned-args)))
+        (let* ((func (PyObjectMethod-method obj))
+               (__self__ (PyObjectMethod-self obj)))
+          (py-call-generic func (cons __self__ args))))
       (else
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
@@ -873,12 +861,9 @@
                (aligned-args (align-with-signature/hashed-kwargs args kwargs-table *args-lst signature)))
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
-        (let* ((procedure (PyObjectMethod-procedure obj))
-               (signature (PyObjectMethod-signature obj))
-               (__self__ (method-__self__-fast-get obj))
-               (bound-args (cons __self__ args))
-               (aligned-args (align-with-signature/hashed-kwargs bound-args kwargs-table *args-lst signature)))
-          (apply procedure aligned-args)))
+        (let* ((func (PyObjectMethod-method obj))
+               (__self__ (PyObjectMethod-self obj)))
+          (py-call-hashed-kwargs func (cons __self__ args) *args-lst kwargs-table)))
       (else
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
@@ -898,13 +883,9 @@
                (aligned-args (align-with-signature/kwargs-ordered-table args kwargs-ordered-table *args-lst signature)))
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
-        (let* ((procedure (PyObjectMethod-procedure obj))
-               (signature (PyObjectMethod-signature obj))
-               (__self__ (method-__self__-fast-get obj))
-               (bound-args (cons __self__ args))
-               (kwargs-ordered-table (make-kwargs-ordered-table kwargs **kwargs-lst))
-               (aligned-args (align-with-signature/kwargs-ordered-table bound-args kwargs-ordered-table *args-lst signature)))
-          (apply procedure aligned-args)))
+        (let* ((func (PyObjectMethod-method obj))
+               (__self__ (PyObjectMethod-self obj)))
+          (py-call-generic-kwargs func (cons __self__ args) *args-lst kwargs **kwargs-lst)))
       (else
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
@@ -1699,21 +1680,6 @@
 ;; CALL PROTOCOL
 ;; =============
 
-;; slow way to call method through method.__call__
-;; interfaces between manual __call__ and py-call
-(define (method-call self args)
-  (if (eq? (py-type self) py-method-class)
-    (let ((args-list (vector->list (PyObjectTuple-value args))))
-      (py-call-generic self args-list))
-    (py-throw-required-type "__call__" "method" self)))
-
-(define method.__call__
-  (procedure->py-function
-    method-call
-    (make-signature
-      posonlyargs: (self)
-      vararg: args)))
-
 ;; slow way to call function through function.__call__
 ;; interfaces between manual __call__ and py-call
 (define (function-call self args)
@@ -1732,17 +1698,12 @@
 (define (function-get self instance owner)
   (if (eq? instance py-None)
     self
-    (let ((method (make-PyObjectMethod
-                    py-method-hclass-of-instances
-                    (make-vector
-                      (vector-length (HClass-names py-method-hclass-of-instances))
-                      py-absent)
-                    py-method-class
-                    (PyObjectFunction-procedure self)
-                    py-absent
-                    (PyObjectFunction-signature self))))
-      (method-__self__-fast-set! method instance)
-      method)))
+    (make-PyObjectMethod
+      py-method-hclass-of-instances
+      '#()
+      py-method-class
+      instance
+      self)))
 
 (define function.__get__
   (procedure->py-function
@@ -5173,13 +5134,6 @@
      (& "__new__") slice.__new__
      (& "indices") slice.indices))
 
-  (set! py-method-class
-    (py-make-builtin-class
-     (&& "method")
-     (&& "builtins")
-     (list)
-     (& "__call__") method.__call__))
-
   (set! py-function-class
     (py-make-builtin-class
      (&& "function")
@@ -5328,8 +5282,6 @@
 (PyObjectStrRep-magic-index-set! (& "__get__")  (__get__.index))
 
 (magic-attr-set! py-type-class     (__call__.index) type.__call__)
-
-(magic-attr-set! py-method-class   (__call__.index) method.__call__)
 
 (magic-attr-set! py-function-class (__call__.index) function.__call__)
 (magic-attr-set! py-function-class (__get__.index)  function.__get__)
@@ -6121,11 +6073,7 @@
 ;;
 ;; For more information on class methods, see The standard type hierarchy.
 
-(define py-builtin-classmethod
-  (procedure->py-function
-    (lambda (function)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "classmethod not implemented"))
-    (make-signature posonlyargs: (function))))
+(define py-builtin-classmethod #f)
 
 ;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
 
