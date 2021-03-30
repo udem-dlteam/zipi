@@ -32,7 +32,7 @@ def pretty_print(source):
     if python35:
         return source
     else:
-        p = subprocess.run(['cat', '-'],
+        p = subprocess.run(['gsi', '-:-8', '-e', '(pretty-print (read))'],
                            stdout=subprocess.PIPE,
                            input=source,
                            encoding='utf-8')
@@ -786,12 +786,29 @@ def get_tests(dirs):
     return tests
 
 
+def format_SyntaxError(e, filename):
+    loc = f"  File \"{filename}\", line {e.lineno}"
+    inline = f"    {e.text}".rstrip()
+    pointer = " " * (3 + e.offset) + "^"
+    error = f"{type(e).__name__}: {e.msg}"
+    return '\n'.join([loc, inline, pointer, error])
+
+
+def format_OSError(e, filename):
+    return f"zipi: can't open file '{filename}': [Errno {e.errno}] {e.strerror}"
+
 
 def main():
     parse = argparse.ArgumentParser(description='scmast')
     parse.add_argument('file', help='source file')
     args = parse.parse_args()
-    scmast(args.file)
-#    run_tests(get_tests([args.file]))
+    try:
+        scmast(args.file)
+    except SyntaxError as e:
+        print(format_SyntaxError(e, args.file), file=sys.stderr)
+        exit(1)
+    except OSError as e:
+        print(format_OSError(e, args.file), file=sys.stderr)
+        exit(1)
 
 main()

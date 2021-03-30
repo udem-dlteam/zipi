@@ -266,3 +266,4 @@ done
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
 chmod a+rx etc/pysexp.py
+cp etc/pysexp.py bin/pysexp.py
