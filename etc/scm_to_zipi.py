@@ -48,16 +48,17 @@ def iter_forms(sexp, forms):
             yield from iter_forms(el, forms)
 
 
-def parse_exports(filename, format_table):
+def parse_exports(filenames, format_table):
     result = []
 
-    with open(filename, 'r') as f:
-        content = f.read()
-        sexp = parse_sexp(content)
-        for match in iter_forms(sexp, ['define', 'define-macro']):
-            form = match[0]
-            formatter = format_table[form]
-            result.append(formatter(match[1:]))
+    for filename in filenames:
+        with open(filename, 'r') as f:
+            content = f.read()
+            sexp = parse_sexp(content)
+            for match in iter_forms(sexp, ['define', 'define-macro']):
+                form = match[0]
+                formatter = format_table[form]
+                result.append(formatter(match[1:]))
 
     return result
 
@@ -66,23 +67,33 @@ def list_to_str_sexp(exp):
     return exp if isinstance(exp, str) else '(' + ' '.join(map(list_to_str_sexp, exp)) + ')'
 
 
-def main_bigloo(template_file, source_file, placeholder):
+def main_bigloo(template_file, source_files, placeholder):
     format_table = {
         'define-macro': lambda args: list_to_str_sexp(['macro', *args[0]]),
         'define': lambda args: list_to_str_sexp(args[0])}
 
     with open(template_file, 'r') as f:
-        exports = f'\n{" "*INDENT}'.join(parse_exports(source_file, format_table))
-        return f.read().replace(placeholder, exports)
+        exports = f'\n{" "*INDENT}'.join(parse_exports(source_files, format_table))
+        content = f.read().replace(placeholder, exports)
+
+    content += '\n(start-registering-constants)\n'
+
+    for filename in source_files:
+        with open(filename, 'r') as f:
+            content += f.read()
+
+    content += '\n(end-registering-constants)\n'
+
+    return content
 
 
-def main_gambit(template_file, source_file, placeholder):
+def main_gambit(template_file, source_files, placeholder):
     format_table = {
         'define-macro': lambda args: args[0][0],
         'define': lambda args: args[0][0]}
 
     with open(template_file, 'r') as f:
-        exports = f'\n{" "*INDENT}'.join(parse_exports(source_file, format_table))
+        exports = f'\n{" "*INDENT}'.join(parse_exports(source_files, format_table))
         return f.read().replace(placeholder, exports)
 
 if __name__ == '__main__':
@@ -90,7 +101,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-b', '--backend', choices=['gambit', 'bigloo'], required=True, dest='backend')
     parser.add_argument('-t', '--template', required=True, dest='template')
-    parser.add_argument('-s', '--source', required=True, dest='source')
+    parser.add_argument('-s', '--sources', nargs='+', required=True, dest='sources')
     parser.add_argument('-p', '--placeholder', required=True, dest='placeholder')
     parser.add_argument('-i', '--indent', type=int, default=INDENT, dest='indent')
 
@@ -99,8 +110,8 @@ if __name__ == '__main__':
     INDENT = args.indent
 
     if args.backend == 'gambit':
-        print(main_gambit(args.template, args.source, args.placeholder))
+        print(main_gambit(args.template, args.sources, args.placeholder))
     elif args.backend == 'bigloo':
-        print(main_bigloo(args.template, args.source, args.placeholder))
+        print(main_bigloo(args.template, args.sources, args.placeholder))
     else:
         raise ValueError(f"unknown backend: {args.backend}")

@@ -14,12 +14,12 @@ do: build
 builtins.py:
 	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	python builtins_manager.py init ../builtins.py
+	$(BUILDPYTHON) builtins_manager.py init ../builtins.py
 
 zemantics.py:
 	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	python semantics_manager.py init ../zemantics.py
+	$(BUILDPYTHON) semantics_manager.py init ../zemantics.py
 
 behavior.py: builtins.py zemantics.py
 	. ../venv/bin/activate; \
