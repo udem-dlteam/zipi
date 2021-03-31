@@ -679,7 +679,7 @@
     str-representatives
 
     ;; semantics & behaviors
-    @SLD_NAMES@
+    @placeholder@
     )
 
   (import gambit)

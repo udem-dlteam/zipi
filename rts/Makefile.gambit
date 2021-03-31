@@ -3,7 +3,7 @@
 do.gambit: build.gambit
 
 rts.sld: ../stdlib/zemantics.scm ../stdlib/behaviors.scm
-	$(BUILDPYTHON) ../etc/scm_to_zipi.py -b gambit -s ../stdlib/zemantics.scm ../stdlib/behaviors.scm -t rts.sld.in -p @SLD_NAMES@ -i 4 > rts.sld
+	gsi ../etc/scm-to-zipi.scm gambit rts.sld.in ../stdlib/zemantics.scm ../stdlib/behaviors.scm > rts.sld
 
 builtins: ../stdlib/builtins.sld
 	mkdir -p builtins
