@@ -14,7 +14,7 @@
 
    (export
       (zipi-init name)
-      @BGL_EXPORTS@
+      @placeholder@
    ))
 
 (define (zipi-init name) (init-registered-constants))

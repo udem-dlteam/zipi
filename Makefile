@@ -95,7 +95,7 @@ distclean: clean
 cleanall: distclean
 
 test:
-	@cd tests; python run.py
+	@cd tests; $(BUILDPYTHON) run.py
 
 unittest:
 	@cd unittest; make unittest
