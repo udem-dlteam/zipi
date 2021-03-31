@@ -400,19 +400,17 @@
           (error "sexp" "Not implemented" exp)))))
 
 (define (subscript loc obj exp scope conf)
-   (match-case exp
-      ((Slice ?loc ?lower ?upper ?step)
-       ;; Slice(expr? lower, expr? upper, expr? step)
-       (new-PycSlice loc (sexp obj #f scope conf)
-	  (if lower (sexp lower #f scope conf) (new-PycUninit loc))
-	  (if upper (sexp upper #f scope conf) (new-PycUninit loc))
-	  (if step (sexp step #f scope conf) (new-PycUninit loc))))
-      ((Index ?loc ?exp)
-       ;; Index(expr value)
-       (new-PycSubscript loc (sexp obj #f scope conf)
-	  (sexp exp #f scope conf)))
-      (else
-       (error "slice" "Not implemented" exp))))
+  (match-case exp
+    ((Slice ?loc ?lower ?upper ?step)
+    ;; Slice(expr? lower, expr? upper, expr? step)
+      (new-PycSlice loc (sexp obj #f scope conf)
+        (if lower (sexp lower #f scope conf) (new-PycUninit loc))
+        (if upper (sexp upper #f scope conf) (new-PycUninit loc))
+        (if step (sexp step #f scope conf) (new-PycUninit loc))))
+    (else
+      (new-PycSubscript loc
+        (sexp obj #f scope conf)
+        (sexp exp #f scope conf)))))
 
 (define (compile-handler handler scope exc-sym conf)
   (match-case handler

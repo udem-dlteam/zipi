@@ -5,7 +5,7 @@
    (when (>= (config-get conf verbose: 0) 2)
       (display " [")
       (display (config-get conf bin-dir: (zipi-bin-dir)))
-      (display "/pysexp.py ")
+      (display "/pysexp_script.py ")
       (display port-or-file)
       (display "] "))
    (pyc-sexp
@@ -23,7 +23,7 @@
 
     (define (pysexp file::bstring path::bstring)
        (read (process-output-port
-	  (run-process (make-file-path path "pysexp.py") file
+	  (run-process (make-file-path path "pysexp_script.py") file
 	     :input :pipe :output :pipe)))))
 
    (gambit
@@ -32,7 +32,7 @@
       (let* ((process
              (open-process
       	        (list
-                  path: (path-expand "pysexp.py" path)
+                  path: (path-expand "pysexp_script.py" path)
       	          arguments: (list file))))
              (content (read process)))
         (if (= (process-status process) 0)
