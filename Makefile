@@ -37,8 +37,8 @@ build: venv
 	$(MAKE) -C zpc
 	$(MAKE) -C stdlib
 	$(MAKE) -C rts
-	rm -rf ./bin/pysexp.py; ln -s ../etc/pysexp.py ./bin/pysexp.py
-	chmod u+x ./etc/pysexp.py
+	rm -rf ./bin/pysexp_script.py; ln -s ../etc/pysexp_script.py ./bin/pysexp_script.py
+	chmod u+x ./etc/pysexp_script.py
 
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
@@ -50,8 +50,8 @@ install: zipi-dirs
 	$(MAKE) install.systems
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
-	$(INSTALL) bin/pysexp.py $(DESTDIR)$(ZIPIBINDIR) \
-            && chmod $(MODEXE) $(DESTDIR)/$(ZIPIBINDIR)/pysexp.py
+	$(INSTALL) bin/pysexp_script.py $(DESTDIR)$(ZIPIBINDIR) \
+            && chmod $(MODEXE) $(DESTDIR)/$(ZIPIBINDIR)/pysexp_script.py
 
 -include etc/Makefile.bigloo
 -include etc/Makefile.gambit

@@ -9,6 +9,7 @@ etc/Makefile.zipiconfig
 etc/Makefile.bigloo
 etc/Makefile.gambit
 etc/pyc.init
+etc/pysexp_script.py
 bin/zipi
 bin/zipi.gambit
 bin/zipi.bigloo

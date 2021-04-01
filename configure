@@ -205,7 +205,7 @@ fi
 #*---------------------------------------------------------------------*/
 #*    Makefile.zipiconfig                                              */
 #*---------------------------------------------------------------------*/
-for file in Makefile.zipiconfig configure.scm pysexp.py zpc.bigloo.sh; do
+for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
   mkmf=etc/$file
 
   rm -f $mkmf 2> /dev/null
@@ -265,5 +265,5 @@ for file in bin/zipi bin/zipi.gambit bin/zipi.bigloo bin/zpc bin/zpc.gambit; do
 done
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
-chmod a+rx etc/pysexp.py
-cp etc/pysexp.py bin/pysexp.py
+chmod a+rx etc/pysexp_script.py
+cp etc/pysexp_script.py bin/pysexp_script.py

@@ -1,45 +1,9 @@
-#!/usr/bin/env @BUILDPYTHON@
-
 import argparse
 import ast as AST
 import subprocess
 import sys
 
-python39 = sys.version_info[:2] == (3, 9)
-python38 = sys.version_info[:2] == (3, 8)
-python35 = False
 generate_location_information = True    # set to True to get location info
-
-if not python39:
-    if not python38:
-        raise ValueError("Zipi only supports Python >= 3.8")
-
-# autoconfiguration
-class dummyClass(): pass
-
-if not hasattr(AST, 'AnnAssign'):
-    python35 = True
-    AST.AnnAssign = dummyClass
-if not hasattr(AST, 'FormattedValue'):
-    AST.FormattedValue = dummyClass
-if not hasattr(AST, 'JoinedStr'):
-    AST.JoinedStr = dummyClass
-if not hasattr(AST, 'Constant'):
-    AST.Constant = dummyClass
-
-
-def pretty_print(source):
-    if python35:
-        return source
-    else:
-        p = subprocess.run(@PYSEXPPP@,
-                           stdout=subprocess.PIPE,
-                           input=source,
-                           encoding='utf-8')
-    if p.returncode == 0:
-        return p.stdout
-    else:
-        return source
 
 def read_file(path):
     with open(path, 'rb') as f:
@@ -88,7 +52,7 @@ def cvt_expr_context(ctx):
     elif isinstance(ctx, AST.Param):
         return 'Param'
     else:
-        assert False, 'cvt_expr_context expected an expr_context AST'
+        raise TypeError(f'cvt_expr_context expected an expr_context AST, not {type(ctx).__name__}')
 
 def cvt_constant(value):
     if isinstance(value, str):
@@ -108,10 +72,7 @@ def cvt_constant(value):
     elif value is Ellipsis:
         return 'Ellipsis'
     else:
-        print(type(value))
-        print(value)
-        print(dir(value))
-        assert False, 'cvt_constant unknown constant'
+        raise TypeError(f'cvt_constant unknown constant: {value}')
 
 def cvt_int(i):
     return scm_int(i)
@@ -176,7 +137,7 @@ def cvt_identifier_opt(identifier_opt):
 def cvt_arg(arg):
     return ('(' + cvt_identifier(arg.arg) +
             ' ' + cvt_expr_opt(arg.annotation) +
-            (' ' + cvt_string_opt(arg.type_comment) if python38 else '') +
+            (' ' + cvt_string_opt(arg.type_comment)) +
             ')')
 
 def cvt_arg_opt(arg_opt):
@@ -190,7 +151,7 @@ def cvt_arg_seq(arg_seq):
 
 def cvt_arguments(arguments):
     return ('(' + cvt_arg_seq(arguments.args) +
-            (' ' + cvt_arg_seq(arguments.posonlyargs) if python38 else '()') +
+            (' ' + cvt_arg_seq(arguments.posonlyargs)) +
             ' ' + cvt_arg_opt(arguments.vararg) +
             ' ' + cvt_arg_seq(arguments.kwonlyargs) +
             ' ' + cvt_expr_opt_seq(arguments.kw_defaults) +
@@ -223,25 +184,7 @@ def cvt_withitem_seq(withitem_seq):
     return cvt_seq(cvt_withitem, withitem_seq)
 
 def cvt_slice(slice):
-    if isinstance(slice, AST.Slice):
-        return ('(' + node_kind(slice, 'Slice') +
-                ' ' + cvt_expr_opt(slice.lower) +
-                ' ' + cvt_expr_opt(slice.upper) +
-                ' ' + cvt_expr_opt(slice.step) +
-                ')')
-    elif isinstance(slice, AST.ExtSlice):
-        return ('(' + node_kind(slice, 'ExtSlice') +
-                ' ' + cvt_slice_seq(slice.dims) +
-                ')')
-    elif isinstance(slice, AST.Index):
-        return ('(' + node_kind(slice, 'Index') +
-                ' ' + cvt_expr(slice.value) +
-                ')')
-    else:
-        assert False, 'cvt_slice expected a slice AST'
-
-def cvt_slice_seq(slice_seq):
-    return cvt_seq(cvt_slice, slice_seq)
+    raise NotImplementedError("cvt_slice requires version-specific implementation")
 
 def cvt_comprehension(comprehension):
     return ('(' + cvt_expr(comprehension.target) +
@@ -261,7 +204,7 @@ def cvt_excepthandler(excepthandler):
                 ' ' + cvt_stmt_seq(excepthandler.body) +
                 ')')
     else:
-        assert False, 'cvt_excepthandler expected an excepthandler AST'
+        raise TypeError(f'cvt_excepthandler expected an excepthandler AST, not {type(excepthandler).__name__}')
 
 def cvt_excepthandler_seq(excepthandler_seq):
     return cvt_seq(cvt_excepthandler, excepthandler_seq)
@@ -275,7 +218,7 @@ def cvt_boolop(op):
     elif isinstance(op, AST.Or):
         return 'Or'
     else:
-        assert False, 'cvt_boolop expected a boolop AST'
+        raise TypeError(f'cvt_boolop expected a boolop AST, not {type(op).__name__}')
 
 def cvt_operator(op):
     if isinstance(op, AST.Add):
@@ -305,7 +248,7 @@ def cvt_operator(op):
     elif isinstance(op, AST.FloorDiv):
         return 'FloorDiv'
     else:
-        assert False, 'cvt_operator expected an operator AST'
+        raise TypeError(f'cvt_operator expected an operator AST, not {type(op).__name__}')
 
 def cvt_unaryop(op):
     if isinstance(op, AST.Invert):
@@ -317,7 +260,7 @@ def cvt_unaryop(op):
     elif isinstance(op, AST.USub):
         return 'USub'
     else:
-        assert False, 'cvt_unaryop expected a unaryop AST'
+        raise TypeError(f'cvt_unaryop expected a unaryop AST, not {type(op).__name__}')
 
 def cvt_cmpop(op):
     if isinstance(op, AST.Eq):
@@ -341,7 +284,7 @@ def cvt_cmpop(op):
     elif isinstance(op, AST.NotIn):
         return 'NotIn'
     else:
-        assert False, 'cvt_cmpop expected a cmpop AST'
+        raise TypeError(f'cvt_cmpop expected a cmpop AST, not {type(op).__name__}')
 
 def cvt_cmpop_seq(ops):
     return cvt_seq(cvt_cmpop, ops)
@@ -351,7 +294,7 @@ def cvt_mod(ast):
         # Module(stmt* body, type_ignore *type_ignores)
         return ('(' + node_kind(ast, 'Module') +
                 ' ' + cvt_stmt_seq(ast.body) +
-                (' ' + cvt_type_ignore_seq(ast.type_ignores) if python38 else '') +
+                (' ' + cvt_type_ignore_seq(ast.type_ignores)) +
                 ')')
     elif isinstance(ast, AST.Interactive):
         # Interactive(stmt* body)
@@ -376,7 +319,7 @@ def cvt_mod(ast):
 #                ' ' + cvt_stmt_seq(ast.body) +
 #                ')')
     else:
-        assert False, 'cvt_mod expected a module AST'
+        raise TypeError(f'cvt_mod expected a module AST, not {type(ast).__name__}')
 
 def cvt_stmt(ast):
     if isinstance(ast, AST.FunctionDef):
@@ -389,7 +332,7 @@ def cvt_stmt(ast):
                 ' ' + cvt_stmt_seq(ast.body) +
                 ' ' + cvt_expr_seq(ast.decorator_list) +
                 ' ' + cvt_expr_opt(ast.returns) +
-                (' ' + cvt_string_opt(ast.type_comment) if python38 else '') +
+                (' ' + cvt_string_opt(ast.type_comment)) +
                 ')')
     elif isinstance(ast, AST.AsyncFunctionDef):
         # AsyncFunctionDef(identifier name, arguments args,
@@ -401,7 +344,7 @@ def cvt_stmt(ast):
                 ' ' + cvt_stmt_seq(ast.body) +
                 ' ' + cvt_expr_seq(ast.decorator_list) +
                 ' ' + cvt_expr_opt(ast.returns) +
-                (' ' + cvt_string_opt(ast.type_comment) if python38 else '') +
+                (' ' + cvt_string_opt(ast.type_comment)) +
                 ')')
     elif isinstance(ast, AST.ClassDef):
         # ClassDef(identifier name,
@@ -431,7 +374,7 @@ def cvt_stmt(ast):
         return ('(' + node_kind(ast, 'Assign') +
                 ' ' + cvt_expr_seq(ast.targets) +
                 ' ' + cvt_expr(ast.value) +
-                (' ' + cvt_string_opt(ast.type_comment) if python38 else '') +
+                (' ' + cvt_string_opt(ast.type_comment)) +
                 ')')
     elif isinstance(ast, AST.AugAssign):
         # AugAssign(expr target, operator op, expr value)
@@ -457,7 +400,7 @@ def cvt_stmt(ast):
                 ' ' + cvt_expr(ast.iter) +
                 ' ' + cvt_stmt_seq(ast.body) +
                 ' ' + cvt_stmt_seq(ast.orelse) +
-                (' ' + cvt_string_opt(ast.type_comment) if python38 else '') +
+                (' ' + cvt_string_opt(ast.type_comment)) +
                 ')')
     elif isinstance(ast, AST.AsyncFor):
         # AsyncFor(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
@@ -466,7 +409,7 @@ def cvt_stmt(ast):
                 ' ' + cvt_expr(ast.iter) +
                 ' ' + cvt_stmt_seq(ast.body) +
                 ' ' + cvt_stmt_seq(ast.orelse) +
-                (' ' + cvt_string_opt(ast.type_comment) if python38 else '') +
+                (' ' + cvt_string_opt(ast.type_comment)) +
                 ')')
     elif isinstance(ast, AST.While):
         # While(expr test, stmt* body, stmt* orelse)
@@ -487,13 +430,13 @@ def cvt_stmt(ast):
         return ('(' + node_kind(ast, 'With') +
                 ' ' + cvt_withitem_seq(ast.items) +
                 ' ' + cvt_stmt_seq(ast.body) +
-                (' ' + cvt_string_opt(ast.type_comment) if python38 else '') +
+                (' ' + cvt_string_opt(ast.type_comment)) +
                 ')')
     elif isinstance(ast, AST.AsyncWith):
         # AsyncWith(withitem* items, stmt* body, string? type_comment)
         return ('(' + node_kind(ast, 'AsyncWith') +
                 ' ' + cvt_stmt_seq(ast.body) +
-                (' ' + cvt_string_opt(ast.type_comment) if python38 else '') +
+                (' ' + cvt_string_opt(ast.type_comment)) +
                 ')')
     elif isinstance(ast, AST.Raise):
         # Raise(expr? exc, expr? cause)
@@ -555,7 +498,7 @@ def cvt_stmt(ast):
         return ('(' + node_kind(ast, 'Continue') +
                 ')')
     else:
-        assert False, 'cvt_stmt expected a statement AST'
+        raise TypeError(f'cvt_stmt expected a statement AST, not {type(ast).__name__}')
 
 def cvt_expr(ast):
     if isinstance(ast, AST.BoolOp):
@@ -565,7 +508,7 @@ def cvt_expr(ast):
                 ' ' + cvt_boolop(ast.op) +
                 ' ' + cvt_expr_seq(ast.values) +
                 ')')
-    elif python38 and isinstance(ast, AST.NamedExpr):
+    elif isinstance(ast, AST.NamedExpr):
         # NamedExpr(expr target, expr value)
         return ('(' + node_kind(ast, 'NamedExpr ') +
                 ' ' + cvt_expr(ast.target) +
@@ -743,15 +686,13 @@ def cvt_expr(ast):
                 ' #f' +
                 ')')
     else:
-        print(ast)
-        print(dir(ast))
-        assert False, 'cvt_expr expected an expression AST'
+        raise TypeError(f'cvt_expr expected an expression AST, not {type(ast).__name__}')
 
 def parse(source):
     return AST.parse(source)
 
 def dump(ast):
-    print(pretty_print(cvt_mod(ast)))
+    print(cvt_mod(ast))
 
 def scmast(path):
     source = read_file(path)
@@ -810,5 +751,3 @@ def main():
     except OSError as e:
         print(format_OSError(e, args.file), file=sys.stderr)
         exit(1)
-
-main()

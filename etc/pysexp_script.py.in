@@ -1,0 +1,11 @@
+#!/usr/bin/env @BUILDPYTHON@
+
+# Configurable entry point to the pysexp module
+
+import sys
+
+sys.path = ["@BUILDETCDIR@"] + sys.path
+
+import pysexp
+
+pysexp.main()
