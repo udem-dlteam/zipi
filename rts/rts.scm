@@ -5572,7 +5572,12 @@
 ;; == CACHE SYSTEM ==
 
 ;; WARNING : dont change this location without knowing what you do because (delete-zipi-cache) in run-zipi recursively deletes this directory
-(define (cache-location) (path-expand "~~zipicache/cache@zipi_0_0_1"))
+(define zipicache #f)
+
+(define (cache-location-set! path)
+  (set! zipicache path))
+
+(define (cache-location-get) zipicache)
 
 (define compile-flag #f)
 (define (compile-flag-set! value)
@@ -5589,9 +5594,6 @@
 (define expansion-flag #f)
 (define (expansion-flag-set! value)
   (set! expansion-flag value))
-
-
-(module-search-order-add! (cache-location))
 
 (define (ensure-parent-dir-exists path)
 
@@ -5619,7 +5621,7 @@
 (define (compile-to-cache path path-info)
   (let* ((path-cache
            (string-append
-             (cache-location)
+             (cache-location-get)
              (path-strip-extension path)
              "/"
              (path-strip-extension (path-strip-directory path))
@@ -5787,10 +5789,10 @@
       from-list)
     mod))
 
+(define (run-as-main path zipicache)
+  (cache-location-set! zipicache)
+  (module-search-order-add! (cache-location-get))
 
-
-
-(define (run-as-main path)
   (let ((sys.modules (sys.modules-get)))
     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
     (with-exception-catcher

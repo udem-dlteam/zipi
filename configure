@@ -47,6 +47,7 @@ shell=/bin/sh
 mode=optim
 
 buildpython=python3.8
+zipicache=~/.zipicache
 
 branch=`git rev-parse --abbrev-ref HEAD`
 date=`date +"%d %B %Y"`
@@ -112,6 +113,9 @@ while : ; do
     --buildpython=*)
       buildpython="`echo $1 | sed 's/^[^=]*=//'`";;
 
+    --zipicache=*)
+      zipicache="`echo $1 | sed 's/^[^=]*=//'`";;
+
     -*)
       if [ "$1" != "--help" ]; then
         echo "*** Configure error, unknown option $1" >&2;
@@ -139,6 +143,7 @@ while : ; do
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
       echo "   --buildpython............... python version to build ($buildpython)" >&2;
+      echo "   --zipicache................. location of compiled .py files ($zipicache)" >&2;
       exit 255;
   esac
   shift
@@ -238,6 +243,7 @@ for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
           -e "s|@SHELL@|$shell|" \
           -e "s|@BUILDPYTHON@|$buildpython|" \
           -e "s|@PYSEXPPP@|$pysexppp|" \
+          -e "s|@ZIPICACHE@|$zipicache|" \
   	>> $mkmf
 done
 
@@ -255,11 +261,13 @@ for file in configure.scm; do
   rm etc/$file
 done
 
+
 for file in bin/zipi bin/zipi.gambit bin/zipi.bigloo bin/zpc bin/zpc.gambit; do
   cat $file.in \
     | sed -e "s|@VERSION@|$version|" \
           -e "s|@BRANCH@|$branch|" \
           -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|" \
+          -e "s|@ZIPICACHE@|$zipicache|" \
     > $file
   chmod +x $file
 done

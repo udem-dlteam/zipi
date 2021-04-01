@@ -3,21 +3,20 @@
 (define (config-version) "@VERSION@")
 (define (config-branch) "@BRANCH@")
 
-;; If the path is updated here, it should be changed in rts.scm
-(define (cache-location) (path-expand "~~zipicache/cache@zipi_0_0_1"))
+(define cache-location (path-expand "cache@zipi_0_0_1" "@ZIPICACHE@"))
 
 (define (reset-cache)
-  (if (and (##file-info (cache-location) #t #f)
-           (eq? 'directory (##file-info-type (file-info (cache-location)))))
-      (if (fx= 1 (length (directory-files (path-normalize (path-expand ".." (cache-location))))))
+  (if (and (##file-info cache-location #t #f)
+           (eq? 'directory (##file-info-type (file-info cache-location))))
+      (if (fx= 1 (length (directory-files (path-normalize (path-expand ".." cache-location)))))
           (begin
-            (delete-file-or-directory (cache-location) #t)
-            (println "*** Cache has been deleted: " (cache-location)))
+            (delete-file-or-directory cache-location #t)
+            (println "*** Cache has been deleted: " cache-location))
           (error
             "Cannot delete zipicache. Your zipicache folder is at : "
-            (cache-location)
+            cache-location
             ". Please delete cache folder manually or change ~~zipicache location."))
-      (println "*** WARNING -- Cache not found: " (cache-location))))
+      (println "*** WARNING -- Cache not found: " cache-location)))
 
 (define (main . args)
   (let ((help      #f)
@@ -128,7 +127,7 @@ EOF
             (expansion-flag-set! expansion)
             (command-line-argv-set! argv)
 
-            (run-as-main path)))
+            (run-as-main path cache-location)))
    path
    argv
    compile
