@@ -13,7 +13,7 @@ A fast Python implementation.
 To compile with Zipi for Gambit
 
 ```
-./configure --gambit-only
+./configure --default=gambit
 make
 
 # You can then compile and run a script with
