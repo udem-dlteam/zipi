@@ -10,12 +10,16 @@ etc/Makefile.bigloo
 etc/Makefile.gambit
 etc/pyc.init
 etc/pysexp_script.py
+bin/pysexp_script.py
 bin/zipi
 bin/zipi.gambit
+bin/zipi.gambit.sh
 bin/zipi.bigloo
+bin/zipi.bigloo.sh
 bin/zpc
 bin/zpc.gambit
 bin/zpc.bigloo
+bin/zpc.bigloo.sh
 lib
 zpc/.afile
 zpc/.etags
