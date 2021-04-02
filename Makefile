@@ -91,6 +91,7 @@ distclean: clean
 	rm -rf lib
 	rm -f etc/Makefile.zipiconfig
 	rm -rf venv
+	rm -f bin/pysexp_script.py
 
 cleanall: distclean
 

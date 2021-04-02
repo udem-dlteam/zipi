@@ -13,15 +13,11 @@ A fast Python implementation.
 To compile with Zipi for Gambit
 
 ```
-# First make sure to follow those steps
-export PATH=/usr/local/Gambit/bin:$PATH
-# For development:
-export GAMBOPT=search=~~zipidir/..
-./configure
+./configure --gambit-only
 make
 
 # You can then compile and run a script with
-zipi/zpc/run-zipi.scm somepythonfile.py
+./bin/zipi somepythonfile.py
 ```
 
 To compile with Bigloo, you will first need to install Zipi

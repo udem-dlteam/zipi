@@ -37,4 +37,4 @@ install: $(ZIPISYSTEMS:%=install.%)
 
 clean: $(ZIPISYSTEMS:%=clean.%)
 distclean: $(ZIPISYSTEMS:%=distclean.%)
-	rm behaviors.py behaviors.scm zemantics.py zemantics.scm builtins.py
+	rm -f behaviors.py behaviors.scm zemantics.py zemantics.scm builtins.py

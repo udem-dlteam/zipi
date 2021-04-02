@@ -217,7 +217,7 @@
                   (lambda (var) (scheme-var-name var conf))
                   (get-unique-var-lst (map PycRef-decl global-refs) conf)))
               `(export init))
-            (import (gambit) (zipi rts))
+            (import (gambit) (rts))
             (begin
               (py-begin-module)
 

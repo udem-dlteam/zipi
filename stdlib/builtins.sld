@@ -83,7 +83,7 @@
          &py-builtin-method
          &py-builtin-TypeError
          &py-builtin-staticmethod)
- (import (gambit) (zipi rts))
+ (import (gambit) (rts))
  (begin
    (py-begin-module)
    (define procedure:&py-builtin-convert_to_int

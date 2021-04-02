@@ -286,7 +286,7 @@ for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc 
           -e "s|@RTSDIR@|$rtsdir|" \
           -e "s|@BUILDID@|$buildid|" \
           -e "s|@BUILDTAG@|$buildtag|" \
-          -e "s|@BUILDDIR@|$builddir|" \
+          -e "s|@BUILDDIR@|$builddir|g" \
           -e "s|@BUILDETCDIR@|$buildetcdir|" \
           -e "s|@BUILDRTSDIR@|$buildrtsdir|" \
           -e "s|@BUILDLIBDIR@|$buildlibdir|" \

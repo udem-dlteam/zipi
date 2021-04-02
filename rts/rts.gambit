@@ -194,7 +194,7 @@
 ;; builtin bootstrap
 
 (define (bootstrap-builtins)
-  (import (zipi rts builtins))
+  (import (rts builtins))
 
   (let ((builtins-mod (init-builtin-module (& "builtins") (& "") #f)))
 
