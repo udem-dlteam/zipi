@@ -3,7 +3,7 @@
 (define (config-version) "@VERSION@")
 (define (config-branch) "@BRANCH@")
 
-(define cache-location (path-expand "cache@zipi_0_0_1" "@ZIPICACHE@"))
+(define cache-location (path-expand "cache@zipi_0_0_1" (path-expand "~~zipicache")))
 
 (define (reset-cache)
   (if (and (##file-info cache-location #t #f)

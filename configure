@@ -35,6 +35,7 @@ rtsdir=$prefix/rts
 bindir=$prefix/bin
 libdir=$prefix/lib
 
+builddir=$PWD
 buildlibdir=$PWD/lib/zipi/$version
 buildbindir=$PWD/bin
 buildetcdir=$PWD/etc
@@ -169,6 +170,11 @@ if [ "$systems " != "bigloo " ]; then
   . ./etc/configure.gambit
 fi
 
+if [ "$default_scheme_system " = "no_default_scheme_system_currently_set " ]; then
+  echo "WARNING: no default scheme system has been set..." 1>&2;
+  echo "         use --default=[gambit|bigloo] or --bigloo-only or --gambit-only" 1>&2;
+fi
+
 #*---------------------------------------------------------------------*/
 #*    buildid & buildtag ...                                           */
 #*---------------------------------------------------------------------*/
@@ -221,9 +227,12 @@ for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
 
   cat $mkmf.in \
     | sed -e "s|@RELEASE@|$version|" \
+          -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|" \
           -e "s|@DATE@|$date|" \
           -e "s|@BRANCH@|$branch|" \
-  	  -e "s|@SYSTEMS@|$systems|" \
+          -e "s|@VERSION@|$version|" \
+          -e "s|@ZIPISRFIS@|$zipisrfis|" \
+          -e "s|@SYSTEMS@|$systems|" \
           -e "s|@BINDIR@|$bindir|" \
           -e "s|@LIBDIR@|$libdir|" \
           -e "s|@PREFIX@|$prefix|" \
@@ -231,7 +240,7 @@ for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
           -e "s|@RTSDIR@|$rtsdir|" \
           -e "s|@BUILDID@|$buildid|" \
           -e "s|@BUILDTAG@|$buildtag|" \
-          -e "s|@BUILDDIR@|$PWD|" \
+          -e "s|@BUILDDIR@|$builddir|" \
           -e "s|@BUILDETCDIR@|$buildetcdir|" \
           -e "s|@BUILDRTSDIR@|$buildrtsdir|" \
           -e "s|@BUILDLIBDIR@|$buildlibdir|" \
@@ -251,7 +260,6 @@ for file in configure.scm; do
   cat etc/$file \
     | sed -e "s|#[*] Automatically|;* Automatically|" \
           -e "s|@VERSION@|$version|" \
-          -e "s|@BRANCH@|$branch|" \
           -e "s|@ZIPISRFIS@|$zipisrfis|" \
     > zpc/configure.scm
 
@@ -262,11 +270,34 @@ for file in configure.scm; do
 done
 
 
-for file in bin/zipi bin/zipi.gambit bin/zipi.bigloo bin/zpc bin/zpc.gambit; do
+for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc bin/zpc.gambit; do
   cat $file.in \
-    | sed -e "s|@VERSION@|$version|" \
-          -e "s|@BRANCH@|$branch|" \
+    | sed -e "s|@RELEASE@|$version|" \
           -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|" \
+          -e "s|@DATE@|$date|" \
+          -e "s|@BRANCH@|$branch|" \
+          -e "s|@VERSION@|$version|" \
+          -e "s|@ZIPISRFIS@|$zipisrfis|" \
+          -e "s|@SYSTEMS@|$systems|" \
+          -e "s|@BINDIR@|$bindir|" \
+          -e "s|@LIBDIR@|$libdir|" \
+          -e "s|@PREFIX@|$prefix|" \
+          -e "s|@ETCDIR@|$etcdir|" \
+          -e "s|@RTSDIR@|$rtsdir|" \
+          -e "s|@BUILDID@|$buildid|" \
+          -e "s|@BUILDTAG@|$buildtag|" \
+          -e "s|@BUILDDIR@|$builddir|" \
+          -e "s|@BUILDETCDIR@|$buildetcdir|" \
+          -e "s|@BUILDRTSDIR@|$buildrtsdir|" \
+          -e "s|@BUILDLIBDIR@|$buildlibdir|" \
+          -e "s|@BUILDBINDIR@|$buildbindir|" \
+          -e "s|@BIGLOO@|$bigloo|" \
+          -e "s|@GAMBIT@|$gambit|" \
+          -e "s|@INSTALL@|$install|" \
+          -e "s|@LINK@|$link|" \
+          -e "s|@SHELL@|$shell|" \
+          -e "s|@BUILDPYTHON@|$buildpython|" \
+          -e "s|@PYSEXPPP@|$pysexppp|" \
           -e "s|@ZIPICACHE@|$zipicache|" \
     > $file
   chmod +x $file

@@ -5534,8 +5534,8 @@
 ;; ===========================================
 
 
-(define zipi-stdlib-dir (list (path-expand "stdlib" (getenv "ZIPIROOT" "~~zipidir"))
-                              (path-expand "zipitestlib" (getenv "ZIPIROOT" "~~zipidir"))))
+(define zipi-stdlib-dir (list (path-expand "stdlib" (path-expand "~~zipiroot"))
+                              (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
 
 (cond-expand
    (gambit)

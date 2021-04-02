@@ -167,16 +167,14 @@
 (define (compile-source source target)
 
   (define (root-dir)
-    (getenv "ZIPIROOT"))
+    (path-expand "~~zipiroot"))
 
   (define zpc-path
     (string-append (root-dir) "/bin/zpc.gambit"))
 
   (if (not (file-exists? zpc-path))
       (fatal-error
-        "cannot find zpc.gambit executable. "
-        "The environnement variable $ZIPIROOT is probably not set properly. "
-        "Please refer to README"))
+        "cannot find zpc.gambit executable."))
 
   (possible-error 1 "compiling file " source " to " target " \n")
 

@@ -1,0 +1,2 @@
+#!/bin/sh
+gsi -:~~zipicache=@ZIPICACHE@,~~zipiroot=@BUILDDIR@  @BUILDBINDIR@/zipi.gambit  "$@"

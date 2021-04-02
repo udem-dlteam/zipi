@@ -22,4 +22,4 @@ while test "$1" != ""; do
     esac
 done
 
-exec $0.$SCHEME_SYSTEM $ARGS
+exec $0.$SCHEME_SYSTEM.sh $ARGS
