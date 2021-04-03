@@ -48,7 +48,7 @@
          index)
 
        (define (make-StaticPyObjectStr string)
-         (import (rts hash))
+         (import (zipi rts hash))
          (let ((static-str
                 (%make-StaticPyObjectStr
                  #f
@@ -60,7 +60,7 @@
            static-str))
 
        (define (make-StaticPyObjectStrRep string)
-         (import (rts hash))
+         (import (zipi rts hash))
          (let ((static-str
                 (%make-StaticPyObjectStrRep
                  #f
@@ -487,7 +487,7 @@
 
 (define-macro (py-call f . args)
   (define (make-kwargs-loc-table names)
-    (import (rts hash))
+    (import (zipi rts hash))
     (let* ((names-length (length names))
            (max-table-length (* names-length 3))
            (perfect-table-length
@@ -802,4 +802,4 @@
 (define-macro (py-init-module)
   `(init-registered-constants))
 
-(import (rts hash))
+(import (zipi rts hash))

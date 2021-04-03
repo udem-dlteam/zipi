@@ -115,11 +115,11 @@ EOF
 
 (define (run-as-main path argv compile debug profile expansion)
 
-  ;; use eval to delay processing of (import (rts))
+  ;; use eval to delay processing of (import (zipi rts))
 
   ((eval '(lambda (path argv compile debug profile expansion)
 
-            (import (rts))
+            (import (zipi rts))
 
             (compile-flag-set! compile)
             (debug-flag-set! debug)

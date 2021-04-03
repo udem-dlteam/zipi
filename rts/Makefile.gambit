@@ -10,7 +10,7 @@ builtins: ../stdlib/builtins.sld
 	cp ../stdlib/builtins.sld ./builtins/builtins.sld
 
 build.gambit: rts.sld rts.sld.in builtins
-	gsc -:search=$(BUILDDIR) rts
+	gsc -:search=$(BUILDDIR)/.. zipi/rts
 
 install.gambit:
 	echo "install.gambit TODO"

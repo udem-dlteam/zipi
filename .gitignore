@@ -34,7 +34,7 @@ rts/builtins.bgl
 rts/zemantics.bgl
 rts/behaviors.bgl
 rts/configure.scm
-stdlib/builtins.scm
+stdlib/builtins.sld
 stdlib/builtins.bgl
 stdlib/zemantics.bgl
 stdlib/behaviors.bgl

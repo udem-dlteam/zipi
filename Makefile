@@ -37,7 +37,6 @@ build: venv
 	$(MAKE) -C zpc
 	$(MAKE) -C stdlib
 	$(MAKE) -C rts
-	rm -rf ./bin/pysexp_script.py; ln -s ../etc/pysexp_script.py ./bin/pysexp_script.py
 	chmod u+x ./etc/pysexp_script.py
 
 #*---------------------------------------------------------------------*/
