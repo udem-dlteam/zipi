@@ -2,7 +2,7 @@
 
 do.gambit: build.gambit
 
-build.gambit:
+build.gambit: types.sch new.sch ast.sch
 	echo "build.gambit TODO"
 
 install.gambit:
