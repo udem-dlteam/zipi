@@ -13,7 +13,7 @@ build.gambit: rts.sld rts.sld.in builtins
 	gsc -:search=$(BUILDDIR)/.. zipi/rts
 
 install.gambit:
-	echo "install.gambit TODO"
+	cp -a $(BUILDRTSDIR) $(ZIPIRTSDIR)
 
 clean.gambit:
 	rm -rf rts\@gambit*@C

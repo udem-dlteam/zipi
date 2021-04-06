@@ -42,12 +42,16 @@ etcdir=$zipiroot/etc
 rtsdir=$zipiroot/rts
 bindir=$zipiroot/bin
 libdir=$zipiroot/lib
+pycdir=$zipiroot/pyc
+zpcdir=$zipiroot/zpc
 
 builddir=$PWD
 buildlibdir=$PWD/lib/zipi/$version
 buildbindir=$PWD/bin
 buildetcdir=$PWD/etc
 buildrtsdir=$PWD/rts
+buildpycdir=$PWD/pyc
+buildzpcdir=$PWD/zpc
 
 install="install -m a+r,u+r"
 
@@ -74,6 +78,7 @@ while : ; do
       libdir=$zipiroot/lib;
       etcdir=$zipiroot/etc;
       rtsdir=$zipiroot/rts;
+      pycdir=$zipiroot/pyc;
       ;;
 
     --etcdir=*)
@@ -240,6 +245,7 @@ for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
           -e "s|@DATE@|$date|" \
           -e "s|@BRANCH@|$branch|" \
           -e "s|@VERSION@|$version|" \
+          -e "s|@PYTHONVERSION@|$pythonversion|" \
           -e "s|@ZIPISRFIS@|$zipisrfis|" \
           -e "s|@SYSTEMS@|$systems|" \
           -e "s|@BINDIR@|$bindir|" \
@@ -248,6 +254,8 @@ for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
           -e "s|@ZIPIROOT@|$zipiroot|" \
           -e "s|@ETCDIR@|$etcdir|" \
           -e "s|@RTSDIR@|$rtsdir|" \
+          -e "s|@PYCDIR@|$pycdir|" \
+          -e "s|@ZPCDIR@|$zpcdir|" \
           -e "s|@BUILDID@|$buildid|" \
           -e "s|@BUILDTAG@|$buildtag|" \
           -e "s|@BUILDDIR@|$builddir|" \
@@ -255,6 +263,8 @@ for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
           -e "s|@BUILDRTSDIR@|$buildrtsdir|" \
           -e "s|@BUILDLIBDIR@|$buildlibdir|" \
           -e "s|@BUILDBINDIR@|$buildbindir|" \
+          -e "s|@BUILDPYCDIR@|$buildpycdir|" \
+          -e "s|@BUILDZPCDIR@|$buildzpcdir|" \
           -e "s|@BIGLOO@|$bigloo|" \
           -e "s|@GAMBIT@|$gambit|" \
           -e "s|@INSTALL@|$install|" \
@@ -287,6 +297,7 @@ for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc 
           -e "s|@DATE@|$date|" \
           -e "s|@BRANCH@|$branch|" \
           -e "s|@VERSION@|$version|" \
+          -e "s|@PYTHONVERSION@|$pythonversion|" \
           -e "s|@SYSTEMS@|$systems|" \
           -e "s|@ZIPIBIN@|$builddir|" \
           -e "s|@ZIPIETC@|$builddir|" \
@@ -294,7 +305,7 @@ for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc 
           -e "s|@BIGLOO@|$bigloo|" \
           -e "s|@GAMBIT@|$gambit|" \
           -e "s|@ZIPICACHE@|$zipicache|" \
-          -e "s|@ZIPIROOT@|$builddir|" \
+          -e "s|@ZIPIROOT@|$builddir|g" \
     > $file
   chmod +x $file
 done

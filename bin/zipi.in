@@ -22,4 +22,4 @@ while test "$1" != ""; do
     esac
 done
 
-exec $0.$SCHEME_SYSTEM.sh $ARGS
+exec @ZIPIBIN@/zipi.$SCHEME_SYSTEM.sh $ARGS

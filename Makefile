@@ -47,6 +47,8 @@ install: zipi-dirs install-bin
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
 	$(MAKE) install.systems
+	ln -sf $(ZIPIBINDIR)/zipi /usr/local/bin/zipi
+	ln -sf $(ZIPIBINDIR)/zipi /usr/local/bin/zipi-$(PYTHONVERSION)
 
 install-bin: zipi-dirs
 	for file in zipi zipi.gambit zipi.gambit.sh zipi.bigloo zpc zpc.gambit; \
@@ -70,24 +72,24 @@ install-bin: zipi-dirs
 		done
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
-	$(INSTALL) bin/pysexp_script.py $(DESTDIR)$(ZIPIBINDIR) \
-            && chmod $(MODEXE) $(DESTDIR)/$(ZIPIBINDIR)/pysexp_script.py
+	$(INSTALL) bin/pysexp_script.py $(ZIPIBINDIR) \
+            && chmod $(MODEXE) $(ZIPIBINDIR)/pysexp_script.py
 
 -include etc/Makefile.bigloo
 -include etc/Makefile.gambit
 
 zipi-dirs:
-	if [ ! -d $(DESTDIR)$(ZIPIBINDIR) ]; then \
-          mkdir -p $(DESTDIR)$(ZIPIBINDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPIBINDIR); \
+	if [ ! -d $(ZIPIBINDIR) ]; then \
+          mkdir -p $(ZIPIBINDIR) && chmod $(MODDIR) $(ZIPIBINDIR); \
         fi
-	if [ ! -d $(DESTDIR)$(ZIPILIBDIR) ]; then \
-          mkdir -p $(DESTDIR)$(ZIPILIBDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR); \
+	if [ ! -d $(ZIPILIBDIR) ]; then \
+          mkdir -p $(ZIPILIBDIR) && chmod $(MODDIR) $(ZIPILIBDIR); \
         fi
-	if [ ! -d $(DESTDIR)$(ZIPIETCDIR) ]; then \
-	  mkdir -p $(DESTDIR)$(ZIPIETCDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPIETCDIR); \
+	if [ ! -d $(ZIPIETCDIR) ]; then \
+	  mkdir -p $(ZIPIETCDIR) && chmod $(MODDIR) $(ZIPIETCDIR); \
         fi
-	if [ ! -d $(DESTDIR)$(ZIPILIBDIR)/zipi ]; then \
-	  mkdir -p $(DESTDIR)$(ZIPILIBDIR)/zipi && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR)/zipi; \
+	if [ ! -d $(ZIPILIBDIR)/zipi ]; then \
+	  mkdir -p $(ZIPILIBDIR)/zipi && chmod $(MODDIR) $(ZIPILIBDIR)/zipi; \
         fi
 
 
