@@ -17,9 +17,9 @@ cpython2_time=`echo "$cpython2_output" | sed -e "s/ .*//g"`
 
 for system in $systems; do
   case "$system" in
-    
+
     gambit)
-      bench_output=`../bin/zipi.gambit $bench`
+      bench_output=`../bin/zipi.gambit.sh $bench`
       bench_time=`echo "$bench_output" | sed -e "s/ .*//g"`
 
       python3 -c "t=$bench_time;cp2=$cpython2_time;cp3=$cpython3_time;system='[$system]';code='$code';bench='$bench';speedup2=cp2/t;speedup3=cp3/t;print(f'{system:8s}{speedup2:8.4f}x{speedup3:9.4f}x {code:s} ({bench:s})')"
@@ -31,21 +31,21 @@ for system in $systems; do
 
       python3 -c "t=$bench_time;cp2=$cpython2_time;cp3=$cpython3_time;system='[$system]';code='$code';bench='$bench';speedup2=cp2/t;speedup3=cp3/t;print(f'{system:8s}{speedup2:8.4f}x{speedup3:9.4f}x {code:s} ({bench:s})')"
       ;;
-    
+
     pypy2)
       bench_output=`pypy2 $bench`
       bench_time=`echo "$bench_output" | sed -e "s/ .*//g"`
 
       python3 -c "t=$bench_time;cp2=$cpython2_time;cp3=$cpython3_time;system='[$system]';code='$code';bench='$bench';speedup2=cp2/t;speedup3=cp3/t;print(f'{system:8s}{speedup2:8.4f}x{speedup3:9.4f}x {code:s} ({bench:s})')"
       ;;
-    
+
     pypy)
       bench_output=`pypy $bench`
       bench_time=`echo "$bench_output" | sed -e "s/ .*//g"`
 
       python3 -c "t=$bench_time;cp2=$cpython2_time;cp3=$cpython3_time;system='[$system]';code='$code';bench='$bench';speedup2=cp2/t;speedup3=cp3/t;print(f'{system:8s}{speedup2:8.4f}x{speedup3:9.4f}x {code:s} ({bench:s})')"
       ;;
-    
+
     *)
       echo "Unknown system $system"
   esac
