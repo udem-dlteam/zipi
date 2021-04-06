@@ -60,6 +60,7 @@ shell=/bin/sh
 mode=optim
 
 buildpython=python3.8
+rtpython=$bindir/venv/bin/python
 zipicache=~/.zipicache
 
 branch=`git rev-parse --abbrev-ref HEAD`
@@ -79,6 +80,7 @@ while : ; do
       etcdir=$zipiroot/etc;
       rtsdir=$zipiroot/rts;
       pycdir=$zipiroot/pyc;
+      rtpython=$bindir/venv/bin/python
       ;;
 
     --etcdir=*)
@@ -230,7 +232,7 @@ fi
 #*---------------------------------------------------------------------*/
 #*    Makefile.zipiconfig                                              */
 #*---------------------------------------------------------------------*/
-for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
+for file in Makefile.zipiconfig configure.scm zpc.bigloo.sh; do
   mkmf=etc/$file
 
   rm -f $mkmf 2> /dev/null
@@ -271,6 +273,7 @@ for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
           -e "s|@LINK@|$link|" \
           -e "s|@SHELL@|$shell|" \
           -e "s|@BUILDPYTHON@|$buildpython|" \
+          -e "s|@RTPYTHON@|$rtpython|" \
           -e "s|@PYSEXPPP@|$pysexppp|" \
           -e "s|@ZIPICACHE@|$zipicache|" \
   	>> $mkmf
@@ -290,7 +293,7 @@ for file in configure.scm; do
 done
 
 
-for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc bin/zpc.gambit; do
+for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc bin/zpc.gambit bin/pysexp_script.py; do
   cat $file.in \
     | sed -e "s|@RELEASE@|$version|g" \
           -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|g" \
@@ -304,6 +307,7 @@ for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc 
           -e "s|@ZIPIRTS@|$buildrtsdir|g" \
           -e "s|@BIGLOO@|$bigloo|g" \
           -e "s|@GAMBIT@|$gambit|g" \
+          -e "s|@PYTHON@|$buildpython|g" \
           -e "s|@ZIPICACHE@|$zipicache|g" \
           -e "s|@ZIPIROOT@|$builddir|g" \
     > $file
@@ -311,5 +315,4 @@ for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc 
 done
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
-chmod a+rx etc/pysexp_script.py
-cp etc/pysexp_script.py bin/pysexp_script.py
+cp -a etc/pysexp bin/pysexp

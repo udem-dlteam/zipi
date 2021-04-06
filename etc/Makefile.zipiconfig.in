@@ -55,6 +55,7 @@ BUILDSPECIFIC   = @BUILDSPECIFIC@
 INSTALLSPECIFIC = @INSTALLSPECIFIC@
 
 BUILDPYTHON	= @BUILDPYTHON@
+RTPYTHON    = @RTPYTHON@
 
 #*---------------------------------------------------------------------*/
 #*    Destinations                                                     */
