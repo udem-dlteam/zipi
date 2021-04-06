@@ -13,11 +13,13 @@ A fast Python implementation.
 To compile with Zipi for Gambit
 
 ```
-./configure --default=gambit
+./configure --gambit-only
 make
+make test # recommended
+sudo make install
 
 # You can then compile and run a script with
-./bin/zipi somepythonfile.py
+zipi somepythonfile.py
 ```
 
 To compile with Bigloo, you will first need to install Zipi
