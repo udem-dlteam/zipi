@@ -41,7 +41,7 @@ build: venv
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
 #*---------------------------------------------------------------------*/
-install: zipi-dirs install-bin
+install: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C pyc install
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
@@ -50,7 +50,7 @@ install: zipi-dirs install-bin
 	ln -sf $(ZIPIBINDIR)/zipi /usr/local/bin/zipi-$(PYTHONVERSION)
 
 install-bin: zipi-dirs
-	for file in zipi zipi.gambit zipi.gambit.sh zipi.bigloo zpc zpc.gambit pysexp_script.py; \
+	for file in zipi zipi.gambit zipi-compile-and-run.gambit zipi.bigloo zpc zpc.gambit pysexp_script.py; \
 		do \
 		cat $(BUILDBINDIR)/$$file.in \
 			| sed -e "s|@RELEASE@|$(ZIPIRELEASE)|g" \

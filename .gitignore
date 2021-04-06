@@ -12,7 +12,7 @@ bin/pysexp_script.py
 bin/zipi
 bin/pysexp
 bin/zipi.gambit
-bin/zipi.gambit.sh
+bin/zipi-compile-and-run.gambit
 bin/zipi.bigloo
 bin/zipi.bigloo.sh
 bin/zpc
