@@ -292,19 +292,19 @@ done
 
 for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc bin/zpc.gambit; do
   cat $file.in \
-    | sed -e "s|@RELEASE@|$version|" \
-          -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|" \
-          -e "s|@DATE@|$date|" \
-          -e "s|@BRANCH@|$branch|" \
-          -e "s|@VERSION@|$version|" \
-          -e "s|@PYTHONVERSION@|$pythonversion|" \
-          -e "s|@SYSTEMS@|$systems|" \
-          -e "s|@ZIPIBIN@|$buildbindir|" \
-          -e "s|@ZIPIETC@|$buildetcdir|" \
-          -e "s|@ZIPIRTS@|$buildrtsdir|" \
-          -e "s|@BIGLOO@|$bigloo|" \
-          -e "s|@GAMBIT@|$gambit|" \
-          -e "s|@ZIPICACHE@|$zipicache|" \
+    | sed -e "s|@RELEASE@|$version|g" \
+          -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|g" \
+          -e "s|@DATE@|$date|g" \
+          -e "s|@BRANCH@|$branch|g" \
+          -e "s|@VERSION@|$version|g" \
+          -e "s|@PYTHONVERSION@|$pythonversion|g" \
+          -e "s|@SYSTEMS@|$systems|g" \
+          -e "s|@ZIPIBIN@|$buildbindir|g" \
+          -e "s|@ZIPIETC@|$buildetcdir|g" \
+          -e "s|@ZIPIRTS@|$buildrtsdir|g" \
+          -e "s|@BIGLOO@|$bigloo|g" \
+          -e "s|@GAMBIT@|$gambit|g" \
+          -e "s|@ZIPICACHE@|$zipicache|g" \
           -e "s|@ZIPIROOT@|$builddir|g" \
     > $file
   chmod +x $file
