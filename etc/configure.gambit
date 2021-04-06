@@ -2,7 +2,3 @@
 
 echo "configure gambit..."
 echo "configure.gambit todo"
-
-pysexppp="['gsi', '-:-8', '-e', '(pretty-print (read))']"
-
-cp etc/Makefile.gambit.in etc/Makefile.gambit

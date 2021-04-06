@@ -13,7 +13,6 @@
 #*---------------------------------------------------------------------*/
 #*    User flags                                                       */
 #*---------------------------------------------------------------------*/
-prefix=/usr/local
 systems="bigloo gambit"
 default_scheme_system="no_default_scheme_system_currently_set"
 
@@ -26,14 +25,23 @@ if [ "$HOPBIGLOO " != " " ]; then
 fi
 
 #*---------------------------------------------------------------------*/
+#*    Gambit configuration                                             */
+#*---------------------------------------------------------------------*/
+gambit=gsi
+
+#*---------------------------------------------------------------------*/
 #*    Private variables                                                */
 #*---------------------------------------------------------------------*/
 version="0.0.1"
+pythonversion="python3.9"
 
-etcdir=$prefix/etc
-rtsdir=$prefix/rts
-bindir=$prefix/bin
-libdir=$prefix/lib
+prefix="/usr/local/lib/zipi-${pythonversion}/${version}"
+zipiroot=$prefix/zipi
+
+etcdir=$zipiroot/etc
+rtsdir=$zipiroot/rts
+bindir=$zipiroot/bin
+libdir=$zipiroot/lib
 
 builddir=$PWD
 buildlibdir=$PWD/lib/zipi/$version
@@ -61,10 +69,11 @@ while : ; do
 
     --prefix=*)
       prefix="`echo $1 | sed 's/^[^=]*=//'`";
-      bindir=$prefix/bin;
-      libdir=$prefix/lib;
-      etcdir=$prefix/etc;
-      rtsdir=$prefix/rts;
+      zipiroot=$prefix/zipi
+      bindir=$zipiroot/bin;
+      libdir=$zipiroot/lib;
+      etcdir=$zipiroot/etc;
+      rtsdir=$zipiroot/rts;
       ;;
 
     --etcdir=*)
@@ -236,6 +245,7 @@ for file in Makefile.zipiconfig configure.scm pysexp_script.py zpc.bigloo.sh; do
           -e "s|@BINDIR@|$bindir|" \
           -e "s|@LIBDIR@|$libdir|" \
           -e "s|@PREFIX@|$prefix|" \
+          -e "s|@ZIPIROOT@|$zipiroot|" \
           -e "s|@ETCDIR@|$etcdir|" \
           -e "s|@RTSDIR@|$rtsdir|" \
           -e "s|@BUILDID@|$buildid|" \
@@ -277,28 +287,14 @@ for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc 
           -e "s|@DATE@|$date|" \
           -e "s|@BRANCH@|$branch|" \
           -e "s|@VERSION@|$version|" \
-          -e "s|@ZIPISRFIS@|$zipisrfis|" \
           -e "s|@SYSTEMS@|$systems|" \
-          -e "s|@BINDIR@|$bindir|" \
-          -e "s|@LIBDIR@|$libdir|" \
-          -e "s|@PREFIX@|$prefix|" \
-          -e "s|@ETCDIR@|$etcdir|" \
-          -e "s|@RTSDIR@|$rtsdir|" \
-          -e "s|@BUILDID@|$buildid|" \
-          -e "s|@BUILDTAG@|$buildtag|" \
-          -e "s|@BUILDDIR@|$builddir|g" \
-          -e "s|@BUILDETCDIR@|$buildetcdir|" \
-          -e "s|@BUILDRTSDIR@|$buildrtsdir|" \
-          -e "s|@BUILDLIBDIR@|$buildlibdir|" \
-          -e "s|@BUILDBINDIR@|$buildbindir|" \
+          -e "s|@ZIPIBIN@|$builddir|" \
+          -e "s|@ZIPIETC@|$builddir|" \
+          -e "s|@ZIPIRTS@|$builddir|" \
           -e "s|@BIGLOO@|$bigloo|" \
           -e "s|@GAMBIT@|$gambit|" \
-          -e "s|@INSTALL@|$install|" \
-          -e "s|@LINK@|$link|" \
-          -e "s|@SHELL@|$shell|" \
-          -e "s|@BUILDPYTHON@|$buildpython|" \
-          -e "s|@PYSEXPPP@|$pysexppp|" \
           -e "s|@ZIPICACHE@|$zipicache|" \
+          -e "s|@ZIPIROOT@|$builddir|" \
     > $file
   chmod +x $file
 done

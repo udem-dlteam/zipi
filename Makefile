@@ -42,11 +42,32 @@ build: venv
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
 #*---------------------------------------------------------------------*/
-install: zipi-dirs
+install: zipi-dirs install-bin
 	$(MAKE) -C pyc install
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
 	$(MAKE) install.systems
+
+install-bin: zipi-dirs
+	for file in zipi zipi.gambit zipi.gambit.sh zipi.bigloo zpc zpc.gambit; \
+		do \
+		cat $(BUILDBINDIR)/$$file.in \
+			| sed -e "s|@RELEASE@|$(ZIPIRELEASE)|" \
+						-e "s|@DEFAULT_SCHEME_SYSTEM@|$(DEFAULT_SCHEME_SYSTEM)|" \
+						-e "s|@DATE@|$(ZIPIDATE)|" \
+						-e "s|@BRANCH@|$(ZIPIBRANCH)|" \
+						-e "s|@VERSION@|$(ZIPIVERSION)|" \
+						-e "s|@SYSTEMS@|$(ZIPISYSTEMS)|" \
+						-e "s|@ZIPIBIN@|$(ZIPIBINDIR)|" \
+						-e "s|@ZIPIETC@|$(ZIPIETCDIR)|" \
+						-e "s|@ZIPIRTS@|$(ZIPIRTSDIR)|" \
+						-e "s|@BIGLOO@|$(BIGLOO)|" \
+						-e "s|@GAMBIT@|$(GAMBIT)|" \
+						-e "s|@ZIPICACHE@|$(ZIPICACHE)|" \
+						-e "s|@ZIPIROOT@|$(ZIPIROOT)|g" \
+			> $(ZIPIBINDIR)/$$file; \
+		chmod +x $(ZIPIBINDIR)/$$file; \
+		done
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
 	$(INSTALL) bin/pysexp_script.py $(DESTDIR)$(ZIPIBINDIR) \
@@ -67,9 +88,6 @@ zipi-dirs:
         fi
 	if [ ! -d $(DESTDIR)$(ZIPILIBDIR)/zipi ]; then \
 	  mkdir -p $(DESTDIR)$(ZIPILIBDIR)/zipi && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR)/zipi; \
-        fi
-	if [ ! -d $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) ]; then \
-	  mkdir -p $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR); \
         fi
 
 
