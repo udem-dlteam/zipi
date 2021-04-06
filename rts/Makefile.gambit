@@ -2,7 +2,13 @@
 
 do.gambit: build.gambit
 
-rts.sld: ../stdlib/zemantics.scm ../stdlib/behaviors.scm
+zemantics.scm: ../stdlib/zemantics.scm
+	cp ../stdlib/zemantics.scm zemantics.scm
+
+behaviors.scm: ../stdlib/behaviors.scm
+	cp ../stdlib/behaviors.scm behaviors.scm
+
+rts.sld: zemantics.scm behaviors.scm
 	gsi ../etc/scm-to-zipi.scm gambit rts.sld.in ../stdlib/zemantics.scm ../stdlib/behaviors.scm > rts.sld
 
 builtins: ../stdlib/builtins.sld
