@@ -37,40 +37,60 @@ build: venv
 	$(MAKE) -C zpc
 	$(MAKE) -C stdlib
 	$(MAKE) -C rts
-	rm -rf ./bin/pysexp_script.py; ln -s ../etc/pysexp_script.py ./bin/pysexp_script.py
-	chmod u+x ./etc/pysexp_script.py
 
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
 #*---------------------------------------------------------------------*/
-install: zipi-dirs
+install: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C pyc install
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
 	$(MAKE) install.systems
+	ln -sf $(ZIPIBINDIR)/zipi /usr/local/bin/zipi
+	ln -sf $(ZIPIBINDIR)/zipi /usr/local/bin/zipi-$(PYTHONVERSION)
+
+install-bin: zipi-dirs
+	for file in zipi zipi.gambit zipi-compile-and-run.gambit zipi.bigloo zpc zpc.gambit pysexp_script.py; \
+		do \
+		cat $(BUILDBINDIR)/$$file.in \
+			| sed -e "s|@RELEASE@|$(ZIPIRELEASE)|g" \
+						-e "s|@DEFAULT_SCHEME_SYSTEM@|$(DEFAULT_SCHEME_SYSTEM)|g" \
+						-e "s|@DATE@|$(ZIPIDATE)|g" \
+						-e "s|@BRANCH@|$(ZIPIBRANCH)|g" \
+						-e "s|@VERSION@|$(ZIPIVERSION)|g" \
+						-e "s|@PYTHONVERSION@|$(PYTHONVERSION)|g" \
+						-e "s|@SYSTEMS@|$(ZIPISYSTEMS)|g" \
+						-e "s|@ZIPIBIN@|$(ZIPIBINDIR)|g" \
+						-e "s|@ZIPIETC@|$(ZIPIETCDIR)|g" \
+						-e "s|@ZIPIRTS@|$(ZIPIRTSDIR)|g" \
+						-e "s|@BIGLOO@|$(BIGLOO)|g" \
+						-e "s|@GAMBIT@|$(GAMBIT)|g" \
+						-e "s|@PYTHON@|$(RTPYTHON)|g" \
+						-e "s|@ZIPICACHE@|$(ZIPICACHE)|g" \
+						-e "s|@ZIPIROOT@|$(ZIPIROOT)|g" \
+			> $(ZIPIBINDIR)/$$file; \
+		chmod +x $(ZIPIBINDIR)/$$file; \
+		done;
+	virtualenv --python=$(BUILDPYTHON) $(ZIPIBINDIR)/venv;
+	cp -a $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
-	$(INSTALL) bin/pysexp_script.py $(DESTDIR)$(ZIPIBINDIR) \
-            && chmod $(MODEXE) $(DESTDIR)/$(ZIPIBINDIR)/pysexp_script.py
 
 -include etc/Makefile.bigloo
 -include etc/Makefile.gambit
 
 zipi-dirs:
-	if [ ! -d $(DESTDIR)$(ZIPIBINDIR) ]; then \
-          mkdir -p $(DESTDIR)$(ZIPIBINDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPIBINDIR); \
+	if [ ! -d $(ZIPIBINDIR) ]; then \
+          mkdir -p $(ZIPIBINDIR) && chmod $(MODDIR) $(ZIPIBINDIR); \
         fi
-	if [ ! -d $(DESTDIR)$(ZIPILIBDIR) ]; then \
-          mkdir -p $(DESTDIR)$(ZIPILIBDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR); \
+	if [ ! -d $(ZIPILIBDIR) ]; then \
+          mkdir -p $(ZIPILIBDIR) && chmod $(MODDIR) $(ZIPILIBDIR); \
         fi
-	if [ ! -d $(DESTDIR)$(ZIPIETCDIR) ]; then \
-	  mkdir -p $(DESTDIR)$(ZIPIETCDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPIETCDIR); \
+	if [ ! -d $(ZIPIETCDIR) ]; then \
+	  mkdir -p $(ZIPIETCDIR) && chmod $(MODDIR) $(ZIPIETCDIR); \
         fi
-	if [ ! -d $(DESTDIR)$(ZIPILIBDIR)/zipi ]; then \
-	  mkdir -p $(DESTDIR)$(ZIPILIBDIR)/zipi && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR)/zipi; \
-        fi
-	if [ ! -d $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) ]; then \
-	  mkdir -p $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) && chmod $(MODDIR) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR); \
+	if [ ! -d $(ZIPILIBDIR)/zipi ]; then \
+	  mkdir -p $(ZIPILIBDIR)/zipi && chmod $(MODDIR) $(ZIPILIBDIR)/zipi; \
         fi
 
 
@@ -91,6 +111,8 @@ distclean: clean
 	rm -rf lib
 	rm -f etc/Makefile.zipiconfig
 	rm -rf venv
+	rm -f bin/pysexp_script.py
+	rm -rf bin/pysexp
 
 cleanall: distclean
 

@@ -657,8 +657,7 @@
     (define-macro (get-build-path) (pwd))
 
     (define (root-dir)
-      (or (getenv "ZIPIROOT")
-          (get-build-path)))
+      (get-build-path))
 
     (tprint "compile-to-scheme root=" root " source=" source " target=" target)
     (when (or (not (file-exists? target))
@@ -671,8 +670,7 @@
   (define (compile-to-scheme root source target)
 
     (define (root-dir)
-      (or (getenv "ZIPIROOT")
-          (path-expand ".." (path-directory (car (command-line))))))
+      (path-expand ".." (path-directory (car (command-line)))))
 
     (when (or (not (file-exists? target))
                (> (time->seconds (file-last-modification-time source))

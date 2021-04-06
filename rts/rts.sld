@@ -2738,6 +2738,6 @@
  (include "rts-macros.scm")
  (include "rts#.scm")
  (include "rts.gambit")
- (include "../stdlib/behaviors.scm")
- (include "../stdlib/zemantics.scm")
+ (include "behaviors.scm")
+ (include "zemantics.scm")
  (include "rts.scm"))

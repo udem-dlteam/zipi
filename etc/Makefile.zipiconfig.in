@@ -13,18 +13,23 @@
 #*    The version                                                      */
 #*---------------------------------------------------------------------*/
 ZIPIRELEASE	= @RELEASE@
+ZIPIVERSION = @VERSION@
 ZIPIBRANCH	= @BRANCH@
 ZIPIDATE	= @DATE@
 ZIPIBUILDID	= @BUILDID@
+PYTHONVERSION = @PYTHONVERSION@
 
+DEFAULT_SCHEME_SYSTEM = @DEFAULT_SCHEME_SYSTEM@
 ZIPISYSTEMS	= @SYSTEMS@
 
 #*---------------------------------------------------------------------*/
 #*    Compilers, tools, and misc configuration                         */
 #*---------------------------------------------------------------------*/
 # Compilers
-BIGLOO          = @BIGLOO@
+BIGLOO    = @BIGLOO@
 BACKEND		= native
+
+GAMBIT    = @GAMBIT@
 
 #*---------------------------------------------------------------------*/
 #*    Tools, and misc configuration                                    */
@@ -42,23 +47,32 @@ BUILDDIR	= @BUILDDIR@
 BUILDETCDIR	= @BUILDETCDIR@
 BUILDBINDIR	= @BUILDBINDIR@
 BUILDLIBDIR	= @BUILDLIBDIR@
+BUILDRTSDIR	= @BUILDRTSDIR@
+BUILDPYCDIR	= @BUILDPYCDIR@
+BUILDZPCDIR	= @BUILDZPCDIR@
 
 BUILDSPECIFIC   = @BUILDSPECIFIC@
 INSTALLSPECIFIC = @INSTALLSPECIFIC@
 
 BUILDPYTHON	= @BUILDPYTHON@
+RTPYTHON    = @RTPYTHON@
 
 #*---------------------------------------------------------------------*/
 #*    Destinations                                                     */
 #*---------------------------------------------------------------------*/
 ZIPIPREFIX	= @PREFIX@
+ZIPIROOT    = @ZIPIROOT@
 ZIPIETCDIR	= @ETCDIR@
+ZIPIPYCDIR	= @PYCDIR@
 ZIPIBINDIR	= @BINDIR@
+ZIPIZPCDIR	= @ZPCDIR@
 ZIPILIBDIR	= @LIBDIR@
+ZIPIRTSDIR  = @RTSDIR@
 ZIPIFILDIR	= zipi/$(ZIPIRELEASE)
+
+ZIPICACHE   = @ZIPICACHE@
 
 #*---------------------------------------------------------------------*/
 #*    REPOSITORY                                                       */
 #*---------------------------------------------------------------------*/
 ZIPITMPDIR	= /tmp
-

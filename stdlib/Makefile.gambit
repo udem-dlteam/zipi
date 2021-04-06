@@ -10,7 +10,6 @@ builtins.sld: builtins.py
 	../bin/zpc.gambit builtins.py > builtins.sld
 
 clean.gambit:
-	rm -f builtins.scm
 
 distclean.gambit:
-	rm -f builtins.scm
+	rm -f builtins.sld

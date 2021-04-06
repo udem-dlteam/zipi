@@ -2,10 +2,11 @@
 
 do.gambit: build.gambit
 
-build.gambit:
+build.gambit: types.sch new.sch ast.sch
 	echo "build.gambit TODO"
 
 install.gambit:
+	cp -a $(BUILDPYCDIR) $(ZIPIPYCDIR)
 	echo "install.gambit TODO"
 
 clean.gambit:

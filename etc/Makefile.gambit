@@ -16,4 +16,8 @@
 # Compilers
 GAMBIT = @GAMBIT@
 
+install.gambit:
+	ln -sf $(ZIPIBINDIR)/zipi.gambit /usr/local/bin/zipi-gambit
+	ln -sf $(ZIPIBINDIR)/zipi.gambit /usr/local/bin/zipi-$(PYTHONVERSION)-gambit
+
 install.system.gambit:
