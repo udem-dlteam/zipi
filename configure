@@ -299,9 +299,9 @@ for file in bin/zipi bin/zipi.gambit bin/zipi.gambit.sh bin/zipi.bigloo bin/zpc 
           -e "s|@VERSION@|$version|" \
           -e "s|@PYTHONVERSION@|$pythonversion|" \
           -e "s|@SYSTEMS@|$systems|" \
-          -e "s|@ZIPIBIN@|$builddir|" \
-          -e "s|@ZIPIETC@|$builddir|" \
-          -e "s|@ZIPIRTS@|$builddir|" \
+          -e "s|@ZIPIBIN@|$buildbindir|" \
+          -e "s|@ZIPIETC@|$buildetcdir|" \
+          -e "s|@ZIPIRTS@|$buildrtsdir|" \
           -e "s|@BIGLOO@|$bigloo|" \
           -e "s|@GAMBIT@|$gambit|" \
           -e "s|@ZIPICACHE@|$zipicache|" \
