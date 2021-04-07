@@ -4,10 +4,10 @@ builtins.bgl:
 	../bin/zpc.bigloo.sh -s -fglobals -o builtins.bgl ./builtins.py -m __stdlib_builtins --bootstrap --bin-dir=$(BUILDETCDIR)
 
 zemantics.bgl: zemantics.scm
-	gsi ../etc/scm-to-zipi.scm bigloo zemantics.bgl.in zemantics.scm > zemantics.bgl
+	$(GAMBIT) ../etc/scm-to-zipi.scm bigloo zemantics.bgl.in zemantics.scm > zemantics.bgl
 
 behaviors.bgl: behaviors.scm
-	gsi ../etc/scm-to-zipi.scm bigloo behaviors.bgl.in behaviors.scm > behaviors.bgl
+	$(GAMBIT) ../etc/scm-to-zipi.scm bigloo behaviors.bgl.in behaviors.scm > behaviors.bgl
 
 clean.bigloo:
 

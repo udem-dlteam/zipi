@@ -1,4 +1,4 @@
-#!/usr/bin/env gsi
+#!/usr/bin/env @GAMBIT@
 
 (define (config-version) "@VERSION@")
 (define (config-branch) "@BRANCH@")

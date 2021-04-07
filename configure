@@ -28,6 +28,7 @@ fi
 #*    Gambit configuration                                             */
 #*---------------------------------------------------------------------*/
 gambit=gsi
+gambitcompiler=gsc
 
 #*---------------------------------------------------------------------*/
 #*    Private variables                                                */
@@ -36,14 +37,6 @@ version="0.0.1"
 pythonversion="python3.9"
 
 prefix="/usr/local/lib/zipi-${pythonversion}/${version}"
-zipiroot=$prefix/zipi
-
-etcdir=$zipiroot/etc
-rtsdir=$zipiroot/rts
-bindir=$zipiroot/bin
-libdir=$zipiroot/lib
-pycdir=$zipiroot/pyc
-zpcdir=$zipiroot/zpc
 
 builddir=$PWD
 buildlibdir=$PWD/lib/zipi/$version
@@ -60,7 +53,6 @@ shell=/bin/sh
 mode=optim
 
 buildpython=python3.8
-rtpython=$bindir/venv/bin/python
 zipicache=~/.zipicache
 
 branch=`git rev-parse --abbrev-ref HEAD`
@@ -73,27 +65,7 @@ while : ; do
       break;;
 
     --prefix=*)
-      prefix="`echo $1 | sed 's/^[^=]*=//'`";
-      zipiroot=$prefix/zipi
-      bindir=$zipiroot/bin;
-      libdir=$zipiroot/lib;
-      etcdir=$zipiroot/etc;
-      rtsdir=$zipiroot/rts;
-      pycdir=$zipiroot/pyc;
-      rtpython=$bindir/venv/bin/python
-      ;;
-
-    --etcdir=*)
-      etcdir="`echo $1 | sed 's/^[^=]*=//'`";;
-
-    --rtsdir=*)
-      rtsdir="`echo $1 | sed 's/^[^=]*=//'`";;
-
-    --bindir=*)
-      bindir="`echo $1 | sed 's/^[^=]*=//'`";;
-
-    --libdir=*)
-      libdir="`echo $1 | sed 's/^[^=]*=//'`";;
+      prefix="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --bigloo-only)
       systems=bigloo
@@ -107,6 +79,14 @@ while : ; do
 
     --default=*)
       default_scheme_system="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    --gambit=*)
+      gambit="`echo $1 | sed 's/^[^=]*=//'`";
+      ;;
+
+    --gambitcompiler=*)
+      gambitcompiler="`echo $1 | sed 's/^[^=]*=//'`";
+      ;;
 
     --bigloo=*)
       bigloo="`echo $1 | sed 's/^[^=]*=//'`";
@@ -142,14 +122,12 @@ while : ; do
       echo "" >&2;
       echo "Path:" >&2;
       echo "   --prefix=dir................ prefix to Zipi install" >&2;
-      echo "   --etcdir=dir................ Zipi etc directory" >&2;
-      echo "   --rtsdir=dir................ Zipi rts directory" >&2;
-      echo "   --bindir=dir................ alternative Zipi bin directory" >&2;
-      echo "   --libdir=dir................ alternative Zipi lib directory" >&2;
       echo "" >&2;
       echo "Compilers:" >&2;
       echo "   --bigloo-only............... only compile Bigloo backend" >&2;
       echo "   --gambit-only............... only compile Gambit backend" >&2;
+      echo "   --gambit=comp............... set both build and host Gambit interpreter ($gambit)" >&2;
+      echo "   --gambitcompiler=comp....... set both build and host Gambit compiler ($gambitcompiler)" >&2;
       echo "   --bigloo=comp............... set both build and host Bigloo compilers ($bigloo/$hostbigloo)" >&2;
       echo "" >&2;
       echo "bigloo:" >&2;
@@ -159,12 +137,22 @@ while : ; do
       echo "   --install................... the installer ($install)" >&2;
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
-      echo "   --buildpython............... python version to build ($buildpython)" >&2;
+      echo "   --buildpython............... python executable used for build ($buildpython)" >&2;
       echo "   --zipicache................. location of compiled .py files ($zipicache)" >&2;
       exit 255;
   esac
   shift
 done
+
+zipiroot=$prefix/zipi
+etcdir=$zipiroot/etc
+rtsdir=$zipiroot/rts
+bindir=$zipiroot/bin
+libdir=$zipiroot/lib
+pycdir=$zipiroot/pyc
+zpcdir=$zipiroot/zpc
+venvpython=$bindir/venv/bin/python3
+buildvenvpython=$builddir/venv/bin/python3
 
 #*---------------------------------------------------------------------*/
 #*    Create directories                                               */
@@ -269,11 +257,13 @@ for file in Makefile.zipiconfig configure.scm zpc.bigloo.sh; do
           -e "s|@BUILDZPCDIR@|$buildzpcdir|" \
           -e "s|@BIGLOO@|$bigloo|" \
           -e "s|@GAMBIT@|$gambit|" \
+          -e "s|@GAMBITCOMPILER@|$gambitcompiler|" \
           -e "s|@INSTALL@|$install|" \
           -e "s|@LINK@|$link|" \
           -e "s|@SHELL@|$shell|" \
           -e "s|@BUILDPYTHON@|$buildpython|" \
-          -e "s|@RTPYTHON@|$rtpython|" \
+          -e "s|@VENVPYTHON@|$venvpython|" \
+          -e "s|@BUILDVENVPYTHON@|$buildvenvpython|" \
           -e "s|@PYSEXPPP@|$pysexppp|" \
           -e "s|@ZIPICACHE@|$zipicache|" \
   	>> $mkmf
@@ -307,6 +297,7 @@ for file in bin/zipi bin/zipi.gambit bin/zipi-compile-and-run.gambit bin/zipi.bi
           -e "s|@ZIPIRTS@|$buildrtsdir|g" \
           -e "s|@BIGLOO@|$bigloo|g" \
           -e "s|@GAMBIT@|$gambit|g" \
+          -e "s|@GAMBITCOMPILER@|$gambitcompiler|g" \
           -e "s|@PYTHON@|$buildpython|g" \
           -e "s|@ZIPICACHE@|$zipicache|g" \
           -e "s|@ZIPIROOT@|$builddir|g" \

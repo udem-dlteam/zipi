@@ -22,7 +22,7 @@ do: build
 #*---------------------------------------------------------------------*/
 
 venv:
-	virtualenv --python=$(BUILDPYTHON) venv
+	$(BUILDPYTHON) -m virtualenv --python=$(BUILDPYTHON) venv
 	. ./venv/bin/activate; pip install -r requirements.txt
 
 #*---------------------------------------------------------------------*/
@@ -71,7 +71,7 @@ install-bin: zipi-dirs
 			> $(ZIPIBINDIR)/$$file; \
 		chmod +x $(ZIPIBINDIR)/$$file; \
 		done;
-	virtualenv --python=$(BUILDPYTHON) $(ZIPIBINDIR)/venv;
+	$(BUILDVENVPYTHON) -m virtualenv --python=$(BUILDPYTHON) $(ZIPIBINDIR)/venv;
 	cp -a $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
