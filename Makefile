@@ -23,7 +23,7 @@ do: build
 
 venv:
 	$(BUILDPYTHON) -m virtualenv --python=$(BUILDPYTHON) venv
-	. ./venv/bin/activate; pip install -r requirements.txt
+	. ./venv/bin/activate; pip install -r build_requirements.txt
 
 #*---------------------------------------------------------------------*/
 #*    build                                                            */
