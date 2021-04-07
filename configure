@@ -133,6 +133,7 @@ while : ; do
       echo "bigloo:" >&2;
       echo "   --bigloobindir=path......... the Bigloo bin-dir path" >&2;
       echo "   --bigloolibdir=path......... the Bigloo lib-dir path" >&2;
+      echo "" >&2;
       echo "Misc:" >&2;
       echo "   --install................... the installer ($install)" >&2;
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
