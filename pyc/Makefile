@@ -41,21 +41,5 @@ install: $(ZIPISYSTEMS:%=install.%)
 clean: $(ZIPISYSTEMS:%=clean.%)
 
 distclean: clean
-	rm -f types.sch
-	rm -f new.sch
 
 cleanall: distclean
-
-#*---------------------------------------------------------------------*/
-#*    common targets and dependencies                                  */
-#*---------------------------------------------------------------------*/
-types.sch: ast.bgl
-	$(BIGLOO) -classgen $< -o $@
-
-new.sch: ast.bgl
-	$(BIGLOO) -i $(BUILDETCDIR)/mkastnew.scm $< > $@
-
-%.sch: %.bgl
-	touch $@ && $(BIGLOO) -classgen $< -o $@
-
-compile.scm: new.sch types.sch

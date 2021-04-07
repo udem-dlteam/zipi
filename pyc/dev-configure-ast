@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Dev commands for generating ast files
+# Call this script whenever there has been a change to ast.bgl
+
+bigloo -classgen ast.bgl -o types.sch
+bigloo -i ../etc/mkastnew.scm ast.bgl > new.sch
+bigloo -classgen ast.bgl -o ast.sch

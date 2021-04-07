@@ -29,7 +29,8 @@ ZIPISYSTEMS	= @SYSTEMS@
 BIGLOO    = @BIGLOO@
 BACKEND		= native
 
-GAMBIT    = @GAMBIT@
+GAMBIT         = @GAMBIT@
+GAMBITCOMPILER = @GAMBITCOMPILER@
 
 #*---------------------------------------------------------------------*/
 #*    Tools, and misc configuration                                    */
@@ -54,8 +55,9 @@ BUILDZPCDIR	= @BUILDZPCDIR@
 BUILDSPECIFIC   = @BUILDSPECIFIC@
 INSTALLSPECIFIC = @INSTALLSPECIFIC@
 
-BUILDPYTHON	= @BUILDPYTHON@
-RTPYTHON    = @RTPYTHON@
+BUILDPYTHON	     = @BUILDPYTHON@
+VENVPYTHON       = @VENVPYTHON@
+BUILDVENVPYTHON  = @BUILDVENVPYTHON@
 
 #*---------------------------------------------------------------------*/
 #*    Destinations                                                     */

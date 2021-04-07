@@ -51,7 +51,7 @@ INCLUDES = ast.sch
 #*---------------------------------------------------------------------*/
 .PHONY: build.bigloo
 
-build.bigloo: types.sch new.sch ast.sch
+build.bigloo:
 	$(MAKE) o heap-c lib-c
 
 #*---------------------------------------------------------------------*/
