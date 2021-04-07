@@ -1,7 +1,6 @@
 cpython
 pypy
 pyc/o
-pyc/*.sch
 pyc/.afile
 pyc/.afile~
 pyc/configure.scm
