@@ -41,7 +41,19 @@ build: venv
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
 #*---------------------------------------------------------------------*/
-install: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
+uninstall:
+	rm -rf $(ZIPIROOT)
+
+reinstall: uninstall
+	$(MAKE) install-unsafe
+
+install:
+ifeq ($(shell test -e $(ZIPIROOT); echo $$?),0)
+	$(error zipi already installed at $(ZIPIROOT), use make reinstall to overwrite it)
+endif
+	$(MAKE) install-unsafe;
+
+install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C pyc install
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
@@ -65,7 +77,7 @@ install-bin: zipi-dirs
 						-e "s|@ZIPIRTS@|$(ZIPIRTSDIR)|g" \
 						-e "s|@BIGLOO@|$(BIGLOO)|g" \
 						-e "s|@GAMBIT@|$(GAMBIT)|g" \
-						-e "s|@PYTHON@|$(RTPYTHON)|g" \
+						-e "s|@PYTHON@|$(VENVPYTHON)|g" \
 						-e "s|@ZIPICACHE@|$(ZIPICACHE)|g" \
 						-e "s|@ZIPIROOT@|$(ZIPIROOT)|g" \
 			> $(ZIPIBINDIR)/$$file; \
@@ -81,17 +93,17 @@ install.systems: $(ZIPISYSTEMS:%=install.system.%)
 
 zipi-dirs:
 	if [ ! -d $(ZIPIBINDIR) ]; then \
-          mkdir -p $(ZIPIBINDIR) && chmod $(MODDIR) $(ZIPIBINDIR); \
-        fi
+    mkdir -p $(ZIPIBINDIR) && chmod $(MODDIR) $(ZIPIBINDIR); \
+  fi
 	if [ ! -d $(ZIPILIBDIR) ]; then \
-          mkdir -p $(ZIPILIBDIR) && chmod $(MODDIR) $(ZIPILIBDIR); \
-        fi
+    mkdir -p $(ZIPILIBDIR) && chmod $(MODDIR) $(ZIPILIBDIR); \
+  fi
 	if [ ! -d $(ZIPIETCDIR) ]; then \
 	  mkdir -p $(ZIPIETCDIR) && chmod $(MODDIR) $(ZIPIETCDIR); \
-        fi
+  fi
 	if [ ! -d $(ZIPILIBDIR)/zipi ]; then \
 	  mkdir -p $(ZIPILIBDIR)/zipi && chmod $(MODDIR) $(ZIPILIBDIR)/zipi; \
-        fi
+  fi
 
 
 #*---------------------------------------------------------------------*/
