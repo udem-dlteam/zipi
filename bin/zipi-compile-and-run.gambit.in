@@ -8,15 +8,10 @@
 (define (reset-cache)
   (if (and (##file-info cache-location #t #f)
            (eq? 'directory (##file-info-type (file-info cache-location))))
-      (if (fx= 1 (length (directory-files (path-normalize (path-expand ".." cache-location)))))
-          (begin
-            (delete-file-or-directory cache-location #t)
-            (println "*** Cache has been deleted: " cache-location))
-          (error
-            "Cannot delete zipicache. Your zipicache folder is at : "
-            cache-location
-            ". Please delete cache folder manually or change ~~zipicache location."))
-      (println "*** WARNING -- Cache not found: " cache-location)))
+    (begin
+      (delete-file-or-directory cache-location #t)
+      (println "*** Cache has been deleted: " cache-location))
+    (println "*** WARNING -- Cache not found: " cache-location)))
 
 (define (main . args)
   (let ((help      #f)
