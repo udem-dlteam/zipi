@@ -309,3 +309,29 @@ done
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
 cp -a etc/pysexp bin/pysexp
+
+#
+# Check for virtualenv
+#
+
+install_virtualenv()
+{
+  if ${buildpython} -c "import pip"; then
+    ${buildpython} -m pip install virtualenv;
+  else
+    echo "Could not install virtualenv: ${buildpython} does not have pip installed.";
+    echo "Please install pip manually or use another python executable";
+  fi
+}
+
+if ! ${buildpython} -c "import virtualenv"; then
+  echo "The cpython interpreter at ${buildpython} does not have virtualenv installed."
+  while true; do
+    read -p "Do you want to install virtualenv? [Y/N]" yn
+    case $yn in
+        [Yy]* ) install_virtualenv; break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer Y or N.";;
+    esac
+  done
+fi
