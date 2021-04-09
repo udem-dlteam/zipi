@@ -1,2 +1,2 @@
 #!/bin/sh
-@GAMBIT@ -:~~zipicache=@ZIPICACHE@,~~zipiroot=@ZIPIROOT@,search=@ZIPIROOT@/.. @ZIPIBIN@/zipi-compile-and-run.gambit  "$@"
+@GAMBIT@ -:~~zipicache=@ZIPICACHE@,~~zipiroot=@ZIPIROOT@,search=@ZIPIROOT@ @ZIPIBIN@/zipi-compile-and-run.gambit  "$@"

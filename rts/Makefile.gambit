@@ -1,4 +1,4 @@
-.PHONY: do.gambit build.gambit builtins
+.PHONY: do.gambit build.gambit builtins zipi-symlink
 
 do.gambit: build.gambit
 
@@ -15,12 +15,19 @@ builtins: ../stdlib/builtins.sld
 	mkdir -p builtins
 	cp ../stdlib/builtins.sld ./builtins/builtins.sld
 
-build.gambit: rts.sld rts.sld.in builtins
-	$(GAMBITCOMPILER) -:search=$(BUILDDIR)/.. zipi/rts
+zipi-build-symlink:
+	cd $(BUILDDIR); rm zipi; ln -s . zipi
 
-install.gambit:
+zipi-install-symlink:
+	cd $(ZIPIROOT); ln -s . zipi
+
+build.gambit: zipi-build-symlink rts.sld rts.sld.in builtins
+	$(GAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts
+
+install.gambit zipi-install-symlink:
 	cp -a $(BUILDRTSDIR) $(ZIPIRTSDIR)
 
 clean.gambit:
 	rm -rf rts\@gambit*@C
 	rm -rf builtins
+	rm -f $(BUILDDIR)/zipi
