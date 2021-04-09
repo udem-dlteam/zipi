@@ -24,7 +24,7 @@ zipi-install-symlink:
 build.gambit: zipi-build-symlink rts.sld rts.sld.in builtins
 	$(GAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts
 
-install.gambit zipi-install-symlink:
+install.gambit: zipi-install-symlink
 	cp -a $(BUILDRTSDIR) $(ZIPIRTSDIR)
 
 clean.gambit:
