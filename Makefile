@@ -92,6 +92,8 @@ install.systems: $(ZIPISYSTEMS:%=install.system.%)
 -include etc/Makefile.gambit
 
 zipi-dirs:
+	mkdir -p $(ZIPIPREFIX)/bin
+	mkdir -p $(ZIPIPREFIX)/lib
 	if [ ! -d $(ZIPIBINDIR) ]; then \
     mkdir -p $(ZIPIBINDIR) && chmod $(MODDIR) $(ZIPIBINDIR); \
   fi

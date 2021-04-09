@@ -14,7 +14,7 @@
 #*    Compilers, tools, and misc configuration                         */
 #*---------------------------------------------------------------------*/
 
-install.gambit:
+install.gambit zipi-dirs:
 	ln -sf $(ZIPIBINDIR)/zipi.gambit $(ZIPIPREFIX)/bin/zipi-gambit
 	ln -sf $(ZIPIBINDIR)/zipi.gambit $(ZIPIPREFIX)/bin/zipi-$(PYTHONVERSION)-gambit
 
