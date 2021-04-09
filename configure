@@ -52,7 +52,7 @@ shell=/bin/sh
 
 mode=optim
 
-buildpython=python3.8
+buildpython=
 zipicache=~/.zipicache
 
 branch=`git rev-parse --abbrev-ref HEAD`
@@ -155,6 +155,35 @@ pycdir=$zipiroot/pyc
 zpcdir=$zipiroot/zpc
 venvpython=$bindir/venv/bin/python3
 buildvenvpython=$builddir/venv/bin/python3
+
+#*---------------------------------------------------------------------*/
+#*    Detect python version of none provided                           */
+#*---------------------------------------------------------------------*/
+
+if [ -z $buildpython ];
+then
+  for py in python3.9 python3.8 python3 python
+  do
+    if command -v $py > /dev/null;
+    then
+      thispyversion=$($py -c "import sys; print('.'.join(map(str, sys.version_info[:2])))")
+      if [ "$thispyversion" = "3.8" ] || [ "$thispyversion" = "3.9" ];
+      then
+        buildpython=$py;
+        echo "cpython executable detected: $py (python$thispyversion)";
+        break;
+      fi;
+    fi;
+  done;
+
+  if [ -z $buildpython ];
+  then
+    echo "Not found: Zipi requires cpython 3.8 or 3.9 to be installed.";
+    echo "You can provide the cpython exectuable with --buildpython=";
+    exit 1;
+  fi
+fi
+
 
 #*---------------------------------------------------------------------*/
 #*    Create directories                                               */
@@ -309,3 +338,29 @@ done
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
 cp -a etc/pysexp bin/pysexp
+
+#
+# Check for virtualenv
+#
+
+install_virtualenv()
+{
+  if ${buildpython} -c "import pip"; then
+    ${buildpython} -m pip install virtualenv;
+  else
+    echo "Could not install virtualenv: ${buildpython} does not have pip installed.";
+    echo "Please install pip manually or use another python executable using --buildpython=";
+  fi
+}
+
+if ! ${buildpython} -c "import virtualenv"; then
+  echo "The cpython interpreter at ${buildpython} does not have virtualenv installed."
+  while true; do
+    read -p "Do you want to install virtualenv? [Y/N]" yn
+    case $yn in
+        [Yy]* ) install_virtualenv; break;;
+        [Nn]* ) exit;;
+        * ) echo "Answer Y or N.";;
+    esac
+  done
+fi
