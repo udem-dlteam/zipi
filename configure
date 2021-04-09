@@ -36,7 +36,7 @@ gambitcompiler=gsc
 version="0.0.1"
 pythonversion="python3.9"
 
-prefix="/usr/local/lib/zipi-${pythonversion}/${version}"
+prefix="/usr/local"
 
 builddir=$PWD
 buildlibdir=$PWD/lib/zipi/$version
@@ -138,14 +138,15 @@ while : ; do
       echo "   --install................... the installer ($install)" >&2;
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
-      echo "   --buildpython............... python executable used for build ($buildpython)" >&2;
-      echo "   --zipicache................. location of compiled .py files ($zipicache)" >&2;
+      echo "   --buildpython=python........ python executable used for build ($buildpython)" >&2;
+      echo "   --zipicache=path............ location of compiled .py files ($zipicache)" >&2;
       exit 255;
   esac
   shift
 done
 
-zipiroot=$prefix/zipi
+prefix=${prefix%/}
+zipiroot=$prefix/lib/zipi-${version}/zipi
 etcdir=$zipiroot/etc
 rtsdir=$zipiroot/rts
 bindir=$zipiroot/bin

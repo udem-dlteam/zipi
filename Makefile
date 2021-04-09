@@ -42,7 +42,7 @@ build: venv
 #*    install                                                          */
 #*---------------------------------------------------------------------*/
 uninstall:
-	rm -rf $(ZIPIROOT)
+	rm -r $(ZIPIROOT)
 
 reinstall: uninstall
 	$(MAKE) install-unsafe
@@ -58,8 +58,8 @@ install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
 	$(MAKE) install.systems
-	ln -sf $(ZIPIBINDIR)/zipi /usr/local/bin/zipi
-	ln -sf $(ZIPIBINDIR)/zipi /usr/local/bin/zipi-$(PYTHONVERSION)
+	ln -sf $(ZIPIBINDIR)/zipi $(ZIPIPREFIX)/bin/zipi
+	ln -sf $(ZIPIBINDIR)/zipi $(ZIPIPREFIX)/bin/zipi-$(PYTHONVERSION)
 
 install-bin: zipi-dirs
 	for file in zipi zipi.gambit zipi-compile-and-run.gambit zipi.bigloo zpc zpc.gambit pysexp_script.py; \

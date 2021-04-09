@@ -15,7 +15,7 @@
 #*---------------------------------------------------------------------*/
 
 install.gambit:
-	ln -sf $(ZIPIBINDIR)/zipi.gambit /usr/local/bin/zipi-gambit
-	ln -sf $(ZIPIBINDIR)/zipi.gambit /usr/local/bin/zipi-$(PYTHONVERSION)-gambit
+	ln -sf $(ZIPIBINDIR)/zipi.gambit $(ZIPIPREFIX)/bin/zipi-gambit
+	ln -sf $(ZIPIBINDIR)/zipi.gambit $(ZIPIPREFIX)/bin/zipi-$(PYTHONVERSION)-gambit
 
 install.system.gambit:
