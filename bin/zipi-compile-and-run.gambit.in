@@ -90,7 +90,7 @@
                  (run-as-main path argv compile debug profile expansion)))))))
 
 (define (usage)
-  (print (string-append "usage: " (car (command-line)) #<<EOF
+  (print (string-append "usage: zipi" #<<EOF
  [option] ... [file] [arg] ...
 Options and arguments:
 -h     : print this help message and exit (also --help)

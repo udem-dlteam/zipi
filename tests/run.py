@@ -114,9 +114,9 @@ def run_one_test(path, cpython, zipi):
     if cpython returns an error code 1, then compare the last line of stderr from cpython to the last line from scheme.
     We do this because full traceback will likely never be exactly identical between cpython and zipi
     """
-    cpython_output = subprocess.run([cpython, path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cpython_output = subprocess.run([cpython, path], capture_output=True)
 
-    scheme_output = subprocess.run([*zipi.split(), path], stdout=subprocess.PIPE)
+    scheme_output = subprocess.run([*zipi.split(), path], capture_output=True)
 
     scheme_stdout = scheme_output.stdout
     cpython_stdout = cpython_output.stdout
@@ -124,22 +124,28 @@ def run_one_test(path, cpython, zipi):
     if scheme_output.returncode == -signal.SIGSEGV:
         return CriticalFail('Segmentation fault')
     elif cpython_output.returncode == 0:
-        if cpython_stdout == scheme_stdout:
-            return OK()
+        if scheme_output.returncode == 0:
+            if cpython_stdout == scheme_stdout:
+                return OK()
+            else:
+                return MajorFail('Incorrect result')
         else:
-            return MajorFail('Incorrect result or unexpected exception')
+            return MajorFail(f'Unexpected exception raised (return code: {scheme_output.returncode})')
     else:
         cpython_error = cpython_output.stderr.decode().strip().rsplit('\n', 1)[-1]
-        zipi_error = scheme_stdout.decode().strip().rsplit('\n', 1)[-1]
 
-        if cpython_error == zipi_error:
-            return OK()
-        elif cpython_error.split(":")[0] == zipi_error.split(":")[0]:
-            return MinorFail(
-                        f'(cPython) {cpython_error}',
-                        f'(zipi)    {zipi_error}')
+        if scheme_output.returncode == 1:
+            zipi_error = scheme_output.stderr.decode().strip().rsplit('\n', 1)[-1]
+            if cpython_error == zipi_error:
+                return OK()
+            elif cpython_error.split(":")[0] == zipi_error.split(":")[0]:
+                return MinorFail(
+                            f'(cPython) {cpython_error}',
+                            f'(zipi)    {zipi_error}')
+            else:
+                return MajorFail('Incorrect exception raised')
         else:
-            return MajorFail('Incorrect exception raised or no exception raised')
+            return MajorFail(f'Missing exception (return code: {scheme_output.returncode})')
 
 
 def process_file(file, folder, cpython, zipi):

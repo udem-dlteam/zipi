@@ -5550,6 +5550,15 @@
   (global-own-attr-put-no-cache! sys-mod (& "argv")
        (py-make-list-elems (map py-str-from-scheme-fallback list-with-file-name))))
 
+(define (sys-setrecursionlimit limit)
+  (display "WARNING: sys.setrecursionlimit has no effect since zipi implemented tail-call optimisation\n" (current-error-port))
+  py-None)
+
+(define sys.setrecursionlimit
+  (procedure->py-function
+    sys-setrecursionlimit
+    (make-signature posonlyargs: (limit))))
+
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
    (global-own-attr-put-no-cache! mod (& "__name__") (&& "sys"))
@@ -5558,7 +5567,8 @@
 
    (global-own-attr-put-no-cache! mod (& "maxsize") (py-int-from-scheme max-fixnum))
    (global-own-attr-put-no-cache! mod (& "path")
-                     (py-make-list-elems (map py-str-from-scheme-fallback zipi-stdlib-dir)))
+    (py-make-list-elems (map py-str-from-scheme-fallback zipi-stdlib-dir)))
+   (global-own-attr-put-no-cache! mod (& "setrecursionlimit") sys.setrecursionlimit)
    mod))
 
 (define sys-mod (py-make-sys-mod))
@@ -5796,7 +5806,12 @@
   (let ((sys.modules (sys.modules-get)))
     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
     (with-exception-catcher
-     (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
+     (lambda (e)
+      (if (PyObject? e)
+          (begin
+            (print-exception e (current-error-port))
+            (exit 1))
+          (raise e)))
      (lambda ()
 
        (if profile-flag
@@ -5805,7 +5820,9 @@
        (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
 
        (if profile-flag
-           (statprof-end path))))))
+           (statprof-end path))
+
+       (exit 0)))))
 
 (define py-import-root (current-directory))
 
@@ -7961,17 +7978,16 @@
 ;; TODO: use Zipi print instead of calling __str__ manually
 ;; error message should just be print(exc.__name__, ": ", exc)
 ;; TODO: print that to stderr
-(define (print-exception exc)
+(define (print-exception exc port)
   (let ((exc-name (getattribute-from-obj-mro exc (& "__name__")))
-        (out (current-output-port))
         (__str__ (getattribute-from-obj-mro exc (& "__str__"))))
-    (py-display exc-name out)
+    (py-display exc-name port)
     (let ((str-exc (py-call __str__ exc)))
       (if (> (string-length (py-str-to-scheme str-exc)) 0)
         (begin
-          (display ": " out)
-          (py-display str-exc out))))
-    (display "\n" out)))
+          (display ": " port)
+          (py-display str-exc port))))
+    (display "\n" port)))
 
 ;;==============================================================================
 ;; BUILTINS
