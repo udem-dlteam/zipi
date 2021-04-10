@@ -5551,7 +5551,7 @@
        (py-make-list-elems (map py-str-from-scheme-fallback list-with-file-name))))
 
 (define (sys-setrecursionlimit limit)
-  (display "WARNING: sys.setrecursionlimit has no effect since zipi implemented tail-call optimisation\n" (current-error-port))
+  ;; zipi has no recursion limit, this procedure does nothing
   py-None)
 
 (define sys.setrecursionlimit
@@ -5820,16 +5820,11 @@
        (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
 
        (if profile-flag
-           (statprof-end path))
-
-       (exit 0)))))
+           (statprof-end path))))))
 
 (define py-import-root (current-directory))
 
-
 ;; MODULES
-
-
 
 ;; time
 
