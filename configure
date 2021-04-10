@@ -353,14 +353,21 @@ install_virtualenv()
   fi
 }
 
+
 if ! ${buildpython} -c "import virtualenv"; then
   echo "The cpython interpreter at ${buildpython} does not have virtualenv installed."
-  while true; do
-    read -p "Do you want to install virtualenv? [Y/N]" yn
-    case $yn in
-        [Yy]* ) install_virtualenv; break;;
-        [Nn]* ) exit;;
-        * ) echo "Answer Y or N.";;
-    esac
-  done
+  if [ -t 1 ];
+  then
+    while true; do
+      read -p "Do you want to install virtualenv? [Y/n]" yn
+      case $yn in
+          [Yy]* ) install_virtualenv; break;;
+          [Nn]* ) exit;;
+          * ) echo "Answer Y or N.";;
+      esac
+    done
+  else
+    # When we cannot ask, we just go on and install virtualenv
+    install_virtualenv;
+  fi
 fi
