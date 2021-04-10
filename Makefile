@@ -84,7 +84,7 @@ install-bin: zipi-dirs
 		chmod +x $(ZIPIBINDIR)/$$file; \
 		done;
 	$(BUILDVENVPYTHON) -m virtualenv --python=$(BUILDVENVPYTHON) $(ZIPIBINDIR)/venv;
-	cp -a $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
+	cp -aT $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
 
@@ -102,6 +102,9 @@ zipi-dirs:
   fi
 	if [ ! -d $(ZIPIETCDIR) ]; then \
 	  mkdir -p $(ZIPIETCDIR) && chmod $(MODDIR) $(ZIPIETCDIR); \
+  fi
+	if [ ! -d $(ZIPIZPCDIR) ]; then \
+	  mkdir -p $(ZIPIZPCDIR) && chmod $(MODDIR) $(ZIPIZPCDIR); \
   fi
 	if [ ! -d $(ZIPILIBDIR)/zipi ]; then \
 	  mkdir -p $(ZIPILIBDIR)/zipi && chmod $(MODDIR) $(ZIPILIBDIR)/zipi; \

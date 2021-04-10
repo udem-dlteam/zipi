@@ -24,6 +24,7 @@ zpc/.afile
 zpc/.etags
 zpc/o
 zpc/configure.scm
+zpc/main-gambit.scm
 rts/.afile
 rts/.etags
 rts/o

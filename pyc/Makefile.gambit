@@ -5,6 +5,6 @@ do.gambit: build.gambit
 build.gambit:
 
 install.gambit:
-	cp -a $(BUILDPYCDIR) $(ZIPIPYCDIR)
+	cp -aT $(BUILDPYCDIR) $(ZIPIPYCDIR)
 
 clean.gambit:

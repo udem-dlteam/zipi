@@ -1,4 +1,4 @@
-#!/usr/bin/env gsi
+#!/usr/bin/env @GAMBIT@
 
 (define (main . args)
   (let ((verbose 0)

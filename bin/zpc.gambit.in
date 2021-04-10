@@ -15,7 +15,7 @@ if [ "$ZPC_DEBUG" = true ]; then
     echo "(declare (debug) (debug-location))"
 fi
 
-gsi -:search=$SCRIPT_DIR,search=$PYC_DIR,darR-,t8,f8,-8 \
+@GAMBIT@ -:search=$SCRIPT_DIR,search=$PYC_DIR,darR-,t8,f8,-8 \
 -e "(define (zipi-etc-dir) \"$ETC_DIR\")" \
 -e "(define (zipi-lib-dir) \"$LIB_DIR\")" \
 -e "(define (zipi-bin-dir) \"$BIN_DIR\")" \

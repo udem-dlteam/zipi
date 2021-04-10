@@ -314,7 +314,7 @@ for file in configure.scm; do
 done
 
 
-for file in bin/zipi bin/zipi.gambit bin/zipi-compile-and-run.gambit bin/zipi.bigloo bin/zpc bin/zpc.gambit bin/pysexp_script.py; do
+for file in bin/zipi bin/zipi.gambit bin/zipi-compile-and-run.gambit bin/zipi.bigloo bin/zpc bin/zpc.gambit bin/pysexp_script.py zpc/main-gambit.scm; do
   cat $file.in \
     | sed -e "s|@RELEASE@|$version|g" \
           -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|g" \
@@ -337,7 +337,7 @@ for file in bin/zipi bin/zipi.gambit bin/zipi-compile-and-run.gambit bin/zipi.bi
 done
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
-cp -a etc/pysexp bin/pysexp
+cp -aT etc/pysexp bin/pysexp
 
 #
 # Check for virtualenv
