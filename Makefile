@@ -83,7 +83,7 @@ install-bin: zipi-dirs
 			> $(ZIPIBINDIR)/$$file; \
 		chmod +x $(ZIPIBINDIR)/$$file; \
 		done;
-	$(BUILDVENVPYTHON) -m virtualenv --python=$(BUILDPYTHON) $(ZIPIBINDIR)/venv;
+	$(BUILDVENVPYTHON) -m virtualenv --python=$(BUILDVENVPYTHON) $(ZIPIBINDIR)/venv;
 	cp -a $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
@@ -131,7 +131,7 @@ distclean: clean
 cleanall: distclean
 
 test:
-	@cd tests; $(BUILDPYTHON) run.py
+	@cd tests; $(BUILDVENVPYTHON) run.py
 
 unittest:
 	@cd unittest; make unittest

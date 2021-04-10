@@ -14,17 +14,17 @@ do: build
 builtins.py:
 	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	$(BUILDPYTHON) builtins_manager.py init ../builtins.py
+	$(BUILDVENVPYTHON) builtins_manager.py init ../builtins.py
 
 zemantics.py:
 	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	$(BUILDPYTHON) semantics_manager.py init ../zemantics.py
+	$(BUILDVENVPYTHON) semantics_manager.py init ../zemantics.py
 
 behavior.py: builtins.py zemantics.py
 	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	$(BUILDPYTHON) decision_tree.py behaviors ../zemantics.py ../builtins.py > ../behaviors.py
+	$(BUILDVENVPYTHON) decision_tree.py behaviors ../zemantics.py ../builtins.py > ../behaviors.py
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
