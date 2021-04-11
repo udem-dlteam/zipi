@@ -166,11 +166,11 @@
 
 (define (compile-source source target)
 
-  (define (root-dir)
+  (define root-dir
     (path-expand "~~zipiroot"))
 
   (define zpc-path
-    (string-append (root-dir) "/bin/zpc.gambit"))
+    (path-expand "bin/zpc.gambit" root-dir))
 
   (if (not (file-exists? zpc-path))
       (fatal-error
@@ -185,7 +185,7 @@
           "ZPC_DEBUG=false ")
       zpc-path
       " -t gambit "
-      (root-dir)
+      root-dir
       "/pyc "
       source
       " > "
