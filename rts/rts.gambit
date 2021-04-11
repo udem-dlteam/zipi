@@ -186,7 +186,7 @@
       zpc-path
       " -t gambit "
       root-dir
-      "/pyc "
+      " "
       source
       " > "
       target)))
