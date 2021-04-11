@@ -1,4 +1,8 @@
-#!/usr/bin/env @PYTHON@
+#!/bin/sh
+
+BEGIN_FOR_THE_SHELL_EYES_ONLY=""""
+exec @PYTHON@ $0 $*
+#END_FOR_THE_SHELL_EYES_ONLY"""
 
 # Configurable entry point to the pysexp module
 
