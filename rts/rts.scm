@@ -1391,38 +1391,6 @@
             (py-str-to-scheme y-type-name)
             "'"))))))
 
-;; generic operator protocol
-(define-macro (define-binary-operator-protocol fun-name method rmethod operator)
- `(define (,fun-name x y)
-    (py-getattribute-from-obj-mro-2cont
-     x
-     (& ,method)
-     (lambda (__op__)
-       (let ((normal-op-result (py-call __op__ x y)))
-         (if (eq? normal-op-result py-NotImplemented)
-             (py-getattribute-from-obj-mro-2cont
-              y
-              (& ,rmethod)
-              (lambda (__rop__)
-                (let ((reflected-op-result (py-call __rop__ y x)))
-                  (if (eq? reflected-op-result py-NotImplemented)
-                      (throw-unsupported-operand x y ,operator)
-                      reflected-op-result)))
-              (lambda ()
-                (throw-unsupported-operand x y ,operator)))
-             normal-op-result)))
-     (lambda ()
-       (py-getattribute-from-obj-mro-2cont
-        y
-        (& ,rmethod)
-        (lambda (__rop__)
-          (let ((reflected-op-result (py-call __rop__ y x)))
-            (if (eq? reflected-op-result py-NotImplemented)
-                (throw-unsupported-operand x y ,operator)
-                reflected-op-result)))
-        (lambda ()
-          (throw-unsupported-operand x y ,operator)))))))
-
 ;; special case of x in y when y is an iterator
 (define (py-in-iterator item iterator)
   (let ((next-item (py-next iterator)))
