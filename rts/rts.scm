@@ -85,10 +85,16 @@
 
 ;;; Object attribute store/fetch.
 
-(define-macro (py-own-attr-index-2cont obj attr succeed fail)
+(define-macro (magic-attr-set! cls attr-index val)
+  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
+
+(define-macro (magic-attr-ref cls attr-index)
+  `(vector-ref (PyObjectType-magic-attrs ,cls) ,attr-index))
+
+(define-macro (py-own-attr-index-2cont-from-representative obj rep succeed fail)
   `(let* (($hclass (py-obj-hclass ,obj))
           ($names (HClass-names $hclass))
-          ($attr-representative (py-str-representative ,attr)))
+          ($attr-representative ,rep))
      (let $loop-names (($attr-index (fx- (vector-length $names) 1)))
        (cond ((fx< $attr-index 0)
               (,fail))
@@ -96,6 +102,13 @@
               (,succeed $attr-index))
              (else
               ($loop-names (fx- $attr-index 1)))))))
+
+(define-macro (py-own-attr-index-2cont obj attr succeed fail)
+  `(py-own-attr-index-2cont-from-representative
+    ,obj
+    (py-str-representative ,attr)
+    ,succeed
+    ,fail))
 
 (define (py-own-attr-index obj attr)
   (py-own-attr-index-2cont
@@ -107,25 +120,43 @@
 (define (py-own-attr-set! obj attr val)
   ;; TODO: fix case when obj is not represented with a PyObject
   ;; TODO: use py-own-attr-index-2cont
-   (declare-fixnum)
-  (let* ((attr-representative (py-str-representative attr))
-	 (i (py-own-attr-index obj attr-representative)))
-     (if (< i 0)
-	 (let* ((hclass (py-obj-hclass obj))
-		(new-hclass (HClass-next hclass attr-representative '+))
-		(index (HClass-last-index new-hclass)))
-	    (PyObject-hclass-set! obj new-hclass)
-	    (PyObject-elements-set! obj index val))
-	 (PyObject-elements-set! obj i val))))
+  (declare-fixnum)
+  (let* ((attr-representative (py-str-representative attr)))
+    (if (and
+          (PyObjectType? obj)
+          (PyObjectStrRep-magic-index attr-representative))
+      ;; set a magic method
+      (magic-attr-set!
+        obj
+        (PyObjectStrRep-magic-index attr-representative)
+        val)
+      ;; set a normal attribute
+      (py-own-attr-index-2cont obj attr
+        (lambda (i) (PyObject-elements-set! obj i val))
+        (lambda ()
+          (let* ((hclass (py-obj-hclass obj))
+                 (new-hclass (HClass-next hclass attr-representative '+))
+                 (index (HClass-last-index new-hclass)))
+            (PyObject-hclass-set! obj new-hclass)
+            (PyObject-elements-set! obj index val)))))))
 
 (define-macro (py-own-attr-ref-2cont obj attr succeed fail)
   ;; TODO: fix case when obj is not represented with a PyObject
-  `(let (($obj ,obj))
-     (py-own-attr-index-2cont
-      $obj
-      ,attr
-      (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index))) ;; TODO: could vector-ref be used?
-      ,fail)))
+  `(let* (($obj ,obj)
+          ($attr-representative (py-str-representative ,attr)))
+    (if (and (PyObjectType? $obj) (PyObjectStrRep-magic-index $attr-representative))
+      ;; magic method
+      (let (($val
+              (magic-attr-ref
+                $obj
+                (PyObjectStrRep-magic-index $attr-representative))))
+        (if $val (succeed $val) (fail)))
+      ;; normal attribute
+       (py-own-attr-index-2cont
+        $obj
+        ,attr
+        (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index))) ;; TODO: could vector-ref be used?
+        ,fail))))
 
 (define (py-own-attr-ref obj attr #!optional (default py-absent))
   ;; TODO: fix case when obj is not represented with a PyObject
@@ -177,12 +208,9 @@
 ;; instances of type are classes
 ;; this is the hidden class of classes
 (define py-type-hclass-of-instances
-   (make-builtin-HClass
-      '#()
-;*     (vector                                                         */
-;*       (& "__name__")                                                */
-;*       (& "__call__"))                                               */
-    '()))
+ (make-builtin-HClass
+  '#()
+  '()))
 
 (define py-str-hclass-of-instances
   (make-builtin-HClass
@@ -363,18 +391,29 @@
           cls)))
     self))
 
-;; type allocation
+;; initialize index for magic methods
 
-(define list-of-magic-attrs
-  '("__add__" "__radd__" "__iadd__"
-    "__mul__" "__rmul__" "__imul__"
-    "__sub__" "__rsub__" "__isub__"
-    "__eq__" "__ne__" "__lt__" "__le__" "__gt__" "__ge__"
-    "__call__" "__get__"))
+(define-macro (fill-representatives-magic-index)
+  `(with-list-of-magic-attrs $fill-representatives-magic-index))
+
+(define-macro ($fill-representatives-magic-index list-of-magic-attrs)
+  `(begin
+    ,@(let loop ((list-of-magic-attrs list-of-magic-attrs) (i 0))
+      (if (null? list-of-magic-attrs)
+        '()
+        (cons
+          `(PyObjectStrRep-magic-index-set!
+            (& ,(car list-of-magic-attrs))
+            ,i)
+          (loop (cdr list-of-magic-attrs) (+ i 0)))))))
+
+(fill-representatives-magic-index)
+
+(define list-of-magic-attrs (get-list-of-magic-attrs))
 
 (define magic-attrs-length (length list-of-magic-attrs))
 
-(define nonbuiltin-magic-attrs (make-vector magic-attrs-length #f))
+;; type allocation
 
 (define (py-type-alloc metaclass class-index bases mro hclass-of-instance)
   (make-PyObjectType
@@ -388,22 +427,11 @@
     mro
     hclass-of-instance
     #f
-    nonbuiltin-magic-attrs))
+    (make-vector magic-attrs-length #f)))
 
 (define (py-builtin-type-alloc metaclass class-index bases mro hclass-of-instance)
   (make-still-copy
-    (make-PyObjectType
-      py-type-hclass-of-instances
-      (make-vector
-        (vector-length (HClass-names py-type-hclass-of-instances))
-        py-absent)
-      metaclass
-      class-index
-      bases
-      mro
-      hclass-of-instance
-      #t
-      (make-vector magic-attrs-length #f))))
+    (py-type-alloc metaclass class-index bases mro hclass-of-instance)))
 
 (define (py-dict-alloc ordered-table)
   (make-PyObjectDict
@@ -5204,56 +5232,6 @@
 (define py-False (py-subtype-of-int-from-scheme 0 py-bool-class))
 
 (bootstrap-functions)
-
-
-;; fill-in magic attrs
-;; TODO: integrate with builtin type creation
-
-(define (magic-attr-set! cls attr-index fn)
-  (let ((magic-attrs (PyObjectType-magic-attrs cls)))
-    (vector-set! magic-attrs attr-index fn)))
-
-(define-macro (__add__.index)  0)
-(define-macro (__radd__.index) 1)
-(define-macro (__iadd__.index) 2)
-(define-macro (__mul__.index)  3)
-(define-macro (__rmul__.index) 4)
-(define-macro (__imul__.index) 5)
-(define-macro (__sub__.index)  6)
-(define-macro (__rsub__.index) 7)
-(define-macro (__isub__.index) 8)
-(define-macro (__eq__.index)   9)
-(define-macro (__ne__.index)   10)
-(define-macro (__lt__.index)   11)
-(define-macro (__le__.index)   12)
-(define-macro (__gt__.index)   13)
-(define-macro (__ge__.index)   14)
-(define-macro (__call__.index) 15)
-(define-macro (__get__.index)  16)
-
-(PyObjectStrRep-magic-index-set! (& "__add__")  (__add__.index))
-(PyObjectStrRep-magic-index-set! (& "__radd__") (__radd__.index))
-(PyObjectStrRep-magic-index-set! (& "__iadd__") (__iadd__.index))
-(PyObjectStrRep-magic-index-set! (& "__mul__")  (__mul__.index))
-(PyObjectStrRep-magic-index-set! (& "__rmul__") (__rmul__.index))
-(PyObjectStrRep-magic-index-set! (& "__imul__") (__imul__.index))
-(PyObjectStrRep-magic-index-set! (& "__sub__")  (__sub__.index))
-(PyObjectStrRep-magic-index-set! (& "__rsub__") (__rsub__.index))
-(PyObjectStrRep-magic-index-set! (& "__isub__") (__isub__.index))
-(PyObjectStrRep-magic-index-set! (& "__eq__")   (__eq__.index))
-(PyObjectStrRep-magic-index-set! (& "__ne__")   (__ne__.index))
-(PyObjectStrRep-magic-index-set! (& "__lt__")   (__lt__.index))
-(PyObjectStrRep-magic-index-set! (& "__le__")   (__le__.index))
-(PyObjectStrRep-magic-index-set! (& "__gt__")   (__gt__.index))
-(PyObjectStrRep-magic-index-set! (& "__ge__")   (__ge__.index))
-(PyObjectStrRep-magic-index-set! (& "__call__") (__call__.index))
-(PyObjectStrRep-magic-index-set! (& "__get__")  (__get__.index))
-
-(magic-attr-set! py-type-class     (__call__.index) type.__call__)
-
-(magic-attr-set! py-function-class (__call__.index) function.__call__)
-(magic-attr-set! py-function-class (__get__.index)  function.__get__)
-
 
 ;; =============================================================================
 ;;  IO

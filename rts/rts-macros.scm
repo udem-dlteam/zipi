@@ -946,15 +946,27 @@
 (define-macro (py-add-strX-strY str1 str2)
   `(py-add-SstrX-SstrY-fallback ,str1 ,str2))
 
+(define-macro (with-list-of-magic-attrs . args)
+  (let ((list-of-magic-attrs
+          '("__add__" "__radd__" "__iadd__"
+            "__mul__" "__rmul__" "__imul__"
+            "__sub__" "__rsub__" "__isub__"
+            "__eq__" "__ne__" "__lt__" "__le__" "__gt__" "__ge__"
+            "__call__" "__get__"
+            "__iter__" "__next__")))
+    ;; add info as first arg to allow rest arguments
+    `(,(car args) ,list-of-magic-attrs ,@(cdr args))))
+
+(define-macro (get-list-of-magic-attrs)
+  `(with-list-of-magic-attrs $get-list-of-magic-attrs))
+
+(define-macro ($get-list-of-magic-attrs the-list)
+  `(quote ,the-list))
+
 (define-macro (py-getattribute-from-obj-mro-2cont obj name succeed fail)
+  `(with-list-of-magic-attrs $py-getattribute-from-obj-mro-2cont ,obj ,name ,succeed ,fail))
 
-  (define list-of-magic-attrs ;; keep in sync with rts.scm
-    '("__add__" "__radd__" "__iadd__"
-      "__mul__" "__rmul__" "__imul__"
-      "__sub__" "__rsub__" "__isub__"
-      "__eq__" "__ne__" "__lt__" "__le__" "__gt__" "__ge__"
-      "__call__" "__get__"))
-
+(define-macro ($py-getattribute-from-obj-mro-2cont list-of-magic-attrs obj name succeed fail)
   (let ((x (and (pair? name)
                 (pair? (cdr name))
                 (null? (cddr name))
@@ -970,13 +982,7 @@
                                ,magic-index)))
              (if $value
                  (,succeed $value)
-                 ;; TODO: replace this branch by (,fail) when
-                 ;; magic-attrs vector is fully filled-in
-                 (let (($value
-                        (getattribute-from-obj-mro-fallback $obj $name)))
-                   (if (eq? $value py-absent)
-                       (,fail)
-                       (,succeed $value))))))))) ;; Beware of code duplication of succeed branch! (this will go away after the TODO is done)
+                 (,fail)))))))
 
 (define-macro (getattribute-from-obj-mro obj name)
   `(py-getattribute-from-obj-mro-2cont
