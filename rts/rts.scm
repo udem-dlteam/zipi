@@ -92,6 +92,14 @@
    (lambda (i) i)
    (lambda () -1)))
 
+(define (py-own-attr-ref obj attr #!optional (default py-absent))
+ ;; TODO: fix case when obj is not represented with a PyObject
+ (py-own-attr-ref-2cont
+  obj
+  attr
+  (lambda (val) val)
+  (lambda () default)))
+
 (define (py-own-attr-set! obj attr val)
   ;; TODO: fix case when obj is not represented with a PyObject
   ;; TODO: use py-own-attr-index-2cont

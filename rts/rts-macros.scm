@@ -1037,14 +1037,6 @@
          (lambda ($attr-index) ($succeed (PyObject-elements-ref $obj $attr-index)))
          $fail))))
 
-(define (py-own-attr-ref obj attr #!optional (default py-absent))
-  ;; TODO: fix case when obj is not represented with a PyObject
-  (py-own-attr-ref-2cont
-   obj
-   attr
-   (lambda (val) val)
-   (lambda () default)))
-
 (define-macro (magic-attr-set! cls attr-index val)
  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
 

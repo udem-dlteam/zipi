@@ -6,6 +6,7 @@
     inline-c-code
 
     PyObject?
+    PyObjectType?
     &
     &&
     start-registering-constants
