@@ -85,31 +85,6 @@
 
 ;;; Object attribute store/fetch.
 
-(define-macro (magic-attr-set! cls attr-index val)
-  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
-
-(define-macro (magic-attr-ref cls attr-index)
-  `(vector-ref (PyObjectType-magic-attrs ,cls) ,attr-index))
-
-(define-macro (py-own-attr-index-2cont-from-representative obj rep succeed fail)
-  `(let* (($hclass (py-obj-hclass ,obj))
-          ($names (HClass-names $hclass))
-          ($attr-representative ,rep))
-     (let $loop-names (($attr-index (fx- (vector-length $names) 1)))
-       (cond ((fx< $attr-index 0)
-              (,fail))
-             ((eq? $attr-representative (vector-ref $names $attr-index))
-              (,succeed $attr-index))
-             (else
-              ($loop-names (fx- $attr-index 1)))))))
-
-(define-macro (py-own-attr-index-2cont obj attr succeed fail)
-  `(py-own-attr-index-2cont-from-representative
-    ,obj
-    (py-str-representative ,attr)
-    ,succeed
-    ,fail))
-
 (define (py-own-attr-index obj attr)
   (py-own-attr-index-2cont
    obj
@@ -139,32 +114,6 @@
                  (index (HClass-last-index new-hclass)))
             (PyObject-hclass-set! obj new-hclass)
             (PyObject-elements-set! obj index val)))))))
-
-(define-macro (py-own-attr-ref-2cont obj attr succeed fail)
-  ;; TODO: fix case when obj is not represented with a PyObject
-  `(let* (($obj ,obj)
-          ($attr-representative (py-str-representative ,attr)))
-    (if (and (PyObjectType? $obj) (PyObjectStrRep-magic-index $attr-representative))
-      ;; magic method
-      (let (($val
-              (magic-attr-ref
-                $obj
-                (PyObjectStrRep-magic-index $attr-representative))))
-        (if $val (succeed $val) (fail)))
-      ;; normal attribute
-       (py-own-attr-index-2cont
-        $obj
-        ,attr
-        (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index))) ;; TODO: could vector-ref be used?
-        ,fail))))
-
-(define (py-own-attr-ref obj attr #!optional (default py-absent))
-  ;; TODO: fix case when obj is not represented with a PyObject
-  (py-own-attr-ref-2cont
-   obj
-   attr
-   (lambda (val) val)
-   (lambda () default)))
 
 ;;----------------------------------------------------------------------------
 
@@ -405,7 +354,7 @@
           `(PyObjectStrRep-magic-index-set!
             (& ,(car list-of-magic-attrs))
             ,i)
-          (loop (cdr list-of-magic-attrs) (+ i 0)))))))
+          (loop (cdr list-of-magic-attrs) (+ i 1)))))))
 
 (fill-representatives-magic-index)
 
@@ -1558,44 +1507,12 @@
 ;;   Does so by looking through the classes of the MRO
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
-(define (getattribute-from-cls-mro cls name)
-  (declare-not-interrupts-enabled)
-  (let ((mro (PyObjectType-mro cls)))
-    (let loop-mro ((i 0))
-      (if (fx< i (vector-length mro))
-          (let ((cls (vector-ref mro i)))
-            (py-own-attr-ref-2cont
-             cls
-             name
-             (lambda (val) val)
-             (lambda () (loop-mro (fx+ i 1)))))
-          py-absent))))
-
-;; Does the same a getattribute-from-cls-mro but also returns the class
-;; which owned the attribute. This may be necessary for super
-(define-macro (getattribute-from-cls-mro-with-owner-2cont cls name succeed fail)
-  `(let (($mro (PyObjectType-mro ,cls)))
-     (let $loop-mro (($cls-index 0))
-       (if (fx< $cls-index (vector-length $mro))
-    	   (let (($cls (vector-ref $mro $cls-index)))
-           (py-own-attr-ref-2cont
-            $cls
-            ,name
-            (lambda ($val)
-              (,succeed $val $cls))
-            (lambda ()
-              ($loop-mro (fx+ $cls-index 1)))))
-	       (,fail)))))
+(define (getattribute-from-cls-mro-fallback cls name)
+  (getattribute-from-cls-mro cls name))
 
 ;; Recover an attribute from the class of 'obj'
 (define (getattribute-from-obj-mro-fallback obj name)
-  (declare-not-interrupts-enabled)
   (getattribute-from-cls-mro (py-obj-cls obj) name))
-
-;; Does the same a getattribute-from-obj-mro but also returns the class
-;; which owned the attribute. This may be necessary for the getattr protocol
-(define-macro (getattribute-from-obj-mro-with-owner-2cont obj name succeed fail)
-  `(getattribute-from-cls-mro-with-owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
 (define (object-getattribute obj name)
   ;; TODO: add check that obj does not has it own getattribute method
@@ -2450,7 +2367,7 @@
 
     ;; builtin hidden classes
     (HClass-names-set! py-type-hclass-of-instances
-       (vector (& "__name__") (& "__call__")))
+       (vector (& "__name__")))
     (HClass-names-set! py-method-hclass-of-instances
        (vector (& "__self__")))
 
@@ -2572,7 +2489,6 @@
         (& "__name__")
         name)
       cls))
-
     (let ((parsed-attrs (py-class-parse-attributes attrs)))
       (make-cls (car parsed-attrs) (cdr parsed-attrs))))
 

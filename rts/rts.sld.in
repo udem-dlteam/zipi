@@ -167,6 +167,7 @@
     py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro
+    py-own-attr-ref-2cont
 
     py-behavior-ref
     get-behavior-index
