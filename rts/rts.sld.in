@@ -7,6 +7,7 @@
 
     PyObject?
     PyObjectType?
+    PyObjectModule?
     &
     &&
     start-registering-constants
@@ -161,10 +162,12 @@
 
     py-obj-cls
     py-obj-cls-general
+    py-obj-hclass
     py-obj-class-index
     $py-obj-class-index
     py-obj-class-index-general
     py-getattribute
+    py-getattribute-cached
     py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro

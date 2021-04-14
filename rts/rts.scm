@@ -85,6 +85,33 @@
 
 ;;; Object attribute store/fetch.
 
+(define (py-getattribute-cached obj attr obj-cache mro-cache)
+  (let* ((obj-cache-hclass (PCache-hclass cache))
+         (obj-hclass (py-obj-hclass obj)))
+    (if (eq? obj-hclass obj-cache-hclass)
+      ;; cache hit in object HClass
+      (let ((index (PCache-index cache)))
+        (cond
+          ((PyObjectModule? obj)
+            (let ((attr (PyObject-global-elements-ref obj index)))
+              (if attr
+                attr
+                (py-throw-module-getattribute-error obj name)))) ;; TODO: check mro cache
+          ((PyObjectType? obj)
+            (let ((attr (PyObject-elements-ref obj index)))
+              (if (eq? attr py-absent)
+                (py-throw-type-getattribute-error obj name) ;; TODO: check mro cache
+                (object-get-bind-descriptor attr py-None obj))))
+          (else ;;PyObject
+            ;; NOTE: no need to check case fixnum/flonum
+            ;; those objects cannot have attributes so there is never a hit
+            (let ((attr (PyObject-elements-ref obj index)))
+              (if (eq? attr py-absent)
+                (py-throw-object-getattribute-error obj name) ;; TODO: check mro cache
+                attr)))))
+      ;; object has changed use fallback
+      `(py-getattribute-fallback obj attr))))
+
 (define (py-own-attr-index obj attr)
   (py-own-attr-index-2cont
    obj
@@ -92,13 +119,13 @@
    (lambda (i) i)
    (lambda () -1)))
 
-(define (py-own-attr-ref obj attr #!optional (default py-absent))
+(define (py-own-attr-ref obj attr)
  ;; TODO: fix case when obj is not represented with a PyObject
  (py-own-attr-ref-2cont
   obj
   attr
   (lambda (val) val)
-  (lambda () default)))
+  (lambda () py-absent)))
 
 (define (py-own-attr-set! obj attr val)
   ;; TODO: fix case when obj is not represented with a PyObject
@@ -340,7 +367,7 @@
 
 (define (py-module-alloc cls hclass-of-instances)
   (let ((self
-         (make-PyObject
+         (make-PyObjectModule
           py-module-hclass-of-instances
           (vector-map
             (lambda (_) (make-global-cell #f))
@@ -571,14 +598,14 @@
                     (throw-NameError))))))))
 
 (define (global-put! global name val cache)
-  (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
+  (if (eq? (PyObject-hclass global)
            (PCache-hclass cache))
       (PyObject-global-elements-set! global (PCache-index cache) val)
       (global-put!/miss global name val cache)))
 
 (define (global-put!/miss obj name val cache)
   (let* ((index (py-own-attr-index obj name))
-         (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
+         (hclass (PyObject-hclass obj)))
     (if (>= index 0)
         (begin
           (PCache-set! cache hclass index)
@@ -593,7 +620,7 @@
 
 (define (global-own-attr-put-no-cache! global name val)
   (let* ((index (py-own-attr-index global name))
-         (hclass (PyObject-hclass global))) ;; TODO: should py-obj-hclass be used instead?
+         (hclass (PyObject-hclass global)))
     (if (>= index 0)
         (PyObject-global-elements-set! global index val)
         ;; We have to create a cell
@@ -605,7 +632,7 @@
 
 (define (global-register! obj name getter setter)
   (let* ((index (py-own-attr-index obj name))
-         (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
+         (hclass (PyObject-hclass obj)))
     (if (>= index 0)
       (begin
         (py-global-elements-direct-set!
@@ -1349,10 +1376,14 @@
 
 ;; -----------------------------------------------------------------------------
 
-(define (py-make-caches size)
-   (list->vector
-      (map (lambda (n) (make-PCache #f -1))
-         (iota size))))
+(define (py-make-caches kinds)
+  (define (make-cache kind)
+    (case kind
+      ((hclass) (make-PCache #f -1))
+      ((mro) (make-MROCache #f -1 #f))
+      (else
+        (error "py-make-caches" "unknown cache kind" kind))))
+  (list->vector (map make-cache kinds)))
 
 ;;;----------------------------------------------------------------------------
 
@@ -1537,15 +1568,7 @@
            ;; NOTE: __class__ should get a getset_descriptor on type
            (if (eq? (py-str-representative name) (& "__class__"))
                (py-obj-cls obj)
-               (py-throw
-                 (py-call
-                   py-builtin-AttributeError
-                   (py-add*
-                     (&& "'")
-                     (py-getattribute (py-obj-cls obj) (& "__name__"))
-                     (&& "' object has no attribute '")
-                     name
-                     (&& "'"))))))))))
+               (py-throw-object-getattribute-error obj name)))))))
 
 (define object.__getattribute__
   (procedure->py-function
@@ -1577,15 +1600,7 @@
              (lambda (cls-attr owner)
                (object-get-bind-descriptor cls-attr obj owner))
              (lambda ()
-               (py-throw
-                 (py-call
-                   py-builtin-AttributeError
-                   (py-add*
-                     (&& "type object '")
-                     (py-getattribute obj (& "__name__"))
-                     (&& "' has no attribute '")
-                     name
-                     (&& "'"))))))))
+               (py-throw-type-getattribute-error obj name)))))
       (py-throw-required-type "__getattribute__" "type" obj)))
 
 ;; The Python object type.__getattribute__
@@ -2228,8 +2243,6 @@
            (string quote-style)))
       (string-append quotes content quotes))))
 
-(define repr-cache (make-PCache -1 -1))
-
 (define (py-chr i)
   (if (py-subtype-of-int? i)
       (let ((value (py-subtype-of-int-to-scheme i)))
@@ -2551,15 +2564,7 @@
              (lambda (cls-attr owner)
                (object-get-bind-descriptor cls-attr self owner))
              (lambda ()
-               (py-throw
-                 (py-call
-                   py-builtin-AttributeError
-                   (py-add*
-                     (&& "module '")
-                     (py-getattribute self (& "__name__"))
-                     (&& "' has no attribute '")
-                     name
-                     (&& "'"))))))))
+               (py-throw-module-getattribute-error self name)))))
         (py-throw-exception-with-message
          py-builtin-TypeError
          "attribute name must be string"))

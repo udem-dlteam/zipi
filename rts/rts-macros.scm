@@ -1087,6 +1087,42 @@
 (define-macro (getattribute-from-obj-mro-with-owner-2cont obj name succeed fail)
  `(getattribute-from-cls-mro-with-owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
+;; object.__getattribute__ error message
+(define-macro (py-throw-object-getattribute-error obj name)
+  `(py-throw
+    (py-call
+      py-builtin-AttributeError
+      (py-add*
+        (&& "'")
+        (py-getattribute (py-obj-cls ,obj) (& "__name__"))
+        (&& "' object has no attribute '")
+        ,name
+        (&& "'")))))
+
+;; type.__getattribute__ error message
+(define-macro (py-throw-type-getattribute-error obj name)
+  `(py-throw
+    (py-call
+      py-builtin-AttributeError
+      (py-add*
+        (&& "type object '")
+        (py-getattribute ,obj (& "__name__"))
+        (&& "' has no attribute '")
+        ,name
+        (&& "'")))))
+
+;; module.__getattribute__ error message
+(define-macro (py-throw-module-getattribute-error obj name)
+  `(py-throw
+    (py-call
+      py-builtin-AttributeError
+      (py-add*
+        (&& "module '")
+        (py-getattribute ,obj (& "__name__"))
+        (&& "' has no attribute '")
+        ,name
+        (&& "'")))))
+
 ;; behavior dispatch
 
 (define-macro (with-class-indices-info . args)
@@ -1789,8 +1825,14 @@
 (define-macro (py-maybe-len obj)
   `(py-maybe-len-fallback ,obj))
 
-(define-macro (py-getattribute obj attr)
-  `(py-getattribute-fallback ,obj ,attr))
+(define-macro (py-getattribute obj attr #!optional (obj-cache #f) (mro-cache #f))
+  (cond
+    ((and obj-cache mro-cache)
+      `(py-getattribute-cached obj attr obj-cache mro-cache))
+    ((and (not obj-cache) (not mro-cache))
+      `(py-getattribute-fallback ,obj ,attr))
+    (else
+      (error "py-getattribute" "bad caches" "required 0 or 2 caches not 1"))))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))

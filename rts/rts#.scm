@@ -142,7 +142,11 @@
   (class unprintable:))
 
 (define-macro (PyObject-elements-ref obj offset)
-  `(vector-ref (PyObject-%elements ,obj) ,offset))
+  `(let (($offset ,offset)
+         ($elements (PyObject-%elements ,obj)))
+    (if (##fx< $offset (vector-length $elements))
+      (vector-ref $elements $offset)
+      py-absent)))
 
 (define-macro (PyObject-elements-set! obj offset val)
   `(let* (($obj ,obj)
@@ -168,6 +172,12 @@
   (hclass-of-instances unprintable:)
   (is-builtin unprintable:)
   (magic-attrs unprintable:))
+
+(define-type-of-PyObject PyObjectModule
+  id: PyObjectModule-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  macros: ;; this will inline the operations on this type
+  )
 
 (define-type-of-PyObject PyObjectInt
   id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -375,33 +385,37 @@
   encoding)
 
 ;; =============================================================================
-;;  PCache
+;;  Caches
 ;; =============================================================================
 
 (define-type PCache
   id: A1E4C683-1891-4179-81F6-797D0A717E37
-  constructor: %make-PCache
+  constructor: make-PCache
   predicate: PCache?
   implementer: implement-PCache
   copier: #f
   opaque:
-  prefix: %
   macros: ;; this will inline the operations on this type
-  hclass index)
+  hclass
+  index)
 
-(define-macro (make-PCache hc i)
-  `(%make-PCache ,hc ,i))
-
-(define-macro (PCache-hclass pc)
-  `(%PCache-hclass ,pc))
-
-(define-macro (PCache-index pc)
-  `(%PCache-index ,pc))
 
 (define-macro (PCache-set! pc hc i)
   `(let (($pc ,pc))
-     (%PCache-hclass-set! $pc ,hc)
-     (%PCache-index-set! $pc ,i)))
+     (PCache-hclass-set! $pc ,hc)
+     (PCache-index-set! $pc ,i)))
+
+(define-type MROCache
+ id: A1E4C683-1891-4179-81F6-797D0A717E37
+ constructor: make-MROCache
+ predicate: MROCache?
+ implementer: implement-MROPCache
+ copier: #f
+ opaque:
+ macros: ;; this will inline the operations on this type
+ cls
+ index
+ valid)
 
 ;; =============================================================================
 ;;  HClass

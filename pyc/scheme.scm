@@ -3,10 +3,18 @@
    (pyc-cache! ast conf)
    (scheme ast conf))
 
+(define (add-cache-to-store store kind)
+  (set-car! store (+ (car store) 1))
+  (set-cdr! store (cons kind (cdr store)))
+  (- (car store) 1))
+
 (define (pyc-cache! ast conf)
-   (let* ((cnt (make-cell 0))
-	  (caches (collect-caches ast cnt)))
-      (PycModule-caches-set! ast (cell-ref cnt))))
+  (let ((store (cons 0 '())))
+    (collect-caches ast store)
+    (PycModule-caches-set! ast (reverse (cdr store)))))
+
+(define (scheme-make-caches ast)
+  `(py-make-caches (quote (,@(PycModule-caches ast)))))
 
 (define (every? pred? lst)
   (cond
@@ -165,11 +173,11 @@
 			   (raise e)))
 		    (py-module
 		       (py-make-global)
-		       (py-make-caches ,(PycModule-caches ast))))))
+		       ,(scheme-make-caches ast)))))
 	    (else
 	     `(define (zipi-init name package path)
 		 (init-registered-constants)
-		 (let ((caches (py-make-caches ,(PycModule-caches ast)))
+		 (let ((caches ,(scheme-make-caches ast))
 		       (module (py-make-module
                          (py-str-from-scheme name)
                          (py-str-from-scheme package)
@@ -248,7 +256,7 @@
 
               (define (,(or special-init 'init) name package __path__)
                 (py-init-module)
-                (let ((caches (py-make-caches ,(PycModule-caches ast)))
+                (let ((caches ,(scheme-make-caches ast))
                       (module (py-make-module name package __path__)))
                   ,(if full-path
                     `(global-put!
@@ -923,12 +931,14 @@
 	      (field (PycAccess-field lhs))
 	      (assig (new-PycAssig loc
 			(new-PycAccess loc (new-PycPragma loc %o) field
-			   cache: (PycAccess-cache lhs))
+			   obj-cache: (PycAccess-obj-cache lhs)
+         mro-cache: (PycAccess-mro-cache lhs))
 			(new-PycCall loc
 			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
 			   (list
 			      (new-PycAccess loc (new-PycPragma loc %o) field
-				 cache: (PycAccess-cache lhs))
+				 obj-cache: (PycAccess-obj-cache lhs)
+         mro-cache: (PycAccess-mro-cache lhs))
 			      (PycAssig-rhs this))))))
 	  (epairify this
 	     `(let ((,%o ,(scheme (PycAccess-obj lhs) conf)))
@@ -1485,7 +1495,9 @@
 (define-walk-method (scheme this::PycAccess conf)
   (epairify this
     `(py-getattribute ,(scheme (PycAccess-obj this) conf)
-	  ,(pyc-propname (PycAccess-field this)))))
+	  ,(pyc-propname (PycAccess-field this))
+    ,(scheme-cache (PycAccess-obj-cache this) this)
+    ,(scheme-cache (PycAccess-mro-cache this) this))))
 
 (define-walk-method (scheme this::PycSubscript conf)
    (epairify this
@@ -1540,46 +1552,33 @@
        `(vector-ref %caches ,cache)))
 
 ;; collect caches
-(define-walk-method (collect-caches this::PycNode cnt)
+(define-walk-method (collect-caches this::PycNode store)
    (call-default-walker))
 
-(define-walk-method (collect-caches this::PycRef cnt)
-   (when (eq? (PycVar-scope (PycRef-decl this)) 'global)
-      (let ((n (cell-ref cnt)))
-	 (cell-set! cnt (+ 1 n))
-	 (PycRef-cache-set! this n))))
+(define-walk-method (collect-caches this::PycRef store)
+  (when (eq? (PycVar-scope (PycRef-decl this)) 'global)
+    (PycRef-cache-set! this (add-cache-to-store store 'hclass))))
 
-(define-walk-method (collect-caches this::PycUnary cnt)
+(define-walk-method (collect-caches this::PycUnary store)
+  (call-default-walker)
+  (PycUnary-cache-set! this (add-cache-to-store store 'hclass)))
+
+(define-walk-method (collect-caches this::PycRefUnresolved store)
+  (PycRefUnresolved-cache-set! this (add-cache-to-store store 'hclass)))
+
+(define-walk-method (collect-caches this::PycAccess store)
+  (call-default-walker)
+  (PycAccess-obj-cache-set! this (add-cache-to-store store 'hclass))
+  (PycAccess-mro-cache-set! this (add-cache-to-store store 'mro)))
+
+(define-walk-method (collect-caches this::PycAugAssig store)
    (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycUnary-cache-set! this n)))
+   (PycAugAssig-cache-set! this (add-cache-to-store store 'hclass)))
 
-(define-walk-method (collect-caches this::PycRefUnresolved cnt)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycRefUnresolved-cache-set! this n)))
-
-(define-walk-method (collect-caches this::PycAccess cnt)
+(define-walk-method (collect-caches this::PycFor store)
    (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycAccess-cache-set! this n)))
-
-(define-walk-method (collect-caches this::PycAugAssig cnt)
-   (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycAugAssig-cache-set! this n)))
-
-(define-walk-method (collect-caches this::PycFor cnt)
-   (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (let ((m (cell-ref cnt)))
-	 (cell-set! cnt (+ 1 m))
-	 (PycFor-cachei-set! this n)
-	 (PycFor-cachen-set! this m))))
+	 (PycFor-cachei-set! this (add-cache-to-store store 'hclass))
+	 (PycFor-cachen-set! this (add-cache-to-store store 'hclass)))
 
 ;; collect global variables
 (define-walk-method (collect-globals* this::PycNode)
