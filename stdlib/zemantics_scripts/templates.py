@@ -1123,12 +1123,14 @@ class range_iterator:
             if start > stop:
                 self.start = start + step
                 return start
+            else:
+                raise StopIteration
         else:
             if start < stop:
                 self.start = start + step
                 return start
-
-        raise StopIteration
+            else:
+                raise StopIteration
 
 @builtin
 class range:
