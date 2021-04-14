@@ -389,12 +389,8 @@
 ;; =============================================================================
 
 (define-type PCache
-  id: A1E4C683-1891-4179-81F6-797D0A717E37
-  constructor: make-PCache
-  predicate: PCache?
-  implementer: implement-PCache
+  id: PCache-A1E4C683-1891-4179-81F6-797D0A717E37
   copier: #f
-  opaque:
   macros: ;; this will inline the operations on this type
   hclass
   index)
@@ -406,12 +402,8 @@
      (PCache-index-set! $pc ,i)))
 
 (define-type MROCache
- id: A1E4C683-1891-4179-81F6-797D0A717E37
- constructor: make-MROCache
- predicate: MROCache?
- implementer: implement-MROPCache
+ id: MROCache-A1E4C683-1891-4179-81F6-797D0A717E37
  copier: #f
- opaque:
  macros: ;; this will inline the operations on this type
  cls
  index

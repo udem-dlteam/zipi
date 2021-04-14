@@ -1828,7 +1828,7 @@
 (define-macro (py-getattribute obj attr #!optional (obj-cache #f) (mro-cache #f))
   (cond
     ((and obj-cache mro-cache)
-      `(py-getattribute-cached obj attr obj-cache mro-cache))
+      `(py-getattribute-cached ,obj ,attr ,obj-cache ,mro-cache))
     ((and (not obj-cache) (not mro-cache))
       `(py-getattribute-fallback ,obj ,attr))
     (else

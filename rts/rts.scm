@@ -86,11 +86,11 @@
 ;;; Object attribute store/fetch.
 
 (define (py-getattribute-cached obj attr obj-cache mro-cache)
-  (let* ((obj-cache-hclass (PCache-hclass cache))
+  (let* ((obj-cache-hclass (PCache-hclass obj-cache))
          (obj-hclass (py-obj-hclass obj)))
     (if (eq? obj-hclass obj-cache-hclass)
       ;; cache hit in object HClass
-      (let ((index (PCache-index cache)))
+      (let ((index (PCache-index obj-cache)))
         (cond
           ((PyObjectModule? obj)
             (let ((attr (PyObject-global-elements-ref obj index)))
@@ -110,7 +110,7 @@
                 (py-throw-object-getattribute-error obj name) ;; TODO: check mro cache
                 attr)))))
       ;; object has changed use fallback
-      `(py-getattribute-fallback obj attr))))
+      (py-getattribute-fallback obj attr))))
 
 (define (py-own-attr-index obj attr)
   (py-own-attr-index-2cont
