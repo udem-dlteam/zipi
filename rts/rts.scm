@@ -186,16 +186,33 @@
 
 ;; TODO:
 ;;  3) Invalidate MROCache (requires the mro-graph)
-;;  4) Handle classes with __getattr__ method
 (define (py-getattribute-cached/miss obj attr obj-cache mro-cache)
+  (define (getattribute-from-getattr attribute-error)
+    (getattribute-from-cls-mro-with-owner-2cont
+      (py-obj-cls obj)
+      (& "__getattr__")
+      (lambda (__getattr__)
+        ;; caches cannot save you if this happens
+        (py-call __getattr__ obj attr))
+      attribute-error))
+
   (let ((__getattribute__ (getattribute-from-obj-mro obj (& "__getattribute__"))))
     (cond
       ((eq? __getattribute__ object.__getattribute__)
-        (object-getattribute obj attr obj-cache mro-cache))
+        (or
+          (object-getattribute obj attr #f obj-cache mro-cache)
+          (getattribute-from-getattr
+            (lambda () (py-throw-object-getattribute-error obj name)))))
       ((eq? __getattribute__ type.__getattribute__)
-        (type-getattribute obj attr mro-cache))
+        (or
+          (type-getattribute obj attr #f mro-cache)
+          (getattribute-from-getattr
+            (lambda () (py-throw-type-getattribute-error obj name)))))
       ((eq? __getattribute__ module.__getattribute__)
-        (module-getattribute obj attr obj-cache mro-cache))
+        (or
+          (module-getattribute obj attr #f obj-cache mro-cache)
+          (getattribute-from-getattr
+            (lambda () (py-throw-module-getattribute-error obj name)))))
       (else
         (py-getattribute-fallback obj attr)))))
 
@@ -1644,7 +1661,7 @@
 (define (getattribute-from-obj-mro-fallback obj name)
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
-(define (object-getattribute obj name #!optional (obj-cache #f) (mro-cache #f))
+(define (object-getattribute obj name #!optional (raise? #t) (obj-cache #f) (mro-cache #f))
   (py-own-attr-index/ref-2cont
     obj
     attr
@@ -1666,7 +1683,9 @@
               (py-obj-cls obj)
               (begin
                 (if mro-cache (MROCache-set! mro-cache #f -1))
-                (py-throw-object-getattribute-error obj name))))))))
+                (and
+                  raise?
+                  (py-throw-object-getattribute-error obj name)))))))))
 
 (define object.__getattribute__
   (procedure->py-function
@@ -1687,7 +1706,7 @@
     (make-signature posonlyargs: (obj name val))))
 
 ;; Implements type.__getattribute__
-(define (type-getattribute obj name #!optional (mro-cache #f))
+(define (type-getattribute obj name #!optional (raise? #t) (mro-cache #f))
   (if (py-isinstance? obj py-type-class)
     (getattribute-from-cls-mro-with-index/owner-2cont
       obj
@@ -1704,7 +1723,7 @@
            (object-get-bind-descriptor cls-attr obj owner))
          (lambda ()
            (if mro-cache (MROCache-set! mro-cache #f -1))
-           (py-throw-type-getattribute-error obj name)))))
+           (and raise? (py-throw-type-getattribute-error obj name))))))
     (py-throw-required-type "__getattribute__" "type" obj)))
 
 ;; The Python object type.__getattribute__
@@ -2656,7 +2675,7 @@
     (make-signature posonlyargs: (self))))
 
 
-(define (module-getattribute self name #!optional (obj-cache #f) (mro-cache #f))
+(define (module-getattribute self name #!optional (raise? #t) (obj-cache #f) (mro-cache #f))
   (if (py-isinstance? self py-module-class)
     (if (py-isinstance? name py-builtin-str)
       (py-own-attr-index-2cont
@@ -2679,7 +2698,7 @@
                  (object-get-bind-descriptor cls-attr self owner))
                (lambda ()
                  (if mro-cache (MROCache-set! mro-cache #f -1))
-                 (py-throw-module-getattribute-error self name)))))))
+                 (and raise? (py-throw-module-getattribute-error self name))))))))
       (py-throw-exception-with-message
        py-builtin-TypeError
        "attribute name must be string"))
