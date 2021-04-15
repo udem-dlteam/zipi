@@ -1662,7 +1662,7 @@
 (define (object-getattribute obj name #!optional (raise? #t) (obj-cache #f) (mro-cache #f))
   (py-own-attr-index/ref-2cont
     obj
-    attr
+    name
     (lambda (index val)
       (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) index))
       val)
