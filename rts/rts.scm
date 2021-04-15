@@ -452,12 +452,12 @@
 (define-macro (global-cell-set-val! cell val)
   `((global-cell-setter-get ,cell) ,val))
 
-(define-macro (PyObject-global-elements-ref global index)
-  `(PyObject-elements-ref-2cont
-      ,global
-      ,index
-      (lambda ($val) (global-cell-get-val $val))
-      (lambda () #f)))
+(define-macro (PyObject-global-elements-ref global offset)
+  `(let (($offset ,offset)
+         ($elements (PyObject-%elements ,global)))
+    (if (##fx< $offset (vector-length $elements))
+      (global-cell-get-val (vector-ref $elements $offset))
+      #f)))
 
 (define-macro (py-global-elements-set! elements offset val)
   `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
@@ -2692,13 +2692,12 @@
         obj
         name
         (lambda (index)
-          (PyObject-elements-ref-2cont
-            obj
-            index
-            (lambda (val)
-              (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) index))
-              val)
-            getattribute-from-mro))
+          (let ((val (PyObject-global-elements-ref obj index)))
+            (if val
+              (begin
+                (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) index))
+                val)
+              (getattribute-from-mro))))
         getattribute-from-mro)
       (py-throw-exception-with-message
        py-builtin-TypeError

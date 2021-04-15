@@ -141,16 +141,6 @@
   (%elements unprintable:)
   (class unprintable:))
 
-(define-macro (PyObject-elements-ref-2cont obj offset success fail)
-  `(let (($offset ,offset)
-         ($elements (PyObject-%elements ,obj)))
-    (if (##fx< $offset (vector-length $elements))
-      (let (($val (vector-ref $elements $offset)))
-        (if (eq? $val py-absent)
-          (,fail)
-          (,success $val)))
-      (,fail))))
-
 (define-macro (PyObject-elements-ref obj offset)
   `(let (($offset ,offset)
          ($elements (PyObject-%elements ,obj)))
