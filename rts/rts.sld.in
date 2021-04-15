@@ -167,7 +167,9 @@
     $py-obj-class-index
     py-obj-class-index-general
     py-getattribute
-    py-getattribute-cached
+    $py-getattribute
+    py-getattribute-cached-magic-attr
+    py-getattribute-cached-not-magic-attr
     py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro

@@ -141,12 +141,19 @@
   (%elements unprintable:)
   (class unprintable:))
 
-(define-macro (PyObject-elements-ref obj offset)
+(define-macro (PyObject-elements-ref-2cont obj offset success fail)
   `(let (($offset ,offset)
          ($elements (PyObject-%elements ,obj)))
     (if (##fx< $offset (vector-length $elements))
-      (vector-ref $elements $offset)
-      py-absent)))
+      (,success (vector-ref $elements $offset))
+      (,fail))))
+
+(define-macro (PyObject-elements-ref obj offset)
+  `(PyObject-elements-ref-2cont
+    ,obj
+    ,offset
+    (lambda ($val) $val)
+    (lambda () py-absent)))
 
 (define-macro (PyObject-elements-set! obj offset val)
   `(let* (($obj ,obj)
@@ -408,6 +415,12 @@
  cls
  index
  valid)
+
+(define-macro (MROCache-set! c cls i)
+  `(let (($c ,c))
+     (MROCache-cls-set! $c ,cls)
+     (MROCache-index-set! $c ,i)
+     (MROCache-valid-set! $c #t)))
 
 ;; =============================================================================
 ;;  HClass

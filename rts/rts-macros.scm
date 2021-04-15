@@ -1018,6 +1018,20 @@
               ($loop-mro (fx+ $cls-index 1)))))
 	       (,fail)))))
 
+(define-macro (getattribute-from-cls-mro-with-index/owner-2cont cls name succeed fail)
+ `(let (($mro (PyObjectType-mro ,cls)))
+    (let $loop-mro (($cls-index 0))
+      (if (fx< $cls-index (vector-length $mro))
+   	   (let (($cls (vector-ref $mro $cls-index)))
+          (py-own-attr-index/ref-2cont
+           $cls
+           ,name
+           (lambda ($index $val)
+             (,succeed $index $val $cls))
+           (lambda ()
+             ($loop-mro (fx+ $cls-index 1)))))
+	       (,fail)))))
+
 (define-macro (getattribute-from-cls-mro cls name)
   `(getattribute-from-cls-mro-with-owner-2cont
     ,cls
@@ -1045,6 +1059,26 @@
           ($succeed (PyObject-elements-ref $obj $attr-index)))
         $fail))))
 
+(define-macro (py-cls-own-attr-index/ref-2cont cls attr succeed fail)
+  `(let* (($cls ,cls)
+          ($attr ,attr)
+          ($succeed ,succeed)
+          ($fail ,fail)
+          ($attr-representative (py-str-representative $attr))
+          ($magic-index (PyObjectStrRep-magic-index $attr-representative)))
+    (if $magic-index
+      (let (($val
+            (magic-attr-ref
+              $obj
+              $magic-index)))
+        (if $val ($succeed -1 $val) ($fail)))
+      (py-own-attr-index-2cont-from-representative
+        $obj
+        $attr-representative
+        (lambda ($attr-index)
+          ($succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+        $fail))))
+
 (define-macro (py-own-attr-ref-2cont obj attr succeed fail)
   ;; TODO: fix case when obj is not represented with a PyObject
   `(let* (($obj ,obj)
@@ -1058,6 +1092,20 @@
          $attr
          (lambda ($attr-index) ($succeed (PyObject-elements-ref $obj $attr-index)))
          $fail))))
+
+(define-macro (py-own-attr-index/ref-2cont obj attr succeed fail)
+ ;; TODO: fix case when obj is not represented with a PyObject
+ `(let* (($obj ,obj)
+         ($attr ,attr)
+         ($succeed ,succeed)
+         ($fail ,fail))
+     (if (PyObjectType? $obj)
+       (py-cls-own-attr-index/ref-2cont $obj $attr $succeed $fail)
+       (py-own-attr-index-2cont
+        $obj
+        $attr
+        (lambda ($attr-index) ($succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+        $fail))))
 
 (define-macro (magic-attr-set! cls attr-index val)
  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
@@ -1086,6 +1134,9 @@
 
 (define-macro (getattribute-from-obj-mro-with-owner-2cont obj name succeed fail)
  `(getattribute-from-cls-mro-with-owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
+
+(define-macro (getattribute-from-obj-mro-with-index/owner-2cont obj name succeed fail)
+`(getattribute-from-cls-mro-with-index/owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
 ;; object.__getattribute__ error message
 (define-macro (py-throw-object-getattribute-error obj name)
@@ -1826,9 +1877,22 @@
   `(py-maybe-len-fallback ,obj))
 
 (define-macro (py-getattribute obj attr #!optional (obj-cache #f) (mro-cache #f))
+ `(with-list-of-magic-attrs $py-getattribute ,obj ,attr ,obj-cache ,mro-cache))
+
+(define-macro ($py-getattribute list-of-magic-attrs obj attr #!optional (obj-cache #f) (mro-cache #f))
   (cond
     ((and obj-cache mro-cache)
-      `(py-getattribute-cached ,obj ,attr ,obj-cache ,mro-cache))
+      (if (and (pair? attr)
+               (memq? (car attr) '(& &&)))
+        (let ((x (member (cadr attr) list-of-magic-attrs)))
+          (if x
+            ;; is a magic attribute
+            (let ((magic-index (- (length list-of-magic-attrs) (length x))))
+              `(py-getattribute-cached-magic-attr ,obj ,attr ,magic-index ,obj-cache ,mro-cache))
+            ;; is not a magic attribute
+            `(py-getattribute-cached-not-magic-attr ,obj ,attr ,obj-cache ,mro-cache)))
+        ;; cannot cache dynamic attribute
+        `(py-getattribute-fallback ,obj ,attr ,obj-cache ,mro-cache)))
     ((and (not obj-cache) (not mro-cache))
       `(py-getattribute-fallback ,obj ,attr))
     (else
