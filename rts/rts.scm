@@ -88,7 +88,7 @@
 (define (py-getattribute-cached-magic-attr obj name magic-index obj-cache mro-cache)
   (define (getattribute-from-mro-cache attribute-error)
     (if (MROCache-valid mro-cache)
-      (let* ((cls (MROCache-cls mro-chache))
+      (let* ((cls (MROCache-cls mro-cache))
              (attr (magic-attr-ref cls magic-index)))
         (if attr
           (if (eq? cls obj)
@@ -138,7 +138,7 @@
 (define (py-getattribute-cached-not-magic-attr obj name obj-cache mro-cache)
   (define (getattribute-from-mro-cache attribute-error)
     (if (MROCache-valid mro-cache)
-      (let* ((cls (MROCache-cls mro-chache))
+      (let* ((cls (MROCache-cls mro-cache))
              (attr (PyObject-elements-ref cls (MROCache-index mro-cache))))
         (if (eq? attr py-absent)
           (attribute-error)
