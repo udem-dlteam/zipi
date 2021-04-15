@@ -16,7 +16,7 @@ builtins: ../stdlib/builtins.sld
 	cp ../stdlib/builtins.sld ./builtins/builtins.sld
 
 zipi-build-symlink:
-	cd $(BUILDDIR); rm zipi; ln -s . zipi
+	cd $(BUILDDIR); rm -f zipi; ln -s . zipi
 
 zipi-install-symlink:
 	cd $(ZIPIROOT); ln -s . zipi
