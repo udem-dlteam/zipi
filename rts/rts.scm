@@ -184,35 +184,35 @@
       ;; object has changed use fallback
       (py-getattribute-cached/miss obj name obj-cache mro-cache))))
 
-(define (py-getattribute-cached/miss obj attr obj-cache mro-cache)
+(define (py-getattribute-cached/miss obj name obj-cache mro-cache)
   (define (getattribute-from-getattr attribute-error)
     (getattribute-from-cls-mro-with-owner-2cont
       (py-obj-cls obj)
       (& "__getattr__")
       (lambda (__getattr__)
         ;; caches cannot save you if this happens
-        (py-call __getattr__ obj attr))
+        (py-call __getattr__ obj name))
       attribute-error))
 
   (let ((__getattribute__ (getattribute-from-obj-mro obj (& "__getattribute__"))))
     (cond
       ((eq? __getattribute__ object.__getattribute__)
         (or
-          (object-getattribute obj attr #f obj-cache mro-cache)
+          (object-getattribute obj name #f obj-cache mro-cache)
           (getattribute-from-getattr
             (lambda () (py-throw-object-getattribute-error obj name)))))
       ((eq? __getattribute__ type.__getattribute__)
         (or
-          (type-getattribute obj attr #f mro-cache)
+          (type-getattribute obj name #f mro-cache)
           (getattribute-from-getattr
             (lambda () (py-throw-type-getattribute-error obj name)))))
       ((eq? __getattribute__ module.__getattribute__)
         (or
-          (module-getattribute obj attr #f obj-cache mro-cache)
+          (module-getattribute obj name #f obj-cache mro-cache)
           (getattribute-from-getattr
             (lambda () (py-throw-module-getattribute-error obj name)))))
       (else
-        (py-getattribute-fallback obj attr)))))
+        (py-getattribute-fallback obj name)))))
 
 (define (py-own-attr-index obj attr)
   (py-own-attr-index-2cont
