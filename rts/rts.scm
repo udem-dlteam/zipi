@@ -2673,27 +2673,27 @@
     (make-signature posonlyargs: (self))))
 
 
-(define (module-getattribute self name #!optional (raise? #t) (obj-cache #f) (mro-cache #f))
+(define (module-getattribute obj name #!optional (raise? #t) (obj-cache #f) (mro-cache #f))
   (define (getattribute-from-mro)
     (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) -1))
       (getattribute-from-obj-mro-with-index/owner-2cont
-       self
+       obj
        name
        (lambda (index cls-attr owner)
          (if mro-cache (MROCache-set! mro-cache owner index))
-         (object-get-bind-descriptor cls-attr self owner))
+         (object-get-bind-descriptor cls-attr obj owner))
        (lambda ()
          (if mro-cache (MROCache-set! mro-cache #f -1))
-         (and raise? (py-throw-module-getattribute-error self name)))))
+         (and raise? (py-throw-module-getattribute-error obj name)))))
 
-  (if (py-isinstance? self py-module-class)
+  (if (py-isinstance? obj py-module-class)
     (if (py-isinstance? name py-builtin-str)
       (py-own-attr-index-2cont
-        self
+        obj
         name
         (lambda (index)
           (PyObject-elements-ref-2cont
-            self
+            obj
             index
             (lambda (val)
               (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) index))
@@ -2703,7 +2703,7 @@
       (py-throw-exception-with-message
        py-builtin-TypeError
        "attribute name must be string"))
-    (throw-returned-wrong-type "__getattribute__" self "not a module")))
+    (throw-returned-wrong-type "__getattribute__" obj "not a module")))
 
 (define module.__getattribute__
   (procedure->py-function

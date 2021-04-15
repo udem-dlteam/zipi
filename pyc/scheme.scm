@@ -108,6 +108,10 @@
         (loop (cdr vars) acc)
         (loop (cdr vars) (cons (car vars) acc))))))
 
+(define (in-semantics? conf)
+  (let ((current-fun (memq fun: conf)))
+    (and current-fun (PycSemantics? current-fun))))
+
 (define (pyc-scheme-bigloo ast conf)
    (pyc-cache! ast conf)
    (let* ((file (config-get conf file:))
@@ -1493,11 +1497,17 @@
         (error "scheme::PycDelete" "only del subscript/slice are supported" this)))))
 
 (define-walk-method (scheme this::PycAccess conf)
-  (epairify this
-    `(py-getattribute ,(scheme (PycAccess-obj this) conf)
-	  ,(pyc-propname (PycAccess-field this))
-    ,(scheme-cache (PycAccess-obj-cache this) this)
-    ,(scheme-cache (PycAccess-mro-cache this) this))))
+  (if (in-semantics? conf)
+    (epairify this
+      `(py-getattribute ,(scheme (PycAccess-obj this) conf)
+  	  ,(pyc-propname (PycAccess-field this))
+      ,(scheme-cache (PycAccess-obj-cache this) this)
+      ,(scheme-cache (PycAccess-mro-cache this) this)))
+    ;; no cache for semantics
+    ;; attributes used in semantics should have special slots
+    (epairify this
+      `(py-getattribute ,(scheme (PycAccess-obj this) conf)
+  	  ,(pyc-propname (PycAccess-field this))))))
 
 (define-walk-method (scheme this::PycSubscript conf)
    (epairify this
