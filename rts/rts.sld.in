@@ -166,6 +166,7 @@
     py-obj-class-index
     $py-obj-class-index
     py-obj-class-index-general
+    with-list-of-magic-attrs
     py-getattribute
     $py-getattribute
     py-getattribute-cached-magic-attr
