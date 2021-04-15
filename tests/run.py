@@ -123,6 +123,8 @@ def run_one_test(path, cpython, zipi):
 
     if scheme_output.returncode == -signal.SIGSEGV:
         return CriticalFail('Segmentation fault')
+    elif scheme_output.returncode not in (0, 1):
+         return CriticalFail(f'Unknown return code: {scheme_output.returncode}')
     elif cpython_output.returncode == 0:
         if scheme_output.returncode == 0:
             if cpython_stdout == scheme_stdout:
