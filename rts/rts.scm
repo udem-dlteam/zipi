@@ -184,8 +184,6 @@
       ;; object has changed use fallback
       (py-getattribute-cached/miss obj name obj-cache mro-cache))))
 
-;; TODO:
-;;  3) Invalidate MROCache (requires the mro-graph)
 (define (py-getattribute-cached/miss obj attr obj-cache mro-cache)
   (define (getattribute-from-getattr attribute-error)
     (getattribute-from-cls-mro-with-owner-2cont
@@ -2676,6 +2674,18 @@
 
 
 (define (module-getattribute self name #!optional (raise? #t) (obj-cache #f) (mro-cache #f))
+  (define (getattribute-from-mro)
+    (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) -1))
+      (getattribute-from-obj-mro-with-index/owner-2cont
+       self
+       name
+       (lambda (index cls-attr owner)
+         (if mro-cache (MROCache-set! mro-cache owner index))
+         (object-get-bind-descriptor cls-attr self owner))
+       (lambda ()
+         (if mro-cache (MROCache-set! mro-cache #f -1))
+         (and raise? (py-throw-module-getattribute-error self name)))))
+
   (if (py-isinstance? self py-module-class)
     (if (py-isinstance? name py-builtin-str)
       (py-own-attr-index-2cont
@@ -2688,17 +2698,8 @@
             (lambda (val)
               (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) index))
               val)
-            (lambda ()
-              (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) -1))
-              (getattribute-from-obj-mro-with-index/owner-2cont
-               self
-               name
-               (lambda (index cls-attr owner)
-                 (if mro-cache (MROCache-set! mro-cache owner index))
-                 (object-get-bind-descriptor cls-attr self owner))
-               (lambda ()
-                 (if mro-cache (MROCache-set! mro-cache #f -1))
-                 (and raise? (py-throw-module-getattribute-error self name))))))))
+            getattribute-from-mro))
+        getattribute-from-mro)
       (py-throw-exception-with-message
        py-builtin-TypeError
        "attribute name must be string"))

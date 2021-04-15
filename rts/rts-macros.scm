@@ -1883,7 +1883,7 @@
   (cond
     ((and obj-cache mro-cache)
       (if (and (pair? attr)
-               (memq? (car attr) '(& &&)))
+               (memq (car attr) '(& &&)))
         (let ((x (member (cadr attr) list-of-magic-attrs)))
           (if x
             ;; is a magic attribute

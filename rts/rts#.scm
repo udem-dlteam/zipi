@@ -145,15 +145,18 @@
   `(let (($offset ,offset)
          ($elements (PyObject-%elements ,obj)))
     (if (##fx< $offset (vector-length $elements))
-      (,success (vector-ref $elements $offset))
+      (let (($val (vector-ref $elements $offset)))
+        (if (eq? $val py-absent)
+          (,fail)
+          (,success $val)))
       (,fail))))
 
 (define-macro (PyObject-elements-ref obj offset)
-  `(PyObject-elements-ref-2cont
-    ,obj
-    ,offset
-    (lambda ($val) $val)
-    (lambda () py-absent)))
+  `(let (($offset ,offset)
+         ($elements (PyObject-%elements ,obj)))
+    (if (##fx< $offset (vector-length $elements))
+      (vector-ref $elements $offset)
+      py-absent)))
 
 (define-macro (PyObject-elements-set! obj offset val)
   `(let* (($obj ,obj)
