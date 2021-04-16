@@ -1638,11 +1638,8 @@
 
 ;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
 ;; if the __get__ method does not exist on the attr's class, return the attr
-(define (object-get-bind-descriptor attr instance #!optional (owner py-None))
-  (let ((__get__ (getattribute-from-obj-mro attr (& "__get__"))))
-    (if (not (eq? __get__ py-absent))
-      (py-call __get__ attr instance owner)
-      attr)))
+(define (object-get-bind-descriptor-fallback attr instance #!optional (owner py-None))
+  (object-get-bind-descriptor attr instance py-None))
 
 ;; ================
 ;; GETATTR PROTOCOL

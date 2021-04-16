@@ -990,12 +990,28 @@
   `(with-list-of-magic-attrs $py-getattribute-from-obj-mro-2cont ,obj ,name ,succeed ,fail))
 
 (define-macro ($py-getattribute-from-obj-mro-2cont list-of-magic-attrs obj name succeed fail)
-  ;; TODO optimize case where name is a literal magic method
-  `(getattribute-from-cls-mro-with-owner-2cont
-    (py-obj-cls ,obj)
-    ,name
-    (lambda ($cls $owner) (,succeed $cls))
-    ,fail))
+  (define (not-a-magic-attribute)
+    `(getattribute-from-cls-mro-with-owner-2cont
+      (py-obj-cls ,obj)
+      ,name
+      (lambda ($val $owner) (,succeed $val))
+      ,fail))
+
+  (if (and (pair? name)
+           (memq (car name) '(& &&)))
+    (let* ((name-string (cadr name))
+           (x (member name-string list-of-magic-attrs)))
+      (if x
+        ;; magic attribute, we know its index
+        (let ((magic-index (- (length list-of-magic-attrs) (length x))))
+          `(get-magic-attribute-from-cls-mro-with-owner-2cont
+            (py-obj-cls ,obj)
+            ,magic-index
+            (lambda ($val $owner) (,succeed $val))
+            ,fail))
+        ;; not a magic attributs
+        (not-a-magic-attribute)))
+      (not-a-magic-attribute)))
 
 (define-macro (getattribute-from-obj-mro obj name)
   `(py-getattribute-from-obj-mro-2cont
@@ -1005,18 +1021,34 @@
     (lambda () py-absent)))
 
 (define-macro (getattribute-from-cls-mro-with-owner-2cont cls name succeed fail)
-  `(let (($mro (PyObjectType-mro ,cls)))
+  `(let* (($mro (PyObjectType-mro ,cls))
+         ($succeed ,succeed)
+         ($mro-length (vector-length $mro)))
      (let $loop-mro (($cls-index 0))
-       (if (fx< $cls-index (vector-length $mro))
+       (if (fx< $cls-index $mro-length)
     	   (let (($cls (vector-ref $mro $cls-index)))
            (py-own-attr-ref-2cont
             $cls
             ,name
             (lambda ($val)
-              (,succeed $val $cls))
+              ($succeed $val $cls))
             (lambda ()
               ($loop-mro (fx+ $cls-index 1)))))
 	       (,fail)))))
+
+(define-macro (get-magic-attribute-from-cls-mro-with-owner-2cont cls magic-index succeed fail)
+  `(let* (($mro (PyObjectType-mro ,cls))
+         ($magic-index ,magic-index)
+         ($succeed ,succeed)
+         ($mro-length (vector-length $mro)))
+    (let $loop-mro (($cls-index 0))
+      (if (fx< $cls-index $mro-length)
+   	   (let* (($cls (vector-ref $mro $cls-index))
+              ($attr (magic-attr-ref $cls $magic-index)))
+          (if $attr
+            (,succeed $attr $cls)
+            ($loop-mro (fx+ $cls-index 1))))
+       (,fail)))))
 
 (define-macro (getattribute-from-cls-mro-with-index/owner-2cont cls name succeed fail)
  `(let (($mro (PyObjectType-mro ,cls)))
@@ -1137,6 +1169,18 @@
 
 (define-macro (getattribute-from-obj-mro-with-index/owner-2cont obj name succeed fail)
 `(getattribute-from-cls-mro-with-index/owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
+
+(define-macro (object-get-bind-descriptor attr instance #!optional (owner 'py-None))
+  (let ((descriptor-attr (gensym '$attr)))
+    `(let ((,descriptor-attr ,attr)
+           ($instance ,instance)
+           ($owner ,owner))
+      (py-getattribute-from-obj-mro-2cont
+        ,descriptor-attr
+        (& "__get__")
+        (lambda (__get__)
+          (py-call __get__ ,descriptor-attr $instance $owner))
+        (lambda () ,descriptor-attr)))))
 
 ;; object.__getattribute__ error message
 (define-macro (py-throw-object-getattribute-error obj name)
