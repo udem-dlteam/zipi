@@ -177,7 +177,6 @@
     py-own-attr-ref-2cont
 
     py-descriptor-get
-    py-descriptor-get-fallback
 
     py-behavior-ref
     get-behavior-index

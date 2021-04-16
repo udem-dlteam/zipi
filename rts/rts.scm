@@ -1632,15 +1632,6 @@
 
 ;;;----------------------------------------------------------------------------
 
-;; ===================
-;; DESCRIPTOR PROTOCOL
-;; ===================
-
-;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
-;; if the __get__ method does not exist on the attr's class, return the attr
-(define (py-descriptor-get-fallback attr instance owner)
-  (py-descriptor-get attr instance owner))
-
 ;; ================
 ;; GETATTR PROTOCOL
 ;; ================
@@ -1748,21 +1739,6 @@
     (make-signature
       posonlyargs: (self)
       vararg: args)))
-
-(define (function-get self instance owner)
-  (if (eq? instance py-None)
-    self
-    (make-PyObjectMethod
-      py-method-hclass-of-instances
-      '#()
-      py-method-class
-      instance
-      self)))
-
-(define function.__get__
-  (procedure->py-function
-    function-get
-    (make-signature posonlyargs: (self instance owner))))
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-call self args)
@@ -5127,7 +5103,15 @@
                   (get-behavior-type-index float)
                   (vector py-object-class) ;; bases
                   #f ;; mro
-                  py-int-hclass-of-instances)))
+                  py-int-hclass-of-instances))
+           (function-class
+              (py-builtin-type-alloc
+                 py-type-class
+                 (get-behavior-type-index function)
+                 (vector py-object-class) ;; bases
+                 #f ;; mro
+                 py-function-hclass-of-instances)))
+
     ;; int
     (set! py-int-class int-class)
     (PyObjectType-mro-set! int-class (vector int-class py-object-class))
@@ -5147,7 +5131,14 @@
     (PyObjectType-mro-set! float-class (vector float-class py-object-class))
     (py-own-attr-set! float-class (& "__name__") (&& "float"))
     (py-own-attr-set! float-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! float-class (& "__repr__") float.__repr__))
+    (py-own-attr-set! float-class (& "__repr__") float.__repr__)
+
+    ;; function
+    (set! py-function-class function-class)
+    (PyObjectType-mro-set! function-class (vector function-class py-object-class))
+    (py-own-attr-set! function-class (& "__name__") (&& "function"))
+    (py-own-attr-set! function-class (& "__module__") (&& "builtins"))
+    (py-own-attr-set! function-class (& "__call__") function.__call__))
 
   ;; Fill in tuple class
   (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
@@ -5189,14 +5180,6 @@
      (list)
      (& "__new__") slice.__new__
      (& "indices") slice.indices))
-
-  (set! py-function-class
-    (py-make-builtin-class
-     (&& "function")
-     (&& "builtins")
-     (list)
-     (& "__call__") function.__call__
-     (& "__get__") function.__get__))
 
   (set! py-list-class
     (py-make-builtin-class

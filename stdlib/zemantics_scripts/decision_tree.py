@@ -520,6 +520,7 @@ class Context:
             'bool': VarContext(value=StaticValue(bool)),
             'float': VarContext(value=StaticValue(float)),
             'str': VarContext(value=StaticValue(str)),
+            'function': VarContext(value=StaticValue(function)),
         }
 
         self.semantics = semantics
@@ -1278,8 +1279,9 @@ def main_behaviors(semantics_file, builtins_file):
 def get_type_alias(type_name):
     return "int" if type_name in int_specialized_types else type_name
 
+function = type(lambda: None)
 
-instances = [1, 1.0, True, "foo"]
+instances = [1, 1.0, True, "foo", lambda: None]
 types = [get_type_name(i) for i in instances]
 int_specialized_types = ['sint', 'bint']
 types += int_specialized_types

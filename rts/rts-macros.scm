@@ -1222,7 +1222,8 @@
             (bint          2                  #t)
             (bool          3                  #t)
             (float         4                  #t)
-            (str           5                  #t))))
+            (str           5                  #t)
+            (function      6                  #t))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -1267,7 +1268,8 @@
       (tuple . py-tuple-class)
       (int . py-int-class)
       (bool . py-bool-class)
-      (float . py-float-class)))
+      (float . py-float-class)
+      (function . py-function-class)))
 
   (let* ((scheme-name
           (if (and (pair? name) (memq (car name) '(& &&)))
@@ -1949,13 +1951,4 @@
   `(py-exit-fallback ,obj ,exc))
 
 (define-macro (py-descriptor-get attr instance owner)
-  (let ((descriptor-attr (gensym '$attr)))
-    `(let ((,descriptor-attr ,attr)
-           ($instance ,instance)
-           ($owner ,owner))
-      (py-getattribute-from-obj-mro-2cont
-        ,descriptor-attr
-        (& "__get__")
-        (lambda (__get__)
-          (py-call __get__ ,descriptor-attr $instance $owner))
-        (lambda () ,descriptor-attr)))))
+  `(py-descriptor-get-fallback ,attr ,instance ,owner))

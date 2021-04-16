@@ -257,7 +257,17 @@ def exit(obj, exc):
             return
         else:
             raise exc
-    # exit:end-body"""
+    # exit:end-body
+
+@define_semantics
+def descriptor_get(attr, instance, owner):
+    # descriptor_get:start-body
+    __get__ = class_getattr(attr, "__get__")
+    if __get__ is absent:
+        return attr
+    else:
+        return __get__(attr, instance, owner)
+    # descriptor_get:end-body"""
 
 arithmetic_template = \
     """# Auto-generated
@@ -1082,6 +1092,22 @@ class method:
 
     def __call__(self, *args, **kwargs):
         return self.method(self.self, *args, **kwargs)
+
+
+@private
+@builtin
+class function:
+    def __new__(cls, code, glo):
+        if cls is function:
+            raise NotImplementedError
+        else:
+            raise TypeError("function.__new__ expected a subtype of 'function' as first argument")
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        else:
+            return alloc(method, method=self, self=instance)
 
 
 @builtin
