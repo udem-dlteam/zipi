@@ -29,6 +29,9 @@ rts/.afile
 rts/.etags
 rts/o
 rts/rts@*
+rts/hash/hash@*
+rts/builtins/builtins@*
+rts/rts@*
 rts/rts.sch
 rts/builtins.bgl
 rts/builtins/*
