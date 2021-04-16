@@ -361,6 +361,8 @@
     py-test-le-behaviors-table
     py-test-lt-behaviors-table
 
+    py-descriptor-get-behaviors-table
+
     procedure->py-function
 
     py-if-specialized-sint-representation
