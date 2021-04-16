@@ -1170,18 +1170,6 @@
 (define-macro (getattribute-from-obj-mro-with-index/owner-2cont obj name succeed fail)
 `(getattribute-from-cls-mro-with-index/owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
-(define-macro (object-get-bind-descriptor attr instance #!optional (owner 'py-None))
-  (let ((descriptor-attr (gensym '$attr)))
-    `(let ((,descriptor-attr ,attr)
-           ($instance ,instance)
-           ($owner ,owner))
-      (py-getattribute-from-obj-mro-2cont
-        ,descriptor-attr
-        (& "__get__")
-        (lambda (__get__)
-          (py-call __get__ ,descriptor-attr $instance $owner))
-        (lambda () ,descriptor-attr)))))
-
 ;; object.__getattribute__ error message
 (define-macro (py-throw-object-getattribute-error obj name)
   `(py-throw
@@ -1959,3 +1947,15 @@
 
 (define-macro (py-exit obj exc)
   `(py-exit-fallback ,obj ,exc))
+
+(define-macro (py-descriptor-get attr instance owner)
+  (let ((descriptor-attr (gensym '$attr)))
+    `(let ((,descriptor-attr ,attr)
+           ($instance ,instance)
+           ($owner ,owner))
+      (py-getattribute-from-obj-mro-2cont
+        ,descriptor-attr
+        (& "__get__")
+        (lambda (__get__)
+          (py-call __get__ ,descriptor-attr $instance $owner))
+        (lambda () ,descriptor-attr)))))

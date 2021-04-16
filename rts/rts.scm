@@ -94,8 +94,8 @@
           (if (eq? cls obj)
             ;; When an attribute if found *directly* on an object (ex: int.__add__)
             ;; its bound instance must be None
-            (object-get-bind-descriptor attr py-None cls)
-            (object-get-bind-descriptor attr obj cls))
+            (py-descriptor-get attr py-None cls)
+            (py-descriptor-get attr obj cls))
           (attribute-error)))
       (py-getattribute-cached/miss obj name obj-cache mro-cache)))
 
@@ -124,7 +124,7 @@
             (let ((attr (magic-attr-ref obj magic-index)))
               (if (eq? attr py-absent)
                 (getattribute-from-mro-cache (lambda () (py-throw-type-getattribute-error obj name)))
-                (object-get-bind-descriptor attr py-None obj))))
+                (py-descriptor-get attr py-None obj))))
           (else ;;PyObject
             ;; NOTE: no need to check case fixnum/flonum
             ;; those objects cannot have attributes so there is never a hit
@@ -145,8 +145,8 @@
           (if (eq? cls obj)
             ;; When an attribute if found *directly* on an object (ex: int.__add__)
             ;; its bound instance must be None
-            (object-get-bind-descriptor attr py-None cls)
-            (object-get-bind-descriptor attr obj cls))))
+            (py-descriptor-get attr py-None cls)
+            (py-descriptor-get attr obj cls))))
       (py-getattribute-cached/miss obj name obj-cache mro-cache)))
 
   (let* ((obj-cache-hclass (PCache-hclass obj-cache))
@@ -173,7 +173,7 @@
             (let ((attr (PyObject-elements-ref obj index)))
               (if (eq? attr py-absent)
                 (getattribute-from-mro-cache (lambda () (py-throw-type-getattribute-error obj name)))
-                (object-get-bind-descriptor attr py-None obj))))
+                (py-descriptor-get attr py-None obj))))
           (else ;;PyObject
             ;; NOTE: no need to check case fixnum/flonum
             ;; those objects cannot have attributes so there is never a hit
@@ -1638,8 +1638,8 @@
 
 ;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
 ;; if the __get__ method does not exist on the attr's class, return the attr
-(define (object-get-bind-descriptor-fallback attr instance #!optional (owner py-None))
-  (object-get-bind-descriptor attr instance py-None))
+(define (py-descriptor-get-fallback attr instance owner)
+  (py-descriptor-get attr instance owner))
 
 ;; ================
 ;; GETATTR PROTOCOL
@@ -1670,7 +1670,7 @@
         name
         (lambda (index cls-attr owner)
           (if mro-cache (MROCache-set! mro-cache owner index))
-          (object-get-bind-descriptor cls-attr obj owner))
+          (py-descriptor-get cls-attr obj owner))
         (lambda ()
           ;; TODO: replace this hack by something better
           ;; NOTE: __class__ should get a getset_descriptor on object
@@ -1708,14 +1708,14 @@
       name
       (lambda (index attr owner)
         (if mro-cache (MROCache-set! mro-cache owner index))
-        (object-get-bind-descriptor attr py-None obj))
+        (py-descriptor-get attr py-None obj))
       (lambda ()
         (getattribute-from-obj-mro-with-index/owner-2cont
          obj
          name
          (lambda (index cls-attr owner)
            (if mro-cache (MROCache-set! mro-cache owner index))
-           (object-get-bind-descriptor cls-attr obj owner))
+           (py-descriptor-get cls-attr obj owner))
          (lambda ()
            (if mro-cache (MROCache-set! mro-cache #f -1))
            (and raise? (py-throw-type-getattribute-error obj name))))))
@@ -2678,7 +2678,7 @@
        name
        (lambda (index cls-attr owner)
          (if mro-cache (MROCache-set! mro-cache owner index))
-         (object-get-bind-descriptor cls-attr obj owner))
+         (py-descriptor-get cls-attr obj owner))
        (lambda ()
          (if mro-cache (MROCache-set! mro-cache #f -1))
          (and raise? (py-throw-module-getattribute-error obj name)))))
@@ -7699,7 +7699,7 @@
          parent-cls
          name
          (lambda (attr owner)
-           (object-get-bind-descriptor attr this-self owner))
+           (py-descriptor-get attr this-self owner))
          (lambda ()
            (object-getattribute self name))))))
 

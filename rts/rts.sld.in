@@ -176,6 +176,9 @@
     getattribute-from-obj-mro
     py-own-attr-ref-2cont
 
+    py-descriptor-get
+    py-descriptor-get-fallback
+
     py-behavior-ref
     get-behavior-index
     $get-behavior-index
