@@ -202,10 +202,14 @@
           (getattribute-from-getattr
             (lambda () (py-throw-object-getattribute-error obj name)))))
       ((eq? __getattribute__ type.__getattribute__)
-        (or
-          (type-getattribute obj name #f mro-cache)
-          (getattribute-from-getattr
-            (lambda () (py-throw-type-getattribute-error obj name)))))
+        (begin
+          ;; in the case of a type, we set that the PCache find no match since
+          ;; the attribute will be found in a mro and be stored in the MROCache
+          (PCache-set! obj-cache (py-obj-hclass obj) -1)
+          (or
+            (type-getattribute obj name #f mro-cache)
+            (getattribute-from-getattr
+              (lambda () (py-throw-type-getattribute-error obj name))))))
       ((eq? __getattribute__ module.__getattribute__)
         (or
           (module-getattribute obj name #f obj-cache mro-cache)
