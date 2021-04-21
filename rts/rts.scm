@@ -437,43 +437,6 @@
           cls)))
     self))
 
-;; global contains a vector #(getter setter [maybe value for inner use])
-(define-macro (global-cell-getter-get cell)
-  `(vector-ref ,cell 0))
-
-(define-macro (global-cell-getter-set! cell getter)
-  `(vector-set! ,cell 0 ,getter))
-
-(define-macro (global-cell-get-val cell)
-  `((global-cell-getter-get ,cell)))
-
-(define-macro (global-cell-setter-get cell)
-  `(vector-ref ,cell 1))
-
-(define-macro (global-cell-setter-set! cell setter)
-  `(vector-set! ,cell 1 ,setter))
-
-(define-macro (global-cell-set-val! cell val)
-  `((global-cell-setter-get ,cell) ,val))
-
-(define-macro (PyObject-global-elements-ref global offset)
-  `(let (($offset ,offset)
-         ($elements (PyObject-%elements ,global)))
-    (if (##fx< $offset (vector-length $elements))
-      (global-cell-get-val (vector-ref $elements $offset))
-      #f)))
-
-(define-macro (py-global-elements-set! elements offset val)
-  `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
-
-(define-macro (make-global-cell val)
-  `(let* (($cell (vector #f #f ,val))
-         ($getter (lambda () (vector-ref $cell 2)))
-         ($setter (lambda (val) (vector-set! $cell 2 val))))
-    (global-cell-getter-set! $cell $getter)
-    (global-cell-setter-set! $cell $setter)
-    $cell))
-
 (define (py-module-alloc cls hclass-of-instances)
   (let ((self
          (make-PyObjectModule
