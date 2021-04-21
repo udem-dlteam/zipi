@@ -1228,7 +1228,7 @@
 (define-macro (PyObject-global-elements-ref global offset)
   `(let (($offset ,offset)
          ($elements (PyObject-%elements ,global)))
-    (if (##fx< $offset (vector-length $elements))
+    (if (fx< $offset (vector-length $elements))
       (global-cell-get-val (vector-ref $elements $offset))
       #f)))
 

@@ -163,10 +163,9 @@
                   ((PyObjectType? obj) (py-throw-type-getattribute-error obj name))
                   (else (py-throw-object-getattribute-error obj name))))))
           ((PyObjectModule? obj)
-            (let ((attr (PyObject-global-elements-ref obj index)))
-              (if attr
-                attr
-                (getattribute-from-mro-cache (lambda () (py-throw-module-getattribute-error obj name))))))
+            (or
+              (PyObject-global-elements-ref obj index)
+              (getattribute-from-mro-cache (lambda () (py-throw-module-getattribute-error obj name)))))
           ((PyObjectType? obj)
             (let ((attr (PyObject-elements-ref obj index)))
               (if (eq? attr py-absent)
