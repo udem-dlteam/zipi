@@ -405,13 +405,15 @@
  id: MROCache-A1E4C683-1891-4179-81F6-797D0A717E37
  copier: #f
  macros: ;; this will inline the operations on this type
- cls
+ obj-cls
+ attr-cls
  index
  bind)
 
-(define-macro (MROCache-set! c cls i b)
+(define-macro (MROCache-set! c oc ac i b)
   `(let (($c ,c))
-     (MROCache-cls-set! $c ,cls)
+     (MROCache-obj-cls-set! $c ,oc)
+     (MROCache-attr-cls-set! $c ,ac)
      (MROCache-index-set! $c ,i)
      (MROCache-bind-set! $c ,b)))
 
