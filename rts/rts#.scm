@@ -406,14 +406,12 @@
  copier: #f
  macros: ;; this will inline the operations on this type
  cls
- index
- valid)
+ index)
 
 (define-macro (MROCache-set! c cls i)
   `(let (($c ,c))
      (MROCache-cls-set! $c ,cls)
-     (MROCache-index-set! $c ,i)
-     (MROCache-valid-set! $c #t)))
+     (MROCache-index-set! $c ,i)))
 
 ;; =============================================================================
 ;;  HClass

@@ -87,17 +87,17 @@
 
 (define (py-getattribute-cached-magic-attr obj name magic-index obj-cache mro-cache)
   (define (getattribute-from-mro-cache attribute-error)
-    (if (MROCache-valid mro-cache)
-      (let* ((cls (MROCache-cls mro-cache))
-             (attr (magic-attr-ref cls magic-index)))
-        (if attr
-          (if (eq? cls obj)
-            ;; When an attribute if found *directly* on an object (ex: int.__add__)
-            ;; its bound instance must be None
-            (py-descriptor-get attr py-None cls)
-            (py-descriptor-get attr obj cls))
-          (attribute-error)))
-      (py-getattribute-cached/miss obj name obj-cache mro-cache)))
+    (let ((cls (MROCache-cls mro-cache)))
+      (if (eq? cls (py-obj-cls obj))
+        (let ((attr (magic-attr-ref cls magic-index)))
+          (if attr
+            (if (eq? cls obj)
+              ;; When an attribute if found *directly* on an object (ex: int.__add__)
+              ;; its bound instance must be None
+              (py-descriptor-get attr py-None cls)
+              (py-descriptor-get attr obj cls))
+            (attribute-error)))
+        (py-getattribute-cached/miss obj name obj-cache mro-cache))))
 
   (let* ((obj-cache-hclass (PCache-hclass obj-cache))
          (obj-hclass (py-obj-hclass obj)))
@@ -137,17 +137,18 @@
 
 (define (py-getattribute-cached-not-magic-attr obj name obj-cache mro-cache)
   (define (getattribute-from-mro-cache attribute-error)
-    (if (MROCache-valid mro-cache)
-      (let* ((cls (MROCache-cls mro-cache))
-             (attr (PyObject-elements-ref cls (MROCache-index mro-cache))))
-        (if (eq? attr py-absent)
-          (attribute-error)
-          (if (eq? cls obj)
-            ;; When an attribute if found *directly* on an object (ex: int.__add__)
-            ;; its bound instance must be None
-            (py-descriptor-get attr py-None cls)
-            (py-descriptor-get attr obj cls))))
-      (py-getattribute-cached/miss obj name obj-cache mro-cache)))
+    (let ((cls (MROCache-cls mro-cache)))
+      (if (eq? cls (py-obj-cls obj))
+        (let* ((cls (MROCache-cls mro-cache))
+               (attr (PyObject-elements-ref cls (MROCache-index mro-cache))))
+          (if (eq? attr py-absent)
+            (attribute-error)
+            (if (eq? cls obj)
+              ;; When an attribute if found *directly* on an object (ex: int.__add__)
+              ;; its bound instance must be None
+              (py-descriptor-get attr py-None cls)
+              (py-descriptor-get attr obj cls))))
+        (py-getattribute-cached/miss obj name obj-cache mro-cache))))
 
   (let* ((obj-cache-hclass (PCache-hclass obj-cache))
          (obj-hclass (py-obj-hclass obj)))
@@ -1453,7 +1454,7 @@
   (define (make-cache kind)
     (case kind
       ((hclass) (make-PCache #f -1))
-      ((mro) (make-MROCache #f -1 #f))
+      ((mro) (make-MROCache #f -1))
       (else
         (error "py-make-caches" "unknown cache kind" kind))))
   (list->vector (map make-cache kinds)))
