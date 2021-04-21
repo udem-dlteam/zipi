@@ -408,14 +408,16 @@
  obj-cls
  attr-cls
  index
- bind)
+ bind
+ kind)
 
-(define-macro (MROCache-set! c oc ac i b)
+(define-macro (MROCache-set! c oc ac i b k)
   `(let (($c ,c))
      (MROCache-obj-cls-set! $c ,oc)
      (MROCache-attr-cls-set! $c ,ac)
      (MROCache-index-set! $c ,i)
-     (MROCache-bind-set! $c ,b)))
+     (MROCache-bind-set! $c ,b)
+     (MROCache-kind-set! $c ,k)))
 
 ;; =============================================================================
 ;;  HClass
