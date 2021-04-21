@@ -91,11 +91,10 @@
       (if (eq? cls (py-obj-cls obj))
         (let ((attr (magic-attr-ref cls magic-index)))
           (if attr
-            (if (eq? cls obj)
-              ;; When an attribute if found *directly* on an object (ex: int.__add__)
-              ;; its bound instance must be None
-              (py-descriptor-get attr py-None cls)
-              (py-descriptor-get attr obj cls))
+            ;; MROCache-bind can be 'self or 'none
+            (if (eq? (MROCache-bind mro-cache) 'self)
+              (py-descriptor-get attr obj cls)
+              (py-descriptor-get attr py-None cls))
             (attribute-error)))
         (py-getattribute-cached/miss obj name obj-cache mro-cache))))
 
@@ -143,11 +142,10 @@
                (attr (PyObject-elements-ref cls (MROCache-index mro-cache))))
           (if (eq? attr py-absent)
             (attribute-error)
-            (if (eq? cls obj)
-              ;; When an attribute if found *directly* on an object (ex: int.__add__)
-              ;; its bound instance must be None
-              (py-descriptor-get attr py-None cls)
-              (py-descriptor-get attr obj cls))))
+            ;; MROCache-bind can be 'self or 'none
+            (if (eq? (MROCache-bind mro-cache) 'self)
+              (py-descriptor-get attr obj cls)
+              (py-descriptor-get attr py-None cls))))
         (py-getattribute-cached/miss obj name obj-cache mro-cache))))
 
   (let* ((obj-cache-hclass (PCache-hclass obj-cache))
@@ -204,11 +202,8 @@
             (lambda () (py-throw-object-getattribute-error obj name)))))
       ((eq? __getattribute__ type.__getattribute__)
         (begin
-          ;; in the case of a type, we set that the PCache find no match since
-          ;; the attribute will be found in a mro and be stored in the MROCache
-          (PCache-set! obj-cache (py-obj-hclass obj) -1)
           (or
-            (type-getattribute obj name #f mro-cache)
+            (type-getattribute obj name #f obj-cache mro-cache)
             (getattribute-from-getattr
               (lambda () (py-throw-type-getattribute-error obj name))))))
       ((eq? __getattribute__ module.__getattribute__)
@@ -1454,7 +1449,7 @@
   (define (make-cache kind)
     (case kind
       ((hclass) (make-PCache #f -1))
-      ((mro) (make-MROCache #f -1))
+      ((mro) (make-MROCache #f -1 #f))
       (else
         (error "py-make-caches" "unknown cache kind" kind))))
   (list->vector (map make-cache kinds)))
@@ -1628,7 +1623,7 @@
         obj
         name
         (lambda (index cls-attr owner)
-          (if mro-cache (MROCache-set! mro-cache owner index))
+          (if mro-cache (MROCache-set! mro-cache owner index 'self))
           (py-descriptor-get cls-attr obj owner))
         (lambda ()
           ;; TODO: replace this hack by something better
@@ -1636,7 +1631,7 @@
           (if (eq? (py-str-representative name) (& "__class__"))
               (py-obj-cls obj)
               (begin
-                (if mro-cache (MROCache-set! mro-cache #f -1))
+                (if mro-cache (MROCache-set! mro-cache #f -1 #f))
                 (and
                   raise?
                   (py-throw-object-getattribute-error obj name)))))))))
@@ -1660,23 +1655,27 @@
     (make-signature posonlyargs: (obj name val))))
 
 ;; Implements type.__getattribute__
-(define (type-getattribute obj name #!optional (raise? #t) (mro-cache #f))
+(define (type-getattribute obj name #!optional (raise? #t) (obj-cache #f) (mro-cache #f))
   (if (py-isinstance? obj py-type-class)
     (getattribute-from-cls-mro-with-index/owner-2cont
       obj
       name
       (lambda (index attr owner)
-        (if mro-cache (MROCache-set! mro-cache owner index))
+        (if (eq? owner obj)
+          (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) index))
+          (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) -1)))
+        (if mro-cache (MROCache-set! mro-cache owner index 'none))
         (py-descriptor-get attr py-None obj))
       (lambda ()
+        (if obj-cache (PCache-set! obj-cache (py-obj-hclass obj) -1))
         (getattribute-from-obj-mro-with-index/owner-2cont
          obj
          name
          (lambda (index cls-attr owner)
-           (if mro-cache (MROCache-set! mro-cache owner index))
+           (if mro-cache (MROCache-set! mro-cache owner index 'self))
            (py-descriptor-get cls-attr obj owner))
          (lambda ()
-           (if mro-cache (MROCache-set! mro-cache #f -1))
+           (if mro-cache (MROCache-set! mro-cache #f -1 #f))
            (and raise? (py-throw-type-getattribute-error obj name))))))
     (py-throw-required-type "__getattribute__" "type" obj)))
 
@@ -2621,10 +2620,10 @@
        obj
        name
        (lambda (index cls-attr owner)
-         (if mro-cache (MROCache-set! mro-cache owner index))
+         (if mro-cache (MROCache-set! mro-cache owner index 'self))
          (py-descriptor-get cls-attr obj owner))
        (lambda ()
-         (if mro-cache (MROCache-set! mro-cache #f -1))
+         (if mro-cache (MROCache-set! mro-cache #f -1 #f))
          (and raise? (py-throw-module-getattribute-error obj name)))))
 
   (if (py-isinstance? obj py-module-class)

@@ -406,12 +406,14 @@
  copier: #f
  macros: ;; this will inline the operations on this type
  cls
- index)
+ index
+ bind)
 
-(define-macro (MROCache-set! c cls i)
+(define-macro (MROCache-set! c cls i b)
   `(let (($c ,c))
      (MROCache-cls-set! $c ,cls)
-     (MROCache-index-set! $c ,i)))
+     (MROCache-index-set! $c ,i)
+     (MROCache-bind-set! $c ,b)))
 
 ;; =============================================================================
 ;;  HClass
