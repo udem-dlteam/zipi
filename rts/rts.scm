@@ -85,51 +85,46 @@
 
 ;;; Object attribute store/fetch.
 
+(define (py-getattribute-from-mro-cache-fallback obj name cache)
+  (if (eq? (AttributeCache-cls cache) (py-obj-cls obj))
+    (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache))
+    (py-getattribute-cached/miss obj name cache)))
+
+(define (py-getattribute-from-type-mro-cache-fallback obj name cache)
+  (cond
+    ((not (eq? (AttributeCache-cls cache) obj))
+      (py-getattribute-cached/miss obj name cache))
+    ((eq? (AttributeCache-bind cache) 'self)
+      (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache)))
+    (else
+      (py-descriptor-get (AttributeCache-owner cache) py-None (AttributeCache-attr cache)))))
+
 (define (py-getattribute-cached-fallback obj name cache)
-  (define (getattribute-from-mro-cache obj name cache)
-    (if (eq? (AttributeCache-cls cache) (py-obj-cls obj))
-      (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache))
-      (py-getattribute-cached/miss obj name cache)))
-
-    (define (getattribute-from-module-mro-cache obj name cache)
-      (if (eq? (AttributeCache-cls cache) (py-obj-cls obj))
-        (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache))
-        (py-getattribute-cached/miss obj name cache)))
-
-    (define (getattribute-from-type-mro-cache obj name cache)
-      (cond
-        ((not (eq? (AttributeCache-cls cache) obj))
-          (py-getattribute-cached/miss obj name cache))
-        ((eq? (AttributeCache-bind cache) 'self)
-          (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache)))
-        (else
-          (py-descriptor-get (AttributeCache-owner cache) py-None (AttributeCache-attr cache)))))
-
   (let ((hclass (py-obj-hclass obj)))
     (cond
       ((eq? hclass (AttributeCache-object-hclass cache))
         (let ((index (AttributeCache-index cache)))
           (if (fx= index -1)
-            (getattribute-from-mro-cache obj name cache)
+            (py-getattribute-from-mro-cache-fallback obj name cache)
             (let ((attr (PyObject-elements-ref obj index)))
               (if (eq? attr py-absent)
-                (getattribute-from-mro-cache obj name cache)
+                (py-getattribute-from-mro-cache-fallback obj name cache)
                 attr)))))
       ((eq? hclass (AttributeCache-type-hclass cache))
-        (let ((index (AttributeCache-index cache)))
-          (if (fx= index -1)
-            (getattribute-from-type-mro-cache obj name cache)
-            (let ((attr (PyObject-elements-ref obj index)))
-              (if (eq? attr py-absent)
-                (getattribute-from-type-mro-cache obj name cache)
-                attr)))))
+        (cond
+          ((not (eq? (AttributeCache-cls cache) obj))
+            (py-getattribute-cached/miss obj name cache))
+          ((eq? (AttributeCache-bind cache) 'self)
+            (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache)))
+          (else
+            (py-descriptor-get (AttributeCache-attr cache) py-None (AttributeCache-owner cache)))))
       ((eq? hclass (AttributeCache-module-hclass cache))
         (let ((index (AttributeCache-index cache)))
           (if (fx= index -1)
-            (getattribute-from-module-mro-cache obj name cache)
+            (py-getattribute-from-module-mro-cache obj name cache)
             (or
               (PyObject-global-elements-ref obj index)
-              (getattribute-from-type-mro-cache obj name cache)))))
+              (py-getattribute-from-type-mro-cache-fallback obj name cache)))))
       (else
         (py-getattribute-cached/miss obj name cache)))))
 
@@ -142,6 +137,8 @@
         ;; caches cannot save you if this happens
         (py-call __getattr__ obj name))
       attribute-error))
+
+  (py-when-enable-cache-debug (pp "cache miss"))
 
   (let ((__getattribute__ (getattribute-from-obj-mro obj (& "__getattribute__"))))
     (cond
@@ -1609,14 +1606,14 @@
       obj
       name
       (lambda (attr owner)
-        (if cache (AttributeCache-type-hit! cache (py-obj-hclass obj) attr owner))
+        (if cache (AttributeCache-type-hit! cache (py-obj-hclass obj) obj attr owner))
         (py-descriptor-get attr py-None obj))
       (lambda ()
         (getattribute-from-obj-mro-with-owner-2cont
          obj
          name
          (lambda (cls-attr owner)
-           (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass obj) (py-obj-cls obj) attr owner))
+           (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass obj) obj attr owner))
            (py-descriptor-get cls-attr obj owner))
          (lambda ()
            (and raise? (py-throw-type-getattribute-error obj name))))))

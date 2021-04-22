@@ -85,6 +85,10 @@
 (define-macro (py-if-enable-inlined-mixed-types-behaviors yes no) yes)
 (define-macro (py-if-enable-inline-partial-behavior-dispatch yes no) no)
 
+(define-macro (py-when-enable-cache-debug . code)
+  (define enable-cache-debug #f)
+  `(begin ,@(if enable-cache-debug code '())))
+
 (define-macro (py-bool-to-scheme-float arg)
   `(fixnum->flonum (py-bool-to-scheme-int ,arg)))
 

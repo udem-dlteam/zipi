@@ -449,8 +449,8 @@
 (define-macro (AttributeCache-module-hit! cache module-hclass index)
   `(AttributeCache-set! ,cache #f ,module-hclass #f ,index #f #f #f #f))
 
-(define-macro (AttributeCache-type-hit! cache type-hclass attr owner)
-  `(AttributeCache-set! ,cache #f #f ,type-hclass -1 #f ,attr ,owner (quote 'none)))
+(define-macro (AttributeCache-type-hit! cache type-hclass cls attr owner)
+  `(AttributeCache-set! ,cache #f #f ,type-hclass -1 ,cls ,attr ,owner (quote 'none)))
 
 (define-macro (AttributeCache-object-mro-hit! cache object-hclass cls attr owner)
   `(AttributeCache-set! ,cache ,object-hclass #f #f -1 ,cls ,attr ,owner #f))

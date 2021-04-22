@@ -370,6 +370,7 @@
     py-if-enable-inlined-mixed-types-behaviors
     py-if-enable-inline-behavior-dispatch
     py-if-enable-inline-partial-behavior-dispatch
+    py-when-enable-cache-debug
     py-specialized-binop-dispatch
     $py-specialized-binop-dispatch
     py-specialized-unop-dispatch
