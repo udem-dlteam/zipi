@@ -2025,6 +2025,24 @@
     `(py-getattribute-cached-fallback ,obj ,attr ,cache)
     `(py-getattribute-fallback ,obj ,attr)))
 
+(define-macro (py-getattribute-from-mro-cache obj name cache)
+  `(let (($obj ,obj)
+        ($cache ,cache))
+    (if (eq? (AttributeCache-cls $cache) (py-obj-cls $obj))
+      (py-descriptor-get (AttributeCache-attr $cache) $obj (AttributeCache-owner $cache))
+      (py-getattribute-cached/miss $obj ,name $cache))))
+
+(define-macro (py-getattribute-from-type-mro-cache obj name cache)
+  `(let (($obj ,obj)
+         ($cache ,cache))
+    (cond
+      ((not (eq? (AttributeCache-cls ,cache) ,obj))
+        (py-getattribute-cached/miss ,obj ,name ,cache))
+      ((eq? (AttributeCache-bind ,cache) 'self)
+        (py-descriptor-get (AttributeCache-attr ,cache) ,obj (AttributeCache-owner ,cache)))
+      (else
+        (py-descriptor-get (AttributeCache-owner ,cache) py-None (AttributeCache-attr ,cache))))))
+
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
 
