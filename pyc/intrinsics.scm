@@ -82,20 +82,15 @@
  (let* ((loc (PycNode-loc this))
        (args (PycCall-args this))
        (args-len (length args))
-       (attr (cadr args)))
+       (host-args (cdr args)))
      (if (and
            (>= args-len 1)
            (PycString? (car args)))
        (new-PycCall
          loc
-         (new-PycPragma loc 'call-host)
-         (cons
-           (new-PycStatic
-             loc
-             'host-signature
-             (PycLiteralValue-val (car args)))
-           (cdr args)))
-       (error "SyntaxError" "wrong argument for call_host" #f))))
+         (new-PycPragma loc (read (open-input-string (PycLiteralValue-val (car args)))))
+         (cdr args))
+       (error "SyntaxError" "call_host first argument must be a str litteral, not" (car args)))))
 
 (define (make-py-int-to-scheme this)
   (let* ((loc (PycNode-loc this))
