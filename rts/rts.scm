@@ -87,21 +87,18 @@
 
 (define (py-getattribute-cached-fallback obj name cache)
   (define (getattribute-from-mro-cache obj name cache)
-    (if (and (eq? (AttributeCache-cls cache) (py-obj-cls obj))
-             (eq? (AttributeCache-kind cache) 'object))
+    (if (eq? (AttributeCache-cls cache) (py-obj-cls obj))
       (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache))
       (py-getattribute-cached/miss obj name cache)))
 
     (define (getattribute-from-module-mro-cache obj name cache)
-      (if (and (eq? (AttributeCache-obj-cls cache) (py-obj-cls obj))
-               (eq? (AttributeCache-kind cache) 'module))
+      (if (eq? (AttributeCache-cls cache) (py-obj-cls obj))
         (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache))
         (py-getattribute-cached/miss obj name cache)))
 
     (define (getattribute-from-type-mro-cache obj name cache)
       (cond
-        ((not (and (eq? (AttributeCache-obj-cls cache) obj)
-                   (eq? (AttributeCache-kind cache) 'class)))
+        ((not (eq? (AttributeCache-cls cache) obj))
           (py-getattribute-cached/miss obj name cache))
         ((eq? (AttributeCache-bind cache) 'self)
           (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache)))
