@@ -119,9 +119,9 @@
 (define-inline (new-PycRefUnresolved loc id ctx #!key (%info #f) (type (quote unknown)) (cache #f))
    (make-PycRefUnresolved loc %info type id ctx cache))
 
-;; (new-PycAccess loc obj field #!key (%info #f) (type (quote unknown)) (obj-cache #f) (mro-cache #f))
-(define-inline (new-PycAccess loc obj field #!key (%info #f) (type (quote unknown)) (obj-cache #f) (mro-cache #f))
-   (make-PycAccess loc %info type obj field obj-cache mro-cache))
+;; (new-PycAccess loc obj field #!key (%info #f) (type (quote unknown)) (cache #f))
+(define-inline (new-PycAccess loc obj field #!key (%info #f) (type (quote unknown)) (cache #f))
+   (make-PycAccess loc %info type obj field cache))
 
 ;; (new-PycSubscript loc obj index #!key (%info #f) (type (quote unknown)) (cache #f))
 (define-inline (new-PycSubscript loc obj index #!key (%info #f) (type (quote unknown)) (cache #f))

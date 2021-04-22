@@ -935,14 +935,12 @@
 	      (field (PycAccess-field lhs))
 	      (assig (new-PycAssig loc
 			(new-PycAccess loc (new-PycPragma loc %o) field
-			   obj-cache: (PycAccess-obj-cache lhs)
-         mro-cache: (PycAccess-mro-cache lhs))
+			   cache: (PycAccess-cache lhs))
 			(new-PycCall loc
 			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
 			   (list
 			      (new-PycAccess loc (new-PycPragma loc %o) field
-				 obj-cache: (PycAccess-obj-cache lhs)
-         mro-cache: (PycAccess-mro-cache lhs))
+				 cache: (PycAccess-cache lhs))
 			      (PycAssig-rhs this))))))
 	  (epairify this
 	     `(let ((,%o ,(scheme (PycAccess-obj lhs) conf)))
@@ -1502,8 +1500,7 @@
       `(py-getattribute
         ,(scheme (PycAccess-obj this) conf)
     	  ,(pyc-propname (PycAccess-field this))
-        ,(scheme-cache (PycAccess-obj-cache this) this)
-        ,(scheme-cache (PycAccess-mro-cache this) this)))
+        ,(scheme-cache (PycAccess-cache this) this)))
     ;; no cache for semantics
     ;; attributes used in semantics should have special slots
     (epairify this
@@ -1569,28 +1566,27 @@
 
 (define-walk-method (collect-caches this::PycRef store)
   (when (eq? (PycVar-scope (PycRef-decl this)) 'global)
-    (PycRef-cache-set! this (add-cache-to-store store 'hclass))))
+    (PycRef-cache-set! this (add-cache-to-store store 'global))))
 
 (define-walk-method (collect-caches this::PycUnary store)
   (call-default-walker)
-  (PycUnary-cache-set! this (add-cache-to-store store 'hclass)))
+  (PycUnary-cache-set! this (add-cache-to-store store 'global)))
 
 (define-walk-method (collect-caches this::PycRefUnresolved store)
-  (PycRefUnresolved-cache-set! this (add-cache-to-store store 'hclass)))
+  (PycRefUnresolved-cache-set! this (add-cache-to-store store 'global)))
 
 (define-walk-method (collect-caches this::PycAccess store)
   (call-default-walker)
-  (PycAccess-obj-cache-set! this (add-cache-to-store store 'hclass))
-  (PycAccess-mro-cache-set! this (add-cache-to-store store 'mro)))
+  (PycAccess-cache-set! this (add-cache-to-store store 'attribute)))
 
 (define-walk-method (collect-caches this::PycAugAssig store)
    (call-default-walker)
-   (PycAugAssig-cache-set! this (add-cache-to-store store 'hclass)))
+   (PycAugAssig-cache-set! this (add-cache-to-store store 'global)))
 
 (define-walk-method (collect-caches this::PycFor store)
    (call-default-walker)
-	 (PycFor-cachei-set! this (add-cache-to-store store 'hclass))
-	 (PycFor-cachen-set! this (add-cache-to-store store 'hclass)))
+	 (PycFor-cachei-set! this (add-cache-to-store store 'global))
+	 (PycFor-cachen-set! this (add-cache-to-store store 'global)))
 
 ;; collect global variables
 (define-walk-method (collect-globals* this::PycNode)

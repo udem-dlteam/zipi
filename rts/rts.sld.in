@@ -169,8 +169,7 @@
     with-list-of-magic-attrs
     py-getattribute
     $py-getattribute
-    py-getattribute-cached-magic-attr
-    py-getattribute-cached-not-magic-attr
+    py-getattribute-cached-fallback
     py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro

@@ -396,28 +396,70 @@
   index)
 
 
+(define-macro (make-init-PCache)
+  `(make-PCache #f -1))
+
 (define-macro (PCache-set! pc hc i)
   `(let (($pc ,pc))
      (PCache-hclass-set! $pc ,hc)
      (PCache-index-set! $pc ,i)))
 
-(define-type MROCache
- id: MROCache-A1E4C683-1891-4179-81F6-797D0A717E37
+(define-type AttributeCache
+ id: AttributeCache-A1E4C683-1891-4179-81F6-797D0A717E37
  copier: #f
- macros: ;; this will inline the operations on this type
- obj-cls
- attr-cls
+ macros:
+ ;; hclass for caching attr found on object
+ object-hclass
+ ;; hclass for caching attr found on module
+ module-hclass
+ ;; hclass for caching attr found on type
+ type-hclass
+ ;; index of an attribute found on the instance itself
  index
- bind
- kind)
+ ;; slots for caching attr found on the mro of the object's class
+ ;; attribute cached for this class
+ cls
+ ;; the attribute cached
+ attr
+ ;; the owner
+ owner
+ ;; how to bind the object ('self or 'none)
+ bind)
 
-(define-macro (MROCache-set! c oc ac i b k)
-  `(let (($c ,c))
-     (MROCache-obj-cls-set! $c ,oc)
-     (MROCache-attr-cls-set! $c ,ac)
-     (MROCache-index-set! $c ,i)
-     (MROCache-bind-set! $c ,b)
-     (MROCache-kind-set! $c ,k)))
+(define-macro (AttributeCache-set! cache object-hclass module-hclass type-hclass index cls attr owner bind)
+  `(let (($c ,cache))
+     (AttributeCache-object-hclass-set! $c ,object-hclass)
+     (AttributeCache-module-hclass-set! $c ,module-hclass)
+     (AttributeCache-type-hclass-set! $c ,type-hclass)
+     (AttributeCache-index-set! $c ,index)
+     (AttributeCache-cls-set! $c ,cls)
+     (AttributeCache-attr-set! $c ,attr)
+     (AttributeCache-owner-set! $c ,owner)
+     (AttributeCache-bind-set! $c ,bind)))
+
+(define-macro (make-init-AttributeCache)
+  `(make-AttributeCache #f #f #f -1 #f #f #f #f))
+
+(define-macro (AttributeCache-reset! cache)
+  `(AttributeCache-set! ,cache #f #f #f -1 #f #f #f #f))
+
+(define-macro (AttributeCache-object-hit! cache object-hclass index)
+  `(AttributeCache-set! ,cache ,object-hclass #f #f ,index #f #f #f #f))
+
+(define-macro (AttributeCache-module-hit! cache module-hclass index)
+  `(AttributeCache-set! ,cache #f ,module-hclass #f ,index #f #f #f #f))
+
+(define-macro (AttributeCache-type-hit! cache type-hclass attr owner)
+  `(AttributeCache-set! ,cache #f #f ,type-hclass -1 #f ,attr ,owner (quote 'none)))
+
+(define-macro (AttributeCache-object-mro-hit! cache object-hclass cls attr owner)
+  `(AttributeCache-set! ,cache ,object-hclass #f #f -1 ,cls ,attr ,owner #f))
+
+(define-macro (AttributeCache-module-mro-hit! cache module-hclass cls attr owner)
+  `(AttributeCache-set! ,cache #f ,module-hclass #f -1 ,cls ,attr ,owner #f))
+
+(define-macro (AttributeCache-type-mro-hit! cache type-hclass cls attr owner)
+  `(AttributeCache-set! ,cache #f #f ,type-hclass -1 ,cls ,attr ,owner (quote 'self)))
 
 ;; =============================================================================
 ;;  HClass

@@ -2013,27 +2013,13 @@
 (define-macro (py-maybe-len obj)
   `(py-maybe-len-fallback ,obj))
 
-(define-macro (py-getattribute obj attr #!optional (obj-cache #f) (mro-cache #f))
- `(with-list-of-magic-attrs $py-getattribute ,obj ,attr ,obj-cache ,mro-cache))
+(define-macro (py-getattribute obj attr #!optional (cache #f))
+ `(with-list-of-magic-attrs $py-getattribute ,obj ,attr ,cache))
 
-(define-macro ($py-getattribute list-of-magic-attrs obj attr #!optional (obj-cache #f) (mro-cache #f))
-  (cond
-    ((and obj-cache mro-cache)
-      (if (and (pair? attr)
-               (memq (car attr) '(& &&)))
-        (let ((x (member (cadr attr) list-of-magic-attrs)))
-          (if x
-            ;; is a magic attribute
-            (let ((magic-index (- (length list-of-magic-attrs) (length x))))
-              `(py-getattribute-cached-magic-attr ,obj ,attr ,magic-index ,obj-cache ,mro-cache))
-            ;; is not a magic attribute
-            `(py-getattribute-cached-not-magic-attr ,obj ,attr ,obj-cache ,mro-cache)))
-        ;; cannot cache dynamic attribute
-        `(py-getattribute-fallback ,obj ,attr ,obj-cache ,mro-cache)))
-    ((and (not obj-cache) (not mro-cache))
-      `(py-getattribute-fallback ,obj ,attr))
-    (else
-      (error "py-getattribute" "bad caches" "required 0 or 2 caches not 1"))))
+(define-macro ($py-getattribute list-of-magic-attrs obj attr #!optional (cache #f))
+  (if cache
+    `(py-getattribute-cached-fallback ,obj ,attr ,cache)
+    `(py-getattribute-fallback ,obj ,attr)))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))

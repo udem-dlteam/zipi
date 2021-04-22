@@ -166,8 +166,7 @@
       (class PycAccess::PycExpr
 	 obj::PycExpr
 	 (field::obj read-only)
-	 (obj-cache (default #f))
-   (mro-cache (default #f)))
+	 (cache (default #f)))
 
       (class PycSubscript::PycExpr
 	 obj::PycExpr
