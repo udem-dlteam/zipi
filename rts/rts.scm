@@ -847,7 +847,7 @@
         " required positional argument"))))
 
 (define (py-call0-fallback fun)
-  (let ((fun-type (py-obj-cls-general fun)))
+  (let ((fun-type (py-obj-cls fun)))
     (if (eq? fun-type py-function-class)
       (let ((arity (PyObjectFunction-arity fun)))
         (cond
@@ -860,7 +860,7 @@
       (py-call-generic fun '()))))
 
 (define (py-callX-fallback min-neg-arity fun . args)
-  (let ((fun-type (py-obj-cls-general fun)))
+  (let ((fun-type (py-obj-cls fun)))
     (if (eq? fun-type py-function-class)
       (let ((arity (PyObjectFunction-arity fun)))
         (cond
