@@ -102,6 +102,8 @@
               (if (eq? attr py-absent)
                 (py-getattribute-from-mro-cache obj name cache)
                 attr)))))
+      ((eq? hclass (AttributeCache-mro-hclass cache))
+        (py-getattribute-from-mro-cache obj name cache))
       ((eq? hclass (AttributeCache-type-hclass cache))
         (cond
           ((not (eq? (AttributeCache-cls cache) obj))
@@ -1550,28 +1552,42 @@
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
 (define (object-getattribute obj name #!optional (raise? #t) (cache #f))
+  (define (getattribute-from-mro #!optional (index-hit-on-object-hclass #f))
+    (getattribute-from-obj-mro-with-index/owner-2cont
+      obj
+      name
+      (lambda (index cls-attr owner)
+        (if index-hit-on-object-hclass
+          (if cache
+            (AttributeCache-object-or-mro-hit!
+              cache
+              (py-obj-hclass obj)
+              index-hit-on-object-hclass
+              (py-obj-cls obj)
+              cls-attr
+              owner))
+          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) (py-obj-cls obj) cls-attr owner)))
+        (py-descriptor-get cls-attr obj owner))
+      (lambda ()
+        ;; TODO: replace this hack by something better
+        ;; NOTE: __class__ should get a getset_descriptor on object
+        (if (eq? (py-str-representative name) (& "__class__"))
+            (py-obj-cls obj)
+            (begin
+              (and
+                raise?
+                (py-throw-object-getattribute-error obj name)))))))
+
   (py-own-attr-index/ref-2cont
     obj
     name
     (lambda (index val)
-      (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
-      val)
-    (lambda ()
-      (getattribute-from-obj-mro-with-index/owner-2cont
-        obj
-        name
-        (lambda (index cls-attr owner)
-          (if cache (AttributeCache-object-mro-hit! cache (py-obj-hclass obj) (py-obj-cls obj) cls-attr owner))
-          (py-descriptor-get cls-attr obj owner))
-        (lambda ()
-          ;; TODO: replace this hack by something better
-          ;; NOTE: __class__ should get a getset_descriptor on object
-          (if (eq? (py-str-representative name) (& "__class__"))
-              (py-obj-cls obj)
-              (begin
-                (and
-                  raise?
-                  (py-throw-object-getattribute-error obj name)))))))))
+      (if (eq? val py-absent)
+        (getattribute-from-mro #t)
+        (begin
+          (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
+          val)))
+    getattribute-from-mro))
 
 (define object.__getattribute__
   (procedure->py-function
@@ -2546,15 +2562,17 @@
 
 
 (define (module-getattribute obj name #!optional (raise? #t) (cache #f))
-  (define (getattribute-from-mro)
+  (define (getattribute-from-mro #!optional (index-of-hit-on-module #f))
     (getattribute-from-obj-mro-with-owner-2cont
-     obj
-     name
-     (lambda (cls-attr owner)
-       (if cache (AttributeCache-module-mro-hit! cache (py-obj-hclass obj) (py-obj-cls obj) cls-attr owner))
-       (py-descriptor-get cls-attr obj owner))
+      obj
+      name
+      (lambda (cls-attr owner)
+        (if index-of-hit-on-module
+          (if cache (AttributeCache-module-or-mro-hit! cache (py-obj-hclass obj) index-of-hit-on-module (py-obj-cls obj) cls-attr owner))
+          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) (py-obj-cls obj) cls-attr owner)))
+        (py-descriptor-get cls-attr obj owner))
      (lambda ()
-       (and raise? (py-throw-module-getattribute-error obj name)))))
+        (and raise? (py-throw-module-getattribute-error obj name)))))
 
   (if (py-isinstance? obj py-module-class)
     (if (py-isinstance? name py-builtin-str)
@@ -2567,7 +2585,7 @@
               (begin
                 (if cache (AttributeCache-module-hit! cache (py-obj-hclass obj) index))
                 val)
-              (getattribute-from-mro))))
+              (getattribute-from-mro index))))
         getattribute-from-mro)
       (py-throw-exception-with-message
        py-builtin-TypeError
