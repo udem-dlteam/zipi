@@ -1281,7 +1281,8 @@
 (define-macro (py-make-builtin-class name module bases . attrs)
   (define hclass-of-instances
     '((object . py-object-hclass-of-instances)
-      (type . py-type-hclass-of-instances)
+      (type . #f) ;; NOTE: this is ok! each type should have a different hclass for attribute caching purpose
+                  ;; for this reasons there is no "py-type-hclass-of-instances"
       (str . py-str-hclass-of-instances)
       (tuple . py-tuple-hclass-of-instances)
       (int . py-int-hclass-of-instances)
@@ -2034,23 +2035,16 @@
 
 (define-macro (py-getattribute-from-mro-cache obj name cache)
   ;; obj should never be a sint or float, those case can be resolved statically
-  `(let (($obj ,obj)
-        ($cache ,cache))
-    (if (eq? (AttributeCache-cls $cache) (py-obj-cls-general $obj))
-      (py-descriptor-get (AttributeCache-attr $cache) $obj (AttributeCache-owner $cache))
-      (py-getattribute-cached/miss $obj ,name $cache))))
+  `(let (($cache ,cache))
+    (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))))
 
 (define-macro (py-getattribute-from-type-mro-cache obj name cache)
   ;; obj should never be a sint or float, those are not types
   `(let (($obj ,obj)
          ($cache ,cache))
-    (cond
-      ((not (eq? (AttributeCache-cls ,cache) ,obj))
-        (py-getattribute-cached/miss ,obj ,name ,cache))
-      ((eq? (AttributeCache-bind ,cache) 'self)
-        (py-descriptor-get (AttributeCache-attr ,cache) ,obj (AttributeCache-owner ,cache)))
-      (else
-        (py-descriptor-get (AttributeCache-owner ,cache) py-None (AttributeCache-attr ,cache))))))
+    (if (eq? (AttributeCache-bind $cache) 'self)
+        (py-descriptor-get (AttributeCache-attr ,cache) ,obj (AttributeCache-owner ,cache))
+        (py-descriptor-get (AttributeCache-attr ,cache) py-None (AttributeCache-owner ,cache)))))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))

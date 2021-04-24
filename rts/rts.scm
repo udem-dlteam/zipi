@@ -106,13 +106,7 @@
       ((eq? hclass (AttributeCache-mro-hclass cache))
         (py-getattribute-from-mro-cache obj name cache))
       ((eq? hclass (AttributeCache-type-hclass cache))
-        (cond
-          ((not (eq? (AttributeCache-cls cache) obj))
-            (py-getattribute-cached/miss obj name cache))
-          ((eq? (AttributeCache-bind cache) 'self)
-            (py-descriptor-get (AttributeCache-attr cache) obj (AttributeCache-owner cache)))
-          (else
-            (py-descriptor-get (AttributeCache-attr cache) py-None (AttributeCache-owner cache)))))
+        (py-getattribute-from-type-mro-cache obj name cache))
       ((eq? hclass (AttributeCache-module-hclass cache))
         (let ((index (AttributeCache-index cache)))
           (if (fx= index -1)
@@ -232,13 +226,6 @@
     '#()
     '()))
 
-;; instances of type are classes
-;; this is the hidden class of classes
-(define py-type-hclass-of-instances
- (make-builtin-HClass
-  '#()
-  '()))
-
 (define py-str-hclass-of-instances
   (make-builtin-HClass
     '#()
@@ -308,9 +295,7 @@
 
 (define py-module-hclass-of-instances
   (make-builtin-HClass
-    (vector
-      (& "__name__")
-      (& "__builtins__"))
+    '#()
     '()))
 
 (define py-list-iterator-hclass-of-instances
@@ -411,10 +396,8 @@
 
 (define (py-type-alloc metaclass class-index bases mro hclass-of-instance)
   (make-PyObjectType
-    py-type-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-type-hclass-of-instances))
-      py-absent)
+    (make-HClass '#() '()) ;; each type has its own hclass for attribute caching purpose
+    '#()
     metaclass
     class-index
     bases
@@ -1564,10 +1547,9 @@
               cache
               (py-obj-hclass obj)
               index-hit-on-object-hclass
-              (py-obj-cls obj)
               cls-attr
               owner))
-          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) (py-obj-cls obj) cls-attr owner)))
+          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) cls-attr owner)))
         (py-descriptor-get cls-attr obj owner))
       (lambda ()
         ;; TODO: replace this hack by something better
@@ -1615,14 +1597,14 @@
       obj
       name
       (lambda (attr owner)
-        (if cache (AttributeCache-type-hit! cache (py-obj-hclass obj) obj attr owner))
+        (if cache (AttributeCache-type-hit! cache (py-obj-hclass obj) attr owner))
         (py-descriptor-get attr py-None obj))
       (lambda ()
         (getattribute-from-obj-mro-with-owner-2cont
          obj
          name
          (lambda (cls-attr owner)
-           (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass obj) obj attr owner))
+           (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass obj) attr owner))
            (py-descriptor-get cls-attr obj owner))
          (lambda ()
            (and raise? (py-throw-type-getattribute-error obj name))))))
@@ -2365,7 +2347,8 @@
             (get-behavior-type-index type)
             #f ;; bases
             #f ;; mro
-            py-type-hclass-of-instances))
+            #f)) ;; NOTE: this is ok! each type should have a different hclass for attribute caching purpose
+                 ;; for this reasons there is no "py-type-hclass-of-instances"
         (object-class
           (py-builtin-type-alloc
             #f ;; cls
@@ -2396,17 +2379,10 @@
     ;; init all object (& ...) to a py-str object
     (init-registered-constants)
 
-    ;; builtin hidden classes
-    (HClass-names-set! py-type-hclass-of-instances
-       (vector (& "__name__")))
-    (HClass-names-set! py-method-hclass-of-instances
-       (vector (& "__self__")))
-
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
     (PyObjectType-bases-set! object-class '#())
     (PyObjectType-mro-set! object-class (vector object-class))
-    (PyObjectType-hclass-of-instances-set! object-class py-object-hclass-of-instances)
     (py-own-attr-set! object-class (& "__name__") (&& "object"))
     (py-own-attr-set! object-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! object-class (& "__new__") object.__new__)
@@ -2422,7 +2398,6 @@
     (PyObject-class-set! type-class type-class)
     (PyObjectType-bases-set! type-class (vector object-class))
     (PyObjectType-mro-set! type-class (vector type-class object-class))
-    (PyObjectType-hclass-of-instances-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (&& "type"))
     (py-own-attr-set! type-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! type-class (& "__new__") type.__new__)
@@ -2435,7 +2410,6 @@
     (PyObject-class-set! tuple-class type-class)
     (PyObjectType-bases-set! tuple-class (vector object-class))
     (PyObjectType-mro-set! tuple-class (vector tuple-class object-class))
-    (PyObjectType-hclass-of-instances-set! tuple-class py-tuple-hclass-of-instances)
     (py-own-attr-set! tuple-class (& "__name__") (&& "tuple"))
     (py-own-attr-set! tuple-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! tuple-class (& "__new__") tuple.__new__)
@@ -2444,7 +2418,6 @@
     (PyObject-class-set! str-class type-class)
     (PyObjectType-bases-set! str-class (vector object-class))
     (PyObjectType-mro-set! str-class (vector str-class object-class))
-    (PyObjectType-hclass-of-instances-set! str-class py-str-hclass-of-instances)
     (py-own-attr-set! str-class (& "__name__") (&& "str"))
     (py-own-attr-set! str-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
@@ -2502,12 +2475,10 @@
               (list->vector bases)))
            (cls (type-allocator py-type-class class-index bases-vect #f #f)))
       (PyObjectType-mro-set! cls (py-compute-mro cls))
-      ;; TODO implement better introspection of hclass of instance
-      ;; This current implementation will fail on multiple inheritance
+      ;; NOTE: objects for different classes MUST have different classes for attributes caching
       (PyObjectType-hclass-of-instances-set!
         cls
-        (PyObjectType-hclass-of-instances
-          (vector-ref bases-vect 0)))
+        (make-HClass '#() '()))
       (let loop ((attr-names attr-names) (attr-values attr-values))
         (if (pair? attr-names)
             (begin
@@ -2569,8 +2540,8 @@
       name
       (lambda (cls-attr owner)
         (if index-of-hit-on-module
-          (if cache (AttributeCache-module-or-mro-hit! cache (py-obj-hclass obj) index-of-hit-on-module (py-obj-cls obj) cls-attr owner))
-          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) (py-obj-cls obj) cls-attr owner)))
+          (if cache (AttributeCache-module-or-mro-hit! cache (py-obj-hclass obj) index-of-hit-on-module cls-attr owner))
+          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) cls-attr owner)))
         (py-descriptor-get cls-attr obj owner))
      (lambda ()
         (and raise? (py-throw-module-getattribute-error obj name)))))
