@@ -791,7 +791,10 @@
     ,obj
     py-int-hclass-of-instances
     py-float-hclass-of-instances
-    (PyObject-hclass $obj)))
+    (py-obj-hclass-general $obj)))
+
+(define-macro (py-obj-hclass-general obj)
+  `(PyObject-hclass ,obj))
 
 ;; Get class of object given specialized representations of int and float
 
@@ -2018,21 +2021,27 @@
   `(py-maybe-len-fallback ,obj))
 
 (define-macro (py-getattribute obj attr #!optional (cache #f))
- `(with-list-of-magic-attrs $py-getattribute ,obj ,attr ,cache))
-
-(define-macro ($py-getattribute list-of-magic-attrs obj attr #!optional (cache #f))
   (if cache
-    `(py-getattribute-cached-fallback ,obj ,attr ,cache)
+    `(py-specialized-sint-float-dispatch-let
+       X
+       ,obj
+       ;; TODO: use macro to determine exact attribute in case of
+       ;; int and float, those can be determined statically
+       (py-getattribute-fallback X ,attr)
+       (py-getattribute-fallback X ,attr)
+       (py-getattribute-cached-fallback X ,attr ,cache))
     `(py-getattribute-fallback ,obj ,attr)))
 
 (define-macro (py-getattribute-from-mro-cache obj name cache)
+  ;; obj should never be a sint or float, those case can be resolved statically
   `(let (($obj ,obj)
         ($cache ,cache))
-    (if (eq? (AttributeCache-cls $cache) (py-obj-cls $obj))
+    (if (eq? (AttributeCache-cls $cache) (py-obj-cls-general $obj))
       (py-descriptor-get (AttributeCache-attr $cache) $obj (AttributeCache-owner $cache))
       (py-getattribute-cached/miss $obj ,name $cache))))
 
 (define-macro (py-getattribute-from-type-mro-cache obj name cache)
+  ;; obj should never be a sint or float, those are not types
   `(let (($obj ,obj)
          ($cache ,cache))
     (cond

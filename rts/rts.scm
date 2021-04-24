@@ -92,7 +92,8 @@
   (py-getattribute-from-type-mro-cache obj name cache))
 
 (define (py-getattribute-cached-fallback obj name cache)
-  (let ((hclass (py-obj-hclass obj)))
+  ;; obj should never be a sint or float, those case can be resolved statically
+  (let ((hclass (py-obj-hclass-general obj)))
     (cond
       ((eq? hclass (AttributeCache-object-hclass cache))
         (let ((index (AttributeCache-index cache)))

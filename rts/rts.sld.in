@@ -163,12 +163,12 @@
     py-obj-cls
     py-obj-cls-general
     py-obj-hclass
+    py-obj-hclass-general
     py-obj-class-index
     $py-obj-class-index
     py-obj-class-index-general
     with-list-of-magic-attrs
     py-getattribute
-    $py-getattribute
     py-getattribute-cached-fallback
     py-setattribute
     py-own-attr-set!
