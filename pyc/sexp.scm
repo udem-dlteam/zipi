@@ -397,7 +397,7 @@
     (else
       (if (eof-object? exp)
           (error "sexp" "premature eof" exp)
-          (error "sexp" "Not implemented" exp)))))
+          (new-PycUnimplemented (cadr exp) "syntax not implemented")))))
 
 (define (subscript loc obj exp scope conf)
   (match-case exp
