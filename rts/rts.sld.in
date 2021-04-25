@@ -168,8 +168,24 @@
     $py-obj-class-index
     py-obj-class-index-general
     with-list-of-magic-attrs
+
     py-getattribute
+    py-getattribute-cached
     py-getattribute-cached-fallback
+    py-getattribute-from-object-cache
+    py-getattribute-from-mro-cache
+    py-getattribute-from-type-cache
+    py-getattribute-from-module-cache
+
+    AttributeCache-object-hclass
+    AttributeCache-mro-hclass
+    AttributeCache-type-hclass
+    AttributeCache-module-hclass
+    AttributeCache-index
+    AttributeCache-attr
+    AttributeCache-owner
+    AttributeCache-bind
+
     py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro
@@ -190,6 +206,10 @@
     $py-binary-behavior-call-with-lhs-index
     $py-binary-behavior-call-with-rhs-index
     py-specialized-sint-float-dispatch-let
+
+    py-partial-1/3-behavior-call
+    $py-partial-1/3-behavior-call
+    py-partial-1/3-behavior-ref
 
     py-add-behavior-call-fallback
     py-bitand-behavior-call-fallback
@@ -361,6 +381,7 @@
     py-test-lt-behaviors-table
 
     py-descriptor-get-behaviors-table
+    py-descriptor-get-behavior-call-fallback
 
     procedure->py-function
 
@@ -375,6 +396,8 @@
     $py-specialized-binop-dispatch
     py-specialized-unop-dispatch
     $py-specialized-unop-dispatch
+    py-specialized-partial-1/3-dispatch
+    $py-specialized-partial-1/3-dispatch
 
     py-int-from-scheme
     py-sint-from-scheme
@@ -682,6 +705,10 @@
     PyObject-class
     PyObject-hclass
     PyObject-%elements
+    PyObject-elements-ref
+    PyObject-global-elements-ref
+    global-cell-get-val
+    global-cell-getter-get
     PyObjectType-class-index
     py-int-class
     py-bool-class

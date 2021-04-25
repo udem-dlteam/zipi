@@ -85,26 +85,18 @@
 
 ;;; Object attribute store/fetch.
 
-(define (py-getattribute-from-mro-cache-fallback obj name cache)
-  (py-getattribute-from-mro-cache obj cache))
-
-(define (py-getattribute-from-type-mro-cache-fallback obj name cache)
-  (py-getattribute-from-type-mro-cache obj cache))
-
-(define (py-getattribute-cached-fallback obj name cache)
-  ;; obj should never be a sint or float, those case can be resolved statically
-  (let ((hclass (py-obj-hclass-general obj)))
-    (cond
-      ((eq? hclass (AttributeCache-object-hclass cache))
-        (py-getattribute-from-object-cache obj cache))
-      ((eq? hclass (AttributeCache-mro-hclass cache))
-        (py-getattribute-from-mro-cache obj cache))
-      ((eq? hclass (AttributeCache-type-hclass cache))
-        (py-getattribute-from-type-mro-cache obj cache))
-      ((eq? hclass (AttributeCache-module-hclass cache))
-        (py-getattribute-from-module-cache obj cache))
-      (else
-        (py-getattribute-cached/miss obj name cache)))))
+(define (py-getattribute-cached-fallback obj hclass name cache)
+  (cond
+    ((eq? hclass (AttributeCache-object-hclass cache))
+      (py-getattribute-from-object-cache obj cache))
+    ((eq? hclass (AttributeCache-mro-hclass cache))
+      (py-getattribute-from-mro-cache obj cache))
+    ((eq? hclass (AttributeCache-type-hclass cache))
+      (py-getattribute-from-type-mro-cache obj cache))
+    ((eq? hclass (AttributeCache-module-hclass cache))
+      (py-getattribute-from-module-cache obj cache))
+    (else
+      (py-getattribute-cached/miss obj name cache))))
 
 (define (py-getattribute-cached/miss obj name cache)
   (define (getattribute-from-getattr attribute-error)
