@@ -2029,12 +2029,33 @@
        (py-getattribute-cached-fallback X ,attr ,cache))
     `(py-getattribute-fallback ,obj ,attr)))
 
-(define-macro (py-getattribute-from-mro-cache obj name cache)
+(define-macro (py-getattribute-from-module-cache obj cache)
+  `(let* (($cache ,cache)
+          ($obj ,obj)
+          (index (AttributeCache-index $cache)))
+    (if (fx= index -1)
+      (py-getattribute-from-mro-cache $obj $cache)
+      (or
+        (PyObject-global-elements-ref $obj index)
+        (py-getattribute-from-mro-cache $obj $cache)))))
+
+(define-macro (py-getattribute-from-object-cache obj cache)
+  `(let* (($cache ,cache)
+         ($obj ,obj)
+         (index (AttributeCache-index $cache)))
+    (if (fx= index -1)
+      (py-getattribute-from-mro-cache $obj $cache)
+      (let ((attr (PyObject-elements-ref $obj index)))
+        (if (eq? attr py-absent)
+          (py-getattribute-from-mro-cache $obj $cache)
+          attr)))))
+
+(define-macro (py-getattribute-from-mro-cache obj cache)
   ;; obj should never be a sint or float, those case can be resolved statically
   `(let (($cache ,cache))
     (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))))
 
-(define-macro (py-getattribute-from-type-mro-cache obj name cache)
+(define-macro (py-getattribute-from-type-mro-cache obj cache)
   ;; obj should never be a sint or float, those are not types
   `(let (($obj ,obj)
          ($cache ,cache))

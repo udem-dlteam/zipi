@@ -86,34 +86,23 @@
 ;;; Object attribute store/fetch.
 
 (define (py-getattribute-from-mro-cache-fallback obj name cache)
-  (py-getattribute-from-mro-cache obj name cache))
+  (py-getattribute-from-mro-cache obj cache))
 
 (define (py-getattribute-from-type-mro-cache-fallback obj name cache)
-  (py-getattribute-from-type-mro-cache obj name cache))
+  (py-getattribute-from-type-mro-cache obj cache))
 
 (define (py-getattribute-cached-fallback obj name cache)
   ;; obj should never be a sint or float, those case can be resolved statically
   (let ((hclass (py-obj-hclass-general obj)))
     (cond
       ((eq? hclass (AttributeCache-object-hclass cache))
-        (let ((index (AttributeCache-index cache)))
-          (if (fx= index -1)
-            (py-getattribute-from-mro-cache obj name cache)
-            (let ((attr (PyObject-elements-ref obj index)))
-              (if (eq? attr py-absent)
-                (py-getattribute-from-mro-cache obj name cache)
-                attr)))))
+        (py-getattribute-from-object-cache obj cache))
       ((eq? hclass (AttributeCache-mro-hclass cache))
-        (py-getattribute-from-mro-cache obj name cache))
+        (py-getattribute-from-mro-cache obj cache))
       ((eq? hclass (AttributeCache-type-hclass cache))
-        (py-getattribute-from-type-mro-cache obj name cache))
+        (py-getattribute-from-type-mro-cache obj cache))
       ((eq? hclass (AttributeCache-module-hclass cache))
-        (let ((index (AttributeCache-index cache)))
-          (if (fx= index -1)
-            (py-getattribute-from-module-mro-cache obj name cache)
-            (or
-              (PyObject-global-elements-ref obj index)
-              (py-getattribute-from-type-mro-cache obj name cache)))))
+        (py-getattribute-from-module-cache obj cache))
       (else
         (py-getattribute-cached/miss obj name cache)))))
 
