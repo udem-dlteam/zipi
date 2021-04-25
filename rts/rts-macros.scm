@@ -1233,11 +1233,7 @@
   `((global-cell-setter-get ,cell) ,val))
 
 (define-macro (PyObject-global-elements-ref global offset)
-  `(let (($offset ,offset)
-         ($elements (PyObject-%elements ,global)))
-    (if (fx< $offset (vector-length $elements))
-      (global-cell-get-val (vector-ref $elements $offset))
-      #f)))
+  `(global-cell-get-val (vector-ref (PyObject-%elements ,global) ,offset)))
 
 (define-macro (py-global-elements-set! elements offset val)
   `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
