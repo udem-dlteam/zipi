@@ -439,6 +439,14 @@
 (define-macro (AttributeCache-reset! cache)
   `(AttributeCache-set! ,cache #f #f #f #f -1 #f #f #f))
 
+(define-macro (AttributeCache-mro-reset! cache)
+  `(let (($c ,cache))
+     (AttributeCache-mro-hclass-set! $c #f)
+     (AttributeCache-type-hclass-set! $c #f)
+     (AttributeCache-attr-set! $c #f)
+     (AttributeCache-owner-set! $c #f)
+     (AttributeCache-bind-set! $c #f)))
+
 (define-macro (AttributeCache-object-hit! cache object-hclass index)
   `(AttributeCache-set! ,cache ,object-hclass #f #f #f ,index #f #f #f))
 

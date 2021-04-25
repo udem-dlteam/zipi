@@ -1370,11 +1370,19 @@
 
 ;; -----------------------------------------------------------------------------
 
+(define attribute-caches '())
+
+(define (reset-mro-caches!)
+  (for-each (lambda (cache) (AttributeCache-mro-reset! cache)) attribute-caches))
+
 (define (py-make-caches kinds)
   (define (make-cache kind)
     (case kind
       ((global) (make-init-PCache))
-      ((attribute) (make-init-AttributeCache))
+      ((attribute)
+        (let ((attr-cache (make-init-AttributeCache)))
+          (set! attribute-caches (cons attr-cache attribute-caches))
+          attr-cache))
       (else
         (error "py-make-caches" "unknown cache kind" kind))))
   (list->vector (map make-cache kinds)))
@@ -1580,7 +1588,9 @@
 (define (object-setattr obj name val)
   ;; TODO: add check that obj does not has it own setattr method
   (if (py-subtype-of-str? name)
-    (py-own-attr-set! obj name val)
+    (begin
+      (if (PyObjectType? obj) (reset-mro-caches!))
+      (py-own-attr-set! obj name val))
     (py-throw-exception-with-message
      py-builtin-TypeError
      "attribute name must be string")))
@@ -1655,6 +1665,25 @@
     (make-signature
       posonlyargs: (self)
       vararg: args)))
+
+(define (type-setattr self name val)
+  ;; TODO: add check that obj does not has it own setattr method
+  (if (py-isinstance? self py-builtin-type)
+    (if (py-subtype-of-str? name)
+      (begin
+        (reset-mro-caches!)
+        (py-own-attr-set! obj name val))
+      (py-throw-exception-with-message
+       py-builtin-TypeError
+       "attribute name must be string"))
+    (py-throw-exception-with-message
+     py-builtin-TypeError
+     "descriptor '__setattr__' requires a 'type' object")))
+
+(define type.__setattr__
+  (procedure->py-function
+    object-setattr
+    (make-signature posonlyargs: (self name val))))
 
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
@@ -2402,6 +2431,7 @@
     (py-own-attr-set! type-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! type-class (& "__new__") type.__new__)
     (py-own-attr-set! type-class (& "__call__") type.__call__)
+    (py-own-attr-set! type-class (& "__setattr__") type.__setattr__)
     (py-own-attr-set! type-class (& "__getattribute__") type.__getattribute__)
     (py-own-attr-set! type-class (& "__dir__") type.__dir__)
     (py-own-attr-set! type-class (& "__repr__") type.__repr__)
