@@ -45,6 +45,7 @@
 	 ;; usage
 	 (in-scope-of (default #f))
 	 (usage::pair-nil (default '()))
+   (assig::pair-nil (default '()))
 	 (can-be-deleted::bool (default #f))
    (global-only-accessed-in-module (default #f))
    (global-always-defined (default #f))

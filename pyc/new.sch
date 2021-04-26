@@ -7,9 +7,9 @@
 (define-inline (new-PycModule loc ident stmts #!key (%info #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches -1))
    (make-PycModule loc %info special-init version ident stmts globals global-defs caches))
 
-;; (new-PycVar loc id scope #!key (%info #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
-(define-inline (new-PycVar loc id scope #!key (%info #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
-   (make-PycVar loc %info id scope name key in-scope-of usage can-be-deleted global-only-accessed-in-module global-always-defined global-ref-to-init-def is-builtin simple-scoping-top-block cache))
+;; (new-PycVar loc id scope #!key (%info #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (assig (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
+(define-inline (new-PycVar loc id scope #!key (%info #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (assig (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
+   (make-PycVar loc %info id scope name key in-scope-of usage assig can-be-deleted global-only-accessed-in-module global-always-defined global-ref-to-init-def is-builtin simple-scoping-top-block cache))
 
 ;; (new-PycStmt loc #!key (%info #f) (need-return #f))
 (define-inline (new-PycStmt loc #!key (%info #f) (need-return #f))
