@@ -1774,9 +1774,20 @@
   `(with-class-indices-info $py-specialized-partial-1/3-dispatch ,op ,x ,y ,z))
 
 (define-macro ($py-specialized-partial-1/3-dispatch indices-info op x y z)
-  `(py-if-enable-behaviors-optimization
-    (py-partial-1/3-behavior-call ,op ,x ,y ,z)
-    (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x ,y ,z)))
+  (define sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-inline")))
+  (define float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-inline")))
+
+  (let ((x-sym (gensym 'x)) (y-sym (gensym 'y)) (z-sym (gensym 'z)))
+    `(let ((,x-sym ,x) (,y-sym ,y) (,z-sym ,z))
+      (py-if-enable-behaviors-optimization
+        (cond
+          ((py-if-specialized-sint-representation (fixnum? ,x-sym) #f)
+            (,sint-op ,x-sym ,y-sym ,z-sym))
+          ((py-if-specialized-float-representation (flonum? ,x-sym) #f)
+            (,float-op ,x-sym ,y-sym ,z-sym))
+          (else
+            (py-partial-1/3-behavior-call ,op ,x-sym ,y-sym ,z-sym)))
+        (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x-sym ,y-sym ,z-sym)))))
 
 (define-macro (py-add x y)
   (if (and (pair? x) (memq (car x) '(& &&)) (pair? y) (memq (car y) '(& &&)))
@@ -2084,8 +2095,8 @@
   `(let (($obj ,obj)
          ($cache ,cache))
     (if (eq? (AttributeCache-bind $cache) 'self)
-        (py-descriptor-get (AttributeCache-attr ,cache) ,obj (AttributeCache-owner ,cache))
-        (py-descriptor-get (AttributeCache-attr ,cache) py-None (AttributeCache-owner ,cache)))))
+        (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))
+        (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)))))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
