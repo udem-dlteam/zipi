@@ -2079,7 +2079,7 @@
   `(let (($cache ,cache))
     (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))))
 
-(define-macro (py-getattribute-from-type-mro-cache obj cache)
+(define-macro (py-getattribute-from-type-cache obj cache)
   ;; obj should never be a sint or float, those are not types
   `(let (($obj ,obj)
          ($cache ,cache))

@@ -92,7 +92,7 @@
     ((eq? hclass (AttributeCache-mro-hclass cache))
       (py-getattribute-from-mro-cache obj cache))
     ((eq? hclass (AttributeCache-type-hclass cache))
-      (py-getattribute-from-type-mro-cache obj cache))
+      (py-getattribute-from-type-cache obj cache))
     ((eq? hclass (AttributeCache-module-hclass cache))
       (py-getattribute-from-module-cache obj cache))
     (else
