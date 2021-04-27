@@ -5,6 +5,8 @@ pyc/o
 pyc/.afile
 pyc/.afile~
 pyc/configure.scm
+dependencies
+dependencies/*
 etc/Makefile.zipiconfig
 etc/Makefile.bigloo
 etc/pyc.init
