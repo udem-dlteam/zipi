@@ -6,6 +6,8 @@
     inline-c-code
 
     PyObject?
+    PyObjectType?
+    PyObjectModule?
     &
     &&
     start-registering-constants
@@ -160,13 +162,40 @@
 
     py-obj-cls
     py-obj-cls-general
+    py-obj-hclass
+    py-obj-hclass-general
     py-obj-class-index
     $py-obj-class-index
     py-obj-class-index-general
+    with-list-of-magic-attrs
+
     py-getattribute
+    py-getattribute-cached
+    py-getattribute-cached-fallback
+    py-getattribute-cached-fallback/no-object
+    py-getattribute-cached-fallback/no-mro
+    py-getattribute-cached-fallback/no-type
+    py-getattribute-cached-fallback/no-module
+    py-getattribute-from-object-cache
+    py-getattribute-from-mro-cache
+    py-getattribute-from-type-cache
+    py-getattribute-from-module-cache
+
+    AttributeCache-object-hclass
+    AttributeCache-mro-hclass
+    AttributeCache-type-hclass
+    AttributeCache-module-hclass
+    AttributeCache-index
+    AttributeCache-attr
+    AttributeCache-owner
+    AttributeCache-bind
+
     py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro
+    py-own-attr-ref-2cont
+
+    py-descriptor-get
 
     py-behavior-ref
     get-behavior-index
@@ -181,6 +210,10 @@
     $py-binary-behavior-call-with-lhs-index
     $py-binary-behavior-call-with-rhs-index
     py-specialized-sint-float-dispatch-let
+
+    py-partial-1/3-behavior-call
+    $py-partial-1/3-behavior-call
+    py-partial-1/3-behavior-ref
 
     py-add-behavior-call-fallback
     py-bitand-behavior-call-fallback
@@ -351,6 +384,9 @@
     py-test-le-behaviors-table
     py-test-lt-behaviors-table
 
+    py-descriptor-get-behaviors-table
+    py-descriptor-get-behavior-call-fallback
+
     procedure->py-function
 
     py-if-specialized-sint-representation
@@ -359,10 +395,13 @@
     py-if-enable-inlined-mixed-types-behaviors
     py-if-enable-inline-behavior-dispatch
     py-if-enable-inline-partial-behavior-dispatch
+    py-when-enable-cache-debug
     py-specialized-binop-dispatch
     $py-specialized-binop-dispatch
     py-specialized-unop-dispatch
     $py-specialized-unop-dispatch
+    py-specialized-partial-1/3-dispatch
+    $py-specialized-partial-1/3-dispatch
 
     py-int-from-scheme
     py-sint-from-scheme
@@ -420,7 +459,6 @@
     py-make-tuple
     py-type
 
-    py-type-hclass-of-instances
     py-object-hclass-of-instances
     py-int-hclass-of-instances
     py-float-hclass-of-instances
@@ -671,6 +709,10 @@
     PyObject-class
     PyObject-hclass
     PyObject-%elements
+    PyObject-elements-ref
+    PyObject-global-elements-ref
+    global-cell-get-val
+    global-cell-getter-get
     PyObjectType-class-index
     py-int-class
     py-bool-class

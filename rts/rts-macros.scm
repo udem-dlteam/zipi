@@ -85,6 +85,10 @@
 (define-macro (py-if-enable-inlined-mixed-types-behaviors yes no) yes)
 (define-macro (py-if-enable-inline-partial-behavior-dispatch yes no) no)
 
+(define-macro (py-when-enable-cache-debug . code)
+  (define enable-cache-debug #f)
+  `(begin ,@(if enable-cache-debug code '())))
+
 (define-macro (py-bool-to-scheme-float arg)
   `(fixnum->flonum (py-bool-to-scheme-int ,arg)))
 
@@ -787,7 +791,10 @@
     ,obj
     py-int-hclass-of-instances
     py-float-hclass-of-instances
-    (PyObject-hclass $obj)))
+    (py-obj-hclass-general $obj)))
+
+(define-macro (py-obj-hclass-general obj)
+  `(PyObject-hclass ,obj))
 
 ;; Get class of object given specialized representations of int and float
 
@@ -946,37 +953,72 @@
 (define-macro (py-add-strX-strY str1 str2)
   `(py-add-SstrX-SstrY-fallback ,str1 ,str2))
 
+;; all zipi PyObjectType have reserved slots for the following magic methods
+;; see: ;; https://docs.python.org/3/reference/datamodel.html
+(define-macro (with-list-of-magic-attrs . args)
+  (let ((list-of-magic-attrs
+          '("__add__" "__radd__" "__iadd__"
+            "__sub__" "__rsub__" "__isub__"
+            "__mul__" "__rmul__" "__imul__"
+            "__matmul__" "__rmatmul__" "__imatmul__"
+            "__truediv__" "__rtruediv__" "__itruediv__"
+            "__floordiv__" "__rfloordiv__" "__ifloordiv__"
+            "__mod__" "__rmod__" "__imod__"
+            "__divmod__" "__rdivmod__"
+            "__pow__" "__rpow__" "__ipow__"
+            "__lshift__" "__rlshift__" "__ilshift__"
+            "__rshift__" "__rrshift__" "__irshift__"
+            "__and__" "__rand__" "__iand__"
+            "__xor__" "__rxor__" "__ixor__"
+            "__or__" "__ror__" "__ior__"
+            "__neg__" "__pos__" "__abs__" "__invert__"
+            "__complex__" "__int__" "__float__" "__index__" "__bool__"
+            "__repr__" "__str__" "__bytes__" "__format__"
+            "__round__" "__trunc__" "__floor__" "__ceil__"
+            "__eq__" "__ne__" "__lt__" "__le__" "__gt__" "__ge__"
+            "__call__"
+            "__get__" "__set__" "__delete__"
+            "__getattribute__" "__getattr__" "__setattr__"
+            "__getitem__" "__setitem__" "__delitem__" "__missing__"
+            "__iter__" "__next__" "__reversed__" "__contains__"
+            "__len__" "__length_hint__"
+            "__hash__" "__dir__"
+            "__new__" "__init__")))
+    ;; add info as first arg to allow rest arguments
+    `(,(car args) ,list-of-magic-attrs ,@(cdr args))))
+
+(define-macro (get-list-of-magic-attrs)
+  `(with-list-of-magic-attrs $get-list-of-magic-attrs))
+
+(define-macro ($get-list-of-magic-attrs the-list)
+  `(quote ,the-list))
+
 (define-macro (py-getattribute-from-obj-mro-2cont obj name succeed fail)
+  `(with-list-of-magic-attrs $py-getattribute-from-obj-mro-2cont ,obj ,name ,succeed ,fail))
 
-  (define list-of-magic-attrs ;; keep in sync with rts.scm
-    '("__add__" "__radd__" "__iadd__"
-      "__mul__" "__rmul__" "__imul__"
-      "__sub__" "__rsub__" "__isub__"
-      "__eq__" "__ne__" "__lt__" "__le__" "__gt__" "__ge__"
-      "__call__" "__get__"))
+(define-macro ($py-getattribute-from-obj-mro-2cont list-of-magic-attrs obj name succeed fail)
+  (define (not-a-magic-attribute)
+    `(getattribute-from-cls-mro-with-owner-2cont
+      (py-obj-cls ,obj)
+      ,name
+      (lambda ($val $owner) (,succeed $val))
+      ,fail))
 
-  (let ((x (and (pair? name)
-                (pair? (cdr name))
-                (null? (cddr name))
-                (eq? (car name) '&)
-                (member (cadr name) list-of-magic-attrs))))
-    (if (not x)
-        `(getattribute-from-obj-mro-fallback ,obj ,name)
+  (if (and (pair? name)
+           (memq (car name) '(& &&)))
+    (let* ((name-string (cadr name))
+           (x (member name-string list-of-magic-attrs)))
+      (if x
+        ;; magic attribute, we know its index
         (let ((magic-index (- (length list-of-magic-attrs) (length x))))
-          `(let* (($obj ,obj)
-                  ($name ,name)
-                  ($value
-                   (vector-ref (PyObjectType-magic-attrs (py-obj-cls $obj))
-                               ,magic-index)))
-             (if $value
-                 (,succeed $value)
-                 ;; TODO: replace this branch by (,fail) when
-                 ;; magic-attrs vector is fully filled-in
-                 (let (($value
-                        (getattribute-from-obj-mro-fallback $obj $name)))
-                   (if (eq? $value py-absent)
-                       (,fail)
-                       (,succeed $value))))))))) ;; Beware of code duplication of succeed branch! (this will go away after the TODO is done)
+          `(get-magic-attribute-from-cls-mro-with-owner-2cont
+            (py-obj-cls ,obj)
+            ,magic-index
+            (lambda ($val $owner) (,succeed $val))
+            ,fail))
+        ;; not a magic attributs
+        (not-a-magic-attribute)))
+      (not-a-magic-attribute)))
 
 (define-macro (getattribute-from-obj-mro obj name)
   `(py-getattribute-from-obj-mro-2cont
@@ -984,6 +1026,225 @@
     ,name
     (lambda ($value) $value)
     (lambda () py-absent)))
+
+(define-macro (getattribute-from-cls-mro-with-owner-2cont cls name succeed fail)
+  `(let* (($mro (PyObjectType-mro ,cls))
+         ($succeed ,succeed)
+         ($mro-length (vector-length $mro)))
+     (let $loop-mro (($cls-index 0))
+       (if (fx< $cls-index $mro-length)
+    	   (let (($cls (vector-ref $mro $cls-index)))
+           (py-own-attr-ref-2cont
+            $cls
+            ,name
+            (lambda ($val)
+              ($succeed $val $cls))
+            (lambda ()
+              ($loop-mro (fx+ $cls-index 1)))))
+	       (,fail)))))
+
+(define-macro (get-magic-attribute-from-cls-mro-with-owner-2cont cls magic-index succeed fail)
+  `(let* (($mro (PyObjectType-mro ,cls))
+         ($magic-index ,magic-index)
+         ($succeed ,succeed)
+         ($mro-length (vector-length $mro)))
+    (let $loop-mro (($cls-index 0))
+      (if (fx< $cls-index $mro-length)
+   	   (let* (($cls (vector-ref $mro $cls-index))
+              ($attr (magic-attr-ref $cls $magic-index)))
+          (if $attr
+            (,succeed $attr $cls)
+            ($loop-mro (fx+ $cls-index 1))))
+       (,fail)))))
+
+(define-macro (getattribute-from-cls-mro-with-index/owner-2cont cls name succeed fail)
+ `(let (($mro (PyObjectType-mro ,cls)))
+    (let $loop-mro (($cls-index 0))
+      (if (fx< $cls-index (vector-length $mro))
+   	   (let (($cls (vector-ref $mro $cls-index)))
+          (py-own-attr-index/ref-2cont
+           $cls
+           ,name
+           (lambda ($index $val)
+             (,succeed $index $val $cls))
+           (lambda ()
+             ($loop-mro (fx+ $cls-index 1)))))
+	       (,fail)))))
+
+(define-macro (getattribute-from-cls-mro cls name)
+  `(getattribute-from-cls-mro-with-owner-2cont
+    ,cls
+    ,name
+    (lambda (val owner) val)
+    (lambda () py-absent)))
+
+(define-macro (py-cls-own-attr-ref-2cont cls attr succeed fail)
+  `(let* (($cls ,cls)
+          ($attr ,attr)
+          ($succeed ,succeed)
+          ($fail ,fail)
+          ($attr-representative (py-str-representative $attr))
+          ($magic-index (PyObjectStrRep-magic-index $attr-representative)))
+    (if $magic-index
+      (let (($val
+            (magic-attr-ref
+              $obj
+              $magic-index)))
+        (if $val ($succeed $val) ($fail)))
+      (py-own-attr-index-2cont-from-representative
+        $obj
+        $attr-representative
+        (lambda ($attr-index)
+          ($succeed (PyObject-elements-ref $obj $attr-index)))
+        $fail))))
+
+(define-macro (py-cls-own-attr-index/ref-2cont cls attr succeed fail)
+  `(let* (($cls ,cls)
+          ($attr ,attr)
+          ($succeed ,succeed)
+          ($fail ,fail)
+          ($attr-representative (py-str-representative $attr))
+          ($magic-index (PyObjectStrRep-magic-index $attr-representative)))
+    (if $magic-index
+      (let (($val
+            (magic-attr-ref
+              $obj
+              $magic-index)))
+        (if $val ($succeed -1 $val) ($fail)))
+      (py-own-attr-index-2cont-from-representative
+        $obj
+        $attr-representative
+        (lambda ($attr-index)
+          ($succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+        $fail))))
+
+(define-macro (py-own-attr-ref-2cont obj attr succeed fail)
+  ;; TODO: fix case when obj is not represented with a PyObject
+  `(let* (($obj ,obj)
+          ($attr ,attr)
+          ($succeed ,succeed)
+          ($fail ,fail))
+      (if (PyObjectType? $obj)
+        (py-cls-own-attr-ref-2cont $obj $attr $succeed $fail)
+        (py-own-attr-index-2cont
+         $obj
+         $attr
+         (lambda ($attr-index) ($succeed (PyObject-elements-ref $obj $attr-index)))
+         $fail))))
+
+(define-macro (py-own-attr-index/ref-2cont obj attr succeed fail)
+ ;; TODO: fix case when obj is not represented with a PyObject
+ `(let* (($obj ,obj)
+         ($attr ,attr)
+         ($succeed ,succeed)
+         ($fail ,fail))
+     (if (PyObjectType? $obj)
+       (py-cls-own-attr-index/ref-2cont $obj $attr $succeed $fail)
+       (py-own-attr-index-2cont
+        $obj
+        $attr
+        (lambda ($attr-index) ($succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+        $fail))))
+
+(define-macro (magic-attr-set! cls attr-index val)
+ `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
+
+(define-macro (magic-attr-ref cls attr-index)
+ `(vector-ref (PyObjectType-magic-attrs ,cls) ,attr-index))
+
+(define-macro (py-own-attr-index-2cont-from-representative obj rep succeed fail)
+ `(let* (($hclass (py-obj-hclass ,obj))
+         ($names (HClass-names $hclass))
+         ($attr-representative ,rep))
+    (let $loop-names (($attr-index (fx- (vector-length $names) 1)))
+      (cond ((fx< $attr-index 0)
+             (,fail))
+            ((eq? $attr-representative (vector-ref $names $attr-index))
+             (,succeed $attr-index))
+            (else
+             ($loop-names (fx- $attr-index 1)))))))
+
+(define-macro (py-own-attr-index-2cont obj attr succeed fail)
+ `(py-own-attr-index-2cont-from-representative
+   ,obj
+   (py-str-representative ,attr)
+   ,succeed
+   ,fail))
+
+(define-macro (getattribute-from-obj-mro-with-owner-2cont obj name succeed fail)
+ `(getattribute-from-cls-mro-with-owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
+
+(define-macro (getattribute-from-obj-mro-with-index/owner-2cont obj name succeed fail)
+`(getattribute-from-cls-mro-with-index/owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
+
+;; object.__getattribute__ error message
+(define-macro (py-throw-object-getattribute-error obj name)
+  `(py-throw
+    (py-call
+      py-builtin-AttributeError
+      (py-add*
+        (&& "'")
+        (py-getattribute (py-obj-cls ,obj) (& "__name__"))
+        (&& "' object has no attribute '")
+        ,name
+        (&& "'")))))
+
+;; type.__getattribute__ error message
+(define-macro (py-throw-type-getattribute-error obj name)
+  `(py-throw
+    (py-call
+      py-builtin-AttributeError
+      (py-add*
+        (&& "type object '")
+        (py-getattribute ,obj (& "__name__"))
+        (&& "' has no attribute '")
+        ,name
+        (&& "'")))))
+
+;; module.__getattribute__ error message
+(define-macro (py-throw-module-getattribute-error obj name)
+  `(py-throw
+    (py-call
+      py-builtin-AttributeError
+      (py-add*
+        (&& "module '")
+        (py-getattribute ,obj (& "__name__"))
+        (&& "' has no attribute '")
+        ,name
+        (&& "'")))))
+
+;; global contains a vector #(getter setter [maybe value for inner use])
+(define-macro (global-cell-getter-get cell)
+  `(vector-ref ,cell 0))
+
+(define-macro (global-cell-getter-set! cell getter)
+  `(vector-set! ,cell 0 ,getter))
+
+(define-macro (global-cell-get-val cell)
+  `((global-cell-getter-get ,cell)))
+
+(define-macro (global-cell-setter-get cell)
+  `(vector-ref ,cell 1))
+
+(define-macro (global-cell-setter-set! cell setter)
+  `(vector-set! ,cell 1 ,setter))
+
+(define-macro (global-cell-set-val! cell val)
+  `((global-cell-setter-get ,cell) ,val))
+
+(define-macro (PyObject-global-elements-ref global offset)
+  `(global-cell-get-val (vector-ref (PyObject-%elements ,global) ,offset)))
+
+(define-macro (py-global-elements-set! elements offset val)
+  `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
+
+(define-macro (make-global-cell val)
+  `(let* (($cell (vector #f #f ,val))
+         ($getter (lambda () (vector-ref $cell 2)))
+         ($setter (lambda (val) (vector-set! $cell 2 val))))
+    (global-cell-getter-set! $cell $getter)
+    (global-cell-setter-set! $cell $setter)
+    $cell))
 
 ;; behavior dispatch
 
@@ -1001,7 +1262,8 @@
             (bint          2                  #t)
             (bool          3                  #t)
             (float         4                  #t)
-            (str           5                  #t))))
+            (str           5                  #t)
+            (function      6                  #t))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -1015,7 +1277,8 @@
 (define-macro (py-make-builtin-class name module bases . attrs)
   (define hclass-of-instances
     '((object . py-object-hclass-of-instances)
-      (type . py-type-hclass-of-instances)
+      (type . #f) ;; NOTE: this is ok! each type should have a different hclass for attribute caching purpose
+                  ;; for this reasons there is no "py-type-hclass-of-instances"
       (str . py-str-hclass-of-instances)
       (tuple . py-tuple-hclass-of-instances)
       (int . py-int-hclass-of-instances)
@@ -1046,7 +1309,8 @@
       (tuple . py-tuple-class)
       (int . py-int-class)
       (bool . py-bool-class)
-      (float . py-float-class)))
+      (float . py-float-class)
+      (function . py-function-class)))
 
   (let* ((scheme-name
           (if (and (pair? name) (memq (car name) '(& &&)))
@@ -1121,6 +1385,9 @@
   (define unary-truthiness-ops-with-behaviors
     '(test truth))
 
+  (define partial-1/3-ops-with-behaviors
+    '(descriptor-get))
+
   (define (test-op->cmp-op op)
     (case op
       ((test-eq) 'eq)
@@ -1188,6 +1455,20 @@
           (symbol->string type)
           "X-fallback"))))
 
+  (define (get-partial-1/3-behavior-name op type)
+    (if (eq? type 'default)
+      ;; use the full semantics
+      (string->symbol
+          (string-append "py-" (symbol->string op) "-fallback"))
+      ;; use a behavior
+      (string->symbol
+        (string-append
+          "py-"
+          (symbol->string op)
+          "-"
+          (symbol->string type)
+          "X-fallback"))))
+
   (define (make-binary-behaviors-list op)
     (let lhs-loop ((lhs-types types-with-specialized-behaviors))
       (if (null? lhs-types)
@@ -1213,6 +1494,14 @@
         '()
         (cons
           (get-unary-truthiness-behavior-name op (caar types))
+          (loop (cdr types))))))
+
+  (define (make-partial-1/3-behaviors-list op)
+    (let loop ((types types-with-specialized-behaviors))
+      (if (null? types)
+        '()
+        (cons
+          (get-partial-1/3-behavior-name op (caar types))
           (loop (cdr types))))))
 
   (define (get-behavior-call-fallback-name op)
@@ -1243,6 +1532,10 @@
     `(define (,(get-behavior-call-fallback-name op) x)
         ($py-unary-behavior-call ,op x)))
 
+  (define (get-partial-1/3-behavior-call-fallback op)
+    `(define (,(get-behavior-call-fallback-name op) x y z)
+        ($py-partial-1/3-behavior-call ,op x y z)))
+
   (define (make-init-table-code ops behaviors-list-maker)
     (if (null? ops)
       '()
@@ -1257,7 +1550,8 @@
           (append
             (make-init-table-code binary-ops-with-behaviors make-binary-behaviors-list)
             (make-init-table-code unary-ops-with-behaviors make-unary-behaviors-list)
-            (make-init-table-code unary-truthiness-ops-with-behaviors make-unary-truthiness-behaviors-list)))
+            (make-init-table-code unary-truthiness-ops-with-behaviors make-unary-truthiness-behaviors-list)
+            (make-init-table-code partial-1/3-ops-with-behaviors make-partial-1/3-behaviors-list)))
         (behavior-call-fallbacks
           (append
             (let loop ((ops binary-ops-with-behaviors))
@@ -1281,6 +1575,14 @@
                       (unary-behavior-call-fallback (get-unary-behavior-call-fallback op)))
                   (cons
                     unary-behavior-call-fallback
+                    (loop (cdr ops))))))
+            (let loop ((ops partial-1/3-ops-with-behaviors))
+              (if (null? ops)
+                '()
+                (let* ((op (car ops))
+                      (partial-1/3-behavior-call-fallback (get-partial-1/3-behavior-call-fallback op)))
+                  (cons
+                    partial-1/3-behavior-call-fallback
                     (loop (cdr ops)))))))))
     `(begin
         ,@tables-init-code
@@ -1316,6 +1618,11 @@
           (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-ref ,behavior-table-name ,index)))
 
+(define-macro (py-partial-1/3-behavior-ref op index)
+  (let ((behavior-table-name
+          (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
+    `(vector-ref ,behavior-table-name ,index)))
+
 (define-macro (py-binary-behavior-call op lhs rhs)
   (let ((behavior-call-fallback-name
           (string->symbol
@@ -1334,13 +1641,12 @@
         $lhs
         $rhs)))
 
-
 (define-macro (py-unary-behavior-call op lhs)
   (let ((behavior-call-fallback-name
           (string->symbol
             (string-append "py-" (symbol->string op) "-behavior-call-fallback"))))
     `(py-if-enable-inline-behavior-dispatch
-        ($py-binary-behavior-call ,op ,lhs)
+        ($py-unary-behavior-call ,op ,lhs)
         (,behavior-call-fallback-name ,lhs))))
 
 (define-macro ($py-unary-behavior-call op lhs)
@@ -1349,6 +1655,21 @@
         ,op
         (py-obj-class-index $lhs))
         $lhs)))
+
+(define-macro (py-partial-1/3-behavior-call op lhs y z)
+  (let ((behavior-call-fallback-name
+          (string->symbol
+            (string-append "py-" (symbol->string op) "-behavior-call-fallback"))))
+    `(py-if-enable-inline-behavior-dispatch
+        ($py-partial-1/3-behavior-call ,op ,lhs ,y, z)
+        (,behavior-call-fallback-name ,lhs ,y ,z))))
+
+(define-macro ($py-partial-1/3-behavior-call op lhs y z)
+  `(let (($lhs ,lhs))
+      ((py-partial-1/3-behavior-ref
+        ,op
+        (py-obj-class-index $lhs))
+        $lhs ,y ,z)))
 
 (define-macro (py-binary-behavior-call-with-lhs-index op lhs-index lhs rhs)
   (let ((behavior-call-fallback-name
@@ -1447,6 +1768,26 @@
             (else
              (py-unary-behavior-call ,op $x))))
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x)))
+
+;; dispatch of semantics with 3 arguments where we dispatch only on the 1st argument type
+(define-macro (py-specialized-partial-1/3-dispatch op x y z)
+  `(with-class-indices-info $py-specialized-partial-1/3-dispatch ,op ,x ,y ,z))
+
+(define-macro ($py-specialized-partial-1/3-dispatch indices-info op x y z)
+  (define sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-inline")))
+  (define float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-inline")))
+
+  (let ((x-sym (gensym 'x)) (y-sym (gensym 'y)) (z-sym (gensym 'z)))
+    `(let ((,x-sym ,x) (,y-sym ,y) (,z-sym ,z))
+      (py-if-enable-behaviors-optimization
+        (cond
+          ((py-if-specialized-sint-representation (fixnum? ,x-sym) #f)
+            (,sint-op ,x-sym ,y-sym ,z-sym))
+          ((py-if-specialized-float-representation (flonum? ,x-sym) #f)
+            (,float-op ,x-sym ,y-sym ,z-sym))
+          (else
+            (py-partial-1/3-behavior-call ,op ,x-sym ,y-sym ,z-sym)))
+        (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x-sym ,y-sym ,z-sym)))))
 
 (define-macro (py-add x y)
   (if (and (pair? x) (memq (car x) '(& &&)) (pair? y) (memq (car y) '(& &&)))
@@ -1687,8 +2028,75 @@
 (define-macro (py-maybe-len obj)
   `(py-maybe-len-fallback ,obj))
 
-(define-macro (py-getattribute obj attr)
-  `(py-getattribute-fallback ,obj ,attr))
+(define-macro (py-getattribute obj attr #!optional (cache #f) (inline #f))
+  (if cache
+    `(py-getattribute-cached ,obj ,attr ,cache ,inline)
+    `(py-getattribute-fallback ,obj ,attr)))
+
+(define-macro (py-getattribute-cached obj attr cache inline)
+  `(py-specialized-sint-float-dispatch-let
+     $X
+     ,obj
+     ;; TODO: use macro to determine exact attribute in case of
+     ;; int and float, those can be determined statically
+     (py-getattribute-fallback $X ,attr)
+     (py-getattribute-fallback $X ,attr)
+     ,(if inline
+       `(let (($cache ,cache)
+              ($hclass (py-obj-hclass-general $X)))
+           ,(case inline
+              ((object)
+                `(if (eq? $hclass (AttributeCache-object-hclass $cache))
+                     (py-getattribute-from-object-cache $X $cache)
+                     (py-getattribute-cached-fallback/no-object $X (py-obj-hclass-general $X) ,attr $cache)))
+              ((mro)
+                `(if (eq? $hclass (AttributeCache-mro-hclass $cache))
+                     (py-getattribute-from-mro-cache $X $cache)
+                     (py-getattribute-cached-fallback/no-mro $X (py-obj-hclass-general $X) ,attr $cache)))
+              ((type)
+                `(if (eq? $hclass (AttributeCache-type-hclass $cache))
+                     (py-getattribute-from-type-cache $X $cache)
+                     (py-getattribute-cached-fallback/no-type $X (py-obj-hclass-general $X) ,attr $cache)))
+              ((module)
+                `(if (eq? $hclass (AttributeCache-module-hclass $cache))
+                     (py-getattribute-from-module-cache $X $cache)
+                     (py-getattribute-cached-fallback/no-module $X (py-obj-hclass-general $X) ,attr $cache)))
+              (else (error "py-getattribute-cached" "unknown inlining priority" inline))))
+       `(py-getattribute-cached-fallback $X (py-obj-hclass-general $X) ,attr ,cache))))
+
+(define-macro (py-getattribute-from-module-cache obj cache)
+  `(let* (($cache ,cache)
+          ($obj ,obj)
+          (index (AttributeCache-index $cache)))
+    (if (fx= index -1)
+      (py-getattribute-from-mro-cache $obj $cache)
+      (or
+        (PyObject-global-elements-ref $obj index)
+        (py-getattribute-from-mro-cache $obj $cache)))))
+
+(define-macro (py-getattribute-from-object-cache obj cache)
+  `(let* (($cache ,cache)
+         ($obj ,obj)
+         (index (AttributeCache-index $cache)))
+    (if (fx= index -1)
+      (py-getattribute-from-mro-cache $obj $cache)
+      (let ((attr (PyObject-elements-ref $obj index)))
+        (if (eq? attr py-absent)
+          (py-getattribute-from-mro-cache $obj $cache)
+          attr)))))
+
+(define-macro (py-getattribute-from-mro-cache obj cache)
+  ;; obj should never be a sint or float, those case can be resolved statically
+  `(let (($cache ,cache))
+    (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))))
+
+(define-macro (py-getattribute-from-type-cache obj cache)
+  ;; obj should never be a sint or float, those are not types
+  `(let (($obj ,obj)
+         ($cache ,cache))
+    (if (eq? (AttributeCache-bind $cache) 'self)
+        (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))
+        (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)))))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
@@ -1707,3 +2115,6 @@
 
 (define-macro (py-exit obj exc)
   `(py-exit-fallback ,obj ,exc))
+
+(define-macro (py-descriptor-get attr instance owner)
+  `(py-specialized-partial-1/3-dispatch descriptor-get ,attr ,instance ,owner))

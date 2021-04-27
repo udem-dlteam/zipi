@@ -22,12 +22,15 @@ zipi-install-symlink:
 	cd $(ZIPIROOT); ln -s . zipi
 
 build.gambit: zipi-build-symlink rts.sld rts.sld.in builtins
+	$(GAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts/hash
+	$(GAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts/builtins
 	$(GAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts
 
 install.gambit: zipi-install-symlink
 	cp -aT $(BUILDRTSDIR) $(ZIPIRTSDIR)
 
 clean.gambit:
+	rm -rf hash/hash\@gambit*@C
 	rm -rf rts\@gambit*@C
 	rm -rf builtins
 	rm -f $(BUILDDIR)/zipi

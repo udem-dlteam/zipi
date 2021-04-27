@@ -85,17 +85,75 @@
 
 ;;; Object attribute store/fetch.
 
-(define-macro (py-own-attr-index-2cont obj attr succeed fail)
-  `(let* (($hclass (py-obj-hclass ,obj))
-          ($names (HClass-names $hclass))
-          ($attr-representative (py-str-representative ,attr)))
-     (let $loop-names (($attr-index (fx- (vector-length $names) 1)))
-       (cond ((fx< $attr-index 0)
-              (,fail))
-             ((eq? $attr-representative (vector-ref $names $attr-index))
-              (,succeed $attr-index))
-             (else
-              ($loop-names (fx- $attr-index 1)))))))
+(define-macro (py-getattribute-cached-fallback-body obj-sym hclass-sym name-sym cache-sym
+                                                    include-object include-mro include-type include-module)
+  `(cond
+    ,@(if include-object
+      `(((eq? ,hclass-sym (AttributeCache-object-hclass ,cache-sym))
+        (py-getattribute-from-object-cache ,obj-sym ,cache-sym)))
+      '())
+    ,@(if include-mro
+      `(((eq? ,hclass-sym (AttributeCache-mro-hclass ,cache-sym))
+        (py-getattribute-from-mro-cache ,obj-sym ,cache-sym)))
+      '())
+    ,@(if include-type
+      `(((eq? ,hclass-sym (AttributeCache-type-hclass ,cache-sym))
+        (py-getattribute-from-type-cache ,obj-sym ,cache-sym)))
+      '())
+    ,@(if include-module
+      `(((eq? ,hclass-sym (AttributeCache-module-hclass ,cache-sym))
+        (py-getattribute-from-module-cache ,obj-sym ,cache-sym)))
+      '())
+    (else
+      (py-getattribute-cached/miss ,obj-sym ,name-sym ,cache-sym))))
+
+(define (py-getattribute-cached-fallback obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #t #t #t #t))
+
+(define (py-getattribute-cached-fallback/no-object obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #f #t #t #t))
+
+(define (py-getattribute-cached-fallback/no-mro obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #t #f #t #t))
+
+(define (py-getattribute-cached-fallback/no-type obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #t #t #f #t))
+
+(define (py-getattribute-cached-fallback/no-module obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #t #t #t #f))
+
+(define (py-getattribute-cached/miss obj name cache)
+  (define (getattribute-from-getattr attribute-error)
+    (getattribute-from-cls-mro-with-owner-2cont
+      (py-obj-cls obj)
+      (& "__getattr__")
+      (lambda (__getattr__)
+        ;; caches cannot save you if this happens
+        (py-call __getattr__ obj name))
+      attribute-error))
+
+  (py-when-enable-cache-debug (pp "cache miss"))
+
+  (let ((__getattribute__ (getattribute-from-obj-mro obj (& "__getattribute__"))))
+    (cond
+      ((eq? __getattribute__ object.__getattribute__)
+        (or
+          (object-getattribute obj name #f cache)
+          (getattribute-from-getattr
+            (lambda () (py-throw-object-getattribute-error obj name)))))
+      ((eq? __getattribute__ type.__getattribute__)
+        (begin
+          (or
+            (type-getattribute obj name #f cache)
+            (getattribute-from-getattr
+              (lambda () (py-throw-type-getattribute-error obj name))))))
+      ((eq? __getattribute__ module.__getattribute__)
+        (or
+          (module-getattribute obj name #f cache)
+          (getattribute-from-getattr
+            (lambda () (py-throw-module-getattribute-error obj name)))))
+      (else
+        (py-getattribute-fallback obj name)))))
 
 (define (py-own-attr-index obj attr)
   (py-own-attr-index-2cont
@@ -104,36 +162,35 @@
    (lambda (i) i)
    (lambda () -1)))
 
+(define (py-own-attr-ref obj attr)
+ (py-own-attr-ref-2cont
+  obj
+  attr
+  (lambda (val) val)
+  (lambda () py-absent)))
+
 (define (py-own-attr-set! obj attr val)
   ;; TODO: fix case when obj is not represented with a PyObject
   ;; TODO: use py-own-attr-index-2cont
-   (declare-fixnum)
-  (let* ((attr-representative (py-str-representative attr))
-	 (i (py-own-attr-index obj attr-representative)))
-     (if (< i 0)
-	 (let* ((hclass (py-obj-hclass obj))
-		(new-hclass (HClass-next hclass attr-representative '+))
-		(index (HClass-last-index new-hclass)))
-	    (PyObject-hclass-set! obj new-hclass)
-	    (PyObject-elements-set! obj index val))
-	 (PyObject-elements-set! obj i val))))
-
-(define-macro (py-own-attr-ref-2cont obj attr succeed fail)
-  ;; TODO: fix case when obj is not represented with a PyObject
-  `(let (($obj ,obj))
-     (py-own-attr-index-2cont
-      $obj
-      ,attr
-      (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index))) ;; TODO: could vector-ref be used?
-      ,fail)))
-
-(define (py-own-attr-ref obj attr #!optional (default py-absent))
-  ;; TODO: fix case when obj is not represented with a PyObject
-  (py-own-attr-ref-2cont
-   obj
-   attr
-   (lambda (val) val)
-   (lambda () default)))
+  (declare-fixnum)
+  (let* ((attr-representative (py-str-representative attr)))
+    (if (and
+          (PyObjectType? obj)
+          (PyObjectStrRep-magic-index attr-representative))
+      ;; set a magic method
+      (magic-attr-set!
+        obj
+        (PyObjectStrRep-magic-index attr-representative)
+        val)
+      ;; set a normal attribute
+      (py-own-attr-index-2cont obj attr
+        (lambda (i) (PyObject-elements-set! obj i val))
+        (lambda ()
+          (let* ((hclass (py-obj-hclass obj))
+                 (new-hclass (HClass-next hclass attr-representative '+))
+                 (index (HClass-last-index new-hclass)))
+            (PyObject-hclass-set! obj new-hclass)
+            (PyObject-elements-set! obj index val)))))))
 
 ;;----------------------------------------------------------------------------
 
@@ -172,16 +229,6 @@
 (define py-object-hclass-of-instances
   (make-builtin-HClass
     '#()
-    '()))
-
-;; instances of type are classes
-;; this is the hidden class of classes
-(define py-type-hclass-of-instances
-   (make-builtin-HClass
-      '#()
-;*     (vector                                                         */
-;*       (& "__name__")                                                */
-;*       (& "__call__"))                                               */
     '()))
 
 (define py-str-hclass-of-instances
@@ -253,9 +300,7 @@
 
 (define py-module-hclass-of-instances
   (make-builtin-HClass
-    (vector
-      (& "__name__")
-      (& "__builtins__"))
+    '#()
     '()))
 
 (define py-list-iterator-hclass-of-instances
@@ -320,42 +365,9 @@
           cls)))
     self))
 
-;; global contains a vector #(getter setter [maybe value for inner use])
-(define-macro (global-cell-getter-get cell)
-  `(vector-ref ,cell 0))
-
-(define-macro (global-cell-getter-set! cell getter)
-  `(vector-set! ,cell 0 ,getter))
-
-(define-macro (global-cell-get-val cell)
-  `((global-cell-getter-get ,cell)))
-
-(define-macro (global-cell-setter-get cell)
-  `(vector-ref ,cell 1))
-
-(define-macro (global-cell-setter-set! cell setter)
-  `(vector-set! ,cell 1 ,setter))
-
-(define-macro (global-cell-set-val! cell val)
-  `((global-cell-setter-get ,cell) ,val))
-
-(define-macro (PyObject-global-elements-ref global index)
-  `(global-cell-get-val (PyObject-elements-ref ,global ,index)))
-
-(define-macro (py-global-elements-set! elements offset val)
-  `(global-cell-set-val! (vector-ref ,elements ,offset) ,val))
-
-(define-macro (make-global-cell val)
-  `(let* (($cell (vector #f #f ,val))
-         ($getter (lambda () (vector-ref $cell 2)))
-         ($setter (lambda (val) (vector-set! $cell 2 val))))
-    (global-cell-getter-set! $cell $getter)
-    (global-cell-setter-set! $cell $setter)
-    $cell))
-
 (define (py-module-alloc cls hclass-of-instances)
   (let ((self
-         (make-PyObject
+         (make-PyObjectModule
           py-module-hclass-of-instances
           (vector-map
             (lambda (_) (make-global-cell #f))
@@ -363,47 +375,45 @@
           cls)))
     self))
 
-;; type allocation
+;; initialize index for magic methods
 
-(define list-of-magic-attrs
-  '("__add__" "__radd__" "__iadd__"
-    "__mul__" "__rmul__" "__imul__"
-    "__sub__" "__rsub__" "__isub__"
-    "__eq__" "__ne__" "__lt__" "__le__" "__gt__" "__ge__"
-    "__call__" "__get__"))
+(define-macro (fill-representatives-magic-index)
+  `(with-list-of-magic-attrs $fill-representatives-magic-index))
+
+(define-macro ($fill-representatives-magic-index list-of-magic-attrs)
+  `(begin
+    ,@(let loop ((list-of-magic-attrs list-of-magic-attrs) (i 0))
+      (if (null? list-of-magic-attrs)
+        '()
+        (cons
+          `(PyObjectStrRep-magic-index-set!
+            (& ,(car list-of-magic-attrs))
+            ,i)
+          (loop (cdr list-of-magic-attrs) (+ i 1)))))))
+
+(fill-representatives-magic-index)
+
+(define list-of-magic-attrs (get-list-of-magic-attrs))
 
 (define magic-attrs-length (length list-of-magic-attrs))
 
-(define nonbuiltin-magic-attrs (make-vector magic-attrs-length #f))
+;; type allocation
 
 (define (py-type-alloc metaclass class-index bases mro hclass-of-instance)
   (make-PyObjectType
-    py-type-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-type-hclass-of-instances))
-      py-absent)
+    (make-HClass '#() '()) ;; each type has its own hclass for attribute caching purpose
+    '#()
     metaclass
     class-index
     bases
     mro
     hclass-of-instance
     #f
-    nonbuiltin-magic-attrs))
+    (make-vector magic-attrs-length #f)))
 
 (define (py-builtin-type-alloc metaclass class-index bases mro hclass-of-instance)
   (make-still-copy
-    (make-PyObjectType
-      py-type-hclass-of-instances
-      (make-vector
-        (vector-length (HClass-names py-type-hclass-of-instances))
-        py-absent)
-      metaclass
-      class-index
-      bases
-      mro
-      hclass-of-instance
-      #t
-      (make-vector magic-attrs-length #f))))
+    (py-type-alloc metaclass class-index bases mro hclass-of-instance)))
 
 (define (py-dict-alloc ordered-table)
   (make-PyObjectDict
@@ -559,10 +569,11 @@
                 (global-get-from-builtins name cache)))))))
 
 (define (global-own-attr-ref-no-cache global name)
-  (let ((i (py-own-attr-index global name)))
-    (if (< i 0)
-      #f
-      (PyObject-global-elements-ref global i))))
+  (py-own-attr-index-2cont
+    global
+    name
+    (lambda (i) (PyObject-global-elements-ref global i))
+    (lambda () #f)))
 
 ;; TODO: use a cache for builtins and one for global access
 (define (global-get-from-builtins name cache)
@@ -586,14 +597,14 @@
                     (throw-NameError))))))))
 
 (define (global-put! global name val cache)
-  (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
+  (if (eq? (PyObject-hclass global)
            (PCache-hclass cache))
       (PyObject-global-elements-set! global (PCache-index cache) val)
       (global-put!/miss global name val cache)))
 
 (define (global-put!/miss obj name val cache)
   (let* ((index (py-own-attr-index obj name))
-         (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
+         (hclass (PyObject-hclass obj)))
     (if (>= index 0)
         (begin
           (PCache-set! cache hclass index)
@@ -608,7 +619,7 @@
 
 (define (global-own-attr-put-no-cache! global name val)
   (let* ((index (py-own-attr-index global name))
-         (hclass (PyObject-hclass global))) ;; TODO: should py-obj-hclass be used instead?
+         (hclass (PyObject-hclass global)))
     (if (>= index 0)
         (PyObject-global-elements-set! global index val)
         ;; We have to create a cell
@@ -620,7 +631,7 @@
 
 (define (global-register! obj name getter setter)
   (let* ((index (py-own-attr-index obj name))
-         (hclass (PyObject-hclass obj))) ;; TODO: should py-obj-hclass be used instead?
+         (hclass (PyObject-hclass obj)))
     (if (>= index 0)
       (begin
         (py-global-elements-direct-set!
@@ -734,7 +745,7 @@
         " required positional argument"))))
 
 (define (py-call0-fallback fun)
-  (let ((fun-type (py-obj-cls-general fun)))
+  (let ((fun-type (py-obj-cls fun)))
     (if (eq? fun-type py-function-class)
       (let ((arity (PyObjectFunction-arity fun)))
         (cond
@@ -747,7 +758,7 @@
       (py-call-generic fun '()))))
 
 (define (py-callX-fallback min-neg-arity fun . args)
-  (let ((fun-type (py-obj-cls-general fun)))
+  (let ((fun-type (py-obj-cls fun)))
     (if (eq? fun-type py-function-class)
       (let ((arity (PyObjectFunction-arity fun)))
         (cond
@@ -1364,10 +1375,22 @@
 
 ;; -----------------------------------------------------------------------------
 
-(define (py-make-caches size)
-   (list->vector
-      (map (lambda (n) (make-PCache #f -1))
-         (iota size))))
+(define attribute-caches '())
+
+(define (reset-mro-caches!)
+  (for-each (lambda (cache) (AttributeCache-mro-reset! cache)) attribute-caches))
+
+(define (py-make-caches kinds)
+  (define (make-cache kind)
+    (case kind
+      ((global) (make-init-PCache))
+      ((attribute)
+        (let ((attr-cache (make-init-AttributeCache)))
+          (set! attribute-caches (cons attr-cache attribute-caches))
+          attr-cache))
+      (else
+        (error "py-make-caches" "unknown cache kind" kind))))
+  (list->vector (map make-cache kinds)))
 
 ;;;----------------------------------------------------------------------------
 
@@ -1390,38 +1413,6 @@
             "' and '"
             (py-str-to-scheme y-type-name)
             "'"))))))
-
-;; generic operator protocol
-(define-macro (define-binary-operator-protocol fun-name method rmethod operator)
- `(define (,fun-name x y)
-    (py-getattribute-from-obj-mro-2cont
-     x
-     (& ,method)
-     (lambda (__op__)
-       (let ((normal-op-result (py-call __op__ x y)))
-         (if (eq? normal-op-result py-NotImplemented)
-             (py-getattribute-from-obj-mro-2cont
-              y
-              (& ,rmethod)
-              (lambda (__rop__)
-                (let ((reflected-op-result (py-call __rop__ y x)))
-                  (if (eq? reflected-op-result py-NotImplemented)
-                      (throw-unsupported-operand x y ,operator)
-                      reflected-op-result)))
-              (lambda ()
-                (throw-unsupported-operand x y ,operator)))
-             normal-op-result)))
-     (lambda ()
-       (py-getattribute-from-obj-mro-2cont
-        y
-        (& ,rmethod)
-        (lambda (__rop__)
-          (let ((reflected-op-result (py-call __rop__ y x)))
-            (if (eq? reflected-op-result py-NotImplemented)
-                (throw-unsupported-operand x y ,operator)
-                reflected-op-result)))
-        (lambda ()
-          (throw-unsupported-operand x y ,operator)))))))
 
 ;; special case of x in y when y is an iterator
 (define (py-in-iterator item iterator)
@@ -1542,18 +1533,6 @@
 
 ;;;----------------------------------------------------------------------------
 
-;; ===================
-;; DESCRIPTOR PROTOCOL
-;; ===================
-
-;; Binds a recovered attribute by calling attr.__class__.__get__ if it exists
-;; if the __get__ method does not exist on the attr's class, return the attr
-(define (object-get-bind-descriptor attr instance #!optional (owner py-None))
-  (let ((__get__ (getattribute-from-obj-mro attr (& "__get__"))))
-    (if (not (eq? __get__ py-absent))
-      (py-call __get__ attr instance owner)
-      attr)))
-
 ;; ================
 ;; GETATTR PROTOCOL
 ;; ================
@@ -1562,69 +1541,49 @@
 ;;   Does so by looking through the classes of the MRO
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
-(define (getattribute-from-cls-mro cls name)
-  (declare-not-interrupts-enabled)
-  (let ((mro (PyObjectType-mro cls)))
-    (let loop-mro ((i 0))
-      (if (fx< i (vector-length mro))
-          (let ((cls (vector-ref mro i)))
-            (py-own-attr-ref-2cont
-             cls
-             name
-             (lambda (val) val)
-             (lambda () (loop-mro (fx+ i 1)))))
-          py-absent))))
-
-;; Does the same a getattribute-from-cls-mro but also returns the class
-;; which owned the attribute. This may be necessary for super
-(define-macro (getattribute-from-cls-mro-with-owner-2cont cls name succeed fail)
-  `(let (($mro (PyObjectType-mro ,cls)))
-     (let $loop-mro (($cls-index 0))
-       (if (fx< $cls-index (vector-length $mro))
-    	   (let (($cls (vector-ref $mro $cls-index)))
-           (py-own-attr-ref-2cont
-            $cls
-            ,name
-            (lambda ($val)
-              (,succeed $val $cls))
-            (lambda ()
-              ($loop-mro (fx+ $cls-index 1)))))
-	       (,fail)))))
+(define (getattribute-from-cls-mro-fallback cls name)
+  (getattribute-from-cls-mro cls name))
 
 ;; Recover an attribute from the class of 'obj'
 (define (getattribute-from-obj-mro-fallback obj name)
-  (declare-not-interrupts-enabled)
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
-;; Does the same a getattribute-from-obj-mro but also returns the class
-;; which owned the attribute. This may be necessary for the getattr protocol
-(define-macro (getattribute-from-obj-mro-with-owner-2cont obj name succeed fail)
-  `(getattribute-from-cls-mro-with-owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
+(define (object-getattribute obj name #!optional (raise? #t) (cache #f))
+  (define (getattribute-from-mro #!optional (index-hit-on-object-hclass #f))
+    (getattribute-from-obj-mro-with-index/owner-2cont
+      obj
+      name
+      (lambda (index cls-attr owner)
+        (if index-hit-on-object-hclass
+          (if cache
+            (AttributeCache-object-or-mro-hit!
+              cache
+              (py-obj-hclass obj)
+              index-hit-on-object-hclass
+              cls-attr
+              owner))
+          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) cls-attr owner)))
+        (py-descriptor-get cls-attr obj owner))
+      (lambda ()
+        ;; TODO: replace this hack by something better
+        ;; NOTE: __class__ should get a getset_descriptor on object
+        (if (eq? (py-str-representative name) (& "__class__"))
+            (py-obj-cls obj)
+            (begin
+              (and
+                raise?
+                (py-throw-object-getattribute-error obj name)))))))
 
-(define (object-getattribute obj name)
-  ;; TODO: add check that obj does not has it own getattribute method
-  (let ((attr (py-own-attr-ref obj name)))
-    (if (not (eq? attr py-absent))
-        attr
-        (getattribute-from-obj-mro-with-owner-2cont
-         obj
-         name
-         (lambda (cls-attr owner)
-           (object-get-bind-descriptor cls-attr obj owner))
-         (lambda ()
-           ;; TODO: replace this hack by something better
-           ;; NOTE: __class__ should get a getset_descriptor on type
-           (if (eq? (py-str-representative name) (& "__class__"))
-               (py-obj-cls obj)
-               (py-throw
-                 (py-call
-                   py-builtin-AttributeError
-                   (py-add*
-                     (&& "'")
-                     (py-getattribute (py-obj-cls obj) (& "__name__"))
-                     (&& "' object has no attribute '")
-                     name
-                     (&& "'"))))))))))
+  (py-own-attr-index/ref-2cont
+    obj
+    name
+    (lambda (index val)
+      (if (eq? val py-absent)
+        (getattribute-from-mro #t)
+        (begin
+          (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
+          val)))
+    getattribute-from-mro))
 
 (define object.__getattribute__
   (procedure->py-function
@@ -1634,7 +1593,9 @@
 (define (object-setattr obj name val)
   ;; TODO: add check that obj does not has it own setattr method
   (if (py-subtype-of-str? name)
-    (py-own-attr-set! obj name val)
+    (begin
+      (if (PyObjectType? obj) (reset-mro-caches!))
+      (py-own-attr-set! obj name val))
     (py-throw-exception-with-message
      py-builtin-TypeError
      "attribute name must be string")))
@@ -1645,27 +1606,24 @@
     (make-signature posonlyargs: (obj name val))))
 
 ;; Implements type.__getattribute__
-(define (type-getattribute obj name)
+(define (type-getattribute obj name #!optional (raise? #t) (cache #f))
   (if (py-isinstance? obj py-type-class)
-      (let ((attr (getattribute-from-cls-mro obj name)))
-        (if (not (eq? attr py-absent))
-            (object-get-bind-descriptor attr py-None obj)
-            (getattribute-from-obj-mro-with-owner-2cont
-             obj
-             name
-             (lambda (cls-attr owner)
-               (object-get-bind-descriptor cls-attr obj owner))
-             (lambda ()
-               (py-throw
-                 (py-call
-                   py-builtin-AttributeError
-                   (py-add*
-                     (&& "type object '")
-                     (py-getattribute obj (& "__name__"))
-                     (&& "' has no attribute '")
-                     name
-                     (&& "'"))))))))
-      (py-throw-required-type "__getattribute__" "type" obj)))
+    (getattribute-from-cls-mro-with-owner-2cont
+      obj
+      name
+      (lambda (attr owner)
+        (if cache (AttributeCache-type-hit! cache (py-obj-hclass obj) attr owner))
+        (py-descriptor-get attr py-None obj))
+      (lambda ()
+        (getattribute-from-obj-mro-with-owner-2cont
+         obj
+         name
+         (lambda (cls-attr owner)
+           (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass obj) attr owner))
+           (py-descriptor-get cls-attr obj owner))
+         (lambda ()
+           (and raise? (py-throw-type-getattribute-error obj name))))))
+    (py-throw-required-type "__getattribute__" "type" obj)))
 
 ;; The Python object type.__getattribute__
 (define type.__getattribute__
@@ -1695,21 +1653,6 @@
       posonlyargs: (self)
       vararg: args)))
 
-(define (function-get self instance owner)
-  (if (eq? instance py-None)
-    self
-    (make-PyObjectMethod
-      py-method-hclass-of-instances
-      '#()
-      py-method-class
-      instance
-      self)))
-
-(define function.__get__
-  (procedure->py-function
-    function-get
-    (make-signature posonlyargs: (self instance owner))))
-
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 (define (type-call self args)
   (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
@@ -1727,6 +1670,25 @@
     (make-signature
       posonlyargs: (self)
       vararg: args)))
+
+(define (type-setattr self name val)
+  ;; TODO: add check that obj does not has it own setattr method
+  (if (py-isinstance? self py-builtin-type)
+    (if (py-subtype-of-str? name)
+      (begin
+        (reset-mro-caches!)
+        (py-own-attr-set! obj name val))
+      (py-throw-exception-with-message
+       py-builtin-TypeError
+       "attribute name must be string"))
+    (py-throw-exception-with-message
+     py-builtin-TypeError
+     "descriptor '__setattr__' requires a 'type' object")))
+
+(define type.__setattr__
+  (procedure->py-function
+    object-setattr
+    (make-signature posonlyargs: (self name val))))
 
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
@@ -2307,8 +2269,6 @@
            (string quote-style)))
       (string-append quotes content quotes))))
 
-(define repr-cache (make-PCache -1 -1))
-
 (define (py-chr i)
   (if (py-subtype-of-int? i)
       (let ((value (py-subtype-of-int-to-scheme i)))
@@ -2421,7 +2381,8 @@
             (get-behavior-type-index type)
             #f ;; bases
             #f ;; mro
-            py-type-hclass-of-instances))
+            #f)) ;; NOTE: this is ok! each type should have a different hclass for attribute caching purpose
+                 ;; for this reasons there is no "py-type-hclass-of-instances"
         (object-class
           (py-builtin-type-alloc
             #f ;; cls
@@ -2452,17 +2413,10 @@
     ;; init all object (& ...) to a py-str object
     (init-registered-constants)
 
-    ;; builtin hidden classes
-    (HClass-names-set! py-type-hclass-of-instances
-       (vector (& "__name__") (& "__call__")))
-    (HClass-names-set! py-method-hclass-of-instances
-       (vector (& "__self__")))
-
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
     (PyObjectType-bases-set! object-class '#())
     (PyObjectType-mro-set! object-class (vector object-class))
-    (PyObjectType-hclass-of-instances-set! object-class py-object-hclass-of-instances)
     (py-own-attr-set! object-class (& "__name__") (&& "object"))
     (py-own-attr-set! object-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! object-class (& "__new__") object.__new__)
@@ -2478,11 +2432,11 @@
     (PyObject-class-set! type-class type-class)
     (PyObjectType-bases-set! type-class (vector object-class))
     (PyObjectType-mro-set! type-class (vector type-class object-class))
-    (PyObjectType-hclass-of-instances-set! type-class py-type-hclass-of-instances)
     (py-own-attr-set! type-class (& "__name__") (&& "type"))
     (py-own-attr-set! type-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! type-class (& "__new__") type.__new__)
     (py-own-attr-set! type-class (& "__call__") type.__call__)
+    (py-own-attr-set! type-class (& "__setattr__") type.__setattr__)
     (py-own-attr-set! type-class (& "__getattribute__") type.__getattribute__)
     (py-own-attr-set! type-class (& "__dir__") type.__dir__)
     (py-own-attr-set! type-class (& "__repr__") type.__repr__)
@@ -2491,7 +2445,6 @@
     (PyObject-class-set! tuple-class type-class)
     (PyObjectType-bases-set! tuple-class (vector object-class))
     (PyObjectType-mro-set! tuple-class (vector tuple-class object-class))
-    (PyObjectType-hclass-of-instances-set! tuple-class py-tuple-hclass-of-instances)
     (py-own-attr-set! tuple-class (& "__name__") (&& "tuple"))
     (py-own-attr-set! tuple-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! tuple-class (& "__new__") tuple.__new__)
@@ -2500,7 +2453,6 @@
     (PyObject-class-set! str-class type-class)
     (PyObjectType-bases-set! str-class (vector object-class))
     (PyObjectType-mro-set! str-class (vector str-class object-class))
-    (PyObjectType-hclass-of-instances-set! str-class py-str-hclass-of-instances)
     (py-own-attr-set! str-class (& "__name__") (&& "str"))
     (py-own-attr-set! str-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! str-class (& "__new__") str.__new__)
@@ -2558,12 +2510,10 @@
               (list->vector bases)))
            (cls (type-allocator py-type-class class-index bases-vect #f #f)))
       (PyObjectType-mro-set! cls (py-compute-mro cls))
-      ;; TODO implement better introspection of hclass of instance
-      ;; This current implementation will fail on multiple inheritance
+      ;; NOTE: objects for different classes MUST have different classes for attributes caching
       (PyObjectType-hclass-of-instances-set!
         cls
-        (PyObjectType-hclass-of-instances
-          (vector-ref bases-vect 0)))
+        (make-HClass '#() '()))
       (let loop ((attr-names attr-names) (attr-values attr-values))
         (if (pair? attr-names)
             (begin
@@ -2576,7 +2526,6 @@
         (& "__name__")
         name)
       cls))
-
     (let ((parsed-attrs (py-class-parse-attributes attrs)))
       (make-cls (car parsed-attrs) (cdr parsed-attrs))))
 
@@ -2619,31 +2568,36 @@
     (make-signature posonlyargs: (self))))
 
 
-(define (module-getattribute self name)
-  (if (py-isinstance? self py-module-class)
-      (if (py-isinstance? name py-builtin-str)
-        (let ((val (global-own-attr-ref-no-cache self name)))
-          (or
-            val
-            (getattribute-from-obj-mro-with-owner-2cont
-             self
-             name
-             (lambda (cls-attr owner)
-               (object-get-bind-descriptor cls-attr self owner))
-             (lambda ()
-               (py-throw
-                 (py-call
-                   py-builtin-AttributeError
-                   (py-add*
-                     (&& "module '")
-                     (py-getattribute self (& "__name__"))
-                     (&& "' has no attribute '")
-                     name
-                     (&& "'"))))))))
-        (py-throw-exception-with-message
-         py-builtin-TypeError
-         "attribute name must be string"))
-      (throw-returned-wrong-type "__getattribute__" self "not a module")))
+(define (module-getattribute obj name #!optional (raise? #t) (cache #f))
+  (define (getattribute-from-mro #!optional (index-of-hit-on-module #f))
+    (getattribute-from-obj-mro-with-owner-2cont
+      obj
+      name
+      (lambda (cls-attr owner)
+        (if index-of-hit-on-module
+          (if cache (AttributeCache-module-or-mro-hit! cache (py-obj-hclass obj) index-of-hit-on-module cls-attr owner))
+          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) cls-attr owner)))
+        (py-descriptor-get cls-attr obj owner))
+     (lambda ()
+        (and raise? (py-throw-module-getattribute-error obj name)))))
+
+  (if (py-isinstance? obj py-module-class)
+    (if (py-isinstance? name py-builtin-str)
+      (py-own-attr-index-2cont
+        obj
+        name
+        (lambda (index)
+          (let ((val (PyObject-global-elements-ref obj index)))
+            (if val
+              (begin
+                (if cache (AttributeCache-module-hit! cache (py-obj-hclass obj) index))
+                val)
+              (getattribute-from-mro index))))
+        getattribute-from-mro)
+      (py-throw-exception-with-message
+       py-builtin-TypeError
+       "attribute name must be string"))
+    (throw-returned-wrong-type "__getattribute__" obj "not a module")))
 
 (define module.__getattribute__
   (procedure->py-function
@@ -5071,7 +5025,15 @@
                   (get-behavior-type-index float)
                   (vector py-object-class) ;; bases
                   #f ;; mro
-                  py-int-hclass-of-instances)))
+                  py-int-hclass-of-instances))
+           (function-class
+              (py-builtin-type-alloc
+                 py-type-class
+                 (get-behavior-type-index function)
+                 (vector py-object-class) ;; bases
+                 #f ;; mro
+                 py-function-hclass-of-instances)))
+
     ;; int
     (set! py-int-class int-class)
     (PyObjectType-mro-set! int-class (vector int-class py-object-class))
@@ -5091,7 +5053,14 @@
     (PyObjectType-mro-set! float-class (vector float-class py-object-class))
     (py-own-attr-set! float-class (& "__name__") (&& "float"))
     (py-own-attr-set! float-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! float-class (& "__repr__") float.__repr__))
+    (py-own-attr-set! float-class (& "__repr__") float.__repr__)
+
+    ;; function
+    (set! py-function-class function-class)
+    (PyObjectType-mro-set! function-class (vector function-class py-object-class))
+    (py-own-attr-set! function-class (& "__name__") (&& "function"))
+    (py-own-attr-set! function-class (& "__module__") (&& "builtins"))
+    (py-own-attr-set! function-class (& "__call__") function.__call__))
 
   ;; Fill in tuple class
   (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
@@ -5133,14 +5102,6 @@
      (list)
      (& "__new__") slice.__new__
      (& "indices") slice.indices))
-
-  (set! py-function-class
-    (py-make-builtin-class
-     (&& "function")
-     (&& "builtins")
-     (list)
-     (& "__call__") function.__call__
-     (& "__get__") function.__get__))
 
   (set! py-list-class
     (py-make-builtin-class
@@ -5236,56 +5197,6 @@
 (define py-False (py-subtype-of-int-from-scheme 0 py-bool-class))
 
 (bootstrap-functions)
-
-
-;; fill-in magic attrs
-;; TODO: integrate with builtin type creation
-
-(define (magic-attr-set! cls attr-index fn)
-  (let ((magic-attrs (PyObjectType-magic-attrs cls)))
-    (vector-set! magic-attrs attr-index fn)))
-
-(define-macro (__add__.index)  0)
-(define-macro (__radd__.index) 1)
-(define-macro (__iadd__.index) 2)
-(define-macro (__mul__.index)  3)
-(define-macro (__rmul__.index) 4)
-(define-macro (__imul__.index) 5)
-(define-macro (__sub__.index)  6)
-(define-macro (__rsub__.index) 7)
-(define-macro (__isub__.index) 8)
-(define-macro (__eq__.index)   9)
-(define-macro (__ne__.index)   10)
-(define-macro (__lt__.index)   11)
-(define-macro (__le__.index)   12)
-(define-macro (__gt__.index)   13)
-(define-macro (__ge__.index)   14)
-(define-macro (__call__.index) 15)
-(define-macro (__get__.index)  16)
-
-(PyObjectStrRep-magic-index-set! (& "__add__")  (__add__.index))
-(PyObjectStrRep-magic-index-set! (& "__radd__") (__radd__.index))
-(PyObjectStrRep-magic-index-set! (& "__iadd__") (__iadd__.index))
-(PyObjectStrRep-magic-index-set! (& "__mul__")  (__mul__.index))
-(PyObjectStrRep-magic-index-set! (& "__rmul__") (__rmul__.index))
-(PyObjectStrRep-magic-index-set! (& "__imul__") (__imul__.index))
-(PyObjectStrRep-magic-index-set! (& "__sub__")  (__sub__.index))
-(PyObjectStrRep-magic-index-set! (& "__rsub__") (__rsub__.index))
-(PyObjectStrRep-magic-index-set! (& "__isub__") (__isub__.index))
-(PyObjectStrRep-magic-index-set! (& "__eq__")   (__eq__.index))
-(PyObjectStrRep-magic-index-set! (& "__ne__")   (__ne__.index))
-(PyObjectStrRep-magic-index-set! (& "__lt__")   (__lt__.index))
-(PyObjectStrRep-magic-index-set! (& "__le__")   (__le__.index))
-(PyObjectStrRep-magic-index-set! (& "__gt__")   (__gt__.index))
-(PyObjectStrRep-magic-index-set! (& "__ge__")   (__ge__.index))
-(PyObjectStrRep-magic-index-set! (& "__call__") (__call__.index))
-(PyObjectStrRep-magic-index-set! (& "__get__")  (__get__.index))
-
-(magic-attr-set! py-type-class     (__call__.index) type.__call__)
-
-(magic-attr-set! py-function-class (__call__.index) function.__call__)
-(magic-attr-set! py-function-class (__get__.index)  function.__get__)
-
 
 ;; =============================================================================
 ;;  IO
@@ -7693,7 +7604,7 @@
          parent-cls
          name
          (lambda (attr owner)
-           (object-get-bind-descriptor attr this-self owner))
+           (py-descriptor-get attr this-self owner))
          (lambda ()
            (object-getattribute self name))))))
 

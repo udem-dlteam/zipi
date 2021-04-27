@@ -150,7 +150,7 @@
   '())
 
 (define-walk-method (collect-global-defs* this::PycAssig)
-  (if (PycFun? (PycAssig-rhs this))
+  (if (and (PycFun? (PycAssig-rhs this)) (PycRef? (PycAssig-lhs this)))
     (list this)
     (call-default-walker)))
 

@@ -169,6 +169,12 @@
   (is-builtin unprintable:)
   (magic-attrs unprintable:))
 
+(define-type-of-PyObject PyObjectModule
+  id: PyObjectModule-C6486EB6-1522-42BA-A082-B6563F943CDF
+  copier: #f
+  macros: ;; this will inline the operations on this type
+  )
+
 (define-type-of-PyObject PyObjectInt
   id: PyObjectInt-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
@@ -375,33 +381,101 @@
   encoding)
 
 ;; =============================================================================
-;;  PCache
+;;  Caches
 ;; =============================================================================
 
 (define-type PCache
-  id: A1E4C683-1891-4179-81F6-797D0A717E37
-  constructor: %make-PCache
-  predicate: PCache?
-  implementer: implement-PCache
+  id: PCache-A1E4C683-1891-4179-81F6-797D0A717E37
   copier: #f
-  opaque:
-  prefix: %
   macros: ;; this will inline the operations on this type
-  hclass index)
+  hclass
+  index)
 
-(define-macro (make-PCache hc i)
-  `(%make-PCache ,hc ,i))
 
-(define-macro (PCache-hclass pc)
-  `(%PCache-hclass ,pc))
-
-(define-macro (PCache-index pc)
-  `(%PCache-index ,pc))
+(define-macro (make-init-PCache)
+  `(make-PCache #f -1))
 
 (define-macro (PCache-set! pc hc i)
   `(let (($pc ,pc))
-     (%PCache-hclass-set! $pc ,hc)
-     (%PCache-index-set! $pc ,i)))
+     (PCache-hclass-set! $pc ,hc)
+     (PCache-index-set! $pc ,i)))
+
+(define-type AttributeCache
+ id: AttributeCache-A1E4C683-1891-4179-81F6-797D0A717E37
+ copier: #f
+ macros:
+ ;; hclass for caching attr found on object
+ object-hclass
+ ;; hclass for caching attr found on object's mro
+ mro-hclass
+ ;; hclass for caching attr found on module
+ module-hclass
+ ;; hclass for caching attr found on type
+ type-hclass
+ ;; index of an attribute found on the instance itself
+ index
+ ;; slots for caching attr found on the mro of the object's class
+ ;; the attribute cached
+ attr
+ ;; the owner
+ owner
+ ;; how to bind the object ('self or 'none)
+ bind)
+
+(define-macro (AttributeCache-set! cache object-hclass mro-hclass module-hclass type-hclass index attr owner bind)
+  `(let (($c ,cache))
+     (AttributeCache-object-hclass-set! $c ,object-hclass)
+     (AttributeCache-mro-hclass-set! $c ,mro-hclass)
+     (AttributeCache-module-hclass-set! $c ,module-hclass)
+     (AttributeCache-type-hclass-set! $c ,type-hclass)
+     (AttributeCache-index-set! $c ,index)
+     (AttributeCache-attr-set! $c ,attr)
+     (AttributeCache-owner-set! $c ,owner)
+     (AttributeCache-bind-set! $c ,bind)))
+
+(define-macro (make-init-AttributeCache)
+  `(make-AttributeCache #f #f #f #f -1 #f #f #f))
+
+(define-macro (AttributeCache-reset! cache)
+  `(AttributeCache-set! ,cache #f #f #f #f -1 #f #f #f))
+
+(define-macro (AttributeCache-mro-reset! cache)
+  `(let (($c ,cache))
+     (AttributeCache-mro-hclass-set! $c #f)
+     (AttributeCache-type-hclass-set! $c #f)
+     (AttributeCache-attr-set! $c #f)
+     (AttributeCache-owner-set! $c #f)
+     (AttributeCache-bind-set! $c #f)))
+
+(define-macro (AttributeCache-object-hit! cache object-hclass index)
+  `(AttributeCache-set! ,cache ,object-hclass #f #f #f ,index #f #f #f))
+
+(define-macro (AttributeCache-module-hit! cache module-hclass index)
+  `(AttributeCache-set! ,cache #f #f ,module-hclass #f ,index #f #f #f))
+
+(define-macro (AttributeCache-type-hit! cache type-hclass attr owner)
+  `(AttributeCache-set! ,cache #f #f #f ,type-hclass -1 ,attr ,owner (quote 'none)))
+
+(define-macro (AttributeCache-mro-hit! cache mro-hclass attr owner)
+  `(AttributeCache-set! ,cache #f ,mro-hclass #f #f -1 ,attr ,owner #f))
+
+;; this happens when the attribute is present in the object hclass
+;; but is py-absent and ends up being found in the mro
+(define-macro (AttributeCache-object-or-mro-hit! cache object-hclass index attr owner)
+  `(let (($object-hclass ,object-hclass))
+    (AttributeCache-set! ,cache $object-hclass $object-hclass #f #f ,index ,attr ,owner #f)))
+
+;; NOTE: there is no AttributeCache-module-mro-hit! macro since this case is identical to AttributeCache-object-mro-hit!
+
+(define-macro (AttributeCache-module-or-mro-hit! cache module-hclass index attr owner)
+  `(let (($module-hclass ,module-hclass))
+    (AttributeCache-set! ,cache #f $module-hclass $module-hclass #f ,index ,attr ,owner #f)))
+
+(define-macro (AttributeCache-type-mro-hit! cache type-hclass attr owner)
+  `(AttributeCache-set! ,cache #f #f #f ,type-hclass -1 ,attr ,owner (quote 'self)))
+
+;; NOTE: there is no AttributeCache-type-or-mro-hit! macro since it would complexify the cache structure
+;; while being a case which practically never happens [citation needed]
 
 ;; =============================================================================
 ;;  HClass

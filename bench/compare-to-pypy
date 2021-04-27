@@ -21,7 +21,7 @@ for system in $systems; do
   case "$system" in
 
     gambit)
-      bench_output=`../bin/zipi.gambit.sh $bench`
+      bench_output=`../bin/zipi.gambit $bench`
       bench_time=`echo "$bench_output" | sed -e "s/ .*//g"`
 
       python3 -c "t=$bench_time;pp2=$pypy2_time;pp3=$pypy_time;system='[$system]';code='$code';bench='$bench';speedup2=pp2/t;speedup3=pp3/t;print(f'{system:10s}{speedup2:8.4f}x{speedup3:9.4f}x {code:s} ({bench:s})')"

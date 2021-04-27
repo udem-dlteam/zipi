@@ -718,7 +718,9 @@
   ;; binary
   (sint sint) (float float) (sint float) (float sint)
   ;;unary
-  (sint) (float)))
+  (sint) (float)
+  ;; descriptor
+  (sint #f #f) (float #f #f)))
 
 (define (is-inlined-semantics name)
   (not (not
