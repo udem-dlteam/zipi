@@ -85,18 +85,42 @@
 
 ;;; Object attribute store/fetch.
 
-(define (py-getattribute-cached-fallback obj hclass name cache)
-  (cond
-    ((eq? hclass (AttributeCache-object-hclass cache))
-      (py-getattribute-from-object-cache obj cache))
-    ((eq? hclass (AttributeCache-mro-hclass cache))
-      (py-getattribute-from-mro-cache obj cache))
-    ((eq? hclass (AttributeCache-type-hclass cache))
-      (py-getattribute-from-type-cache obj cache))
-    ((eq? hclass (AttributeCache-module-hclass cache))
-      (py-getattribute-from-module-cache obj cache))
+(define-macro (py-getattribute-cached-fallback-body obj-sym hclass-sym name-sym cache-sym
+                                                    include-object include-mro include-type include-module)
+  `(cond
+    ,@(if include-object
+      `(((eq? ,hclass-sym (AttributeCache-object-hclass ,cache-sym))
+        (py-getattribute-from-object-cache ,obj-sym ,cache-sym)))
+      '())
+    ,@(if include-mro
+      `(((eq? ,hclass-sym (AttributeCache-mro-hclass ,cache-sym))
+        (py-getattribute-from-mro-cache ,obj-sym ,cache-sym)))
+      '())
+    ,@(if include-type
+      `(((eq? ,hclass-sym (AttributeCache-type-hclass ,cache-sym))
+        (py-getattribute-from-type-cache ,obj-sym ,cache-sym)))
+      '())
+    ,@(if include-module
+      `(((eq? ,hclass-sym (AttributeCache-module-hclass ,cache-sym))
+        (py-getattribute-from-module-cache ,obj-sym ,cache-sym)))
+      '())
     (else
-      (py-getattribute-cached/miss obj name cache))))
+      (py-getattribute-cached/miss ,obj-sym ,name-sym ,cache-sym))))
+
+(define (py-getattribute-cached-fallback obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #t #t #t #t))
+
+(define (py-getattribute-cached-fallback/no-object obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #f #t #t #t))
+
+(define (py-getattribute-cached-fallback/no-mro obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #t #f #t #t))
+
+(define (py-getattribute-cached-fallback/no-type obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #t #t #f #t))
+
+(define (py-getattribute-cached-fallback/no-module obj hclass name cache)
+  (py-getattribute-cached-fallback-body obj hclass name cache #t #t #t #f))
 
 (define (py-getattribute-cached/miss obj name cache)
   (define (getattribute-from-getattr attribute-error)

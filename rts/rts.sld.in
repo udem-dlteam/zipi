@@ -172,6 +172,10 @@
     py-getattribute
     py-getattribute-cached
     py-getattribute-cached-fallback
+    py-getattribute-cached-fallback/no-object
+    py-getattribute-cached-fallback/no-mro
+    py-getattribute-cached-fallback/no-type
+    py-getattribute-cached-fallback/no-module
     py-getattribute-from-object-cache
     py-getattribute-from-mro-cache
     py-getattribute-from-type-cache
