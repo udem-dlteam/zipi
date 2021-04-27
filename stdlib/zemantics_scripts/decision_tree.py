@@ -8,8 +8,6 @@ from types import ModuleType
 
 import templates
 
-import astor.code_gen
-
 # ======================================================================================================================
 #   Parameters
 # ======================================================================================================================
@@ -1274,9 +1272,10 @@ def main_behaviors(semantics_file, builtins_file):
 
     for b in behaviors:
         try:
-            print(astor.code_gen.to_source(b))
+            ast.fix_missing_locations(b)
+            print(f"{ast.unparse(b)}\n")
         except Exception:
-            logging.warning(f"astor failed to generate source for: {b.name}")
+            logging.warning(f"ast.unparse failed to generate source for: {b.name}")
             raise
 
 

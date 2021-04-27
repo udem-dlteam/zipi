@@ -1,4 +1,14 @@
 #!/bin/sh
 
-echo "configure gambit..."
-echo "configure.gambit todo"
+#*---------------------------------------------------------------------*/
+#*    Gambit configuration                                             */
+#*---------------------------------------------------------------------*/
+echo "configure Gambit"
+
+if [ -z "$gambit" ] || [ -z "$gambitcompiler" ]; then
+  buildgambitversion=4.9.3-1380
+  echo "Installing Gambit $buildgambitversion for Zipi in $builddepdir"
+  mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-gambit v$buildgambitversion; cd $builddir;
+  gambit=$builddepdir/gambit-$buildgambitversion/bin/gsi
+  gambitcompiler=$builddepdir/gambit-$buildgambitversion/bin/gsc
+fi

@@ -272,8 +272,7 @@ main()
   rm -rf "$TEMP_DIR"
 }
 
-
-DESCR="`echo \"$1\" | sed -e \"s/^[^-]*-//g\"`"
+DESCR="`echo \"$1\" | sed -e \"s/$VERSION_PREFIX[^-]-[^-]*-//g\"`"
 
 descr_to_version_and_ncommits
 

@@ -25,12 +25,6 @@ if [ "$HOPBIGLOO " != " " ]; then
 fi
 
 #*---------------------------------------------------------------------*/
-#*    Gambit configuration                                             */
-#*---------------------------------------------------------------------*/
-gambit=gsi
-gambitcompiler=gsc
-
-#*---------------------------------------------------------------------*/
 #*    Private variables                                                */
 #*---------------------------------------------------------------------*/
 version="0.0.1"
@@ -45,6 +39,8 @@ buildetcdir=$PWD/etc
 buildrtsdir=$PWD/rts
 buildpycdir=$PWD/pyc
 buildzpcdir=$PWD/zpc
+builddepdir=$PWD/dependencies
+buildbuilddepdir=$PWD/build-dependencies
 
 install="install -m a+r,u+r"
 
@@ -52,7 +48,6 @@ shell=/bin/sh
 
 mode=optim
 
-buildpython=
 zipicache=~/.zipicache
 
 branch=`git rev-parse --abbrev-ref HEAD`
@@ -98,6 +93,10 @@ while : ; do
     --bigloobindir=*)
       bigloobindir="`echo $1 | sed 's/^[^=]*=//'`";;
 
+    --buildpython=*)
+      buildpython="`echo $1 | sed 's/^[^=]*=//'`";
+      ;;
+
     --install=*)
       install="`echo $1 | sed 's/^[^=]*=//'`";;
 
@@ -106,9 +105,6 @@ while : ; do
 
     --debug*)
       mode=debug;;
-
-    --buildpython=*)
-      buildpython="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --zipicache=*)
       zipicache="`echo $1 | sed 's/^[^=]*=//'`";;
@@ -126,9 +122,10 @@ while : ; do
       echo "Compilers:" >&2;
       echo "   --bigloo-only............... only compile Bigloo backend" >&2;
       echo "   --gambit-only............... only compile Gambit backend" >&2;
-      echo "   --gambit=comp............... set both build and host Gambit interpreter ($gambit)" >&2;
-      echo "   --gambitcompiler=comp....... set both build and host Gambit compiler ($gambitcompiler)" >&2;
+      echo "   --gambit=comp............... set both build and host Gambit interpreter (not recommended)" >&2;
+      echo "   --gambitcompiler=comp....... set both build and host Gambit compiler (not recommended)" >&2;
       echo "   --bigloo=comp............... set both build and host Bigloo compilers ($bigloo/$hostbigloo)" >&2;
+      echo "   --buildpython=comp.......... set build cPython interpreter (not recommended)" >&2;
       echo "" >&2;
       echo "bigloo:" >&2;
       echo "   --bigloobindir=path......... the Bigloo bin-dir path" >&2;
@@ -138,7 +135,6 @@ while : ; do
       echo "   --install................... the installer ($install)" >&2;
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
-      echo "   --buildpython=python........ python executable used for build ($buildpython)" >&2;
       echo "   --zipicache=path............ location of compiled .py files ($zipicache)" >&2;
       exit 255;
   esac
@@ -153,35 +149,20 @@ bindir=$zipiroot/bin
 libdir=$zipiroot/lib
 pycdir=$zipiroot/pyc
 zpcdir=$zipiroot/zpc
-venvpython=$bindir/venv/bin/python3
-buildvenvpython=$builddir/venv/bin/python3
+depdir=$zipiroot/dependencies
 
 #*---------------------------------------------------------------------*/
-#*    Detect python version of none provided                           */
+#*                    Install cPython                                  */
 #*---------------------------------------------------------------------*/
 
-if [ -z $buildpython ];
-then
-  for py in python3.9 python3.8 python3 python
-  do
-    if command -v $py > /dev/null;
-    then
-      thispyversion=$($py -c "import sys; print('.'.join(map(str, sys.version_info[:2])))")
-      if [ "$thispyversion" = "3.8" ] || [ "$thispyversion" = "3.9" ];
-      then
-        buildpython=$py;
-        echo "cpython executable detected: $py (python$thispyversion)";
-        break;
-      fi;
-    fi;
-  done;
-
-  if [ -z $buildpython ];
-  then
-    echo "Not found: Zipi requires cpython 3.8 or 3.9 to be installed.";
-    echo "You can provide the cpython exectuable with --buildpython=";
-    exit 1;
-  fi
+if [ -z $buildpython ]; then
+  buildpythonversion=3.9.4
+  echo "Installing Python $buildpythonversion for Zipi in $builddepdir"
+  mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-cpython v$buildpythonversion; cd $builddir;
+  buildpython=$builddepdir/cpython-$buildpythonversion/bin/python3
+  python=$buildpython # TODO: use a install version
+else
+  echo "Using cPython '$buildpython' for Zipi build (we recommend letting Zipi install its own cPython version)"
 fi
 
 
@@ -197,11 +178,11 @@ mkdir -p lib/zipi/$version
 #*    We are now able to set the correct value for cc since we know    */
 #*    what Bigloo is.                                                  */
 #*---------------------------------------------------------------------*/
-if [ "$systems " != "gambit " ]; then
+if test "${systems#*bigloo}" != "$systems"; then
   . ./etc/configure.bigloo $mode
 fi
 
-if [ "$systems " != "bigloo " ]; then
+if test "${systems#*gambit}" != "$systems"; then
   . ./etc/configure.gambit
 fi
 
@@ -286,6 +267,8 @@ for file in Makefile.zipiconfig configure.scm zpc.bigloo.sh; do
           -e "s|@BUILDBINDIR@|$buildbindir|" \
           -e "s|@BUILDPYCDIR@|$buildpycdir|" \
           -e "s|@BUILDZPCDIR@|$buildzpcdir|" \
+          -e "s|@BUILDDEPDIR@|$builddepdir|" \
+          -e "s|@BUILDBUILDEPDIR@|$buildbuilddepdir|" \
           -e "s|@BIGLOO@|$bigloo|" \
           -e "s|@GAMBIT@|$gambit|" \
           -e "s|@GAMBITCOMPILER@|$gambitcompiler|" \
@@ -293,8 +276,7 @@ for file in Makefile.zipiconfig configure.scm zpc.bigloo.sh; do
           -e "s|@LINK@|$link|" \
           -e "s|@SHELL@|$shell|" \
           -e "s|@BUILDPYTHON@|$buildpython|" \
-          -e "s|@VENVPYTHON@|$venvpython|" \
-          -e "s|@BUILDVENVPYTHON@|$buildvenvpython|" \
+          -e "s|@PYTHON@|$python|" \
           -e "s|@PYSEXPPP@|$pysexppp|" \
           -e "s|@ZIPICACHE@|$zipicache|" \
   	>> $mkmf
@@ -338,36 +320,3 @@ done
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
 cp -aT etc/pysexp bin/pysexp
-
-#
-# Check for virtualenv
-#
-
-install_virtualenv()
-{
-  if ${buildpython} -c "import pip"; then
-    ${buildpython} -m pip install virtualenv;
-  else
-    echo "Could not install virtualenv: ${buildpython} does not have pip installed.";
-    echo "Please install pip manually or use another python executable using --buildpython=";
-  fi
-}
-
-
-if ! ${buildpython} -c "import virtualenv"; then
-  echo "The cpython interpreter at ${buildpython} does not have virtualenv installed."
-  if [ -t 1 ];
-  then
-    while true; do
-      read -p "Do you want to install virtualenv? [Y/n]" yn
-      case $yn in
-          [Yy]* ) install_virtualenv; break;;
-          [Nn]* ) exit;;
-          * ) echo "Answer Y or N.";;
-      esac
-    done
-  else
-    # When we cannot ask, we just go on and install virtualenv
-    install_virtualenv;
-  fi
-fi
