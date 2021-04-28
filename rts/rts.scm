@@ -5444,9 +5444,17 @@
 ;; IMPORT SYSTEM
 ;; ===========================================
 
-
-(define zipi-stdlib-dir (list (path-expand "stdlib" (path-expand "~~zipiroot"))
-                              (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
+(define zipi-stdlib-dir (let ((default-dir
+                                (list (path-expand "stdlib" (path-expand "~~zipiroot"))
+                                      (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
+                              (env-dir
+                                (list
+                                  (get-environment-variable "PYTHONPATH")
+                                  (get-environment-variable "ZIPIPATH"))))
+                          (fold (lambda (env r)
+                                  (if env (append (string-split env #\:) r) r))
+                                default-dir
+                                env-dir)))
 
 (cond-expand
    (gambit)
