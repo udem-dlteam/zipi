@@ -2028,12 +2028,13 @@
 (define-macro (py-maybe-len obj)
   `(py-maybe-len-fallback ,obj))
 
-(define-macro (py-getattribute obj attr #!optional (cache #f) (inline #f))
+(define-macro (py-getattribute obj attr #!optional (cache #f) (inlines '()))
   (if cache
-    `(py-getattribute-cached ,obj ,attr ,cache ,inline)
+    `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
     `(py-getattribute-fallback ,obj ,attr)))
 
-(define-macro (py-getattribute-cached obj attr cache inline)
+(define-macro (py-getattribute-cached obj attr cache inline-priorities)
+  ;; attr should always be a string literal
   `(py-specialized-sint-float-dispatch-let
      $X
      ,obj
@@ -2041,28 +2042,34 @@
      ;; int and float, those can be determined statically
      (py-getattribute-fallback $X ,attr)
      (py-getattribute-fallback $X ,attr)
-     ,(if inline
-       `(let (($cache ,cache)
-              ($hclass (py-obj-hclass-general $X)))
-           ,(case inline
-              ((object)
-                `(if (eq? $hclass (AttributeCache-object-hclass $cache))
-                     (py-getattribute-from-object-cache $X $cache)
-                     (py-getattribute-cached-fallback/no-object $X (py-obj-hclass-general $X) ,attr $cache)))
-              ((mro)
-                `(if (eq? $hclass (AttributeCache-mro-hclass $cache))
-                     (py-getattribute-from-mro-cache $X $cache)
-                     (py-getattribute-cached-fallback/no-mro $X (py-obj-hclass-general $X) ,attr $cache)))
-              ((type)
-                `(if (eq? $hclass (AttributeCache-type-hclass $cache))
-                     (py-getattribute-from-type-cache $X $cache)
-                     (py-getattribute-cached-fallback/no-type $X (py-obj-hclass-general $X) ,attr $cache)))
-              ((module)
-                `(if (eq? $hclass (AttributeCache-module-hclass $cache))
-                     (py-getattribute-from-module-cache $X $cache)
-                     (py-getattribute-cached-fallback/no-module $X (py-obj-hclass-general $X) ,attr $cache)))
-              (else (error "py-getattribute-cached" "unknown inlining priority" inline))))
-       `(py-getattribute-cached-fallback $X (py-obj-hclass-general $X) ,attr ,cache))))
+     ,(let loop ((inlines inline-priorities))
+       (if (null? inlines)
+         `(py-getattribute-cached-modular-fallback
+            $X (py-obj-hclass-general $X) ,attr ,cache
+            ,(not (not (memq 'object inline-priorities)))
+            ,(not (not (memq 'mro inline-priorities)))
+            ,(not (not (memq 'type inline-priorities)))
+            ,(not (not (memq 'module inline-priorities))))
+         `(let (($cache ,cache)
+                ($hclass (py-obj-hclass-general $X)))
+             ,(case (car inlines)
+                ((object)
+                  `(if (eq? $hclass (AttributeCache-object-hclass $cache))
+                       (py-getattribute-from-object-cache $X $cache)
+                       ,(loop (cdr inlines))))
+                ((mro)
+                  `(if (eq? $hclass (AttributeCache-mro-hclass $cache))
+                       (py-getattribute-from-mro-cache $X $cache)
+                       ,(loop (cdr inlines))))
+                ((type)
+                  `(if (eq? $hclass (AttributeCache-type-hclass $cache))
+                       (py-getattribute-from-type-cache $X $cache)
+                       ,(loop (cdr inlines))))
+                ((module)
+                  `(if (eq? $hclass (AttributeCache-module-hclass $cache))
+                       (py-getattribute-from-module-cache $X $cache)
+                       ,(loop (cdr inlines))))
+                (else (error "py-getattribute-cached" "unknown inlining priority" (car inlines)))))))))
 
 (define-macro (py-getattribute-from-module-cache obj cache)
   `(let* (($cache ,cache)

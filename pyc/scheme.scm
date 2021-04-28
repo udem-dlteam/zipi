@@ -1529,7 +1529,7 @@
       __new__ __init__))
 
 
-  (define (guess-access-type this)
+  (define (guess-access-types this)
     ;; naive algorithm to guess where the attribute will be
     ;; TODO: static type checking where no polymorphism is assumed
     (let ((obj (PycAccess-obj this))
@@ -1539,24 +1539,24 @@
           (let* ((var (PycRef-decl obj))
                  (assigs (PycVar-assig var)))
             (if (null? assigs) ;; This probably cannot happen
-              'object
+              '(object)
               (let ((last-assig (PycAssig-rhs (car assigs)))) ;; last time this I checked this is the last syntactical assig in the file
                 (cond
                   ((isa? last-assig PycClass)
-                    'type)
+                    '(type))
                   ((isa? last-assig PycImport)
-                    'module)
+                    '(module))
                   ((memq field mro-likely-fields)
-                    'mro)
+                    '(mro))
                   (else
-                    'object))))))
+                    '(object)))))))
         ((isa? obj PycRefUnresolved)
           ;; TODO: check specific builtin names, some are not classes
-          'type) ;; likely a builtin
+          '(type)) ;; likely a builtin
         ((memq field mro-likely-fields)
-          'mro)
+          '(mro))
         (else
-          'mro))))
+          '(mro)))))
 
   (if (not (in-semantics? conf))
     (epairify this
@@ -1564,7 +1564,7 @@
         ,(scheme (PycAccess-obj this) conf)
     	  ,(pyc-propname (PycAccess-field this))
         ,(scheme-cache (PycAccess-cache this) this)
-        ,(guess-access-type this)))
+        ,(guess-access-types this)))
     ;; no cache for semantics
     ;; attributes used in semantics should have special slots
     (epairify this
