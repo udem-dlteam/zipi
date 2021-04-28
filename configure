@@ -172,6 +172,8 @@ if [ -z $buildpython ]; then
   fi
 else
   echo "Using cPython '$buildpython' for Zipi build (we recommend letting Zipi install its own cPython version)"
+  # If a python executable is given, use the same for build and runtime
+  python=$buildpython
 fi
 
 
