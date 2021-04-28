@@ -163,7 +163,7 @@ depdir=$zipiroot/dependencies
 if [ -z $buildpython ]; then
   buildpythonversion=3.9.4
   buildpython=$builddepdir/cpython-$buildpythonversion/bin/python3
-  python=$buildpython # TODO: use a install version
+  python=$depdir/cpython-$buildpythonversion/bin/python3
   if [ "$skipdependencies" = false ]; then
     echo "Installing Python $buildpythonversion for Zipi in $builddepdir"
     mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-cpython v$buildpythonversion; cd $builddir;
