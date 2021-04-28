@@ -9,7 +9,7 @@ behaviors.scm: ../stdlib/behaviors.scm
 	cp ../stdlib/behaviors.scm behaviors.scm
 
 rts.sld: zemantics.scm behaviors.scm
-	$(GAMBIT) ../etc/scm-to-zipi.scm gambit rts.sld.in ../stdlib/zemantics.scm ../stdlib/behaviors.scm > rts.sld
+	$(BUILDGAMBIT) ../etc/scm-to-zipi.scm gambit rts.sld.in ../stdlib/zemantics.scm ../stdlib/behaviors.scm > rts.sld
 
 builtins: ../stdlib/builtins.sld
 	mkdir -p builtins
@@ -22,9 +22,9 @@ zipi-install-symlink:
 	cd $(ZIPIROOT); ln -s . zipi
 
 build.gambit: zipi-build-symlink rts.sld rts.sld.in builtins
-	$(GAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts/hash
-	$(GAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts/builtins
-	$(GAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts
+	$(BUILDGAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts/hash
+	$(BUILDGAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts/builtins
+	$(BUILDGAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts
 
 install.gambit: zipi-install-symlink
 	cp -aT $(BUILDRTSDIR) $(ZIPIRTSDIR)

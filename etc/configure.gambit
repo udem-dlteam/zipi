@@ -1,4 +1,24 @@
 #!/bin/sh
 
-echo "configure gambit..."
-echo "configure.gambit todo"
+#*---------------------------------------------------------------------*/
+#*    Gambit configuration                                             */
+#*---------------------------------------------------------------------*/
+echo "configure Gambit"
+
+if [ -z "$gambit" ] || [ -z "$gambitcompiler" ]; then
+  buildgambitversion=4.9.3-1380
+  # build gambit paths
+  buildgambitroot=$builddepdir/gambit-$buildgambitversion
+  buildgambit=$buildgambitroot/bin/gsi
+  buildgambitcompiler=$buildgambitroot/bin/gsc
+  # install gambit paths
+  gambitroot=$depdir/gambit-$buildgambitversion
+  gambit=$gambitroot/bin/gsi
+  gambitcompiler=$gambitroot/bin/gsc
+  if [ "$skipdependencies" = false ]; then
+    echo "Installing Gambit $buildgambitversion for Zipi in $builddepdir"
+    mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-gambit v$buildgambitversion; cd $builddir;
+  else
+    echo "WARNING: Gambit was configured, but its installation was skipped"
+  fi
+fi

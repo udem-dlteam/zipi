@@ -18,19 +18,11 @@ do: build
 -include etc/Makefile.zipiconfig
 
 #*---------------------------------------------------------------------*/
-#*    cPython venv                                                     */
-#*---------------------------------------------------------------------*/
-
-venv:
-	$(BUILDPYTHON) -m virtualenv --copies --python=$(BUILDPYTHON) venv
-	. ./venv/bin/activate; pip install -r build_requirements.txt
-
-#*---------------------------------------------------------------------*/
 #*    build                                                            */
 #*---------------------------------------------------------------------*/
 .PHONY: build clean distclean cleanall
 
-build: venv
+build:
 	mkdir -p bin
 	mkdir -p lib
 	$(MAKE) -C pyc
@@ -77,14 +69,17 @@ install-bin: zipi-dirs
 						-e "s|@ZIPIRTS@|$(ZIPIRTSDIR)|g" \
 						-e "s|@BIGLOO@|$(BIGLOO)|g" \
 						-e "s|@GAMBIT@|$(GAMBIT)|g" \
-						-e "s|@PYTHON@|$(VENVPYTHON)|g" \
+						-e "s|@GAMBITROOT@|$(GAMBITROOT)|g" \
+						-e "s|@PYTHON@|$(PYTHON)|g" \
 						-e "s|@ZIPICACHE@|$(ZIPICACHE)|g" \
 						-e "s|@ZIPIROOT@|$(ZIPIROOT)|g" \
 			> $(ZIPIBINDIR)/$$file; \
 		chmod +x $(ZIPIBINDIR)/$$file; \
 		done;
-	$(BUILDVENVPYTHON) -m virtualenv --copies --python=$(BUILDVENVPYTHON) $(ZIPIBINDIR)/venv;
-	cp -aT $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
+	rm -rf $(ZIPIBINDIR)/pysexp
+	cp -a $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
+	rm -rf $(ZIPIDEPDIR)
+	cp -aT $(BUILDDEPDIR) $(ZIPIDEPDIR)
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
 
@@ -127,14 +122,16 @@ distclean: clean
 	$(MAKE) -C stdlib distclean
 	rm -rf lib
 	rm -f etc/Makefile.zipiconfig
-	rm -rf venv
 	rm -f bin/pysexp_script.py
 	rm -rf bin/pysexp
+
+clean-dependencies:
+	rm -rf dependencies
 
 cleanall: distclean
 
 test:
-	@cd tests; $(BUILDVENVPYTHON) run.py
+	@cd tests; $(BUILDPYTHON) run.py
 
 unittest:
 	@cd unittest; make unittest

@@ -12,19 +12,16 @@ do: build
 #*---------------------------------------------------------------------*/
 
 builtins.py:
-	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	$(BUILDVENVPYTHON) builtins_manager.py init ../builtins.py
+	$(BUILDPYTHON) builtins_manager.py init ../builtins.py
 
 zemantics.py:
-	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	$(BUILDVENVPYTHON) semantics_manager.py init ../zemantics.py
+	$(BUILDPYTHON) semantics_manager.py init ../zemantics.py
 
 behavior.py: builtins.py zemantics.py
-	. ../venv/bin/activate; \
 	cd  zemantics_scripts; \
-	$(BUILDVENVPYTHON) decision_tree.py behaviors ../zemantics.py ../builtins.py > ../behaviors.py
+	$(BUILDPYTHON) decision_tree.py behaviors ../zemantics.py ../builtins.py > ../behaviors.py
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
