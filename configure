@@ -46,6 +46,7 @@ install="install -m a+r,u+r"
 
 shell=/bin/sh
 
+skipdependencies=false
 mode=optim
 
 zipicache=~/.zipicache
@@ -100,6 +101,9 @@ while : ; do
     --install=*)
       install="`echo $1 | sed 's/^[^=]*=//'`";;
 
+    --skip-dependencies*)
+      skipdependencies=true;;
+
     --mode=*)
       mode="`echo $1 | sed 's/^[^=]*=//'`";;
 
@@ -133,6 +137,7 @@ while : ; do
       echo "" >&2;
       echo "Misc:" >&2;
       echo "   --install................... the installer ($install)" >&2;
+      echo "   --skip-dependencies......... skip the installation of dependencies (only use if dependencies were already configured)" >&2;
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
       echo "   --zipicache=path............ location of compiled .py files ($zipicache)" >&2;
@@ -157,10 +162,14 @@ depdir=$zipiroot/dependencies
 
 if [ -z $buildpython ]; then
   buildpythonversion=3.9.4
-  echo "Installing Python $buildpythonversion for Zipi in $builddepdir"
-  mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-cpython v$buildpythonversion; cd $builddir;
   buildpython=$builddepdir/cpython-$buildpythonversion/bin/python3
   python=$buildpython # TODO: use a install version
+  if [ "$skipdependencies" = false ]; then
+    echo "Installing Python $buildpythonversion for Zipi in $builddepdir"
+    mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-cpython v$buildpythonversion; cd $builddir;
+  else
+    echo "WARNING: cPython was configured, but its installation was skipped"
+  fi
 else
   echo "Using cPython '$buildpython' for Zipi build (we recommend letting Zipi install its own cPython version)"
 fi
@@ -258,6 +267,7 @@ for file in Makefile.zipiconfig configure.scm zpc.bigloo.sh; do
           -e "s|@RTSDIR@|$rtsdir|" \
           -e "s|@PYCDIR@|$pycdir|" \
           -e "s|@ZPCDIR@|$zpcdir|" \
+          -e "s|@DEPDIR@|$depdir|" \
           -e "s|@BUILDID@|$buildid|" \
           -e "s|@BUILDTAG@|$buildtag|" \
           -e "s|@BUILDDIR@|$builddir|" \
@@ -270,7 +280,11 @@ for file in Makefile.zipiconfig configure.scm zpc.bigloo.sh; do
           -e "s|@BUILDDEPDIR@|$builddepdir|" \
           -e "s|@BUILDBUILDEPDIR@|$buildbuilddepdir|" \
           -e "s|@BIGLOO@|$bigloo|" \
+          -e "s|@BUILDGAMBIT@|$buildgambit|" \
+          -e "s|@BUILDGAMBITROOT@|$buildgambitroot|" \
+          -e "s|@BUILDGAMBITCOMPILER@|$buildgambitcompiler|" \
           -e "s|@GAMBIT@|$gambit|" \
+          -e "s|@GAMBITROOT@|$gambitroot|" \
           -e "s|@GAMBITCOMPILER@|$gambitcompiler|" \
           -e "s|@INSTALL@|$install|" \
           -e "s|@LINK@|$link|" \
@@ -309,8 +323,9 @@ for file in bin/zipi bin/zipi.gambit bin/zipi-compile-and-run.gambit bin/zipi.bi
           -e "s|@ZIPIETC@|$buildetcdir|g" \
           -e "s|@ZIPIRTS@|$buildrtsdir|g" \
           -e "s|@BIGLOO@|$bigloo|g" \
-          -e "s|@GAMBIT@|$gambit|g" \
-          -e "s|@GAMBITCOMPILER@|$gambitcompiler|g" \
+          -e "s|@GAMBIT@|$buildgambit|g" \
+          -e "s|@GAMBITCOMPILER@|$buildgambitcompiler|g" \
+          -e "s|@GAMBITROOT@|$buildgambitroot|g" \
           -e "s|@PYTHON@|$buildpython|g" \
           -e "s|@ZIPICACHE@|$zipicache|g" \
           -e "s|@ZIPIROOT@|$builddir|g" \

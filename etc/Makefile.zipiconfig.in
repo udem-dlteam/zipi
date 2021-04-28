@@ -29,8 +29,12 @@ ZIPISYSTEMS	= @SYSTEMS@
 BIGLOO    = @BIGLOO@
 BACKEND		= native
 
+BUILDGAMBIT         = @BUILDGAMBIT@
+BUILDGAMBITCOMPILER = @BUILDGAMBITCOMPILER@
+BUILDGAMBITROOT     = @BUILDGAMBITROOT@
 GAMBIT         = @GAMBIT@
 GAMBITCOMPILER = @GAMBITCOMPILER@
+GAMBITROOT     = @GAMBITROOT@
 
 #*---------------------------------------------------------------------*/
 #*    Tools, and misc configuration                                    */
@@ -71,6 +75,7 @@ ZIPIBINDIR	= @BINDIR@
 ZIPIZPCDIR	= @ZPCDIR@
 ZIPILIBDIR	= @LIBDIR@
 ZIPIRTSDIR  = @RTSDIR@
+ZIPIDEPDIR  = @DEPDIR@
 ZIPIFILDIR	= zipi/$(ZIPIRELEASE)
 
 ZIPICACHE   = @ZIPICACHE@

@@ -69,13 +69,17 @@ install-bin: zipi-dirs
 						-e "s|@ZIPIRTS@|$(ZIPIRTSDIR)|g" \
 						-e "s|@BIGLOO@|$(BIGLOO)|g" \
 						-e "s|@GAMBIT@|$(GAMBIT)|g" \
+						-e "s|@GAMBITROOT@|$(GAMBITROOT)|g" \
 						-e "s|@PYTHON@|$(PYTHON)|g" \
 						-e "s|@ZIPICACHE@|$(ZIPICACHE)|g" \
 						-e "s|@ZIPIROOT@|$(ZIPIROOT)|g" \
 			> $(ZIPIBINDIR)/$$file; \
 		chmod +x $(ZIPIBINDIR)/$$file; \
 		done;
-	cp -aT $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
+	rm -rf $(ZIPIBINDIR)/pysexp
+	cp -a $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
+	rm -rf $(ZIPIDEPDIR)
+	cp -aT $(BUILDDEPDIR) $(ZIPIDEPDIR)
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
 
@@ -122,7 +126,7 @@ distclean: clean
 	rm -rf bin/pysexp
 
 clean-dependencies:
-	rm -rf $(BUILDDEPDIR)
+	rm -rf dependencies
 
 cleanall: distclean
 
