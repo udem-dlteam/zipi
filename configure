@@ -189,10 +189,12 @@ mkdir -p lib/zipi/$version
 #*---------------------------------------------------------------------*/
 if test "${systems#*bigloo}" != "$systems"; then
   . ./etc/configure.bigloo $mode
+  buildschemescript=$bigloo
 fi
 
 if test "${systems#*gambit}" != "$systems"; then
   . ./etc/configure.gambit
+  buildschemescript=$buildgambit
 fi
 
 if [ "$default_scheme_system " = "no_default_scheme_system_currently_set " ]; then
@@ -286,6 +288,7 @@ for file in Makefile.zipiconfig configure.scm zpc.bigloo.sh; do
           -e "s|@GAMBIT@|$gambit|" \
           -e "s|@GAMBITROOT@|$gambitroot|" \
           -e "s|@GAMBITCOMPILER@|$gambitcompiler|" \
+          -e "s|@BUILDSCHEMESCRIPT@|$builtschemescript|" \
           -e "s|@INSTALL@|$install|" \
           -e "s|@LINK@|$link|" \
           -e "s|@SHELL@|$shell|" \

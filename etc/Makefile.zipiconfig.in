@@ -35,6 +35,7 @@ BUILDGAMBITROOT     = @BUILDGAMBITROOT@
 GAMBIT         = @GAMBIT@
 GAMBITCOMPILER = @GAMBITCOMPILER@
 GAMBITROOT     = @GAMBITROOT@
+BUILDSCHEMESCRIPT = @BUILDSCHEMESCRIPT@
 
 #*---------------------------------------------------------------------*/
 #*    Tools, and misc configuration                                    */
