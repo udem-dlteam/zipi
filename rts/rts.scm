@@ -293,7 +293,16 @@
 (define py-method-hclass-of-instances
   (make-builtin-HClass
     '#()
-;*       (& "__self__"))                                               */
+    '()))
+
+(define py-classmethod-hclass-of-instances
+  (make-builtin-HClass
+    '#()
+    '()))
+
+(define py-staticmethod-hclass-of-instances
+  (make-builtin-HClass
+    '#()
     '()))
 
 (define py-function-hclass-of-instances

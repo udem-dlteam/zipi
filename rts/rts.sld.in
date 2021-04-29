@@ -466,6 +466,8 @@
     py-str-hclass-of-instances
     py-tuple-hclass-of-instances
     py-method-hclass-of-instances
+    py-classmethod-hclass-of-instances
+    py-staticmethod-hclass-of-instances
 
     make-PyObjectInt
     make-PyObjectFloat
