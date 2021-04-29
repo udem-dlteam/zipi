@@ -5,7 +5,7 @@
 #*---------------------------------------------------------------------*/
 echo "configure Gambit"
 
-if [ -z "$gambit" ] || [ -z "$gambitcompiler" ]; then
+if [ -z "$gambitroot" ]; then
   buildgambitversion=4.9.3-1380
   # build gambit paths
   buildgambitroot=$builddepdir/gambit-$buildgambitversion
@@ -21,4 +21,14 @@ if [ -z "$gambit" ] || [ -z "$gambitcompiler" ]; then
   else
     echo "WARNING: Gambit was configured, but its installation was skipped"
   fi
+else
+  buildgambitroot=$gambitroot
+  buildgambit=$buildgambitroot/bin/gsi
+  buildgambitcompiler=$buildgambitroot/bin/gsc
+  # install gambit paths
+  gambitroot=$gambitroot
+  gambit=$gambitroot/bin/gsi
+  gambitcompiler=$gambitroot/bin/gsc
+  echo "Using gsi at '$gambit' (we recommend letting Zipi install its own Gambit version)"
+  echo "Using gsc at '$gambitcompiler' (we recommend letting Zipi install its own Gambit version)"
 fi
