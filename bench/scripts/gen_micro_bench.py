@@ -41,6 +41,8 @@ benchmarks = [
 [13,3, 'm=int','',           'x=m.__name__',  '',    'attr_read_int_name'],
 [13,3, 'm=list','',           'x=m.append',  '',    'attr_read_list_append'],
 [13,3, 'm=bool','',           'x=m.__getattribute__',  '','attr_read_mro_bool_getattribute'],
+[13,3, '','l=[]',             'l.append',   '',        'attr_read_method_append'],
+[13,3, '','l=[]',             'l.append(1)',   '',        'list_append'],
 [13,3, 'import itertools','',           'x=itertools.count',  '','attr_read_itertools_count'],
 [ 9,3, 's="a"','',           'x=s.__add__',   '',    'method_bind'],
 [20,4, 'global g;x=0','g=0', 'x=g',           '',    'global_read'],
