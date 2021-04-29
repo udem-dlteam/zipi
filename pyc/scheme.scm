@@ -1495,7 +1495,8 @@
         (error "scheme::PycDelete" "only del subscript/slice are supported" this)))))
 
 (define-walk-method (scheme this::PycAccess conf)
-  (define mro-likely-fields
+  ;; attributes which are likely to be methods found in the mro
+  (define probably-mro-fields
     '(
       ;; list methods
       append clear copy count extend index insert pop remove reverse sort
@@ -1528,35 +1529,85 @@
       __hash__ __dir__
       __new__ __init__))
 
+  ;; names which are most likely to be builtin classes
+  (define builtin-classes
+    '(ArithmeticError AssertionError AttributeError BaseException BlockingIOError BrokenPipeError BufferError BytesWarning
+      ChildProcessError ConnectionAbortedError ConnectionError ConnectionRefusedError ConnectionResetError DeprecationWarning
+      EOFError EnvironmentError Exception FileExistsError FileNotFoundError FloatingPointError FutureWarning GeneratorExit
+      IOError ImportError ImportWarning IndentationError IndexError InterruptedError IsADirectoryError KeyError KeyboardInterrupt
+      LookupError MemoryError ModuleNotFoundError NameError NotADirectoryError NotImplementedError OSError OverflowError
+      PendingDeprecationWarning PermissionError ProcessLookupError RecursionError ReferenceError ResourceWarning RuntimeError
+      RuntimeWarning StopAsyncIteration StopIteration SyntaxError SyntaxWarning SystemError SystemExit TabError TimeoutError
+      TypeError UnboundLocalError UnicodeDecodeError UnicodeEncodeError UnicodeError UnicodeTranslateError UnicodeWarning
+      UserWarning ValueError Warning ZeroDivisionError __loader__ bool bytearray bytes classmethod complex dict enumerate
+      filter float frozenset int list map memoryview object property range reversed set slice staticmethod str super tuple
+      type zip))
 
-  (define (guess-access-type this)
-    ;; naive algorithm to guess where the attribute will be
-    ;; TODO: static type checking where no polymorphism is assumed
+
+  (define (guess-access-types this)
+    ;; heuristic:
+    ;; First - Try to guess what the object being accessed is, this is what yields the most information.
+    ;;         In case of variables (PycRef and PycRefUnresolved), it is sometimes possible to guess their
+    ;;         origin. For example, this is most easily done in the case of classes, builtins and imports
+    ;; Second - If the above fails, use the name of the attribute as a hint. Some names such as magic methods'
+    ;;          names or common method names such as 'append', 'pop', etc., are usually used to access a bound
+    ;;          method found in the mro
+    ;; Third  - If the above also fails, see what is being done with the attribute. Whether it is used in a
+    ;;          call, an unary or binary operation, etc. gives a hint as to its values. Function are most likely
+    ;;          found in mro/on types while numbers are most likely to be found on objects
+    ;; Fourth - If all fails, use a default priority which works as often as possible
+
+    (define default-priority '(object mro))
+    (define probably-mro-priority '(mro type))
+    (define probably-builtin-class-priority '(type))
+    (define probably-builtin-non-class-priority '(object))
+    (define probably-module-priority '(module))
+    (define probably-type-priority '(type))
+    (define callable-attribute-priority '(mro type))
+    (define arithmetic-operand-priority '(object mro type))
+
+    (define (guess-access-type-PycRef obj field)
+      (let* ((var (PycRef-decl obj))
+             (assigs (PycVar-assig var)))
+        (if (null? assigs)
+          (guess-access-type-no-origin obj field)
+          (let ((last-assig (PycAssig-rhs (car assigs)))) ;; last time this I checked this is the last syntactical assig in the file
+            (cond
+              ((isa? last-assig PycClass)
+                probably-type-priority)
+              ((isa? last-assig PycImport)
+                probably-module-priority)
+              (else
+                (guess-access-type-no-origin obj field)))))))
+
+    (define (guess-access-type-PycRefUnresolved obj field)
+      (if (memq (PycRefUnresolved-id obj) builtin-classes)
+        probably-builtin-class-priority
+        probably-builtin-non-class-priority))
+
+    (define (guess-access-type-no-origin obj field)
+      (if (memq field probably-mro-fields)
+        probably-mro-priority
+        (guess-access-type-from-usage obj field)))
+
+    (define (guess-access-type-from-usage obj field)
+      (let ((usage (PycAccess-usage this)))
+        (cond
+          ((isa? usage PycCall)
+            callable-attribute-priority)
+          ((isa? usage PycBinary)
+            arithmetic-operand-priority)
+          ((isa? usage PycUnary)
+            arithmetic-operand-priority)
+          (else
+            default-priority))))
+
     (let ((obj (PycAccess-obj this))
           (field (PycAccess-field this)))
       (cond
-        ((isa? obj PycRef)
-          (let* ((var (PycRef-decl obj))
-                 (assigs (PycVar-assig var)))
-            (if (null? assigs) ;; This probably cannot happen
-              'object
-              (let ((last-assig (PycAssig-rhs (car assigs)))) ;; last time this I checked this is the last syntactical assig in the file
-                (cond
-                  ((isa? last-assig PycClass)
-                    'type)
-                  ((isa? last-assig PycImport)
-                    'module)
-                  ((memq field mro-likely-fields)
-                    'mro)
-                  (else
-                    'object))))))
-        ((isa? obj PycRefUnresolved)
-          ;; TODO: check specific builtin names, some are not classes
-          'type) ;; likely a builtin
-        ((memq field mro-likely-fields)
-          'mro)
-        (else
-          'mro))))
+        ((isa? obj PycRef) (guess-access-type-PycRef obj field))
+        ((isa? obj PycRefUnresolved) (guess-access-type-PycRefUnresolved obj field))
+        (else (guess-access-type-no-origin obj field)))))
 
   (if (not (in-semantics? conf))
     (epairify this
@@ -1564,7 +1615,7 @@
         ,(scheme (PycAccess-obj this) conf)
     	  ,(pyc-propname (PycAccess-field this))
         ,(scheme-cache (PycAccess-cache this) this)
-        ,(guess-access-type this)))
+        ,(guess-access-types this)))
     ;; no cache for semantics
     ;; attributes used in semantics should have special slots
     (epairify this

@@ -122,6 +122,24 @@
 (define (py-getattribute-cached-fallback/no-module obj hclass name cache)
   (py-getattribute-cached-fallback-body obj hclass name cache #t #t #t #f))
 
+(define (py-getattribute-cached-modular-fallback obj hclass name cache
+                                                 include-object include-mro include-type include-module)
+  (cond
+    ((and include-object
+          (eq? hclass (AttributeCache-object-hclass cache)))
+      (py-getattribute-from-object-cache obj cache))
+    ((and include-mro
+          (eq? hclass (AttributeCache-mro-hclass cache)))
+      (py-getattribute-from-mro-cache obj cache))
+    ((and include-type
+          (eq? hclass (AttributeCache-type-hclass cache)))
+      (py-getattribute-from-type-cache obj cache))
+    ((and include-module
+          (eq? hclass (AttributeCache-module-hclass cache)))
+        (py-getattribute-from-module-cache obj cache))
+    (else
+      (py-getattribute-cached/miss obj name cache))))
+
 (define (py-getattribute-cached/miss obj name cache)
   (define (getattribute-from-getattr attribute-error)
     (getattribute-from-cls-mro-with-owner-2cont
