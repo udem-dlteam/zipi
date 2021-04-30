@@ -77,9 +77,9 @@ install-bin: zipi-dirs
 		chmod +x $(ZIPIBINDIR)/$$file; \
 		done;
 	rm -rf $(ZIPIBINDIR)/pysexp
-	cp -a $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
+	cp -r $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
 	rm -rf $(ZIPIDEPDIR)
-	cp -aT $(BUILDDEPDIR) $(ZIPIDEPDIR)
+	cp -r $(BUILDDEPDIR) $(ZIPIDEPDIR)
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
 

@@ -2,7 +2,8 @@ do.gambit:
 	echo "TODO do.gambit"
 
 install.gambit:
-	cp -aT $(BUILDZPCDIR) $(ZIPIZPCDIR)
+	rm -rf $(ZIPIZPCDIR)
+	cp -r $(BUILDZPCDIR) $(ZIPIZPCDIR)
 
 clean.gambit:
 
