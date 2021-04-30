@@ -334,4 +334,6 @@ for file in bin/zipi bin/zipi.gambit bin/zipi-compile-and-run.gambit bin/zipi.bi
 done
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
-cp -aT etc/pysexp bin/pysexp
+
+rm -rf $buildbindir/pysexp
+cp -r $buildetcdir/pysexp $buildbindir/pysexp
