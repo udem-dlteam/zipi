@@ -1385,9 +1385,6 @@
   (define unary-truthiness-ops-with-behaviors
     '(test truth))
 
-  (define partial-1/3-ops-with-behaviors
-    '(descriptor-get))
-
   (define (test-op->cmp-op op)
     (case op
       ((test-eq) 'eq)
@@ -1455,20 +1452,6 @@
           (symbol->string type)
           "X-fallback"))))
 
-  (define (get-partial-1/3-behavior-name op type)
-    (if (eq? type 'default)
-      ;; use the full semantics
-      (string->symbol
-          (string-append "py-" (symbol->string op) "-fallback"))
-      ;; use a behavior
-      (string->symbol
-        (string-append
-          "py-"
-          (symbol->string op)
-          "-"
-          (symbol->string type)
-          "X-fallback"))))
-
   (define (make-binary-behaviors-list op)
     (let lhs-loop ((lhs-types types-with-specialized-behaviors))
       (if (null? lhs-types)
@@ -1494,14 +1477,6 @@
         '()
         (cons
           (get-unary-truthiness-behavior-name op (caar types))
-          (loop (cdr types))))))
-
-  (define (make-partial-1/3-behaviors-list op)
-    (let loop ((types types-with-specialized-behaviors))
-      (if (null? types)
-        '()
-        (cons
-          (get-partial-1/3-behavior-name op (caar types))
           (loop (cdr types))))))
 
   (define (get-behavior-call-fallback-name op)
@@ -1532,10 +1507,6 @@
     `(define (,(get-behavior-call-fallback-name op) x)
         ($py-unary-behavior-call ,op x)))
 
-  (define (get-partial-1/3-behavior-call-fallback op)
-    `(define (,(get-behavior-call-fallback-name op) x y z)
-        ($py-partial-1/3-behavior-call ,op x y z)))
-
   (define (make-init-table-code ops behaviors-list-maker)
     (if (null? ops)
       '()
@@ -1550,8 +1521,7 @@
           (append
             (make-init-table-code binary-ops-with-behaviors make-binary-behaviors-list)
             (make-init-table-code unary-ops-with-behaviors make-unary-behaviors-list)
-            (make-init-table-code unary-truthiness-ops-with-behaviors make-unary-truthiness-behaviors-list)
-            (make-init-table-code partial-1/3-ops-with-behaviors make-partial-1/3-behaviors-list)))
+            (make-init-table-code unary-truthiness-ops-with-behaviors make-unary-truthiness-behaviors-list)))
         (behavior-call-fallbacks
           (append
             (let loop ((ops binary-ops-with-behaviors))
@@ -1575,14 +1545,6 @@
                       (unary-behavior-call-fallback (get-unary-behavior-call-fallback op)))
                   (cons
                     unary-behavior-call-fallback
-                    (loop (cdr ops))))))
-            (let loop ((ops partial-1/3-ops-with-behaviors))
-              (if (null? ops)
-                '()
-                (let* ((op (car ops))
-                      (partial-1/3-behavior-call-fallback (get-partial-1/3-behavior-call-fallback op)))
-                  (cons
-                    partial-1/3-behavior-call-fallback
                     (loop (cdr ops)))))))))
     `(begin
         ,@tables-init-code
@@ -1614,11 +1576,6 @@
     `(vector-ref ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index))))
 
 (define-macro (py-unary-behavior-ref op index)
-  (let ((behavior-table-name
-          (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
-    `(vector-ref ,behavior-table-name ,index)))
-
-(define-macro (py-partial-1/3-behavior-ref op index)
   (let ((behavior-table-name
           (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-ref ,behavior-table-name ,index)))
@@ -1655,21 +1612,6 @@
         ,op
         (py-obj-class-index $lhs))
         $lhs)))
-
-(define-macro (py-partial-1/3-behavior-call op lhs y z)
-  (let ((behavior-call-fallback-name
-          (string->symbol
-            (string-append "py-" (symbol->string op) "-behavior-call-fallback"))))
-    `(py-if-enable-inline-behavior-dispatch
-        ($py-partial-1/3-behavior-call ,op ,lhs ,y, z)
-        (,behavior-call-fallback-name ,lhs ,y ,z))))
-
-(define-macro ($py-partial-1/3-behavior-call op lhs y z)
-  `(let (($lhs ,lhs))
-      ((py-partial-1/3-behavior-ref
-        ,op
-        (py-obj-class-index $lhs))
-        $lhs ,y ,z)))
 
 (define-macro (py-binary-behavior-call-with-lhs-index op lhs-index lhs rhs)
   (let ((behavior-call-fallback-name
@@ -1768,26 +1710,6 @@
             (else
              (py-unary-behavior-call ,op $x))))
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x)))
-
-;; dispatch of semantics with 3 arguments where we dispatch only on the 1st argument type
-(define-macro (py-specialized-partial-1/3-dispatch op x y z)
-  `(with-class-indices-info $py-specialized-partial-1/3-dispatch ,op ,x ,y ,z))
-
-(define-macro ($py-specialized-partial-1/3-dispatch indices-info op x y z)
-  (define sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-inline")))
-  (define float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-inline")))
-
-  (let ((x-sym (gensym 'x)) (y-sym (gensym 'y)) (z-sym (gensym 'z)))
-    `(let ((,x-sym ,x) (,y-sym ,y) (,z-sym ,z))
-      (py-if-enable-behaviors-optimization
-        (cond
-          ((py-if-specialized-sint-representation (fixnum? ,x-sym) #f)
-            (,sint-op ,x-sym ,y-sym ,z-sym))
-          ((py-if-specialized-float-representation (flonum? ,x-sym) #f)
-            (,float-op ,x-sym ,y-sym ,z-sym))
-          (else
-            (py-partial-1/3-behavior-call ,op ,x-sym ,y-sym ,z-sym)))
-        (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x-sym ,y-sym ,z-sym)))))
 
 (define-macro (py-add x y)
   (if (and (pair? x) (memq (car x) '(& &&)) (pair? y) (memq (car y) '(& &&)))
@@ -2124,4 +2046,4 @@
   `(py-exit-fallback ,obj ,exc))
 
 (define-macro (py-descriptor-get attr instance owner)
-  `(py-specialized-partial-1/3-dispatch descriptor-get ,attr ,instance ,owner))
+  `(py-descriptor-get-fallback ,attr ,instance ,owner))
