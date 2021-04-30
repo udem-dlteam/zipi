@@ -1253,17 +1253,17 @@
             ;; WARNING: type must be ordered by class-index and only one
             ;; type by index can have has-specialized-behavior set to #t
 
-            ;; name   class-index     has-specialized-behavior
-          '((default       0                  #t)
-            (type          0                  #f)
-            (object        0                  #f)
-            (tuple         0                  #f)
-            (sint          1                  #t) ;; is a sint index necessary?
-            (bint          2                  #t)
-            (bool          3                  #t)
-            (float         4                  #t)
-            (str           5                  #t)
-            (function      6                  #t))))
+            ;; name   class-index  has-arithmetic-behavior   can-have-getter
+          '((default       0               #t                   #t)
+            (type          0               #f                   #f)
+            (object        0               #f                   #f)
+            (tuple         0               #f                   #f)
+            (sint          1               #t                   #f) ;; is a sint index necessary?
+            (bint          2               #t                   #f)
+            (bool          3               #t                   #f)
+            (float         4               #t                   #f)
+            (str           5               #t                   #f)
+            (function      6               #f                   #t))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -1329,24 +1329,27 @@
         ,pre-bootstrap-class
         ,@attrs)
     `(with-class-indices-info
-      $py-make-builtin-class-with-class-index-info
+      $py-make-builtin-class-with-class-info
       ,name
       ,module
       ,bases
       ,hclass-of-instances
       ,@attrs))))
 
-(define-macro ($py-make-builtin-class-with-class-index-info indices-info name module bases hclass-of-instances . attrs)
-  (define (get-class-index-by-name name-symbol)
-    (if (eq? name-symbol 'int)
-      (cadr (assq 'bint indices-info))
-      (let ((res (assq name-symbol indices-info)))
-        (if res (cadr res) (cadr (assq 'default indices-info))))))
+(define-macro ($py-make-builtin-class-with-class-info indices-info name module bases hclass-of-instances . attrs)
+  (define (get-class-info-by-name name-symbol)
+    (let ((class-info
+            (if (eq? name-symbol 'int)
+              (assq 'bint indices-info)
+              (or (assq name-symbol indices-info) (assq 'default indices-info)))))
+      (list
+        (cadr class-info) ;; class-index
+        (caddr class-info)))) ;; can-have-getter
 
   (if (and (pair? name) (memq (car name) '(& &&)))
     (let* ((name-value (cadr name))
-           (class-index (get-class-index-by-name (string->symbol name-value))))
-      `(py-make-builtin-class-with-class-index ,class-index ,name ,module ,bases ,hclass-of-instances ,@attrs))
+           (class-info (get-class-info-by-name (string->symbol name-value))))
+      `(py-make-builtin-class-with-class-info ,@class-info ,name ,module ,bases ,hclass-of-instances ,@attrs))
     (error "py-make-builtin-class" "name argument must be a static PyObjectStr" name)))
 
 (define-macro (init-behavior-dispatch-vector)
@@ -1384,9 +1387,6 @@
 
   (define unary-truthiness-ops-with-behaviors
     '(test truth))
-
-  (define partial-1/3-ops-with-behaviors
-    '(descriptor-get))
 
   (define (test-op->cmp-op op)
     (case op
@@ -1455,20 +1455,6 @@
           (symbol->string type)
           "X-fallback"))))
 
-  (define (get-partial-1/3-behavior-name op type)
-    (if (eq? type 'default)
-      ;; use the full semantics
-      (string->symbol
-          (string-append "py-" (symbol->string op) "-fallback"))
-      ;; use a behavior
-      (string->symbol
-        (string-append
-          "py-"
-          (symbol->string op)
-          "-"
-          (symbol->string type)
-          "X-fallback"))))
-
   (define (make-binary-behaviors-list op)
     (let lhs-loop ((lhs-types types-with-specialized-behaviors))
       (if (null? lhs-types)
@@ -1494,14 +1480,6 @@
         '()
         (cons
           (get-unary-truthiness-behavior-name op (caar types))
-          (loop (cdr types))))))
-
-  (define (make-partial-1/3-behaviors-list op)
-    (let loop ((types types-with-specialized-behaviors))
-      (if (null? types)
-        '()
-        (cons
-          (get-partial-1/3-behavior-name op (caar types))
           (loop (cdr types))))))
 
   (define (get-behavior-call-fallback-name op)
@@ -1532,10 +1510,6 @@
     `(define (,(get-behavior-call-fallback-name op) x)
         ($py-unary-behavior-call ,op x)))
 
-  (define (get-partial-1/3-behavior-call-fallback op)
-    `(define (,(get-behavior-call-fallback-name op) x y z)
-        ($py-partial-1/3-behavior-call ,op x y z)))
-
   (define (make-init-table-code ops behaviors-list-maker)
     (if (null? ops)
       '()
@@ -1550,8 +1524,7 @@
           (append
             (make-init-table-code binary-ops-with-behaviors make-binary-behaviors-list)
             (make-init-table-code unary-ops-with-behaviors make-unary-behaviors-list)
-            (make-init-table-code unary-truthiness-ops-with-behaviors make-unary-truthiness-behaviors-list)
-            (make-init-table-code partial-1/3-ops-with-behaviors make-partial-1/3-behaviors-list)))
+            (make-init-table-code unary-truthiness-ops-with-behaviors make-unary-truthiness-behaviors-list)))
         (behavior-call-fallbacks
           (append
             (let loop ((ops binary-ops-with-behaviors))
@@ -1575,14 +1548,6 @@
                       (unary-behavior-call-fallback (get-unary-behavior-call-fallback op)))
                   (cons
                     unary-behavior-call-fallback
-                    (loop (cdr ops))))))
-            (let loop ((ops partial-1/3-ops-with-behaviors))
-              (if (null? ops)
-                '()
-                (let* ((op (car ops))
-                      (partial-1/3-behavior-call-fallback (get-partial-1/3-behavior-call-fallback op)))
-                  (cons
-                    partial-1/3-behavior-call-fallback
                     (loop (cdr ops)))))))))
     `(begin
         ,@tables-init-code
@@ -1614,11 +1579,6 @@
     `(vector-ref ,behavior-table-name (get-behavior-index ,lhs-index ,rhs-index))))
 
 (define-macro (py-unary-behavior-ref op index)
-  (let ((behavior-table-name
-          (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
-    `(vector-ref ,behavior-table-name ,index)))
-
-(define-macro (py-partial-1/3-behavior-ref op index)
   (let ((behavior-table-name
           (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table"))))
     `(vector-ref ,behavior-table-name ,index)))
@@ -1655,21 +1615,6 @@
         ,op
         (py-obj-class-index $lhs))
         $lhs)))
-
-(define-macro (py-partial-1/3-behavior-call op lhs y z)
-  (let ((behavior-call-fallback-name
-          (string->symbol
-            (string-append "py-" (symbol->string op) "-behavior-call-fallback"))))
-    `(py-if-enable-inline-behavior-dispatch
-        ($py-partial-1/3-behavior-call ,op ,lhs ,y, z)
-        (,behavior-call-fallback-name ,lhs ,y ,z))))
-
-(define-macro ($py-partial-1/3-behavior-call op lhs y z)
-  `(let (($lhs ,lhs))
-      ((py-partial-1/3-behavior-ref
-        ,op
-        (py-obj-class-index $lhs))
-        $lhs ,y ,z)))
 
 (define-macro (py-binary-behavior-call-with-lhs-index op lhs-index lhs rhs)
   (let ((behavior-call-fallback-name
@@ -1768,26 +1713,6 @@
             (else
              (py-unary-behavior-call ,op $x))))
     (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x)))
-
-;; dispatch of semantics with 3 arguments where we dispatch only on the 1st argument type
-(define-macro (py-specialized-partial-1/3-dispatch op x y z)
-  `(with-class-indices-info $py-specialized-partial-1/3-dispatch ,op ,x ,y ,z))
-
-(define-macro ($py-specialized-partial-1/3-dispatch indices-info op x y z)
-  (define sint-op (string->symbol (string-append "py-" (symbol->string op) "-sintX-inline")))
-  (define float-op (string->symbol (string-append "py-" (symbol->string op) "-floatX-inline")))
-
-  (let ((x-sym (gensym 'x)) (y-sym (gensym 'y)) (z-sym (gensym 'z)))
-    `(let ((,x-sym ,x) (,y-sym ,y) (,z-sym ,z))
-      (py-if-enable-behaviors-optimization
-        (cond
-          ((py-if-specialized-sint-representation (fixnum? ,x-sym) #f)
-            (,sint-op ,x-sym ,y-sym ,z-sym))
-          ((py-if-specialized-float-representation (flonum? ,x-sym) #f)
-            (,float-op ,x-sym ,y-sym ,z-sym))
-          (else
-            (py-partial-1/3-behavior-call ,op ,x-sym ,y-sym ,z-sym)))
-        (,(string->symbol (string-append "py-" (symbol->string op) "-fallback")) ,x-sym ,y-sym ,z-sym)))))
 
 (define-macro (py-add x y)
   (if (and (pair? x) (memq (car x) '(& &&)) (pair? y) (memq (car y) '(& &&)))
@@ -2124,4 +2049,14 @@
   `(py-exit-fallback ,obj ,exc))
 
 (define-macro (py-descriptor-get attr instance owner)
-  `(py-specialized-partial-1/3-dispatch descriptor-get ,attr ,instance ,owner))
+  `(let* (($attr ,attr)
+         ($instance ,instance)
+         ($owner ,owner)
+         ($cls (py-obj-cls ,attr)))
+    (cond
+      ((not (PyObjectType-can-have-getter $cls))
+        $attr) ;; this covers the case fixnum/flonum
+      ((PyObjectFunction? $attr)
+        (py-descriptor-get-functionX-inline $attr $instance $owner))
+      (else
+        (py-descriptor-get-fallback $attr $instance $owner)))))

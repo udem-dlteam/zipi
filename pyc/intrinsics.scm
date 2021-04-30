@@ -720,7 +720,7 @@
   ;;unary
   (sint) (float)
   ;; descriptor
-  (sint #f #f) (float #f #f)))
+  (sint #f #f) (float #f #f) (function #f #f)))
 
 (define (is-inlined-semantics name)
   (not (not

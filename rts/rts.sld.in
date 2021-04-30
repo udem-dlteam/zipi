@@ -502,8 +502,8 @@
 
     py-make-class
     py-make-builtin-class
-    $py-make-builtin-class-with-class-index-info
-    py-make-builtin-class-with-class-index
+    $py-make-builtin-class-with-class-info
+    py-make-builtin-class-with-class-info
     py-extend-builtin-core-class
 
     with-class-indices-info
@@ -680,6 +680,7 @@
     py-function-class
     PyObjectFunction-arity
     PyObjectFunction-procedure
+    PyObjectFunction?
 
     PyObjectFunctionArity0?
     PyObjectFunctionArity1?
@@ -717,6 +718,7 @@
     global-cell-get-val
     global-cell-getter-get
     PyObjectType-class-index
+    PyObjectType-can-have-getter
     py-int-class
     py-bool-class
     py-float-class

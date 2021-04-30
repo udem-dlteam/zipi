@@ -1586,9 +1586,13 @@
         probably-builtin-non-class-priority))
 
     (define (guess-access-type-no-origin obj field)
-      (if (memq field probably-mro-fields)
-        probably-mro-priority
-        (guess-access-type-from-usage obj field)))
+      (cond
+        ((memq field probably-mro-fields)
+          probably-mro-priority)
+        ((eq? field '__name__)
+          '(type object module)) ;; usually on types, function or modules
+        (else
+          (guess-access-type-from-usage obj field))))
 
     (define (guess-access-type-from-usage obj field)
       (let ((usage (PycAccess-usage this)))

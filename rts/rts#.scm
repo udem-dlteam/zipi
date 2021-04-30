@@ -167,6 +167,7 @@
   (mro unprintable:)
   (hclass-of-instances unprintable:)
   (is-builtin unprintable:)
+  can-have-getter
   (magic-attrs unprintable:))
 
 (define-type-of-PyObject PyObjectModule
