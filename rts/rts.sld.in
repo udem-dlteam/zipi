@@ -502,8 +502,8 @@
 
     py-make-class
     py-make-builtin-class
-    $py-make-builtin-class-with-class-index-info
-    py-make-builtin-class-with-class-index
+    $py-make-builtin-class-with-class-info
+    py-make-builtin-class-with-class-info
     py-extend-builtin-core-class
 
     with-class-indices-info

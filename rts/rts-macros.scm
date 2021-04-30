@@ -1253,17 +1253,17 @@
             ;; WARNING: type must be ordered by class-index and only one
             ;; type by index can have has-specialized-behavior set to #t
 
-            ;; name   class-index     has-specialized-behavior
-          '((default       0                  #t)
-            (type          0                  #f)
-            (object        0                  #f)
-            (tuple         0                  #f)
-            (sint          1                  #t) ;; is a sint index necessary?
-            (bint          2                  #t)
-            (bool          3                  #t)
-            (float         4                  #t)
-            (str           5                  #t)
-            (function      6                  #t))))
+            ;; name   class-index  has-arithmetic-behavior   can-have-getter
+          '((default       0               #t                   #t)
+            (type          0               #f                   #f)
+            (object        0               #f                   #f)
+            (tuple         0               #f                   #f)
+            (sint          1               #t                   #f) ;; is a sint index necessary?
+            (bint          2               #t                   #f)
+            (bool          3               #t                   #f)
+            (float         4               #t                   #f)
+            (str           5               #t                   #f)
+            (function      6               #f                   #t))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -1329,24 +1329,27 @@
         ,pre-bootstrap-class
         ,@attrs)
     `(with-class-indices-info
-      $py-make-builtin-class-with-class-index-info
+      $py-make-builtin-class-with-class-info
       ,name
       ,module
       ,bases
       ,hclass-of-instances
       ,@attrs))))
 
-(define-macro ($py-make-builtin-class-with-class-index-info indices-info name module bases hclass-of-instances . attrs)
-  (define (get-class-index-by-name name-symbol)
-    (if (eq? name-symbol 'int)
-      (cadr (assq 'bint indices-info))
-      (let ((res (assq name-symbol indices-info)))
-        (if res (cadr res) (cadr (assq 'default indices-info))))))
+(define-macro ($py-make-builtin-class-with-class-info indices-info name module bases hclass-of-instances . attrs)
+  (define (get-class-info-by-name name-symbol)
+    (let ((class-info
+            (if (eq? name-symbol 'int)
+              (assq 'bint indices-info)
+              (or (assq name-symbol indices-info) (assq 'default indices-info)))))
+      (list
+        (cadr class-info) ;; class-index
+        (caddr class-info)))) ;; can-have-getter
 
   (if (and (pair? name) (memq (car name) '(& &&)))
     (let* ((name-value (cadr name))
-           (class-index (get-class-index-by-name (string->symbol name-value))))
-      `(py-make-builtin-class-with-class-index ,class-index ,name ,module ,bases ,hclass-of-instances ,@attrs))
+           (class-info (get-class-info-by-name (string->symbol name-value))))
+      `(py-make-builtin-class-with-class-info ,@class-info ,name ,module ,bases ,hclass-of-instances ,@attrs))
     (error "py-make-builtin-class" "name argument must be a static PyObjectStr" name)))
 
 (define-macro (init-behavior-dispatch-vector)

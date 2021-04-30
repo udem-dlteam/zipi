@@ -426,7 +426,7 @@
 
 ;; type allocation
 
-(define (py-type-alloc metaclass class-index bases mro hclass-of-instance)
+(define (py-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
   (make-PyObjectType
     (make-HClass '#() '()) ;; each type has its own hclass for attribute caching purpose
     '#()
@@ -435,12 +435,16 @@
     bases
     mro
     hclass-of-instance
-    #f
+    #f ;; is-builtin
+    can-have-getter
     (make-vector magic-attrs-length #f)))
 
-(define (py-builtin-type-alloc metaclass class-index bases mro hclass-of-instance)
-  (make-still-copy
-    (py-type-alloc metaclass class-index bases mro hclass-of-instance)))
+(define (py-builtin-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
+  (let ((cls
+          (make-still-copy
+            (py-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance))))
+    (PyObjectType-is-builtin-set! cls #t)
+    cls))
 
 (define (py-dict-alloc ordered-table)
   (make-PyObjectDict
@@ -2406,6 +2410,7 @@
           (py-builtin-type-alloc
             #f ;; cls
             (get-behavior-type-index type)
+            #f ;; can-have-getter
             #f ;; bases
             #f ;; mro
             #f)) ;; NOTE: this is ok! each type should have a different hclass for attribute caching purpose
@@ -2414,6 +2419,7 @@
           (py-builtin-type-alloc
             #f ;; cls
             (get-behavior-type-index object)
+            #f ;; can-have-getter
             #f ;; bases
             #f ;; mro
             py-object-hclass-of-instances))
@@ -2421,6 +2427,7 @@
           (py-builtin-type-alloc
             #f ;; cls
             (get-behavior-type-index str)
+            #f ;; can-have-getter
             #f ;; bases
             #f ;; mro
             py-str-hclass-of-instances))
@@ -2428,6 +2435,7 @@
           (py-builtin-type-alloc
             #f ;; cls
             (get-behavior-type-index tuple)
+            #f ;; can-have-getter
             #f ;; bases
             #f ;; mro
             py-tuple-hclass-of-instances)))
@@ -2529,13 +2537,13 @@
       (cons (reverse rev-attr-names) (reverse rev-attr-values)))))
 
 
-(define (py-make-class-from-type-allocator class-index name module bases type-allocator attrs)
+(define (py-make-class-from-type-allocator class-index can-have-getter name module bases type-allocator attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
             (if (null? bases)
               (vector py-object-class)
               (list->vector bases)))
-           (cls (type-allocator py-type-class class-index bases-vect #f #f)))
+           (cls (type-allocator py-type-class class-index can-have-getter bases-vect #f #f)))
       (PyObjectType-mro-set! cls (py-compute-mro cls))
       ;; NOTE: objects for different classes MUST have different classes for attributes caching
       (PyObjectType-hclass-of-instances-set!
@@ -2557,12 +2565,12 @@
       (make-cls (car parsed-attrs) (cdr parsed-attrs))))
 
 (define (py-make-class name module bases . attrs)
-  (py-make-class-from-type-allocator (get-behavior-type-index default) name module bases py-type-alloc attrs))
+  (py-make-class-from-type-allocator (get-behavior-type-index default) #t name module bases py-type-alloc attrs))
 
-(define (py-make-builtin-class-with-class-index class-index name module bases hclass-of-instances . attrs)
+(define (py-make-builtin-class-with-class-info class-index can-have-getter name module bases hclass-of-instances . attrs)
   (let ((cls
           (py-make-class-from-type-allocator
-            class-index name module bases py-builtin-type-alloc attrs)))
+            class-index can-have-getter name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
 
@@ -5036,6 +5044,7 @@
             (py-builtin-type-alloc
                 py-type-class
                 (get-behavior-type-index bint)
+                #f ;; can-have-getter
                 (vector py-object-class) ;; bases
                 #f ;; mro
                 py-int-hclass-of-instances))
@@ -5043,6 +5052,7 @@
               (py-builtin-type-alloc
                   py-type-class
                   (get-behavior-type-index bool)
+                  #f ;; can-have-getter
                   (vector py-object-class) ;; bases
                   #f ;; mro
                   py-int-hclass-of-instances))
@@ -5050,6 +5060,7 @@
               (py-builtin-type-alloc
                   py-type-class
                   (get-behavior-type-index float)
+                  #f ;; can-have-getter
                   (vector py-object-class) ;; bases
                   #f ;; mro
                   py-int-hclass-of-instances))
@@ -5057,6 +5068,7 @@
               (py-builtin-type-alloc
                  py-type-class
                  (get-behavior-type-index function)
+                 #t ;; can-have-getter
                  (vector py-object-class) ;; bases
                  #f ;; mro
                  py-function-hclass-of-instances)))
