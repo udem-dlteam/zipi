@@ -56,14 +56,14 @@
 				     (new-PycReturn ifloc
 					(new-PycCallKont ifloc
 					   (new-PycRef ifloc kdecl 'Load
-					      :can-direct-access #t))))))
+					      can-direct-access: #t))))))
 		     this k)))
 	 (cps iftest
 	    (KontExpr (lambda (ktest)
 			 (new-PycBlock ifloc
 			    (list (new-PycAssig ifloc
 				     (new-PycRef ifloc kdecl 'Store
-					:can-direct-access #t)
+					can-direct-access: #t)
 				     (new-PycNone ifloc #f)))
 			    (new-PycIf ifloc
 			       ktest
@@ -130,25 +130,25 @@
 	  (kcall k this)))))
 
 (define-walk-method (cps this::PycYield k pack kbreaks kcontinues ktry fun)
-   
+
    (define (make-yield-kont k loc)
       (let* ((arg (new-PycVar loc (gensym '%arg) 'local))
 	     (exn (new-PycVar loc (gensym '%exn) 'local))
-	     (body (kcall k (new-PycRef loc arg 'Store :can-direct-access #t)))
+	     (body (kcall k (new-PycRef loc arg 'Store can-direct-access: #t)))
 	     (cont (new-PycIf loc
 		      (new-PycBinary loc 'is
-			 (new-PycRef loc exn 'Load :can-direct-access #t)
+			 (new-PycRef loc exn 'Load can-direct-access: #t)
 			 (new-PycBool loc #t)
 			 type: 'bool)
 		      (new-PycRaise loc
-			 (new-PycRef loc arg 'Load :can-direct-access #t)
+			 (new-PycRef loc arg 'Load can-direct-access: #t)
 			 (new-PycUninit loc))
 		      body)))
 	 (new-PycKont loc
-	    (list (new-PycRef loc arg 'Store :can-direct-access #t)
-	       (new-PycRef loc exn 'Store :can-direct-access #t))
+	    (list (new-PycRef loc arg 'Store can-direct-access: #t)
+	       (new-PycRef loc exn 'Store can-direct-access: #t))
 	    (pack cont))))
-   
+
    (let* ((loc (PycNode-loc this))
 	  (val (PycYield-val this))
 	  (gen (PycYield-generator this))
@@ -170,7 +170,7 @@
 			  (if ktry
 			      '(new-PycTail loc
 				(new-PycCall loc
-				   (new-PycRef loc ktry :can-direct-access #t)
+				   (new-PycRef loc ktry can-direct-access: #t)
 				   (PycBool #t)
 				   kexpr))
 			      (new-PycReturnYield loc kexpr
