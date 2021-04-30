@@ -2049,4 +2049,14 @@
   `(py-exit-fallback ,obj ,exc))
 
 (define-macro (py-descriptor-get attr instance owner)
-  `(py-descriptor-get-fallback ,attr ,instance ,owner))
+  `(let* (($attr ,attr)
+         ($instance ,instance)
+         ($owner ,owner)
+         ($cls (py-obj-cls ,attr)))
+    (cond
+      ((not (PyObjectType-can-have-getter $cls))
+        $attr) ;; this covers the case fixnum/flonum
+      ((PyObjectFunction? $attr)
+        (py-descriptor-get-functionX-inline $attr $instance $owner))
+      (else
+        (py-descriptor-get-fallback $attr $instance $owner)))))
