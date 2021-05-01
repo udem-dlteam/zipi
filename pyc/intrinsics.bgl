@@ -1,11 +1,25 @@
+;*=====================================================================*/
+;*    serrano/prgm/project/zipi/pyc/intrinsics.bgl                     */
+;*    -------------------------------------------------------------    */
+;*    Author      :  Manuel Serrano                                    */
+;*    Creation    :  Mon Apr 26 09:26:05 2021                          */
+;*    Last change :                                                    */
+;*    Copyright   :  2021 Manuel Serrano                               */
+;*    -------------------------------------------------------------    */
+;*    Intrinsics stage handles Zipi Python decorators.                 */
+;*=====================================================================*/
+
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
 (module __pyc_intrinsics
-
+   
    (include "ast.sch"
-      "new.sch"
+	    "new.sch"
 	    "walk.sch")
-
+   
    (import __pyc_dump
 	   __pyc_ast
 	   __pyc_utils)
-
+   
    (export (pyc-intrinsics this::PycNode conf)))

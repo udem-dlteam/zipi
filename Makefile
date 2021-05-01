@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Sat May 23 09:05:31 2020 (serrano)                */
+#*    Last change :  Sat Apr 24 16:54:06 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -130,6 +130,13 @@ distclean: clean
 	rm -rf venv
 	rm -f bin/pysexp_script.py
 	rm -rf bin/pysexp
+	rm -f bin/zipi
+	rm -f bin/zipi.bigloo
+	rm -f bin/zipi.gambit
+	rm -f bin/zpc
+	rm -f bin/zpc.bigloo.sh
+	rm -f bin/zpc.gambit
+	rm -f bin/zipi-compile-and-run.gambit
 
 cleanall: distclean
 
