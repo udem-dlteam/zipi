@@ -29,7 +29,7 @@
 
 ;; (new-PycReturnYield loc val kont #!key (%info #f) (need-return #f) (generator #f))
 (define-inline (new-PycReturnYield loc val kont #!key (%info #f) (need-return #f) (generator #f))
-   (make-PycReturnYield loc %info need-return val generator kont))
+   (make-PycReturnYield loc %info need-return val kont generator))
 
 ;; (new-PycDelete loc expr #!key (%info #f) (need-return #f))
 (define-inline (new-PycDelete loc expr #!key (%info #f) (need-return #f))

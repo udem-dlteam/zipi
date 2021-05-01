@@ -72,8 +72,8 @@
 
       (class PycReturnYield::PycStmt
 	 (val::PycExpr (info '("ast")))
-	 (generator::bool read-only (default #f))
-	 (kont::PycExpr (info '("ast"))))
+	 (kont::PycKont (info '("ast")))
+   (generator::bool read-only (default #f)))
 
       (class PycDelete::PycStmt
 	 expr::PycExpr)

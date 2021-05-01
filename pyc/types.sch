@@ -150,12 +150,12 @@
 ;; PycReturnYield
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycReturnYield::PycReturnYield loc2003::pair %info2004::obj need-return2005::bool val2006::PycExpr generator2007::bool kont2008::PycExpr)
+    (inline make-PycReturnYield::PycReturnYield loc2003::pair %info2004::obj need-return2005::bool val2006::PycExpr kont2007::PycKont generator2008::bool)
     (inline PycReturnYield?::bool ::obj)
     (PycReturnYield-nil::PycReturnYield)
-    (inline PycReturnYield-kont::PycExpr ::PycReturnYield)
-    (inline PycReturnYield-kont-set! ::PycReturnYield ::PycExpr)
     (inline PycReturnYield-generator::bool ::PycReturnYield)
+    (inline PycReturnYield-kont::PycKont ::PycReturnYield)
+    (inline PycReturnYield-kont-set! ::PycReturnYield ::PycKont)
     (inline PycReturnYield-val::PycExpr ::PycReturnYield)
     (inline PycReturnYield-val-set! ::PycReturnYield ::PycExpr)
     (inline PycReturnYield-need-return::bool ::PycReturnYield)
@@ -1278,13 +1278,13 @@
 (define-inline (PycReturn-loc-set! o::PycReturn v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycReturnYield
-(define-inline (make-PycReturnYield::PycReturnYield loc2003::pair %info2004::obj need-return2005::bool val2006::PycExpr generator2007::bool kont2008::PycExpr) (instantiate::PycReturnYield (loc loc2003) (%info %info2004) (need-return need-return2005) (val val2006) (generator generator2007) (kont kont2008)))
+(define-inline (make-PycReturnYield::PycReturnYield loc2003::pair %info2004::obj need-return2005::bool val2006::PycExpr kont2007::PycKont generator2008::bool) (instantiate::PycReturnYield (loc loc2003) (%info %info2004) (need-return need-return2005) (val val2006) (kont kont2007) (generator generator2008)))
 (define-inline (PycReturnYield?::bool obj::obj) ((@ isa? __object) obj (@ PycReturnYield __pyc_ast)))
 (define (PycReturnYield-nil::PycReturnYield) (class-nil (@ PycReturnYield __pyc_ast)))
-(define-inline (PycReturnYield-kont::PycExpr o::PycReturnYield) (-> |#!bigloo_wallow| o kont))
-(define-inline (PycReturnYield-kont-set! o::PycReturnYield v::PycExpr) (set! (-> |#!bigloo_wallow| o kont) v))
 (define-inline (PycReturnYield-generator::bool o::PycReturnYield) (-> |#!bigloo_wallow| o generator))
 (define-inline (PycReturnYield-generator-set! o::PycReturnYield v::bool) (set! (-> |#!bigloo_wallow| o generator) v))
+(define-inline (PycReturnYield-kont::PycKont o::PycReturnYield) (-> |#!bigloo_wallow| o kont))
+(define-inline (PycReturnYield-kont-set! o::PycReturnYield v::PycKont) (set! (-> |#!bigloo_wallow| o kont) v))
 (define-inline (PycReturnYield-val::PycExpr o::PycReturnYield) (-> |#!bigloo_wallow| o val))
 (define-inline (PycReturnYield-val-set! o::PycReturnYield v::PycExpr) (set! (-> |#!bigloo_wallow| o val) v))
 (define-inline (PycReturnYield-need-return::bool o::PycReturnYield) (-> |#!bigloo_wallow| o need-return))
