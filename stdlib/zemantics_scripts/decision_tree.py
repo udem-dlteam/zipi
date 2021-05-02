@@ -8,8 +8,6 @@ from types import ModuleType
 
 import templates
 
-import astor.code_gen
-
 # ======================================================================================================================
 #   Parameters
 # ======================================================================================================================
@@ -520,6 +518,7 @@ class Context:
             'bool': VarContext(value=StaticValue(bool)),
             'float': VarContext(value=StaticValue(float)),
             'str': VarContext(value=StaticValue(str)),
+            'function': VarContext(value=StaticValue(function)),
         }
 
         self.semantics = semantics
@@ -1045,7 +1044,7 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
     elif func_name in ctx:
         return partial_eval_local_function_call(ctx[func_name], args, ctx)
     else:
-        return partial_eval_specialize_intrinsic_function(func_name, args, ctx)
+        return partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx)
 
 
 def partial_eval_resolved_function_call(fn_ast, args, ctx):
@@ -1087,7 +1086,7 @@ def partial_eval_local_function_call(func, args, ctx):
         raise ValueError("partial evaluation call to non-function local object")
 
 
-def partial_eval_specialize_intrinsic_function(func_name, args, ctx):
+def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
     # Assume here that builtins are called with the correct number of arguments
     if func_name == "py_int_to_host":
         self = args[0]
@@ -1109,6 +1108,8 @@ def partial_eval_specialize_intrinsic_function(func_name, args, ctx):
                     return ast.Call(ast.Name("py_int_to_host", ast.Load()), args, [])
     elif func_name == "class_getattr":
         return partial_eval_class_getattr_call(args, ctx)
+    elif func_name == "alloc":
+        return partial_eval_alloc_call(args, keywords, ctx)
 
     semantics = ctx.get_semantics(func_name)
     if semantics:
@@ -1145,6 +1146,9 @@ def partial_eval_class_getattr_call(args, ctx):
     else:
         raise NotImplementedError("partial_eval_class_getattr_call: first argument must have been resolved to a name")
 
+def partial_eval_alloc_call(args, keywords, ctx):
+    # TODO: paortial eval of keywords
+    return ast.Call(ast.Name("alloc", ast.Load()), args, keywords)
 
 def convert_expr_to_return_host_bool(expr):
     if isinstance(expr, ast.Call):
@@ -1222,16 +1226,16 @@ def main_behaviors(semantics_file, builtins_file):
     define_behavior = "define_behavior"
     other_intrinsics = "py_int_from_host, py_bool_to_host_int, py_float_from_host, " \
                        "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, " \
-                       "py_bool_to_host_bool, py_str_from_host, py_str_to_host, py_str_len_to_host"
+                       "py_bool_to_host_bool, py_str_from_host, py_str_to_host, py_str_len_to_host, alloc"
 
     behavior_decorator_list = [ast.Name(f"{define_behavior}", ast.Load())]
 
     def register_behavior(name, sem, *types):
         args_names = [a.arg for a in sem.args.args]
-        annotations = [ast.Name(t, ast.Load()) for t in types]
+        annotations = [None if t is _unknown else ast.Name(t, ast.Load()) for t in types]
 
         annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
-        behavior_name = get_behavior_name(name, types)
+        behavior_name = get_behavior_name(name, [t for t in types if t is not _unknown])
         behavior_func_name = behavior_name.replace('-', '_')
 
         result_body = partial_eval(sem, semantics_register, class_register,
@@ -1260,13 +1264,18 @@ def main_behaviors(semantics_file, builtins_file):
         for type_ in types_without_int:
             register_behavior(name, un_semantics, type_)
 
+    # special case
+    for type_ in types_without_int:
+        register_behavior("descriptor_get", semantics_register["descriptor_get"], type_, _unknown, _unknown)
+
     print(f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n")
 
     for b in behaviors:
         try:
-            print(astor.code_gen.to_source(b))
+            ast.fix_missing_locations(b)
+            print(f"{ast.unparse(b)}\n")
         except Exception:
-            logging.warning(f"astor failed to generate source for: {b.name}")
+            logging.warning(f"ast.unparse failed to generate source for: {b.name}")
             raise
 
 
@@ -1278,8 +1287,9 @@ def main_behaviors(semantics_file, builtins_file):
 def get_type_alias(type_name):
     return "int" if type_name in int_specialized_types else type_name
 
+function = type(lambda: None)
 
-instances = [1, 1.0, True, "foo"]
+instances = [1, 1.0, True, "foo", lambda: None]
 types = [get_type_name(i) for i in instances]
 int_specialized_types = ['sint', 'bint']
 types += int_specialized_types
@@ -1294,7 +1304,8 @@ target_semantics = [*templates.arithmetic_info,
                     *templates.equality_info,
                     *templates.unary_arithmetic_info,
                     "truth",
-                    "test"]
+                    "test",
+                    "descriptor_get",]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")

@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
-;*    Last change :  Sun Apr 25 08:33:28 2021 (serrano)                */
+;*    Last change :  Sat May  1 14:12:17 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Scheme code generation                                           */
@@ -60,18 +60,55 @@
 ;*---------------------------------------------------------------------*/
 (define (pyc-scheme-bigloo ast conf)
    (pyc-cache! ast conf)
-   (let ((semantics (sort-semantics (collect-semantics* ast conf))))
-      (if (null? semantics)
-	  (pyc-scheme-bigloo-ast ast conf)
-	  (pyc-scheme-bigloo-zemantics semantics conf))))
+   (if (config-get conf semantics:)
+       (pyc-scheme-bigloo-semantics ast conf)
+       (pyc-scheme-bigloo-ast ast conf)))
 
 ;*---------------------------------------------------------------------*/
-;*    pyc-scheme-bigloo-zemantics ...                                  */
+;*    pyc-scheme-bigloo-semantics ...                                  */
 ;*---------------------------------------------------------------------*/
-(define (pyc-scheme-bigloo-zemantics semantics conf)
-   (let ((semantics-definitions (map cdr semantics)))
-      semantics-definitions))
+(define (pyc-scheme-bigloo-semantics ast conf)
+   (let* ((semantics (sort-semantics (collect-semantics* ast conf)))
+	  (defs (map cdr semantics))
+	  (semantics-definitions (map! macro->inline semantics))
+	  (protos (filter-map def->proto semantics-definitions)))
+      `(,(pyc-scheme-bigloo-semantics-module conf protos)
+	(start-registering-constants)
+	,@semantics-definitions)))
 
+;*---------------------------------------------------------------------*/
+;*    macro->inline ...                                                */
+;*---------------------------------------------------------------------*/
+(define (macro->inline s)
+   
+   (define (unquotify body)
+      (if (not (pair? body))
+	  body
+	  (match-case body
+	     ((unquote ?expr) (unquotify expr))
+	     ((quasiquote ?expr) (unquotify expr))
+	     (else (map (lambda (x) (unquotify x)) body)))))
+   
+   (match-case (cdr s)
+      ((define-macro ?args ?body)
+       `(define-inline ,args ,(unquotify body)))
+      (else
+       (cdr s))))
+
+;*---------------------------------------------------------------------*/
+;*    def->proto ...                                                   */
+;*---------------------------------------------------------------------*/
+(define (def->proto d)
+   (match-case d
+      ((define-inline ?args ?body)
+       `(inline ,@args))
+      ((define (?id . ?args) ?body)
+       `(,id ,@args))
+      ((define ?id ?val)
+       id)
+      (else
+       #f)))
+   
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-ast ...                                        */
 ;*---------------------------------------------------------------------*/
@@ -96,7 +133,7 @@
       	  (full-path (if (and file path) (make-file-path path file) #f)))
       
       `(;; module declaration
-	,(pyc-scheme-bigloo-module conf)
+	,(pyc-scheme-bigloo-ast-module conf)
 	(start-registering-constants)
 	,@(if (config-get conf-with-defs optim-globals:)
 	      `((define %global #f)
@@ -126,11 +163,11 @@
 			   (raise e)))
 		    (py-module
 		       (py-make-global)
-		       (py-make-caches ,(PycModule-caches ast))))))
+		       ,(scheme-make-caches ast)))))
 	    (else
 	     `(define (zipi-init name package path)
 		 (init-registered-constants)
-		 (let ((caches (py-make-caches ,(PycModule-caches ast)))
+		 (let ((caches ,(scheme-make-caches ast))
 		       (module (py-make-module
 				  (py-str-from-scheme name)
 				  (py-str-from-scheme package)
@@ -144,9 +181,25 @@
 	(end-registering-constants))))
 
 ;*---------------------------------------------------------------------*/
-;*    pyc-scheme-bigloo-module ...                                     */
+;*    pyc-scheme-bigloo-ast-module ...                                 */
 ;*---------------------------------------------------------------------*/
-(define (pyc-scheme-bigloo-module conf)
+(define (pyc-scheme-bigloo-ast-module conf)
+   (append (pyc-scheme-bigloo-module-base conf)
+      (if (config-get conf main:)
+	  '((main main))
+	  '((export (zipi-init ::bstring ::bstring ::bstring))))))
+
+;*---------------------------------------------------------------------*/
+;*    pyc-scheme-bigloo-semantics-module ...                           */
+;*---------------------------------------------------------------------*/
+(define (pyc-scheme-bigloo-semantics-module conf protos)
+   (append (pyc-scheme-bigloo-module-base conf)
+      `((export ,@protos))))
+
+;*---------------------------------------------------------------------*/
+;*    pyc-scheme-bigloo-module-base ...                                */
+;*---------------------------------------------------------------------*/
+(define (pyc-scheme-bigloo-module-base conf)
    `(module ,(string->symbol
 		(or (config-get conf module-name:)
 		    (config-get conf src:)
@@ -159,7 +212,4 @@
 	       (include "rts-macros.scm"
 		  "bigloo/call.sch"
 		  "bigloo/constants.sch"))
-	     '((library zipi)))
-       ,@(if (config-get conf main:)
-	     '((main main))
-	     '((export (zipi-init ::bstring ::bstring ::bstring))))))
+	     '((library zipi)))))

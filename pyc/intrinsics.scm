@@ -196,10 +196,10 @@
     (do-alloc 'make-PyObjectFloat '((cls py-builtin-float) value) 'py-float-hclass-of-instances))
 
   (define alloc-classmethod
-    (do-alloc 'make-PyObjectMethodWrapper '((cls py-builtin-classmethod) method) 'py-object-hclass-of-instances))
+    (do-alloc 'make-PyObjectMethodWrapper '((cls py-builtin-classmethod) method) 'py-classmethod-hclass-of-instances))
 
   (define alloc-staticmethod
-    (do-alloc 'make-PyObjectMethodWrapper '((cls py-builtin-staticmethod) method) 'py-object-hclass-of-instances))
+    (do-alloc 'make-PyObjectMethodWrapper '((cls py-builtin-staticmethod) method) 'py-staticmethod-hclass-of-instances))
 
   (define alloc-method
     (do-alloc 'make-PyObjectMethod '((cls py-method-class) self method) 'py-method-hclass-of-instances))
@@ -718,7 +718,9 @@
   ;; binary
   (sint sint) (float float) (sint float) (float sint)
   ;;unary
-  (sint) (float)))
+  (sint) (float)
+  ;; descriptor
+  (sint #f #f) (float #f #f) (function #f #f)))
 
 (define (is-inlined-semantics name)
   (not (not

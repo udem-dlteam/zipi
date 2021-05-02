@@ -3,13 +3,13 @@
 (define-inline (new-PycUnimplemented loc msg #!key (%info #f))
    (make-PycUnimplemented loc %info msg))
 
-;; (new-PycModule loc ident stmts #!key (%info #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches -1))
-(define-inline (new-PycModule loc ident stmts #!key (%info #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches -1))
+;; (new-PycModule loc ident stmts #!key (%info #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches (quote ())))
+(define-inline (new-PycModule loc ident stmts #!key (%info #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches (quote ())))
    (make-PycModule loc %info special-init version ident stmts globals global-defs caches))
 
-;; (new-PycVar loc id scope #!key (%info #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
-(define-inline (new-PycVar loc id scope #!key (%info #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
-   (make-PycVar loc %info id scope name key in-scope-of usage can-be-deleted global-only-accessed-in-module global-always-defined global-ref-to-init-def is-builtin simple-scoping-top-block cache))
+;; (new-PycVar loc id scope #!key (%info #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (assig (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
+(define-inline (new-PycVar loc id scope #!key (%info #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (assig (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
+   (make-PycVar loc %info id scope name key in-scope-of usage assig can-be-deleted global-only-accessed-in-module global-always-defined global-ref-to-init-def is-builtin simple-scoping-top-block cache))
 
 ;; (new-PycStmt loc #!key (%info #f) (need-return #f))
 (define-inline (new-PycStmt loc #!key (%info #f) (need-return #f))
@@ -119,9 +119,9 @@
 (define-inline (new-PycRefUnresolved loc id ctx #!key (%info #f) (type (quote unknown)) (cache #f))
    (make-PycRefUnresolved loc %info type id ctx cache))
 
-;; (new-PycAccess loc obj field #!key (%info #f) (type (quote unknown)) (cache #f))
-(define-inline (new-PycAccess loc obj field #!key (%info #f) (type (quote unknown)) (cache #f))
-   (make-PycAccess loc %info type obj field cache))
+;; (new-PycAccess loc obj field #!key (%info #f) (type (quote unknown)) (usage #f) (cache #f))
+(define-inline (new-PycAccess loc obj field #!key (%info #f) (type (quote unknown)) (usage #f) (cache #f))
+   (make-PycAccess loc %info type obj field usage cache))
 
 ;; (new-PycSubscript loc obj index #!key (%info #f) (type (quote unknown)) (cache #f))
 (define-inline (new-PycSubscript loc obj index #!key (%info #f) (type (quote unknown)) (cache #f))

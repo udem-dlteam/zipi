@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/hop/hop/zpc/parseargs.scm                   */
+;*    serrano/prgm/project/zipi/zpc/parseargs.scm                      */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Fri Nov 12 13:32:52 2004                          */
-;*    Last change :  Tue Jun  2 08:19:42 2020 (serrano)                */
+;*    Last change :  Sat May  1 14:11:06 2021 (serrano)                */
 ;*    Copyright   :  2004-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Hop command line parsing                                         */
@@ -124,6 +124,9 @@
 	    ((("--bootstrap") (help "Generate a bootstrap module"))
 	     (zpc-main-set! #f)
 	     (zpc-pyc-flags-set! (cons* :bootstrap #t (zpc-pyc-flags))))
+	    ((("--semantics") (help "Generate a semantics module"))
+	     (zpc-main-set! #f)
+	     (zpc-pyc-flags-set! (cons* :semantics #t (zpc-pyc-flags))))
 	    (("--toplevel-module" (help "Generate toplevel python module"))
 	     (zpc-pyc-flags-set! (cons* :toplevel-module #t (zpc-pyc-flags))))
 	    (("--no-toplevel-module" (help "Generate inside lambda python module"))

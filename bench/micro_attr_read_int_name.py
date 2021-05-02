@@ -1,4 +1,4 @@
-# micro_attr_read.py
+# micro_attr_read_int_name.py
 # Auto-generated
 
 import time

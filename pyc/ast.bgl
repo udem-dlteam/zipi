@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Sun Apr 25 07:10:09 2021 (serrano)                */
+;*    Last change :  Sat May  1 14:26:38 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -33,7 +33,7 @@
 	 stmts::pair-nil
 	 (globals::pair-nil (default '()))
 	 (global-defs::pair-nil (default '()))
-	 (caches::long (default -1)))
+	 (caches::pair-nil (default '())))
       
       ;; misc
       (class PycVar::PycNode
@@ -44,6 +44,7 @@
 	 (key::int (default (genkey)))
 	 (in-scope-of (default #f))
 	 (usage::pair-nil (default '()))
+   (assig::pair-nil (default '()))
 	 (can-be-deleted::bool (default #f))
 	 (global-only-accessed-in-module (default #f))
 	 (global-always-defined (default #f))
@@ -165,6 +166,7 @@
       (class PycAccess::PycExpr
 	 obj::PycExpr
 	 (field::obj read-only)
+   (usage (default #f))
 	 (cache (default #f)))
       
       (class PycSubscript::PycExpr

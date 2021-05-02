@@ -3,10 +3,18 @@
    (pyc-cache! ast conf)
    (scheme ast conf))
 
+(define (add-cache-to-store store kind)
+  (set-car! store (+ (car store) 1))
+  (set-cdr! store (cons kind (cdr store)))
+  (- (car store) 1))
+
 (define (pyc-cache! ast conf)
-   (let* ((cnt (make-cell 0))
-	  (caches (collect-caches ast cnt)))
-      (PycModule-caches-set! ast (cell-ref cnt))))
+  (let ((store (cons 0 '())))
+    (collect-caches ast store)
+    (PycModule-caches-set! ast (reverse (cdr store)))))
+
+(define (scheme-make-caches ast)
+  `(py-make-caches (quote (,@(PycModule-caches ast)))))
 
 (define (every? pred? lst)
   (cond
@@ -100,6 +108,10 @@
         (loop (cdr vars) acc)
         (loop (cdr vars) (cons (car vars) acc))))))
 
+(define (in-semantics? conf)
+  (let ((current-fun (memq fun: conf)))
+    (and current-fun (isa? (cadr current-fun) PycSemantics))))
+
 (define (pyc-scheme-gambit ast conf)
   (pyc-cache! ast conf)
 
@@ -166,7 +178,7 @@
 
               (define (,(or special-init 'init) name package __path__)
                 (py-init-module)
-                (let ((caches (py-make-caches ,(PycModule-caches ast)))
+                (let ((caches ,(scheme-make-caches ast))
                       (module (py-make-module name package __path__)))
                   ,(if full-path
                     `(global-put!
@@ -1401,9 +1413,137 @@
         (error "scheme::PycDelete" "only del subscript/slice are supported" this)))))
 
 (define-walk-method (scheme this::PycAccess conf)
-  (epairify this
-    `(py-getattribute ,(scheme (PycAccess-obj this) conf)
-	  ,(pyc-propname (PycAccess-field this)))))
+  ;; attributes which are likely to be methods found in the mro
+  (define probably-mro-fields
+    '(
+      ;; list methods
+      append clear copy count extend index insert pop remove reverse sort
+      ;; magic attributes
+      __add__ __radd__ __iadd__
+      __sub__ __rsub__ __isub__
+      __mul__ __rmul__ __imul__
+      __matmul__ __rmatmul__ __imatmul__
+      __truediv__ __rtruediv__ __itruediv__
+      __floordiv__ __rfloordiv__ __ifloordiv__
+      __mod__ __rmod__ __imod__
+      __divmod__ __rdivmod__
+      __pow__ __rpow__ __ipow__
+      __lshift__ __rlshift__ __ilshift__
+      __rshift__ __rrshift__ __irshift__
+      __and__ __rand__ __iand__
+      __xor__ __rxor__ __ixor__
+      __or__ __ror__ __ior__
+      __neg__ __pos__ __abs__ __invert__
+      __complex__ __int__ __float__ __index__ __bool__
+      __repr__ __str__ __bytes__ __format__
+      __round__ __trunc__ __floor__ __ceil__
+      __eq__ __ne__ __lt__ __le__ __gt__ __ge__
+      __call__
+      __get__ __set__ __delete__
+      __getattribute__ __getattr__ __setattr__
+      __getitem__ __setitem__ __delitem__ __missing__
+      __iter__ __next__ __reversed__ __contains__
+      __len__ __length_hint__
+      __hash__ __dir__
+      __new__ __init__))
+
+  ;; names which are most likely to be builtin classes
+  (define builtin-classes
+    '(ArithmeticError AssertionError AttributeError BaseException BlockingIOError BrokenPipeError BufferError BytesWarning
+      ChildProcessError ConnectionAbortedError ConnectionError ConnectionRefusedError ConnectionResetError DeprecationWarning
+      EOFError EnvironmentError Exception FileExistsError FileNotFoundError FloatingPointError FutureWarning GeneratorExit
+      IOError ImportError ImportWarning IndentationError IndexError InterruptedError IsADirectoryError KeyError KeyboardInterrupt
+      LookupError MemoryError ModuleNotFoundError NameError NotADirectoryError NotImplementedError OSError OverflowError
+      PendingDeprecationWarning PermissionError ProcessLookupError RecursionError ReferenceError ResourceWarning RuntimeError
+      RuntimeWarning StopAsyncIteration StopIteration SyntaxError SyntaxWarning SystemError SystemExit TabError TimeoutError
+      TypeError UnboundLocalError UnicodeDecodeError UnicodeEncodeError UnicodeError UnicodeTranslateError UnicodeWarning
+      UserWarning ValueError Warning ZeroDivisionError __loader__ bool bytearray bytes classmethod complex dict enumerate
+      filter float frozenset int list map memoryview object property range reversed set slice staticmethod str super tuple
+      type zip))
+
+
+  (define (guess-access-types this)
+    ;; heuristic:
+    ;; First - Try to guess what the object being accessed is, this is what yields the most information.
+    ;;         In case of variables (PycRef and PycRefUnresolved), it is sometimes possible to guess their
+    ;;         origin. For example, this is most easily done in the case of classes, builtins and imports
+    ;; Second - If the above fails, use the name of the attribute as a hint. Some names such as magic methods'
+    ;;          names or common method names such as 'append', 'pop', etc., are usually used to access a bound
+    ;;          method found in the mro
+    ;; Third  - If the above also fails, see what is being done with the attribute. Whether it is used in a
+    ;;          call, an unary or binary operation, etc. gives a hint as to its values. Function are most likely
+    ;;          found in mro/on types while numbers are most likely to be found on objects
+    ;; Fourth - If all fails, use a default priority which works as often as possible
+
+    (define default-priority '(object mro))
+    (define probably-mro-priority '(mro type))
+    (define probably-builtin-class-priority '(type))
+    (define probably-builtin-non-class-priority '(object))
+    (define probably-module-priority '(module))
+    (define probably-type-priority '(type))
+    (define callable-attribute-priority '(mro type))
+    (define arithmetic-operand-priority '(object mro type))
+
+    (define (guess-access-type-PycRef obj field)
+      (let* ((var (PycRef-decl obj))
+             (assigs (PycVar-assig var)))
+        (if (null? assigs)
+          (guess-access-type-no-origin obj field)
+          (let ((last-assig (PycAssig-rhs (car assigs)))) ;; last time this I checked this is the last syntactical assig in the file
+            (cond
+              ((isa? last-assig PycClass)
+                probably-type-priority)
+              ((isa? last-assig PycImport)
+                probably-module-priority)
+              (else
+                (guess-access-type-no-origin obj field)))))))
+
+    (define (guess-access-type-PycRefUnresolved obj field)
+      (if (memq (PycRefUnresolved-id obj) builtin-classes)
+        probably-builtin-class-priority
+        probably-builtin-non-class-priority))
+
+    (define (guess-access-type-no-origin obj field)
+      (cond
+        ((memq field probably-mro-fields)
+          probably-mro-priority)
+        ((eq? field '__name__)
+          '(type object module)) ;; usually on types, function or modules
+        (else
+          (guess-access-type-from-usage obj field))))
+
+    (define (guess-access-type-from-usage obj field)
+      (let ((usage (PycAccess-usage this)))
+        (cond
+          ((isa? usage PycCall)
+            callable-attribute-priority)
+          ((isa? usage PycBinary)
+            arithmetic-operand-priority)
+          ((isa? usage PycUnary)
+            arithmetic-operand-priority)
+          (else
+            default-priority))))
+
+    (let ((obj (PycAccess-obj this))
+          (field (PycAccess-field this)))
+      (cond
+        ((isa? obj PycRef) (guess-access-type-PycRef obj field))
+        ((isa? obj PycRefUnresolved) (guess-access-type-PycRefUnresolved obj field))
+        (else (guess-access-type-no-origin obj field)))))
+
+  (if (not (in-semantics? conf))
+    (epairify this
+      `(py-getattribute
+        ,(scheme (PycAccess-obj this) conf)
+    	  ,(pyc-propname (PycAccess-field this))
+        ,(scheme-cache (PycAccess-cache this) this)
+        ,(guess-access-types this)))
+    ;; no cache for semantics
+    ;; attributes used in semantics should have special slots
+    (epairify this
+      `(py-getattribute
+        ,(scheme (PycAccess-obj this) conf)
+  	    ,(pyc-propname (PycAccess-field this))))))
 
 (define-walk-method (scheme this::PycSubscript conf)
    (epairify this
@@ -1458,46 +1598,32 @@
        `(vector-ref %caches ,cache)))
 
 ;; collect caches
-(define-walk-method (collect-caches this::PycNode cnt)
+(define-walk-method (collect-caches this::PycNode store)
    (call-default-walker))
 
-(define-walk-method (collect-caches this::PycRef cnt)
-   (when (eq? (PycVar-scope (PycRef-decl this)) 'global)
-      (let ((n (cell-ref cnt)))
-	 (cell-set! cnt (+ 1 n))
-	 (PycRef-cache-set! this n))))
+(define-walk-method (collect-caches this::PycRef store)
+  (when (eq? (PycVar-scope (PycRef-decl this)) 'global)
+    (PycRef-cache-set! this (add-cache-to-store store 'global))))
 
-(define-walk-method (collect-caches this::PycUnary cnt)
+(define-walk-method (collect-caches this::PycUnary store)
+  (call-default-walker)
+  (PycUnary-cache-set! this (add-cache-to-store store 'global)))
+
+(define-walk-method (collect-caches this::PycRefUnresolved store)
+  (PycRefUnresolved-cache-set! this (add-cache-to-store store 'global)))
+
+(define-walk-method (collect-caches this::PycAccess store)
+  (call-default-walker)
+  (PycAccess-cache-set! this (add-cache-to-store store 'attribute)))
+
+(define-walk-method (collect-caches this::PycAugAssig store)
    (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycUnary-cache-set! this n)))
+   (PycAugAssig-cache-set! this (add-cache-to-store store 'global)))
 
-(define-walk-method (collect-caches this::PycRefUnresolved cnt)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycRefUnresolved-cache-set! this n)))
-
-(define-walk-method (collect-caches this::PycAccess cnt)
+(define-walk-method (collect-caches this::PycFor store)
    (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycAccess-cache-set! this n)))
-
-(define-walk-method (collect-caches this::PycAugAssig cnt)
-   (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (PycAugAssig-cache-set! this n)))
-
-(define-walk-method (collect-caches this::PycFor cnt)
-   (call-default-walker)
-   (let ((n (cell-ref cnt)))
-      (cell-set! cnt (+ 1 n))
-      (let ((m (cell-ref cnt)))
-	 (cell-set! cnt (+ 1 m))
-	 (PycFor-cachei-set! this n)
-	 (PycFor-cachen-set! this m))))
+	 (PycFor-cachei-set! this (add-cache-to-store store 'global))
+	 (PycFor-cachen-set! this (add-cache-to-store store 'global)))
 
 ;; collect global variables
 (define-walk-method (collect-globals* this::PycNode)

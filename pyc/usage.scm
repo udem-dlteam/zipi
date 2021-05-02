@@ -2,6 +2,8 @@
   (mark-can-be-deleted! this conf)
   (mark-global-functions-usage! this conf)
   (mark-global-usage! this conf)
+  (mark-assig! this conf)
+  (mark-access-usage! this conf)
   this)
 
 (define-walk-method (mark-global-usage! this::PycNode conf)
@@ -78,3 +80,37 @@
            (memq (PycRef-decl this) locals-can-direct-access))
     (PycRef-can-direct-access-set! this #t))
   this)
+
+(define-walk-method (mark-assig! this::PycNode conf)
+  (call-default-walker))
+
+(define-walk-method (mark-assig! this::PycAssig conf)
+  (let ((lhs (PycAssig-lhs this)))
+    (if (isa? lhs PycRef)
+      (let ((var (PycRef-decl lhs)))
+        (PycVar-assig-set! var (cons this (PycVar-assig var))))))
+  (call-default-walker))
+
+(define-walk-method (mark-access-usage! this::PycNode conf)
+  (call-default-walker))
+
+(define-walk-method (mark-access-usage! this::PycBinary conf)
+  (let ((lhs (PycBinary-lhs this))
+        (rhs (PycBinary-rhs this)))
+    (if (isa? lhs PycAccess)
+      (PycAccess-usage-set! lhs this))
+    (if (isa? rhs PycAccess)
+      (PycAccess-usage-set! rhs this)))
+  (call-default-walker))
+
+(define-walk-method (mark-access-usage! this::PycUnary conf)
+  (let ((expr (PycUnary-expr this)))
+    (if (isa? expr PycAccess)
+      (PycAccess-usage-set! expr this)))
+  (call-default-walker))
+
+(define-walk-method (mark-access-usage! this::PycCall conf)
+  (let ((fun (PycCall-fun this)))
+    (if (isa? fun PycAccess)
+      (PycAccess-usage-set! fun this)))
+  (call-default-walker))
