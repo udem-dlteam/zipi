@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Thu Jun 11 07:15:36 2020 (serrano)                */
+;*    Last change :  Sun May  2 17:48:58 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -13,23 +13,23 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __py_bigloo
-
+   
    (import __py_rts
 	   __py_configure)
-
+   
    (export (macro let-values)
-
+	   
 	   (object->serial-number ::obj)
-
+	   
 	   (inline arithmetic-shift::long ::long ::long)
 	   (inline bitwise-and::long ::long ::long)
 	   (inline bitwise-ior::long ::long ::long)
 	   (inline bitwise-xor::long ::long ::long)
 	   (inline bitwise-not::long ::long)
-
+	   
 	   (inline floor-quotient x y)
 	   (inline inexact::double x)
-
+	   
 	   (inline fx+::long ::long ::long)
 	   (inline fx-::long ::long ::long)
 	   (inline fx*::long ::long ::long)
@@ -39,7 +39,7 @@
 	   (inline fx<::bool ::long ::long)
 	   (inline fx<=::bool ::long ::long)
 	   (inline fx>::bool ::long ::long)
-
+	   
 	   (inline u8+::uint8 ::uint8 ::uint8)
 	   (inline u8-::uint8 ::uint8 ::uint8)
 	   (inline u8*::uint8 ::uint8 ::uint8)
@@ -49,56 +49,58 @@
 	   (inline u8<::bool ::uint8 ::uint8)
 	   (inline u8<=::bool ::uint8 ::uint8)
 	   (inline u8>::bool ::uint8 ::uint8)
-
-       max-fixnum
-
+	   
+	   max-fixnum
+	   
 	   (inline +fx/overflow::obj ::obj ::obj)
 	   (inline -fx/overflow::obj ::obj ::obj)
 	   (inline *fx/overflow::obj ::obj ::obj)
-
+	   
 	   (inline u8vector-append . vecs)
 	   (inline subu8vector vec start stop)
 	   (u8vector-copy::u8vector ::u8vector)
-
+	   
 	   (append-strings ::pair-nil)
-     (substring-move! src-string src-start src-end dst-string dst-start)
-
+	   (substring-move! src-string src-start src-end dst-string dst-start)
+	   
 	   (inline current-second)
 	   (inline current-time)
 	   (time->seconds::double d)
 	   (macro time->seconds)
-
+	   
 	   (path-directory ::bstring)
 	   (path-strip-extension ::bstring)
 	   (path-strip-directory ::bstring)
 	   (path-normalize ::bstring)
 	   (path-expand ::bstring #!optional (origin (pwd)))
 	   (path-strip-trailing-directory-separator::bstring ::bstring)
-
+	   
 	   (create-directory ::bstring)
-
+	   
 	   (file-info path . rest)
 	   (file-info-last-modification-time info)
 	   (file-info-type path)
-
+	   
 	   (inline make-table #!key test weak-values)
 	   (inline table-set! table key value)
 	   (inline table-ref table key #!optional default)
 	   (inline table->list table)
 	   (inline table-length table)
-
+	   
 	   (macro with-exception-catcher)
-
+	   
 	   (module-not-found-exception? e)
-
+	   
 	   (shell-command ::bstring #!optional capture)
-
+	   
 	   (getenv name #!optional default)
-
+	   
 	   (module-search-order-add! dir)
 	   (load-module-and-get-init name)
 	   (compile-source ::bstring ::bstring)
-	   ))
+	   
+	   (inline get-environment-variable ::bstring)
+	   (fold ::procedure ::obj ::pair-nil)))
 
 ;*---------------------------------------------------------------------*/
 ;*    let-values ...                                                   */
@@ -436,3 +438,18 @@
 (define (compile-source source target)
    (system
       (format "~a/zpc -t bigloo ~a -o ~a -y" (zipi-bin-dir) source target)))
+
+;*---------------------------------------------------------------------*/
+;*    get-environment-variable ...                                     */
+;*---------------------------------------------------------------------*/
+(define-inline (get-environment-variable var)
+   (getenv var))
+
+;*---------------------------------------------------------------------*/
+;*    fold ...                                                         */
+;*---------------------------------------------------------------------*/
+(define (fold kons knil lis)
+   (let lp ((lis lis) (ans knil))
+      (if (null? lis)
+	  ans
+	  (lp (cdr lis) (kons (car lis) ans)))))

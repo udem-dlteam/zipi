@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
-;*    Last change :  Sat May  1 14:12:17 2021 (serrano)                */
+;*    Last change :  Sun May  2 07:31:39 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Scheme code generation                                           */
@@ -60,40 +60,50 @@
 ;*---------------------------------------------------------------------*/
 (define (pyc-scheme-bigloo ast conf)
    (pyc-cache! ast conf)
-   (if (config-get conf semantics:)
-       (pyc-scheme-bigloo-semantics ast conf)
-       (pyc-scheme-bigloo-ast ast conf)))
+   (cond
+      ((config-get conf semantics:)
+       (pyc-scheme-bigloo-semantics ast conf))
+      ((config-get conf semantics-macros:)
+       (pyc-scheme-bigloo-semantics-macros ast conf))
+      (else
+       (pyc-scheme-bigloo-ast ast conf))))
+
+;*---------------------------------------------------------------------*/
+;*    is-macro? ...                                                    */
+;*---------------------------------------------------------------------*/
+(define (is-macro? e)
+   (match-case e
+      ((define-macro . ?-) #t)
+      (else #f)))
 
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-semantics ...                                  */
 ;*---------------------------------------------------------------------*/
 (define (pyc-scheme-bigloo-semantics ast conf)
+   
+   (define (no-macro s)
+      (unless (is-macro? (cdr s))
+	 (cdr s)))
+	  
    (let* ((semantics (sort-semantics (collect-semantics* ast conf)))
-	  (defs (map cdr semantics))
-	  (semantics-definitions (map! macro->inline semantics))
-	  (protos (filter-map def->proto semantics-definitions)))
+	  (defs (filter-map no-macro semantics))
+	  (protos (filter-map def->proto defs)))
       `(,(pyc-scheme-bigloo-semantics-module conf protos)
 	(start-registering-constants)
-	,@semantics-definitions)))
+	,@defs
+	(end-registering-constants))))
 
 ;*---------------------------------------------------------------------*/
-;*    macro->inline ...                                                */
+;*    pyc-scheme-bigloo-semantics-macros ...                           */
 ;*---------------------------------------------------------------------*/
-(define (macro->inline s)
+(define (pyc-scheme-bigloo-semantics-macros ast conf)
    
-   (define (unquotify body)
-      (if (not (pair? body))
-	  body
-	  (match-case body
-	     ((unquote ?expr) (unquotify expr))
-	     ((quasiquote ?expr) (unquotify expr))
-	     (else (map (lambda (x) (unquotify x)) body)))))
+   (define (only-macro s)
+      (when (is-macro? (cdr s))
+	 (cdr s)))
    
-   (match-case (cdr s)
-      ((define-macro ?args ?body)
-       `(define-inline ,args ,(unquotify body)))
-      (else
-       (cdr s))))
+   (let ((semantics (sort-semantics (collect-semantics* ast conf))))
+      (filter-map only-macro semantics)))
 
 ;*---------------------------------------------------------------------*/
 ;*    def->proto ...                                                   */
@@ -204,12 +214,21 @@
 		(or (config-get conf module-name:)
 		    (config-get conf src:)
 		    "__stdin"))
-       ,@(if (config-get conf bootstrap:)
-	     '((import __py_rts
+       ,@(if (or (config-get conf bootstrap:)
+		 (config-get conf semantics:))
+	     `((import __py_rts
 		  __py_bigloo
-		  __stdlib_zemantics
-		  __stdlib_behaviors)
+		  ,@(if (equal? (config-get conf module-name:)
+			   "__stdlib_zemantics")
+			'()
+			'(__stdlib_zemantics))
+		  ,@(if (equal? (config-get conf module-name:)
+			   "__stdlib_behaviors")
+			'()
+			'(__stdlib_behaviors)))
 	       (include "rts-macros.scm"
 		  "bigloo/call.sch"
-		  "bigloo/constants.sch"))
+		  "bigloo/constants.sch"
+		  "behaviors.sch"
+		  "zemantics.sch"))
 	     '((library zipi)))))

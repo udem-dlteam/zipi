@@ -10,7 +10,6 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    Semantics generation                                             */
 #*---------------------------------------------------------------------*/
-
 builtins.py:
 	cd  zemantics_scripts; \
 	$(BUILDPYTHON) builtins_manager.py init ../builtins.py
@@ -19,14 +18,14 @@ zemantics.py:
 	cd  zemantics_scripts; \
 	$(BUILDPYTHON) semantics_manager.py init ../zemantics.py
 
-behavior.py: builtins.py zemantics.py
+behaviors.py: builtins.py zemantics.py
 	cd  zemantics_scripts; \
 	$(BUILDPYTHON) decision_tree.py behaviors ../zemantics.py ../builtins.py > ../behaviors.py
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
 #*---------------------------------------------------------------------*/
-build: behavior.py $(ZIPISYSTEMS:%=do.%)
+build: behaviors.py $(ZIPISYSTEMS:%=do.%)
 install: $(ZIPISYSTEMS:%=install.%)
 
 -include Makefile.bigloo

@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Fri Nov 12 13:32:52 2004                          */
-;*    Last change :  Sat May  1 14:11:06 2021 (serrano)                */
+;*    Last change :  Sun May  2 08:44:23 2021 (serrano)                */
 ;*    Copyright   :  2004-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Hop command line parsing                                         */
@@ -127,6 +127,9 @@
 	    ((("--semantics") (help "Generate a semantics module"))
 	     (zpc-main-set! #f)
 	     (zpc-pyc-flags-set! (cons* :semantics #t (zpc-pyc-flags))))
+	    ((("--semantics-macros") (help "Generate a semantics macros"))
+	     (zpc-main-set! #f)
+	     (zpc-pyc-flags-set! (cons* :semantics-macros #t (zpc-pyc-flags))))
 	    (("--toplevel-module" (help "Generate toplevel python module"))
 	     (zpc-pyc-flags-set! (cons* :toplevel-module #t (zpc-pyc-flags))))
 	    (("--no-toplevel-module" (help "Generate inside lambda python module"))
