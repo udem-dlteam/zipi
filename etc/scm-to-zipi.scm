@@ -105,5 +105,6 @@
         (error "scm-to-zipi" "unknown backend" backend)))))
 
 (cond-expand
+   (gambit)
    (bigloo
     (apply main (cdr (command-line)))))
