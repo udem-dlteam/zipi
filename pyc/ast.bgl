@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 10:16:39 2019                          */
-;*    Last change :  Mon May 25 14:08:11 2020 (serrano)                */
+;*    Last change :  Sat May  1 14:26:38 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Python AST                                                       */
@@ -27,30 +27,29 @@
 
       ;; module
       (class PycModule::PycNode
-   (special-init (default #f))
+	 (special-init (default #f))
 	 (version::int read-only (default 1))
 	 (ident::string read-only)
 	 stmts::pair-nil
 	 (globals::pair-nil (default '()))
 	 (global-defs::pair-nil (default '()))
-	 (caches::long (default -1)))
+	 (caches::pair-nil (default '())))
 
       ;; misc
       (class PycVar::PycNode
 	 id::symbol
+	 ;; scope: global, local, block
 	 scope::symbol
 	 (name (default #f))
 	 (key::int (default (genkey)))
-	 ;; scope: global, local, block
-	 ;; usage
 	 (in-scope-of (default #f))
 	 (usage::pair-nil (default '()))
    (assig::pair-nil (default '()))
 	 (can-be-deleted::bool (default #f))
-   (global-only-accessed-in-module (default #f))
-   (global-always-defined (default #f))
-   (global-ref-to-init-def (default #f))
-   (is-builtin (default #f))
+	 (global-only-accessed-in-module (default #f))
+	 (global-always-defined (default #f))
+	 (global-ref-to-init-def (default #f))
+	 (is-builtin (default #f))
 	 (simple-scoping-top-block (info '("jsonref" "notraverse")) (default #f))
 	 (cache (default #f)))
 
@@ -216,10 +215,10 @@
 	 (rhs-type-hint (default #f))
 	 (cache (default #f)))
 
-    (final-class PycChainCmp::PycExpr
-      ops::pair-nil
-      lhs::PycExpr
-      rest::pair-nil)
+      (final-class PycChainCmp::PycExpr
+	 ops::pair-nil
+	 lhs::PycExpr
+	 rest::pair-nil)
 
       (final-class PycBoolOp::PycExpr
 	 op::symbol
@@ -245,8 +244,8 @@
 	 (name (default #f))
 	 (annotation-names::pair-nil (default '()))
 	 (annotation::pair-nil (default '()))
-   (is-builtin (default #f))
-   (is-private (default #f))
+	 (is-builtin (default #f))
+	 (is-private (default #f))
 	 (&proc::obj (default #f))
 	 (&proc-init::obj (default #f)))
 
@@ -263,7 +262,7 @@
 	 (decls::pair-nil (default '()))
 	 (super-key::symbol (default '_))
 	 (is-builtin::bool (default #f))
-   (is-private::bool (default #f)))
+	 (is-private::bool (default #f)))
 
       (final-class PycYield::PycExpr
 	 (val::PycExpr (info '("ast")))

@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue May 26 10:15:30 2020 (serrano)                */
+;*    Last change :  Sun May  2 14:53:30 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -19,6 +19,8 @@
        (include
           "rts-macros.scm"
           "rts.sch"
+	  "behaviors.sch"
+	  "zemantics.sch"
           "bigloo/include.sch"
           "bigloo/call.sch"
           "bigloo/constants.sch"
@@ -43,6 +45,7 @@
               mro
               hclass-of-instances
               is-builtin
+	      can-have-getter
               magic-attrs)
 
            (abstract-class PyObjectNumber::PyObject
@@ -79,6 +82,16 @@
               procedure
               arity
               signature)
+
+	   (class AttributeCache
+	      object-hclass
+	      mro-hclass
+	      module-hclass
+	      type-hclass
+	      index
+	      attr
+	      owner
+	      bind)
 
            (class PyObjectFunctionArity0::PyObjectFunction)
            (class PyObjectFunctionArity1::PyObjectFunction)
@@ -258,6 +271,8 @@
            (py-test-le-behavior-call-with-rhs-index-fallback lhs index rhs)
            (py-test-lt-behavior-call-with-rhs-index-fallback lhs index rhs)
 
+	   (py-make-builtin-class-with-class-info class-index can-have-getter name module bases hclass-of-instances . attrs)
+
            py-object-hclass-of-instances
            py-int-hclass-of-instances
            py-float-hclass-of-instances
@@ -294,6 +309,14 @@
            ;; (py-delitem ::PyObject ::obj ::obj)
            ;; (py-setitem ::PyObject ::obj ::obj ::obj)
 
+	   (py-getattribute-cached-fallback obj hclass name cache)
+	   (py-getattribute-cached-fallback/no-object obj hclass name cache)
+	   (py-getattribute-cached-fallback/no-mro obj hclass name cache)
+	   (py-getattribute-cached-fallback/no-type obj hclass name cache)
+	   (py-getattribute-cached-fallback/no-module obj hclass name cache)
+	   (py-getattribute-cached-modular-fallback obj hclass name cache
+	      include-object include-mro include-type include-module)
+	   
            (inline PyObject-elements-ref ::PyObject ::long)
            (PyObject-elements-set! ::PyObject ::long ::obj)
 
@@ -310,11 +333,10 @@
            (py-unpack it)
 
            (py-make-global)
-           (py-make-caches ::int)
+           (py-make-caches ::pair-nil)
 
            (py-extend-builtin-core-class cls . attrs)
            (py-make-class name module bases . atrs)
-           (py-make-builtin-class-with-class-index class-index name module bases hclass-of-instances . attrs)
 
            (py-throw ::obj)
 
@@ -475,6 +497,9 @@
 
 	   (py-tuple-from-scheme elements)
 	   (py-throw-super-no-arguments-error)
+
+	   py-classmethod-hclass-of-instances
+	   py-staticmethod-hclass-of-instances
            )
 
    (eval   (export-all)))

@@ -2,10 +2,12 @@
 
 (define placeholder '@placeholder@)
 
-(define (cons* heads last)
-  (if (null? heads)
-    last
-    (cons (car heads) (cons* (cdr heads) last))))
+(cond-expand
+   ((not bigloo)
+    (define (cons* heads last)
+       (if (null? heads)
+	   last
+	   (cons (car heads) (cons* (cdr heads) last))))))
 
 (define (sexp-unpack-replace sexp replacements)
   (if (pair? sexp)
@@ -101,3 +103,8 @@
       ((bigloo) (map pp (main-bigloo template sources)))
       (else
         (error "scm-to-zipi" "unknown backend" backend)))))
+
+(cond-expand
+   (gambit)
+   (bigloo
+    (apply main (cdr (command-line)))))

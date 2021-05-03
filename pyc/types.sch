@@ -32,11 +32,11 @@
 ;; PycModule
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycModule::PycModule loc2048::pair %info2049::obj special-init2050::obj version2051::int ident2052::string stmts2053::pair-nil globals2054::pair-nil global-defs2055::pair-nil caches2056::long)
+    (inline make-PycModule::PycModule loc2048::pair %info2049::obj special-init2050::obj version2051::int ident2052::string stmts2053::pair-nil globals2054::pair-nil global-defs2055::pair-nil caches2056::pair-nil)
     (inline PycModule?::bool ::obj)
     (PycModule-nil::PycModule)
-    (inline PycModule-caches::long ::PycModule)
-    (inline PycModule-caches-set! ::PycModule ::long)
+    (inline PycModule-caches::pair-nil ::PycModule)
+    (inline PycModule-caches-set! ::PycModule ::pair-nil)
     (inline PycModule-global-defs::pair-nil ::PycModule)
     (inline PycModule-global-defs-set! ::PycModule ::pair-nil)
     (inline PycModule-globals::pair-nil ::PycModule)
@@ -1164,11 +1164,11 @@
 (define-inline (PycUnimplemented-loc-set! o::PycUnimplemented v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycModule
-(define-inline (make-PycModule::PycModule loc2048::pair %info2049::obj special-init2050::obj version2051::int ident2052::string stmts2053::pair-nil globals2054::pair-nil global-defs2055::pair-nil caches2056::long) (instantiate::PycModule (loc loc2048) (%info %info2049) (special-init special-init2050) (version version2051) (ident ident2052) (stmts stmts2053) (globals globals2054) (global-defs global-defs2055) (caches caches2056)))
+(define-inline (make-PycModule::PycModule loc2048::pair %info2049::obj special-init2050::obj version2051::int ident2052::string stmts2053::pair-nil globals2054::pair-nil global-defs2055::pair-nil caches2056::pair-nil) (instantiate::PycModule (loc loc2048) (%info %info2049) (special-init special-init2050) (version version2051) (ident ident2052) (stmts stmts2053) (globals globals2054) (global-defs global-defs2055) (caches caches2056)))
 (define-inline (PycModule?::bool obj::obj) ((@ isa? __object) obj (@ PycModule __pyc_ast)))
 (define (PycModule-nil::PycModule) (class-nil (@ PycModule __pyc_ast)))
-(define-inline (PycModule-caches::long o::PycModule) (-> |#!bigloo_wallow| o caches))
-(define-inline (PycModule-caches-set! o::PycModule v::long) (set! (-> |#!bigloo_wallow| o caches) v))
+(define-inline (PycModule-caches::pair-nil o::PycModule) (-> |#!bigloo_wallow| o caches))
+(define-inline (PycModule-caches-set! o::PycModule v::pair-nil) (set! (-> |#!bigloo_wallow| o caches) v))
 (define-inline (PycModule-global-defs::pair-nil o::PycModule) (-> |#!bigloo_wallow| o global-defs))
 (define-inline (PycModule-global-defs-set! o::PycModule v::pair-nil) (set! (-> |#!bigloo_wallow| o global-defs) v))
 (define-inline (PycModule-globals::pair-nil o::PycModule) (-> |#!bigloo_wallow| o globals))

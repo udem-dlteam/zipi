@@ -1953,10 +1953,12 @@
 (define-macro (py-maybe-len obj)
   `(py-maybe-len-fallback ,obj))
 
-(define-macro (py-getattribute obj attr #!optional (cache #f) (inlines '()))
-  (if cache
-    `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
-    `(py-getattribute-fallback ,obj ,attr)))
+(define-macro (py-getattribute obj attr . opts)
+   (let ((cache (if (null? opts) #f (car opts)))
+	 (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
+      (if cache
+	  `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
+	  `(py-getattribute-fallback ,obj ,attr))))
 
 (define-macro (py-getattribute-cached obj attr cache inline-priorities)
   ;; attr should always be a string literal

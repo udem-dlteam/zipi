@@ -565,7 +565,7 @@
 
 ;; resolve static intrinsics
 
-(define-walk-method (resolve-statics! this::PycNode instrinsics statics macros use-static-builtins)
+(define-walk-method (resolve-statics! this::PycNode intrinsics statics macros use-static-builtins)
   (call-default-walker))
 
 (define-walk-method (resolve-statics! this::PycRef intrinsics statics macros use-static-builtins)
@@ -951,6 +951,23 @@
 ;; get-lifted-semantics*
 
 (define (get-variables-to-lift cte sem-cte sem-refs)
+   (let ((ref (cons 'ref 'ref))
+	 (liftable (cons 'liftable 'liftable)))
+      (for-each (lambda (r)
+		   (PycNode-%info-set! r ref))
+	 sem-refs)
+      (for-each (lambda (r)
+		   (when (eq? (PycNode-%info r) ref)
+		      (PycNode-%info-set! r liftable)))
+	 cte)
+      (for-each (lambda (r)
+		   (when (eq? (PycNode-%info r) liftable)
+		      (PycNode-%info-set! r #f)))
+	 sem-cte)
+      (filter (lambda (r) (eq? (PycNode-%info r) liftable)) cte)))
+
+
+(define (get-variables-to-lift-TBR-25apr21 cte sem-cte sem-refs)
   (let ((table (make-hashtable)))
     (for-each
       (lambda (r) (hashtable-put! table r 'ref))

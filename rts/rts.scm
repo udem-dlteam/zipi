@@ -5495,14 +5495,6 @@
                                 default-dir
                                 env-dir)))
 
-(cond-expand
-   (gambit)
-   (bigloo ((@ zipi-init __stdlib_zemantics) "zemantics")))
-
-(cond-expand
-  (gambit)
-  (bigloo ((@ zipi-init __stdlib_behaviors) "behaviors")))
-
 ;; note here that we assume that the list is at least of size 1 and contains as first argument the filename
 (define (command-line-argv-set! list-with-file-name)
   (global-own-attr-put-no-cache! sys-mod (& "argv")

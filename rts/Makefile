@@ -3,8 +3,8 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Tue May 26 09:36:01 2020 (serrano)                */
-#*    Copyright   :  2019-20 Marc Feeley & Manuel Serrano              */
+#*    Last change :  Sun May  2 14:27:32 2021 (serrano)                */
+#*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the ZIPI runtime system                    */
 #*=====================================================================*/
@@ -46,6 +46,7 @@ cleanall: distclean
 #*---------------------------------------------------------------------*/
 #*    common targets and dependencies                                  */
 #*---------------------------------------------------------------------*/
+rts.sch: behaviors.sch zemantics.sch
 o/rts.o: rts.sch
 
 %.sch: %.bgl .afile

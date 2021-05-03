@@ -112,88 +112,6 @@
   (let ((current-fun (memq fun: conf)))
     (and current-fun (isa? (cadr current-fun) PycSemantics))))
 
-(define (pyc-scheme-bigloo ast conf)
-   (pyc-cache! ast conf)
-   (let* ((file (config-get conf file:))
-	        (path (config-get conf dir:))
-          (global-funs
-            (if (config-get conf optim-globals:)
-                (let ((defs (PycModule-global-defs ast)))
-                  (set-procedure-names! defs conf)
-                  defs)
-                '()))
-          (global-refs
-            (if (config-get conf optim-globals:)
-              (collect-globals* ast)
-              '()))
-	        (globals (if (config-get conf optim-globals:)
-		       (collect-globals* ast)
-		       '()))
-          (conf-with-defs (cons* global-funs: global-funs conf))
-          (prog (scheme ast (cons* global-funs: global-funs conf-with-defs)))
-      	  (full-path (if (and file path) (make-file-path path file) #f)))
-      `((module ,(string->symbol
-		    (or (config-get conf module-name:)
-			(config-get conf src:)
-			"__stdin"))
-	   ,@(if (config-get conf bootstrap:)
-		 '((import __py_rts
-		      __py_bigloo
-		      __stdlib_zemantics
-		      __stdlib_behaviors)
-		   (include "rts-macros.scm"
-		      "bigloo/call.sch"
-		      "bigloo/constants.sch"))
-		 '((library zipi)))
-	   ,@(if (config-get conf main:)
-		 '((main main))
-		 '((export (zipi-init ::bstring ::bstring ::bstring)))))
-	(start-registering-constants)
-  ,@(if (config-get conf-with-defs optim-globals:)
-    `((define %global #f)
-      (define %caches #f)
-      ,@(scheme-init-global-procedures global-funs conf-with-defs)
-      ,@(scheme-init-global-init-defs global-funs conf-with-defs)
-      ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs))
-    '())
-  ,(if (config-get conf-with-defs optim-globals:)
-    `(define (py-module global caches)
-      (set! %global global)
-      (set! %caches caches)
-      ,@(scheme-register-globals (map PycRef-decl global-refs) conf-with-defs)
-      ,@prog)
-       `(define py-module ,prog))
-	,(cond
-	    ((config-get conf main:)
-	     `(define (main argv)
-		 (bigloo-library-path-set!
-		    (cons ,(config-get conf lib-dir:) (bigloo-library-path)))
-		 (build-builtins)
-		 (init-registered-constants)
-		 (with-handler
-		    (lambda (e)
-		       (if (PyObject? e)
-			   (exception-notify e)
-			   (raise e)))
-		    (py-module
-		       (py-make-global)
-		       ,(scheme-make-caches ast)))))
-	    (else
-	     `(define (zipi-init name package path)
-		 (init-registered-constants)
-		 (let ((caches ,(scheme-make-caches ast))
-		       (module (py-make-module
-                         (py-str-from-scheme name)
-                         (py-str-from-scheme package)
-                         (py-str-from-scheme path))))
-		    ,@(if full-path
-			  `((py-own-attr-set!
-			       module (& "__file__") (& ,full-path)))
-			  '())
-		    (py-module module caches)
-		    module))))
-	(end-registering-constants))))
-
 (define (pyc-scheme-gambit ast conf)
   (pyc-cache! ast conf)
 
@@ -1443,24 +1361,24 @@
       ((PycRef-can-direct-access this)
         name)
   	  ((eq? (PycVar-scope var) 'global)
-        (cond-expand
-          (bigloo
-           (if (config-get conf optim-globals:)
-         `(or ,name
-              (global-get
-           %global
-           ,(pyc-propname id)
-           ,(scheme-cache (PycRef-cache this) this)))
-         `(global-get
-           %global
-           ,(pyc-propname id)
-           ,(scheme-cache (PycRef-cache this) this))))
-          (else
-           `(or ,name
-          (global-get
-             %global
-             ,(pyc-propname id)
-             ,(scheme-cache (PycRef-cache this) this))))))
+	   (cond-expand
+	      (bigloo
+	       (if (config-get conf optim-globals:)
+		   `(or ,name
+			(global-get
+			   %global
+			   ,(pyc-propname id)
+			   ,(scheme-cache (PycRef-cache this) this)))
+		   `(global-get
+		       %global
+		       ,(pyc-propname id)
+		       ,(scheme-cache (PycRef-cache this) this))))
+	      (else
+	       `(or ,name
+		    (global-get
+		       %global
+		       ,(pyc-propname id)
+		       ,(scheme-cache (PycRef-cache this) this))))))
   	  (else
   	   `(or ,name
   	        (py-throw-exception-with-message

@@ -3,8 +3,8 @@
 (define-inline (new-PycUnimplemented loc msg #!key (%info #f))
    (make-PycUnimplemented loc %info msg))
 
-;; (new-PycModule loc ident stmts #!key (%info #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches -1))
-(define-inline (new-PycModule loc ident stmts #!key (%info #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches -1))
+;; (new-PycModule loc ident stmts #!key (%info #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches (quote ())))
+(define-inline (new-PycModule loc ident stmts #!key (%info #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches (quote ())))
    (make-PycModule loc %info special-init version ident stmts globals global-defs caches))
 
 ;; (new-PycVar loc id scope #!key (%info #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (assig (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
