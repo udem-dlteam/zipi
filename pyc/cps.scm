@@ -90,4 +90,14 @@
   this)
 
 (define-walk-method (cps this::PycStmtExpr k kbreak kcontinue kraise fun)
-  (call-default-walker))
+  (if (yield-expr? this)
+    (let* ((loc (PycNode-loc this))
+           (var (new-kont-var 'unused-kparam))
+           (param (new-kont-ref loc var 'Store))
+           (kont
+             (new-PycKont
+               loc
+               (list param)
+               k)))
+      (cps (PycStmtExpr-expr this) kont kbreak kcontinue kraise fun))
+    this))
