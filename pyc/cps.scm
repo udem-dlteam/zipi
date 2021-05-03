@@ -33,8 +33,8 @@
 
 ;; Transform CPS functions
 
-(define (new-kont-var)
-  (new-PycVar '(-1 -1) (my-gensym 'kparam) 'kont))
+(define (new-kont-var id)
+  (new-PycVar '(-1 -1) (my-gensym id) 'kont))
 
 (define (new-kont-ref loc var ctx)
   (new-PycRef loc var ctx can-direct-access: #t))
@@ -53,7 +53,7 @@
                  (new-PycKont
                    loc
                    '()
-                   tail)))
+                   (new-PycSeq loc tail))))
           (cons (cps node kont kbreak kcontinue kraise fun) '()))
         (cons node tail)))))
 
@@ -66,7 +66,7 @@
   (let ((loc (PycNode-loc this))
         (val (PycYield-val this)))
     (if (yield-expr? val)
-      (let* ((var (new-kont-var))
+      (let* ((var (new-kont-var 'kparam))
              (param (new-kont-ref loc var 'Store))
              (param-load (new-kont-ref loc var 'Load))
              (kont

@@ -1373,11 +1373,6 @@ class OSError(Exception):
 
 
 @builtin
-class WindowsError(Exception):
-    pass
-
-
-@builtin
 class ReferenceError(Exception):
     pass
 
