@@ -33,18 +33,18 @@
 
 ;; Transform CPS functions
 
-(define (new-kont-var id)
-  (new-PycVar '(-1 -1) (my-gensym id) 'kont))
+(define (new-kont-var id scope)
+  (new-PycVar '(-1 -1) (my-gensym id) scope))
 
 (define (new-kont-ref loc var ctx)
   (new-PycRef loc var ctx can-direct-access: #t))
 
 (define-walk-method (cps this::PycNode k kbreak kcontinue kraise fun)
-  (error "cps" "Should not be here" (pyc->list this)))
+  (error "cps" "Unimplemented form for generators" (pyc->list this)))
 
 (define (cps* nodes k kbreak kcontinue kraise fun)
   (if (null? nodes)
-    (new-PycCallKont '(-1 -1) k)
+    (list (new-PycCallKont '(-1 -1) k))
     (let* ((node (car nodes))
            (loc (PycNode-loc node))
            (tail (cps* (cdr nodes) k kbreak kcontinue kraise fun)))
@@ -66,7 +66,7 @@
   (let ((loc (PycNode-loc this))
         (val (PycYield-val this)))
     (if (need-cps? val)
-      (let* ((var (new-kont-var 'kparam))
+      (let* ((var (new-kont-var 'kparam 'kont))
              (param (new-kont-ref loc var 'Store))
              (param-load (new-kont-ref loc var 'Load))
              (kont
@@ -92,7 +92,7 @@
 (define-walk-method (cps this::PycStmtExpr k kbreak kcontinue kraise fun)
   (if (need-cps? this)
     (let* ((loc (PycNode-loc this))
-           (var (new-kont-var 'unused-kparam))
+           (var (new-kont-var 'unused-kparam 'kont))
            (param (new-kont-ref loc var 'Store))
            (kont
              (new-PycKont
@@ -101,3 +101,64 @@
                (new-PycCallKont loc k))))
       (cps (PycStmtExpr-expr this) kont kbreak kcontinue kraise fun))
     this))
+
+(define-walk-method (cps this::PycIf k kbreak kcontinue kraise fun)
+  (let* ((loc (PycNode-loc this))
+         (test (PycIf-test this))
+         (then (PycIf-then this))
+         (orelse (PycIf-else this))
+         (test-need-cps (need-cps? test))
+         (then-need-cps (need-cps? then))
+         (orelse-need-cps (need-cps? orelse))
+         (body-need-cps (or then-need-cps orelse-need-cps)))
+    (cond
+      ((and test-need-cps body-need-cps)
+        (let* ((kparam-var (new-kont-var 'kparam 'kont))
+              (kparam-store (new-kont-ref loc kparam-var 'Store))
+              (kparam-load (new-kont-ref loc kparam-var 'Load)))
+        (cps
+          test
+          (new-PycKont
+            loc
+            (list kparam-store)
+            (let* ((kont-var (new-kont-var 'kont 'block))
+                  (kont-store (new-kont-ref loc kont-var 'Store))
+                  (kont-load (new-kont-ref loc kont-var 'Load)))
+              (new-PycBlock
+                loc
+                (list (new-PycAssig loc kont-store k))
+                (new-PycIf
+                  loc
+                  kparam-load
+                  (cps then kont-load kbreak kcontinue kraise fun)
+                  (cps orelse kont-load kbreak kcontinue kraise fun)))))
+          kbreak kcontinue kraise fun)))
+      ((and test-need-cps (not body-need-cps))
+        (let* ((kparam-var (new-kont-var 'kparam 'kont))
+              (kparam-store (new-kont-ref loc kparam-var 'Store))
+              (kparam-load (new-kont-ref loc kparam-var 'Load)))
+        (cps
+          test
+          (new-PycKont
+            loc
+            (list kparam-store)
+            (new-PycSeq
+              loc
+              (list
+                (new-PycIf loc kparam-load then orelse)
+                (new-PycCallKont loc k))))
+          kbreak kcontinue kraise fun)))
+      ((and (not test-need-cps) body-need-cps)
+        (let* ((kont-var (new-kont-var 'kont 'block))
+              (kont-store (new-kont-ref loc kont-var 'Store))
+              (kont-load (new-kont-ref loc kont-var 'Load)))
+          (new-PycBlock
+            loc
+            (list (new-PycAssig loc kont-store k))
+            (new-PycIf
+              loc
+              test
+              (cps then kont-load kbreak kcontinue kraise fun)
+              (cps orelse kont-load kbreak kcontinue kraise fun)))))
+      (else
+        this))))
