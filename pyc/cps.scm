@@ -14,8 +14,8 @@
       (cps (cps-fun! (PycFun-body this)) #f #f #f #f this)))
   this)
 
-;; does an expression may yield or return?
-(define (yield-expr? this)
+;; does an expression need cps
+(define (need-cps? this)
   (let ((v (yield-expr* this)))
     (if (null? v) #f v)))
 
@@ -48,7 +48,7 @@
     (let* ((node (car nodes))
            (loc (PycNode-loc node))
            (tail (cps* (cdr nodes) k kbreak kcontinue kraise fun)))
-      (if (yield-expr? node)
+      (if (need-cps? node)
         (let ((kont
                  (new-PycKont
                    loc
@@ -65,7 +65,7 @@
 (define-walk-method (cps this::PycYield k kbreak kcontinue kraise fun)
   (let ((loc (PycNode-loc this))
         (val (PycYield-val this)))
-    (if (yield-expr? val)
+    (if (need-cps? val)
       (let* ((var (new-kont-var 'kparam))
              (param (new-kont-ref loc var 'Store))
              (param-load (new-kont-ref loc var 'Load))
@@ -90,7 +90,7 @@
   this)
 
 (define-walk-method (cps this::PycStmtExpr k kbreak kcontinue kraise fun)
-  (if (yield-expr? this)
+  (if (need-cps? this)
     (let* ((loc (PycNode-loc this))
            (var (new-kont-var 'unused-kparam))
            (param (new-kont-ref loc var 'Store))
@@ -98,6 +98,6 @@
              (new-PycKont
                loc
                (list param)
-               k)))
+               (new-PycCallKont loc k))))
       (cps (PycStmtExpr-expr this) kont kbreak kcontinue kraise fun))
     this))
