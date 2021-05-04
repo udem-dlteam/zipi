@@ -34,16 +34,13 @@
 ;; Transform generators statements to cps
 
 (define (new-kont-var id scope)
-  (new-PycVar '(-1 -1) (my-gensym id) scope))
+  (new-PycVar '(-1 -1) id scope))
 
 (define (new-kont-ref loc var ctx)
   (new-PycRef loc var ctx can-direct-access: #t))
 
 (define-walk-method (cps-stmt this::PycNode k kbreak kcontinue kraise)
   (error "cps-stmt" "Unimplemented statement for generators" (pyc->list this)))
-
-(define-walk-method (cps-stmt this::PycExpr k kbreak kcontinue kraise)
-  (cps-expr this k kraise))
 
 (define (cps-stmt* nodes k kbreak kcontinue kraise)
   (if (null? nodes)
@@ -65,22 +62,8 @@
     (PycNode-loc this)
     (cps-stmt* (PycSeq-nodes this) k kbreak kcontinue kraise)))
 
-(define-walk-method (cps-stmt this::PycYield k kbreak kcontinue kraise)
-  (let ((loc (PycNode-loc this))
-        (val (PycYield-val this)))
-    (if (need-cps? val)
-      (let* ((var (new-kont-var 'kparam 'kont))
-             (param (new-kont-ref loc var 'Store))
-             (param-load (new-kont-ref loc var 'Load))
-             (kont
-               (new-PycKont
-                 loc
-                 (list param)
-                 (new-PycReturnYield loc param-load k generator: #t))))
-        (cps-stmt val kont kbreak kcontinue kraise))
-      (new-PycReturnYield loc val k generator: #t))))
-
 (define-walk-method (cps-stmt this::PycReturn k kbreak kcontinue kraise)
+  ;; TODO: return the value
   (let ((loc (PycNode-loc this)))
     (if kraise
       (error "cps-stmt" "NotImplemented: return inside a try" this)
@@ -113,42 +96,85 @@
          (then (PycIf-then this))
          (orelse (PycIf-else this)))
     (if (need-cps? this)
-      (let* ((kparam-var (new-kont-var 'kparam 'kont))
+      (let* ((kparam-var (new-kont-var 'ktest 'kont))
             (kparam-store (new-kont-ref loc kparam-var 'Store))
             (kparam-load (new-kont-ref loc kparam-var 'Load)))
-      (cps-stmt
-        test
-        (new-PycKont
-          loc
-          (list kparam-store)
-          (let* ((kont-var (new-kont-var 'kont 'block))
-                (kont-store (new-kont-ref loc kont-var 'Store))
-                (kont-load (new-kont-ref loc kont-var 'Load)))
-            (new-PycBlock
-              loc
-              (list (new-PycAssig loc kont-store k))
-              (new-PycIf
+        (cps-expr
+          test
+          (new-PycKont
+            loc
+            (list kparam-store)
+            (let* ((kont-var (new-kont-var 'kont 'block))
+                  (kont-store (new-kont-ref loc kont-var 'Store))
+                  (kont-load (new-kont-ref loc kont-var 'Load)))
+              (new-PycBlock
                 loc
-                kparam-load
-                (cps-stmt then kont-load kbreak kcontinue kraise)
-                (cps-stmt orelse kont-load kbreak kcontinue kraise)))))
-        kbreak kcontinue kraise))
+                (list (new-PycAssig loc kont-store k))
+                (new-PycIf
+                  loc
+                  kparam-load
+                  (cps-stmt then kont-load kbreak kcontinue kraise)
+                  (cps-stmt orelse kont-load kbreak kcontinue kraise)))))
+          kraise))
         this)))
 
-(define-walk-method (cps-stmt  this::PycFor k kbreak kcontinue kraise)
+(define-walk-method (cps-stmt this::PycPass k kbreak kcontinue kraise)
+  this)
+
+(define-walk-method (cps-stmt this::PycFor k kbreak kcontinue kraise)
   (let* ((loc (PycNode-loc this))
          (target (PycFor-target this))
-         (iter (PycFor-target this))
+         (iter (PycFor-iter this))
          (body (PycLoop-body this))
          (forelse (PycLoop-else this)))
-    this))
+    (if (or (need-cps? iter) (need-cps? body) (need-cps? forelse))
+      (let* ((kiter-var (new-kont-var 'kiter 'kont))
+             (kiter-store (new-kont-ref loc kiter-var 'Store))
+             (kiter-load (new-kont-ref loc kiter-var 'Load)))
+        (cps-expr
+          iter
+          (new-PycKont
+            loc
+            (list kiter-store)
+            (let* ((kont-var (new-kont-var 'kont 'block))
+                   (kont-store (new-kont-ref loc kont-var 'Store))
+                   (kont-load (new-kont-ref loc kont-var 'Load))
+                   (else-kont-var (new-kont-var 'else-kont 'block))
+                   (else-kont-store (new-kont-ref loc else-kont-var 'Store))
+                   (else-kont-load (new-kont-ref loc else-kont-var 'Load)))
+              (new-PycBlock
+                loc
+                (list
+                  ;; continuation for next stmt
+                  (new-PycAssig
+                    loc
+                    kont-store
+                    k)
+                  ;; continuation for else block
+                  (new-PycAssig
+                    loc
+                    else-kont-store
+                    (new-PycKont
+                      loc
+                      '()
+                      (cps-stmt forelse kont-load kbreak kcontinue kraise))))
+                (new-PycFor
+                  loc
+                  (cps-stmt body else-kont-load kont-load #f kraise)
+                  else-kont-load
+                  target
+                  kiter-load
+                  need-break: #f ;; handled by continuation
+                  need-continue: (PycLoop-need-continue this)))))
+          kraise))
+      this)))
 
-;; transforme generators expressions to cps
+;; transform generators expressions to cps
 
 (define-walk-method (cps-expr this::PycNode k kraise)
   (error "cps-expr" "should not be called on statements" (pyc->list this)))
 
-(define-walk-method (cps-expr this::PycNode k kraise)
+(define-walk-method (cps-expr this::PycExpr k kraise)
   (cond
     ((not k)
       this)
@@ -156,3 +182,18 @@
       (new-PycCallKont (PycNode-loc this) k args: (list this)))
     (else
       (error "cps-expr" "Unimplemented expression for generators" (pyc->list this)))))
+
+(define-walk-method (cps-expr this::PycYield k kraise)
+  (let ((loc (PycNode-loc this))
+        (val (PycYield-val this)))
+    (if (need-cps? val)
+      (let* ((var (new-kont-var 'kparam 'kont))
+             (param (new-kont-ref loc var 'Store))
+             (param-load (new-kont-ref loc var 'Load))
+             (kont
+               (new-PycKont
+                 loc
+                 (list param)
+                 (new-PycReturnYield loc param-load k generator: #t))))
+        (cps-expr val kont kbreak kcontinue kraise))
+      (new-PycReturnYield loc val k generator: #t))))
