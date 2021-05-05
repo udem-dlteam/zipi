@@ -76,6 +76,14 @@
 
 (define max-fixnum ##max-fixnum)
 
+(define (vector-map! proc vec)
+   (let loop ((i (-fx (vector-length vec) 1)))
+      (if (fx>= i 0)
+	  (begin
+	     (vector-set! vec i (proc (vector-ref vec i)))
+	     (loop (fx- i 1)))
+	  vec)))
+
 (define (init-constants constants)
   (vector-for-each
     (lambda (obj)

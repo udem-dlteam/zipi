@@ -145,7 +145,7 @@
     (getattribute-from-cls-mro-with-owner-2cont
       (py-obj-cls obj)
       (& "__getattr__")
-      (lambda (__getattr__)
+      (lambda (__getattr__ MS_5_MAY_THIS_ARGUMENT_WAS_MISSING)
         ;; caches cannot save you if this happens
         (py-call __getattr__ obj name))
       attribute-error))
@@ -532,7 +532,7 @@
            ;; create new cells
            (subvector-move!
              ;; vector of cells
-             (vector-map
+             (vector-map!
                (lambda (_)
                   (make-global-cell #f))
                (make-vector $diff-len))
@@ -1650,7 +1650,7 @@
          obj
          name
          (lambda (cls-attr owner)
-           (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass obj) attr owner))
+           (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass obj) cls-attr owner))
            (py-descriptor-get cls-attr obj owner))
          (lambda ()
            (and raise? (py-throw-type-getattribute-error obj name))))))
@@ -1708,7 +1708,7 @@
     (if (py-subtype-of-str? name)
       (begin
         (reset-mro-caches!)
-        (py-own-attr-set! obj name val))
+        (py-own-attr-set! self name val))
       (py-throw-exception-with-message
        py-builtin-TypeError
        "attribute name must be string"))
