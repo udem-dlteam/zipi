@@ -207,5 +207,5 @@
                  loc
                  (list param)
                  (new-PycReturnYield loc param-load k generator: #t))))
-        (cps-expr val kont kbreak kcontinue kraise))
+        (cps-expr val kont kraise))
       (new-PycReturnYield loc val k generator: #t))))
