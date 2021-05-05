@@ -3,8 +3,8 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Fri Sep 17 14:27:28 2004                          */
-#*    Last change :  Fri Nov  8 13:48:15 2019 (serrano)                */
-#*    Copyright   :  2004-20 Manuel Serrano                            */
+#*    Last change :  Wed May  5 09:51:47 2021 (serrano)                */
+#*    Copyright   :  2004-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The Bigloo autoconf Makefile skeleton for ZIPI.                  */
 #*=====================================================================*/
@@ -50,9 +50,25 @@ ZIPITMPDIR	= /tmp
 ZIPIDISTRIBDIR	= @ZIPIDISTRIBDIR@
 
 #*---------------------------------------------------------------------*/
+#*    Destinations                                                     */
+#*---------------------------------------------------------------------*/
+ZIPIPREFIX	= @PREFIX@
+ZIPIETCDIR	= @ETCDIR@
+ZIPIBINDIR	= @BINDIR@
+ZIPILIBDIR	= @LIBDIR@
+ZIPISHAREDIR	= @SHAREDIR@
+ZIPIMANDIR	= @MANDIR@
+ZIPIWEBLETSDIR	= @WEBLETSDIR@
+ZIPICONTRIBSDIR	= @CONTRIBSDIR@
+ZIPIDOCDIR	= @DOCDIR@
+
+#*---------------------------------------------------------------------*/
 #*    install                                                          */
 #*---------------------------------------------------------------------*/
 .PHONY: install.system.bigloo
+
+install.bigloo:
+	true
 
 install.system.bigloo:
 	$(INSTALL) $(BUILDLIBDIR)/pyc.init $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/pyc.init && \

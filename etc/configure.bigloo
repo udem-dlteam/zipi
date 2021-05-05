@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Tue Jul  2 07:46:27 2019                          */
-#*    Last change :  Tue Nov 12 20:12:25 2019 (serrano)                */
+#*    Last change :  Wed May  5 09:56:24 2021 (serrano)                */
 #*    Copyright   :  2019-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    Bigloo specific configuration                                    */
@@ -40,6 +40,13 @@ bzipicflags=
 zipisrfis="zipi-bigloo"
 
 bglcloselibs=""
+
+if [ "$prefix " = " " ]; then
+  prefix=/usr/local
+fi  
+etcdir=$prefix/etc
+bindir=$prefix/bin
+libdir=$prefix/lib
 
 #*---------------------------------------------------------------------*/
 #*    Private variables                                                */
