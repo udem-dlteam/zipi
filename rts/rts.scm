@@ -145,7 +145,7 @@
     (getattribute-from-cls-mro-with-owner-2cont
       (py-obj-cls obj)
       (& "__getattr__")
-      (lambda (__getattr__ MS_5_MAY_THIS_ARGUMENT_WAS_MISSING)
+      (lambda (__getattr__ owner)
         ;; caches cannot save you if this happens
         (py-call __getattr__ obj name))
       attribute-error))
