@@ -68,6 +68,7 @@ PYTHON	         = @PYTHON@
 #*---------------------------------------------------------------------*/
 #*    Destinations                                                     */
 #*---------------------------------------------------------------------*/
+INSTALLBINDIR = @INSTALLBINDIR@
 ZIPIPREFIX	= @PREFIX@
 ZIPIROOT    = @ZIPIROOT@
 ZIPIETCDIR	= @ETCDIR@
