@@ -40,7 +40,25 @@
   (new-PycRef loc var ctx can-direct-access: #t))
 
 (define-walk-method (cps-stmt this::PycNode k kbreak kcontinue kraise)
-  (error "cps-stmt" "Unimplemented statement for generators" (pyc->list this)))
+  (error "cps-stmt" "should not be called on this" (pyc->list this)))
+
+(define-walk-method (cps-stmt this::PycStmt k kbreak kcontinue kraise)
+  (cond
+    ((not k)
+      this)
+    ((not (need-cps? this))
+      (new-PycSeq
+        (PycNode-loc this)
+        (list
+          this
+          (new-PycCallKont (PycNode-loc this) k))))
+    (else
+      (error "cps-expr" "Unimplemented statement for generators" (pyc->list this)))))
+
+(define-walk-method (cps-stmt this::PycPass k kbreak kcontinue kraise)
+  (if (not k)
+    this
+    (new-PycCallKont (PycNode-loc this) k)))
 
 (define (cps-stmt* nodes k kbreak kcontinue kraise)
   (if (null? nodes)
@@ -71,11 +89,6 @@
         loc
         (new-PycPragma loc 'py-builtin-StopIteration)
         (new-PycUninit loc)))))
-
-(define-walk-method (cps-stmt this::PycLiteralValue k kbreak kcontinue kraise)
-  (if k
-    (new-PycCallKont (PycNode-loc this) k args: (list this))
-    this))
 
 (define-walk-method (cps-stmt this::PycStmtExpr k kbreak kcontinue kraise)
   (if (need-cps? this)
@@ -118,9 +131,6 @@
           kraise))
         this)))
 
-(define-walk-method (cps-stmt this::PycPass k kbreak kcontinue kraise)
-  this)
-
 (define-walk-method (cps-stmt this::PycFor k kbreak kcontinue kraise)
   (let* ((loc (PycNode-loc this))
          (target (PycFor-target this))
@@ -128,7 +138,9 @@
          (body (PycLoop-body this))
          (forelse (PycLoop-else this)))
     (if (or (need-cps? iter) (need-cps? body) (need-cps? forelse))
-      (let* ((kiter-var (new-kont-var 'kiter 'kont))
+      (let* ((cps-loop-kont-var (new-kont-var 'cps-for-loop 'kont))
+             (cps-loop-kont-load (new-kont-ref loc cps-loop-kont-var 'Load))
+             (kiter-var (new-kont-var 'kiter 'kont))
              (kiter-store (new-kont-ref loc kiter-var 'Store))
              (kiter-load (new-kont-ref loc kiter-var 'Load)))
         (cps-expr
@@ -158,14 +170,14 @@
                       loc
                       '()
                       (cps-stmt forelse kont-load kbreak kcontinue kraise))))
-                (new-PycFor
+                (new-PycCPSFor
                   loc
-                  (cps-stmt body else-kont-load kont-load #f kraise)
-                  else-kont-load
+                  (cps-stmt body cps-loop-kont-load kont-load cps-loop-kont-load kraise)
+                  (new-PycCallKont (PycNode-loc forelse) else-kont-load)
                   target
                   kiter-load
-                  need-break: #f ;; handled by continuation
-                  need-continue: (PycLoop-need-continue this)))))
+                  cps-loop-kont-var
+                  else-kont-var))))
           kraise))
       this)))
 

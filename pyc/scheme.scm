@@ -380,9 +380,9 @@
 
    (define (scheme-for this)
       (let ((loop (my-gensym '%for))
-	    (target (my-gensym '%target))
-	    (iterable (my-gensym '%iterable))
-	    (iterator (my-gensym '%iterator)))
+      	    (target (my-gensym '%target))
+      	    (iterable (my-gensym '%iterable))
+      	    (iterator (my-gensym '%iterator)))
 	 (epairify this
 	    `(let* ((,iterable ,(scheme (PycFor-iter this) conf))
       		    (,iterator (py-iter ,iterable)))
@@ -418,6 +418,28 @@
 	  `(begin
 	      ,(scheme-for this)
 	      ,(scheme (PycLoop-else this) conf))))))
+
+(define-walk-method (scheme this::PycCPSFor conf)
+  (let* ((loop-kont-var (PycCPSFor-loop-kont-var this))
+         (else-kont-var (PycCPSFor-else-kont-var this))
+         (loop (scheme-var-name loop-kont-var conf))
+         (forelse (scheme-var-name else-kont-var conf))
+         (target (my-gensym '%target))
+         (iterable (my-gensym '%iterable))
+         (iterator (my-gensym '%iterator)))
+    (epairify this
+     `(let* ((,iterable ,(scheme (PycFor-iter this) conf))
+             (,iterator (py-iter ,iterable)))
+         (let ,loop ()
+              (let ((,target (py-next ,iterator)))
+           (if ,target
+              (begin
+                ,(let ((assig (new-PycAssig (PycNode-loc this)
+                     (PycFor-target this)
+                     (new-PycPragma (PycNode-loc this) target))))
+                    (scheme  assig conf))
+                ,(scheme (PycLoop-body this) conf)) ;; the cps body had ,loop as its own continuation
+              (,forelse))))))))
 
 (define-walk-method (scheme this::PycIf conf)
   (epairify this
