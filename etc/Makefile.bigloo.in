@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Fri Sep 17 14:27:28 2004                          */
-#*    Last change :  Wed May  5 09:51:47 2021 (serrano)                */
+#*    Last change :  Wed May  5 16:12:08 2021 (serrano)                */
 #*    Copyright   :  2004-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The Bigloo autoconf Makefile skeleton for ZIPI.                  */
@@ -18,6 +18,8 @@ BIGLOOLIBDIR	= @BIGLOOLIBDIR@
 AFILE		= @AFILE@
 BTAGS		= @BTAGS@
 DEPEND		= @BDEPEND@
+
+BGLZIPIRELEASE	= $(ZIPIRELEASE)
 
 #*---------------------------------------------------------------------*/
 #*    Compilation flags                                                */
@@ -39,9 +41,9 @@ BZIPICFLAGS	= @BZIPICFLAGS@
 #*---------------------------------------------------------------------*/
 #*    Linking                                                          */
 #*---------------------------------------------------------------------*/
-ZIPIEXTRALIBS	= @EXTRALIBS@
-ZIPIBIGLOOEXTRALIBS = @BIGLOOEXTRALIBS@
-ZIPIAPPLIBS	=
+BGLZIPIEXTRALIBS= @EXTRALIBS@
+BGLZIPIBIGLOOEXTRALIBS = @BIGLOOEXTRALIBS@
+BGLZIPIAPPLIBS	=
 
 #*---------------------------------------------------------------------*/
 #*    REPOSITORY                                                       */
@@ -52,15 +54,13 @@ ZIPIDISTRIBDIR	= @ZIPIDISTRIBDIR@
 #*---------------------------------------------------------------------*/
 #*    Destinations                                                     */
 #*---------------------------------------------------------------------*/
-ZIPIPREFIX	= @PREFIX@
-ZIPIETCDIR	= @ETCDIR@
-ZIPIBINDIR	= @BINDIR@
-ZIPILIBDIR	= @LIBDIR@
-ZIPISHAREDIR	= @SHAREDIR@
-ZIPIMANDIR	= @MANDIR@
-ZIPIWEBLETSDIR	= @WEBLETSDIR@
-ZIPICONTRIBSDIR	= @CONTRIBSDIR@
-ZIPIDOCDIR	= @DOCDIR@
+BGLZIPIPREFIX	= @PREFIX@
+BGLZIPIETCDIR	= @ETCDIR@
+BGLZIPIBINDIR	= @BINDIR@
+BGLZIPILIBDIR	= @LIBDIR@
+BGLZIPISHAREDIR	= @SHAREDIR@
+BGLZIPIMANDIR	= @MANDIR@
+BGLZIPIDOCDIR	= @DOCDIR@
 
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
@@ -71,10 +71,10 @@ install.bigloo:
 	true
 
 install.system.bigloo:
-	$(INSTALL) $(BUILDLIBDIR)/pyc.init $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/pyc.init && \
-        chmod $(MODFILE) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/pyc.init;
-	$(INSTALL) $(BUILDLIBDIR)/zipi.init $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/zipi.init && \
-        chmod $(MODFILE) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/zipi.init;
+	$(INSTALL) $(BUILDLIBDIR)/pyc.init $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)/pyc.init && \
+        chmod $(MODFILE) $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)/pyc.init;
+	$(INSTALL) $(BUILDLIBDIR)/zipi.init $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)/zipi.init && \
+        chmod $(MODFILE) $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)/zipi.init;
 
 #*---------------------------------------------------------------------*/
 #*    compile                                                          */

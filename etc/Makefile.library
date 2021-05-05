@@ -3,8 +3,8 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Wed Mar 15 07:22:39 2006                          */
-#*    Last change :  Fri Nov  8 13:32:46 2019 (serrano)                */
-#*    Copyright   :  2006-20 Manuel Serrano                            */
+#*    Last change :  Wed May  5 16:14:17 2021 (serrano)                */
+#*    Copyright   :  2006-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The common Makefile for building libraries                       */
 #*=====================================================================*/
@@ -15,9 +15,9 @@
 # The heap file
 HEAPFILE	= $(BUILDLIBDIR)/$(TARGETNAME).heap
 # the library version
-LIBVERSION	= $(ZIPIRELEASE)
+LIBVERSION	= $(BGLZIPIRELEASE)
 
-RPATH		+= $(ZIPILIBDIR)/$(ZIPIFILDIR)
+RPATH		+= $(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)
 
 #*---------------------------------------------------------------------*/
 #*    Suffixes                                                         */
@@ -35,10 +35,10 @@ o/%.o: %.scm
 	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BLFLAGS),-c,$< -o $@)
 
 %.scm: %.hop
-	@ $(call compile3,$(ZIPIC),$(HFLAGS),$(BCFLAGS),$(BLFLAGS),-s,$< -o $@)
+	@ $(call compile3,$(BGLZIPIC),$(HFLAGS),$(BCFLAGS),$(BLFLAGS),-s,$< -o $@)
 
 o/%.o: %.js
-	@ $(call compile3,$(ZIPIC),$(HFLAGS),$(BCFLAGS),$(BLFLAGS),$(BZIPICFLAGS) -c --js-module-name __nodejs_$* --js-module-path $*,$< -o $@)
+	@ $(call compile3,$(BGLZIPIC),$(HFLAGS),$(BCFLAGS),$(BLFLAGS),$(BZIPICFLAGS) -c --js-module-name __nodejs_$* --js-module-path $*,$< -o $@)
 
 #*---------------------------------------------------------------------*/
 #*    The heap construction                                            */
@@ -70,10 +70,10 @@ lib-c-static: .afile $(OBJECTS)
 	$(MAKE) lib-c-static-sans-afile
 
 lib-c-static-sans-afile: \
-   $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(ZIPIRELEASE).a \
-   $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(ZIPIRELEASE).a \
-   $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(ZIPIRELEASE).a \
-   $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(ZIPIRELEASE).a
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).a \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(BGLZIPIRELEASE).a \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(BGLZIPIRELEASE).a \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(BGLZIPIRELEASE).a
 
 # lib-c-shared depends on lib-c-static only to force the compilation
 # order when invoking make with --jobs N
@@ -102,96 +102,96 @@ lib-c_mt.$(SHAREDSUFFIX):
 	@ $(MAKE) one-lib-c.$(SHAREDSUFFIX) LIBSUFFIX=_eu LIBSUFFIXTHREAD=_mt
 
 one-lib-c.$(SHAREDSUFFIX): \
-  $(BUILDLIBDIR)/lib$(TARGETNAME)$(LIBSUFFIX)$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX)   
+  $(BUILDLIBDIR)/lib$(TARGETNAME)$(LIBSUFFIX)$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)   
 
-$(BUILDLIBDIR)/lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX): \
+$(BUILDLIBDIR)/lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX): \
    .afile $(OBJECTS)
 	$(MAKE) bigloo-shared-lib \
-           LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
+           LDINSTALLNAMEDIR=$(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR) \
            BOOTLIBDIR=$(BUILDLIBDIR) \
            FORCELD=true \
            LIBDEST=$@ \
            LIBSUFFIXTHREAD=$(LIBSUFFIXTHREAD) \
-           SONAME=lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX) \
+           SONAME=lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX) \
            LDOPTS="-L$(BUILDLIBDIR) $(LDZIPIOPTS) $(LDOPTS)" \
-           EXTRALIBS="$(EXTRALIBS) $(ZIPIEXTRALIBS)" \
-           BIGLOOEXTRALIBS="$(ZIPIBIGLOOEXTRALIBS)" \
-           BIGLOOAPPLIBS="$(ZIPIAPPLIBS)" \
-           APPRELEASE=$(ZIPIRELEASE)
+           EXTRALIBS="$(EXTRALIBS) $(BGLZIPIEXTRALIBS)" \
+           BIGLOOEXTRALIBS="$(BGLZIPIBIGLOOEXTRALIBS)" \
+           BIGLOOAPPLIBS="$(BGLZIPIAPPLIBS)" \
+           APPRELEASE=$(BGLZIPIRELEASE)
 	@ $(call done,$@)
 
-$(BUILDLIBDIR)/lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX): \
+$(BUILDLIBDIR)/lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX): \
    .afile $(OBJECTS)
 	$(MAKE) bigloo-shared-lib \
-           LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
+           LDINSTALLNAMEDIR=$(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR) \
            BOOTLIBDIR=$(BUILDLIBDIR) \
            FORCELD=true \
            LIBDEST=$@ \
            LIBSUFFIXTHREAD=$(LIBSUFFIXTHREAD) \
-           SONAME=lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX) \
+           SONAME=lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX) \
            LDOPTS="-L$(BUILDLIBDIR) $(LDZIPIOPTS) $(LDOPTS)" \
-           EXTRALIBS="$(EXTRALIBS) $(ZIPIEXTRALIBS)" \
-           BIGLOOEXTRALIBS="$(ZIPIBIGLOOEXTRALIBS)" \
-           BIGLOOAPPLIBS="$(ZIPIAPPLIBS)" \
-           APPRELEASE=$(ZIPIRELEASE)
+           EXTRALIBS="$(EXTRALIBS) $(BGLZIPIEXTRALIBS)" \
+           BIGLOOEXTRALIBS="$(BGLZIPIBIGLOOEXTRALIBS)" \
+           BIGLOOAPPLIBS="$(BGLZIPIAPPLIBS)" \
+           APPRELEASE=$(BGLZIPIRELEASE)
 	@ $(call done,$@)
 
-$(BUILDLIBDIR)/lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX): $(BUILDLIBDIR)/lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX)
+$(BUILDLIBDIR)/lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX): $(BUILDLIBDIR)/lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
 	$(MAKE) bigloo-shared-lib \
            OBJECTS="$(EOBJECTS)" \
            FORCELD=true \
            LIBDEST=$@ \
-           LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
+           LDINSTALLNAMEDIR=$(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR) \
            LIBSUFFIXTHREAD=$(LIBSUFFIXTHREAD) \
-           SONAME=lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX) \
+           SONAME=lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX) \
            LDOPTS="-L$(BUILDLIBDIR) -L$(BOOTLIBDIR) $(LDZIPIOPTS) $(LDOPTS)" \
            LIBSUFFIX=_s \
-           EXTRALIBS="$(EXTRALIBS) $(ZIPIEXTRALIBS)" \
-           BIGLOOEXTRALIBS="$(ZIPIBIGLOOEXTRALIBS)" \
-           BIGLOOAPPLIBS="$(ZIPIAPPLIBS) $(TARGETNAME)" \
-           APPRELEASE=$(ZIPIRELEASE)
+           EXTRALIBS="$(EXTRALIBS) $(BGLZIPIEXTRALIBS)" \
+           BIGLOOEXTRALIBS="$(BGLZIPIBIGLOOEXTRALIBS)" \
+           BIGLOOAPPLIBS="$(BGLZIPIAPPLIBS) $(TARGETNAME)" \
+           APPRELEASE=$(BGLZIPIRELEASE)
 	@ $(call done,$@)
 
-$(BUILDLIBDIR)/lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX): $(BUILDLIBDIR)/lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX)
+$(BUILDLIBDIR)/lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX): $(BUILDLIBDIR)/lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
 	$(MAKE) bigloo-shared-lib \
            OBJECTS="$(EOBJECTS)" \
            FORCELD=true \
            LIBDEST=$@ \
-           LDINSTALLNAMEDIR=$(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR) \
-           SONAME=lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE).$(SHAREDSUFFIX) \
+           LDINSTALLNAMEDIR=$(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR) \
+           SONAME=lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE).$(SHAREDSUFFIX) \
            LIBSUFFIXTHREAD=$(LIBSUFFIXTHREAD) \
            LDOPTS="-L$(BUILDLIBDIR) -L$(BOOTLIBDIR) $(LDZIPIOPTS) $(LDOPTS)" \
            LIBSUFFIX=_u \
-           EXTRALIBS="$(EXTRALIBS) $(ZIPIEXTRALIBS)" \
-           BIGLOOEXTRALIBS="$(ZIPIBIGLOOEXTRALIBS)" \
-           BIGLOOAPPLIBS="$(ZIPIAPPLIBS) $(TARGETNAME)" \
-           APPRELEASE=$(ZIPIRELEASE)
+           EXTRALIBS="$(EXTRALIBS) $(BGLZIPIEXTRALIBS)" \
+           BIGLOOEXTRALIBS="$(BGLZIPIBIGLOOEXTRALIBS)" \
+           BIGLOOAPPLIBS="$(BGLZIPIAPPLIBS) $(TARGETNAME)" \
+           APPRELEASE=$(BGLZIPIRELEASE)
 	@ $(call done,$@)
 
 # and the static versions
-$(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(ZIPIRELEASE).a: .afile $(OBJECTS)
-	@ $(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(ZIPIRELEASE).a
-	@ $(AR) $(ARFLAGS) $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(ZIPIRELEASE).a $(OBJECTS)
-	@ $(RANLIB) $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(ZIPIRELEASE).a
+$(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).a: .afile $(OBJECTS)
+	@ $(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).a
+	@ $(AR) $(ARFLAGS) $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).a $(OBJECTS)
+	@ $(RANLIB) $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).a
 	@ $(call done,$@)
 
-$(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(ZIPIRELEASE).a: \
-   $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(ZIPIRELEASE).a
+$(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(BGLZIPIRELEASE).a: \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).a
 	@ cd $(BUILDLIBDIR) && \
-        $(RM) -f lib$(TARGETNAME)_u-$(ZIPIRELEASE).a && \
-        $(LN_S) lib$(TARGETNAME)_s-$(ZIPIRELEASE).a lib$(TARGETNAME)_u-$(ZIPIRELEASE).a
+        $(RM) -f lib$(TARGETNAME)_u-$(BGLZIPIRELEASE).a && \
+        $(LN_S) lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).a lib$(TARGETNAME)_u-$(BGLZIPIRELEASE).a
 	@ $(call done,$@)
 
-$(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(ZIPIRELEASE).a: $(EOBJECTS)
-	@ $(AR) $(ARFLAGS) $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(ZIPIRELEASE).a $(EOBJECTS)
-	@ $(RANLIB) $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(ZIPIRELEASE).a
+$(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(BGLZIPIRELEASE).a: $(EOBJECTS)
+	@ $(AR) $(ARFLAGS) $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(BGLZIPIRELEASE).a $(EOBJECTS)
+	@ $(RANLIB) $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(BGLZIPIRELEASE).a
 	@ $(call done,$@)
 
-$(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(ZIPIRELEASE).a: \
-   $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(ZIPIRELEASE).a
+$(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(BGLZIPIRELEASE).a: \
+   $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(BGLZIPIRELEASE).a
 	@ cd $(BUILDLIBDIR) && \
-        $(RM) -f lib$(TARGETNAME)_eu-$(ZIPIRELEASE).a && \
-        $(LN_S) lib$(TARGETNAME)_es-$(ZIPIRELEASE).a lib$(TARGETNAME)_eu-$(ZIPIRELEASE).a
+        $(RM) -f lib$(TARGETNAME)_eu-$(BGLZIPIRELEASE).a && \
+        $(LN_S) lib$(TARGETNAME)_es-$(BGLZIPIRELEASE).a lib$(TARGETNAME)_eu-$(BGLZIPIRELEASE).a
 	@ $(call done,$@)
 
 #*---------------------------------------------------------------------*/
@@ -200,18 +200,18 @@ $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(ZIPIRELEASE).a: \
 stdclean:
 	$(RM) -f $(OBJECTS) $(_BGL_OBJECTS:%=%.c)
 	$(RM) -f $(EOBJECTS)
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(ZIPIRELEASE).a
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(ZIPIRELEASE).a
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(ZIPIRELEASE).a
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(ZIPIRELEASE).a
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(ZIPIRELEASE).$(SHAREDSUFFIX)
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(ZIPIRELEASE).$(SHAREDSUFFIX)
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(ZIPIRELEASE).$(SHAREDSUFFIX)
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(ZIPIRELEASE).$(SHAREDSUFFIX)
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s_mt-$(ZIPIRELEASE).$(SHAREDSUFFIX)
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_u_mt-$(ZIPIRELEASE).$(SHAREDSUFFIX)
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_es_mt-$(ZIPIRELEASE).$(SHAREDSUFFIX)
-	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_eu_mt-$(ZIPIRELEASE).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).a
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(BGLZIPIRELEASE).a
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(BGLZIPIRELEASE).a
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(BGLZIPIRELEASE).a
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_u-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_es-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s_mt-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_u_mt-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_es_mt-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
+	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_eu_mt-$(BGLZIPIRELEASE).$(SHAREDSUFFIX)
 	$(RM) -f $(BUILDLIBDIR)/$(TARGETNAME).heap
 	$(RM) -f *~
 	$(RM) -f *.mco
@@ -242,8 +242,8 @@ install-library: install-$(BACKEND)
 install-native: install-native-heap install-native-libs
 
 install-native-heap:
-	$(INSTALL) $(BUILDLIBDIR)/$(TARGETNAME).heap $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap
-	chmod $(MODFILE) $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap
+	$(INSTALL) $(BUILDLIBDIR)/$(TARGETNAME).heap $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)/$(TARGETNAME).heap
+	chmod $(MODFILE) $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)/$(TARGETNAME).heap
 
 install-native-libs:
 	if [ "$(THREADS)" = "yes" ]; then \
@@ -256,33 +256,33 @@ install-native-libs-version:
 	$(MAKE) install-lib \
                 INSTALL="$(INSTALL)" \
                 BOOTLIBDIR=$(BUILDLIBDIR) \
-                FILDIR=$(ZIPIFILDIR)\
-                LIBDIR=$(ZIPILIBDIR)\
-                LIB=lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
+                FILDIR=$(BGLZIPIFILDIR)\
+                LIBDIR=$(BGLZIPILIBDIR)\
+                LIB=lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE)
 	$(MAKE) install-lib \
                 INSTALL="$(INSTALL)" \
                 BOOTLIBDIR=$(BUILDLIBDIR) \
-                FILDIR=$(ZIPIFILDIR) \
-                LIBDIR=$(ZIPILIBDIR) \
-                LIB=lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
+                FILDIR=$(BGLZIPIFILDIR) \
+                LIBDIR=$(BGLZIPILIBDIR) \
+                LIB=lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE)
 	$(MAKE) install-lib \
                 INSTALL="$(INSTALL)" \
                 BOOTLIBDIR=$(BUILDLIBDIR) \
-                FILDIR=$(ZIPIFILDIR) \
-                LIBDIR=$(ZIPILIBDIR) \
-                LIB=lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
+                FILDIR=$(BGLZIPIFILDIR) \
+                LIBDIR=$(BGLZIPILIBDIR) \
+                LIB=lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE)
 	$(MAKE) install-lib \
                 INSTALL="$(INSTALL)" \
                 BOOTLIBDIR=$(BUILDLIBDIR) \
-                FILDIR=$(ZIPIFILDIR) \
-                LIBDIR=$(ZIPILIBDIR) \
-                LIB=lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
+                FILDIR=$(BGLZIPIFILDIR) \
+                LIBDIR=$(BGLZIPILIBDIR) \
+                LIB=lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE)
 
 
 uninstall: uninstall-native-heap uninstall-native-libs
 
 uninstall-native-heap:
-	-$(RM) -f $(DESTDIR)$(ZIPILIBDIR)/$(ZIPIFILDIR)/$(TARGETNAME).heap
+	-$(RM) -f $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)/$(TARGETNAME).heap
 
 uninstall-native-libs:
 	if [ "$(THREADS)" = "yes" ]; then \
@@ -292,10 +292,10 @@ uninstall-native-libs:
         fi
 
 uninstall-native-libs-version:
-	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
-	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
-	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
-	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(ZIPIRELEASE)
+	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_s$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE)
+	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_u$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE)
+	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_es$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE)
+	-$(MAKE) uninstall-lib LIB=lib$(TARGETNAME)_eu$(LIBSUFFIXTHREAD)-$(BGLZIPIRELEASE)
 
 #*---------------------------------------------------------------------*/
 #*    dep                                                              */
