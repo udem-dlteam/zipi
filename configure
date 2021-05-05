@@ -151,10 +151,6 @@ pycdir=$zipiroot/pyc
 zpcdir=$zipiroot/zpc
 depdir=$zipiroot/dependencies
 
-if [ "$skipdependencies " = "true " ]; then
-  builddepdir=
-fi
-
 #*---------------------------------------------------------------------*/
 #*                    Install cPython                                  */
 #*---------------------------------------------------------------------*/
