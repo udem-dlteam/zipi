@@ -17,7 +17,8 @@
    (export
       (abstract-class PycNode
 	 (loc::pair read-only (info '("notraverse")))
-	 (%info (default #f) (info '("nojson" "notraverse"))))
+	 (%info (default #f) (info '("nojson" "notraverse")))
+   (cps (default #f)))
 
       ;; A syntactical node that indicates an unimplemented feature
       ;; used to raise py-builtin-NotImplementedError at run-time

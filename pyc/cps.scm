@@ -2,7 +2,8 @@
 ;; This pass assumes that the GENERATOR pass has already execute
 ;; and so generator function are alread marked
 (define (pyc-cps this conf)
-   (cps-fun! this))
+  (mark-need-cps* this #f #f)
+  (cps-fun! this))
 
 (define-walk-method (cps-fun! this::PycNode)
   (call-default-walker))
@@ -11,25 +12,66 @@
   (if (PycFun-generator this)
     (PycFun-body-set!
       this
-      (cps-stmt (cps-fun! (PycFun-body this)) #f #f #f #f)))
+      (cps-stmt (cps-fun! (PycFun-body this)) 'not-a-continuation-placeholder #f #f #f)))
   this)
 
 ;; does an expression need cps
+(define-walk-method (mark-need-cps* this::PycNode return-need-cps break-continue-need-cps)
+  (let loop ((children-need-cps (call-default-walker)))
+    (cond
+      ((null? children-need-cps)
+        '(#f))
+      ((car children-need-cps)
+        (PycNode-cps-set! this #t)
+        '(#t))
+      (else
+        (loop (cdr children-need-cps))))))
+
+(define-walk-method (mark-need-cps* this::PycFun return-need-cps break-continue-need-cps)
+  (mark-need-cps* (PycFun-body this) (PycFun-generator this) #f)
+  (let loop ((default-need-cps
+              (apply append
+                (map
+                  (lambda (d) (mark-need-cps* d return-need-cps break-continue-need-cps))
+                  (append (PycFun-defaults this) (PycFun-kw-defaults this))))))
+    (cond
+      ((null? default-need-cps)
+        '(#f))
+      ((car default-need-cps)
+        (PycNode-cps-set! this #t)
+        '(#t))
+      (else
+        (loop (cdr default-need-cps))))))
+
+(define-walk-method (mark-need-cps* this::PycFor return-need-cps break-continue-need-cps)
+  (let loop ((children-need-cps (call-default-walker)))
+    (cond
+      ((null? children-need-cps)
+        '(#f))
+      ((car children-need-cps)
+        (mark-need-cps* (PycLoop-body this) return-need-cps #t)
+        (PycNode-cps-set! this #t)
+        '(#t))
+      (else
+        (loop (cdr children-need-cps))))))
+
+(define-walk-method (mark-need-cps* this::PycYield return-need-cps break-continue-need-cps)
+  '(#t))
+
+(define-walk-method (mark-need-cps* this::PycBreak return-need-cps break-continue-need-cps)
+  (PycNode-cps-set! this break-continue-need-cps)
+  (list break-continue-need-cps))
+
+(define-walk-method (mark-need-cps* this::PycContinue return-need-cps break-continue-need-cps)
+  (PycNode-cps-set! this break-continue-need-cps)
+  (list break-continue-need-cps))
+
+(define-walk-method (mark-need-cps* this::PycReturn return-need-cps break-continue-need-cps)
+  (PycNode-cps-set! this return-need-cps)
+  (cons return-need-cps (call-default-walker)))
+
 (define (need-cps? this)
-  (let ((v (yield-expr* this)))
-    (if (null? v) #f v)))
-
-(define-walk-method (yield-expr* this::PycNode)
-   (call-default-walker))
-
-(define-walk-method (yield-expr* this::PycYield)
-   (list this))
-
-(define-walk-method (yield-expr* this::PycReturn)
-   (list this))
-
-(define-walk-method (yield-expr* this::PycFun)
-   '())
+  (PycNode-cps this))
 
 ;; Transform generators statements to cps
 
@@ -180,6 +222,12 @@
                   else-kont-var))))
           kraise))
       this)))
+
+(define-walk-method (cps-stmt this::PycBreak k kbreak kcontinue kraise)
+  (new-PycCallKont (PycNode-loc this) kbreak))
+
+(define-walk-method (cps-stmt this::PycContinue k kbreak kcontinue kraise)
+  (new-PycCallKont (PycNode-loc this) kcontinue))
 
 ;; transform generators expressions to cps
 
