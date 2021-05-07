@@ -1,320 +1,364 @@
-;; CPS transform functions that use yield
+;; cps-stmt transform functions that use yield
 ;; This pass assumes that the GENERATOR pass has already execute
 ;; and so generator function are alread marked
 (define (pyc-cps this conf)
-   (cps-fun! this))
+  (mark-need-cps* this #f #f)
+  (cps-fun! this))
 
-;; Transform CPS functions
 (define-walk-method (cps-fun! this::PycNode)
-   (call-default-walker))
-
-;; debug macros
-(define-macro (kcall kont arg) `(,kont ,arg))
-(define-macro (KontExpr proc node link . name) proc)
-(define-macro (KontExpr* proc node link . name) proc)
-(define-macro (KontStmt proc node link . name) proc)
+  (call-default-walker))
 
 (define-walk-method (cps-fun! this::PycFun)
-   (if (PycFun-generator this)
-       (PycFun-body-set! this
-	  (cps (PycFun-body this) (KontStmt kid this #f) kid '() '() #f this))
-       (cps-fun! (PycFun-body this)))
-   this)
+  (if (PycFun-generator this)
+    (PycFun-body-set!
+      this
+      (cps-stmt (cps-fun! (PycFun-body this)) 'not-a-continuation-placeholder #f #f #f)))
+  this)
 
-(define (kid n) n)
-(define (kid? obj) (eq? obj kid))
+;; does an expression need cps
+(define-walk-method (mark-need-cps* this::PycNode return-need-cps break-continue-need-cps)
+  (let loop ((children-need-cps (call-default-walker)))
+    (cond
+      ((null? children-need-cps)
+        '(#f))
+      ((car children-need-cps)
+        (PycNode-cps-set! this #t)
+        '(#t))
+      (else
+        (loop (cdr children-need-cps))))))
 
-(define (cps* nodes k* pack kbreaks kcontinues ktry fun)
-   (let loop ((nodes nodes)
-	      (knodes '()))
-      (if (null? nodes)
-	  (kcall k* (reverse! knodes))
-	  (cps (car nodes)
-	     (KontExpr (lambda (kexpr)
-			  (loop (cdr nodes)
-			     (cons kexpr knodes)))
-		nodes k*)
-	     pack kbreaks kcontinues ktry fun))))
+(define-walk-method (remove-need-return this::PycNode)
+  (call-default-walker))
 
-(define-walk-method (cps this::PycNode k pack kbreaks kcontinues ktry fun)
-   (error "cps" "Should not be here" (pyc->list this)))
+(define-walk-method (remove-need-return this::PycStmt)
+  (PycStmt-need-return-set! this #f)
+  (call-default-walker))
 
-(define-walk-method (cps this::PycIf k pack kbreaks kcontinues ktry fun)
-   (let ((iftest (PycIf-test this))
-	 (ifthen (PycIf-then this))
-	 (ifelse (PycIf-else this))
-	 (ifloc (PycIf-loc this)))
-      (let* ((name (gensym '%kif))
-	     (kfun (new-PycKont ifloc '()
-		      (new-PycBlock ifloc '()
-			 (kcall k (new-PycNone ifloc #f)))))
-	     (kdecl (new-PycVar ifloc name 'block))
-	     (kif (KontStmt (lambda (n)
-			       (new-PycSeq ifloc
-				  (list
-				     n
-				     (new-PycReturn ifloc
-					(new-PycCallKont ifloc
-					   (new-PycRef ifloc kdecl 'Load
-					      :can-direct-access #t))))))
-		     this k)))
-	 (cps iftest
-	    (KontExpr (lambda (ktest)
-			 (new-PycBlock ifloc
-			    (list (new-PycAssig ifloc
-				     (new-PycRef ifloc kdecl 'Store
-					:can-direct-access #t)
-				     (new-PycNone ifloc #f)))
-			    (new-PycIf ifloc
-			       ktest
-			       (cps ifthen kif pack kbreaks kcontinues ktry fun)
-			       (cps ifelse kif pack kbreaks kcontinues ktry fun))))
-	       this k)
-	    pack kbreaks kcontinues ktry fun))))
+(define-walk-method (remove-need-return this::PycFun)
+  #f)
 
-(define-walk-method (cps this::PycStmtExpr k pack kbreaks kcontinues ktry fun)
-   (let ((loc (PycNode-loc this))
-	 (expr (PycStmtExpr-expr this)))
-      (if (yield-expr? expr kbreaks kcontinues)
-	  (cps expr
-	     (KontExpr (lambda (ke)
-			  (kcall k (new-PycStmtExpr loc ke)))
-		this k "expr")
-	     pack kbreaks kcontinues ktry fun)
-	  (begin
-	     (cps-fun! expr)
-	     (kcall k this)))))
+(define-walk-method (mark-need-cps* this::PycFun return-need-cps break-continue-need-cps)
+  (if (PycFun-generator this)
+    ;; generators do not need non-terminal return since returns are converted to cps
+    (begin
+      (PycFun-need-return-set! this #f)
+      (remove-need-return (PycFun-body this))))
 
-(define-walk-method (cps this::PycLiteral k pack kbreaks kcontinues ktry fun)
-   (kcall k this))
+  (mark-need-cps* (PycFun-body this) (PycFun-generator this) #f)
+  (let loop ((default-need-cps
+              (apply append
+                (map
+                  (lambda (d) (mark-need-cps* d return-need-cps break-continue-need-cps))
+                  (append (PycFun-defaults this) (PycFun-kw-defaults this))))))
+    (cond
+      ((null? default-need-cps)
+        '(#f))
+      ((car default-need-cps)
+        (PycNode-cps-set! this #t)
+        '(#t))
+      (else
+        (loop (cdr default-need-cps))))))
 
-(define-walk-method (cps this::PycUninit k pack kbreaks kcontinues ktry fun)
-   (kcall k this))
+(define-walk-method (mark-need-cps* this::PycLoop return-need-cps break-continue-need-cps)
+  (let loop ((children-need-cps (call-default-walker)))
+    (cond
+      ((null? children-need-cps)
+        '(#f))
+      ((car children-need-cps)
+        (mark-need-cps* (PycLoop-body this) return-need-cps #t)
+        (PycNode-cps-set! this #t)
+        '(#t))
+      (else
+        (loop (cdr children-need-cps))))))
 
-(define-walk-method (cps this::PycRef k pack kbreaks kcontinues ktry fun)
-   (kcall k this))
+(define-walk-method (mark-need-cps* this::PycYield return-need-cps break-continue-need-cps)
+  (call-default-walker)
+  (PycNode-cps-set! this #t)
+  '(#t))
 
-(define-walk-method (cps this::PycUnary k pack kbreaks kcontinues ktry fun)
-   (let ((expr (PycUnary-expr this)))
-      (if (yield-expr? expr kbreaks kcontinues)
-	  (cps expr
-	     (KontExpr (lambda (kexpr)
-			  (kcall k (new-PycUnary (PycNode-loc this)
-				      (PycUnary-op this)
-				      kexpr)))
-		this k)
-	     pack kbreaks kcontinues ktry fun)
-	  (kcall k this))))
+(define-walk-method (mark-need-cps* this::PycBreak return-need-cps break-continue-need-cps)
+  (PycNode-cps-set! this break-continue-need-cps)
+  (list break-continue-need-cps))
 
-(define-walk-method (cps this::PycBinary k pack kbreaks kcontinues ktry fun)
-   (let ((lhs (PycBinary-lhs this))
-	 (rhs (PycBinary-rhs this)))
-      (cond
-	 ((yield-expr? lhs kbreaks kcontinues)
-	  (cps lhs
-	     (KontExpr (lambda (klhs)
-			  (cps (new-PycBinary (PycNode-loc this)
-				  (PycBinary-op this) klhs rhs)
-			     k pack kbreaks kcontinues ktry fun))
-		this k)
-	     pack kbreaks kcontinues ktry fun))
-	 ((yield-expr? rhs kbreaks kcontinues)
-	  (cps rhs
-	     (KontExpr (lambda (krhs)
-			  (cps (new-PycBinary (PycNode-loc this)
-				  (PycBinary-op this) lhs krhs)
-			     k pack kbreaks kcontinues ktry fun))
-		this k)
-	     pack kbreaks kcontinues ktry fun))
-	 (else
-	  (kcall k this)))))
+(define-walk-method (mark-need-cps* this::PycContinue return-need-cps break-continue-need-cps)
+  (PycNode-cps-set! this break-continue-need-cps)
+  (list break-continue-need-cps))
 
-(define-walk-method (cps this::PycYield k pack kbreaks kcontinues ktry fun)
-   
-   (define (make-yield-kont k loc)
-      (let* ((arg (new-PycVar loc (gensym '%arg) 'local))
-	     (exn (new-PycVar loc (gensym '%exn) 'local))
-	     (body (kcall k (new-PycRef loc arg 'Store :can-direct-access #t)))
-	     (cont (new-PycIf loc
-		      (new-PycBinary loc 'is
-			 (new-PycRef loc exn 'Load :can-direct-access #t)
-			 (new-PycBool loc #t)
-			 type: 'bool)
-		      (new-PycRaise loc
-			 (new-PycRef loc arg 'Load :can-direct-access #t)
-			 (new-PycUninit loc))
-		      body)))
-	 (new-PycKont loc
-	    (list (new-PycRef loc arg 'Store :can-direct-access #t)
-	       (new-PycRef loc exn 'Store :can-direct-access #t))
-	    (pack cont))))
-   
-   (let* ((loc (PycNode-loc this))
-	  (val (PycYield-val this))
-	  (gen (PycYield-generator this))
-	  (kont (make-yield-kont k loc)))
-      (if (yield-expr? val kbreaks kcontinues)
-	  (cps val
-	     (KontExpr (lambda (kexpr)
-			  (new-PycReturnYield loc kexpr kont generator: gen))
-		this k)
-	     pack kbreaks kcontinues ktry fun)
-	  (new-PycReturnYield loc (cps-fun! val) kont generator: gen))))
+(define-walk-method (mark-need-cps* this::PycReturn return-need-cps break-continue-need-cps)
+  (PycNode-cps-set! this return-need-cps)
+  (cons return-need-cps (call-default-walker)))
 
-(define-walk-method (cps this::PycReturn k pack kbreaks kcontinues ktry fun)
-   (let ((loc (PycNode-loc this))
-	 (expr (PycReturn-val this)))
-      (if (yield-expr? expr kbreaks kcontinues)
-	  (cps expr
-	     (KontExpr (lambda (kexpr)
-			  (if ktry
-			      '(new-PycTail loc
-				(new-PycCall loc
-				   (new-PycRef loc ktry :can-direct-access #t)
-				   (PycBool #t)
-				   kexpr))
-			      (new-PycReturnYield loc kexpr
-				 (new-PycUninit loc))))
-		this k)
-	     pack kbreaks kcontinues ktry fun)
-	  (if ktry
-	      (tprint "TODO")
-	      (begin
-		 (PycReturn-val-set! this (new-PycPragma loc ''StopIteration))
-		 (new-PycSeq loc
-		    (list
-		       (new-PycStmtExpr loc (cps-fun! expr))
-		       this)))))))
+(define (need-cps? this)
+  (PycNode-cps this))
 
-(define-walk-method (cps this::PycCall k pack kbreaks kcontinues ktry fun)
-   (let ((args (PycCall-args this)))
-      (cond
-	 ((yield-expr? (PycCall-fun this) kbreaks kcontinues)
-	  (cps (PycCall-fun this)
-	     (KontExpr (lambda (kfun)
-			  (PycCall-fun-set! this kfun)
-			  (cps this k pack kbreaks kcontinues ktry fun))
-		this k)
-	     pack kbreaks kcontinues ktry fun))
-	 ((any (lambda (e) (yield-expr? e kbreaks kcontinues)) args)
-	  (cps-fun! (PycCall-fun this))
-	  (cps* args
-	     (KontExpr* (lambda (kargs)
-			   (PycCall-args-set! this kargs)
-			   (cps this k pack kbreaks kcontinues ktry fun))
-		args k)
-	     pack kbreaks kcontinues ktry fun))
-	 (else
-	  (cps-fun! (PycCall-fun this))
-	  (for-each cps-fun! args)
-	  (kcall k this)))))
+;; Transform generators statements to cps
 
-(define-walk-method (cps this::PycSeq k pack kbreaks kcontinues ktry fun)
+(define (new-kont-var id scope)
+  (new-PycVar '(-1 -1) id scope))
 
-   (define (pack-seq this prev res)
-      (if (pair? prev)
-	  (set-cdr! prev (list res))
-	  (PycSeq-nodes-set! this (list res)))
-      (PycSeq-nodes-set! this
-	 (filter (lambda (x) (not (isa? x PycPass))) (PycSeq-nodes this)))
-      (if (and (pair? (PycSeq-nodes this)) (null? (cdr (PycSeq-nodes this))))
-	  (if (isa? this PycBlock)
-	      (if (isa? (car (PycSeq-nodes this)) PycBlock)
-		  (car (PycSeq-nodes this))
-		  this)
-	      (car (PycSeq-nodes this)))
-	  this))
+(define (new-kont-ref loc var ctx)
+  (new-PycRef loc var ctx can-direct-access: #t))
 
-   (let ((loc (PycNode-loc this)))
-      (let loop ((walk (PycSeq-nodes this))
-		 (pnodes '()))
-	 (cond
-	    ((null? walk)
-	     (kcall k this))
-	    ((not (yield-expr? (car walk) kbreaks kcontinues))
-	     (cps-fun! (car walk))
-	     (loop (cdr walk) walk))
-	    ((null? (cdr walk))
-	     (pack-seq this pnodes
-		(cps (car walk)
-		   k pack kbreaks kcontinues ktry fun)))
-	    (else
-	     (pack-seq this pnodes
-		(cps (car walk)
-		   (KontStmt (lambda (khead)
-				(cps (new-PycSeq loc
-					(cons khead (cdr walk)))
-				   k pack kbreaks kcontinues ktry fun))
-		      this k)
-		   pack kbreaks kcontinues ktry fun)))))))
+(define-walk-method (cps-stmt this::PycNode k kbreak kcontinue kraise)
+  (error "cps-stmt" "should not be called on this" (pyc->list this)))
 
-;; TODO: OM Feb 22 2021: this will no longer work after the scoping update of feb 21
-;; I did not fix it because I am not sure it worked previously anyway
-(define-walk-method (cps this::PycBlock k pack kbreaks kcontinues ktry fun)
-   (let loop ((wdecls (PycBlock-decls this))
-	      (pdecls '())
-	      (sdecls '()))
-      (cond
-	 ((null? wdecls)
-	  (new-PycBlock (PycNode-loc this)
-	     (PycBlock-decls this)
-	     (cps (PycBlock-body this) k pack kbreaks kcontinues ktry fun)))
-	 ((not (yield-expr? (car wdecls) kbreaks kcontinues))
-	  (cps-fun! (car wdecls))
-	  (loop (cdr wdecls) wdecls
-	     (if (pair? sdecls) sdecls wdecls)))
-	 (else
-	  (PycVar-scope-set! (car wdecls) 'kont)
-	  (let* ((y (cps (car wdecls)
-		       (KontStmt (lambda (ndecl)
-				    (cond
-				       ((null? (cdr wdecls))
-					(new-PycBlock (PycNode-loc this)
-					   (list ndecl)
-					   (cps (PycBlock-body this)
-					      k pack kbreaks kcontinues
-					      ktry fun)))
-				       (else
-					(PycBlock-decls-set! this (cdr wdecls))
-					(new-PycBlock (PycNode-loc this)
-					   (list ndecl)
-					   (cps this
-					      k pack kbreaks kcontinues
-					      ktry fun)))))
-			  this k)
-		       pack kbreaks kcontinues ktry fun))
-		 (b (if (isa? y PycExpr) (new-PycStmtExpr (PycNode-loc y) y) y)))
-	     (if (null? pdecls)
-		 b
-		 (begin
-		    (set-cdr! pdecls '())
-		    (new-PycBlock (PycNode-loc this) sdecls b))))))))
+(define-walk-method (cps-stmt this::PycStmt k kbreak kcontinue kraise)
+  (cond
+    ((not k)
+      this)
+    ((not (need-cps? this))
+      (new-PycSeq
+        (PycNode-loc this)
+        (list
+          this
+          (new-PycCallKont (PycNode-loc this) k))))
+    (else
+      (error "cps-expr" "Unimplemented statement for generators" (pyc->list this)))))
 
-;; does an expression may yield or return?
-(define (yield-expr? this kbreaks kcontinues)
-  (let ((v (yield-expr* this kbreaks kcontinues)))
-      (find (lambda (v) v) v)))
+(define-walk-method (cps-stmt this::PycPass k kbreak kcontinue kraise)
+  (if (not k)
+    this
+    (new-PycCallKont (PycNode-loc this) k)))
 
-(define-walk-method (yield-expr* this::PycNode kbreaks kcontinues)
-   (call-default-walker))
+(define (cps-stmt* nodes k kbreak kcontinue kraise)
+  (if (null? nodes)
+    (list (new-PycCallKont '(-1 -1) k))
+    (let* ((node (car nodes))
+           (loc (PycNode-loc node))
+           (tail (cps-stmt* (cdr nodes) k kbreak kcontinue kraise)))
+      (if (need-cps? node)
+        (let ((kont
+                 (new-PycKont
+                   loc
+                   '()
+                   (new-PycSeq loc tail))))
+          (cons (cps-stmt node kont kbreak kcontinue kraise) '()))
+        (cons node tail)))))
 
-(define-walk-method (yield-expr* this::PycYield kbreaks kcontinues)
-   (list this))
+(define-walk-method (cps-stmt this::PycSeq k kbreak kcontinue kraise)
+  (new-PycSeq
+    (PycNode-loc this)
+    (cps-stmt* (PycSeq-nodes this) k kbreak kcontinue kraise)))
 
-(define-walk-method (yield-expr* this::PycReturn kbreaks kcontinues)
-   (list this))
+(define-walk-method (cps-stmt this::PycReturn k kbreak kcontinue kraise)
+  ;; TODO: return the value
+  (let ((loc (PycNode-loc this)))
+    (if kraise
+      (error "cps-stmt" "NotImplemented: return inside a try" this)
+      (new-PycRaise
+        loc
+        (new-PycPragma loc 'py-builtin-StopIteration)
+        (new-PycUninit loc)))))
 
-(define-walk-method (yield-expr* this::PycFun kbreaks kcontinues)
-   '())
+(define-walk-method (cps-stmt this::PycStmtExpr k kbreak kcontinue kraise)
+  (if (need-cps? this)
+    (let* ((loc (PycNode-loc this))
+           (var (new-kont-var 'unused-kparam 'kont))
+           (param (new-kont-ref loc var 'Store))
+           (kont
+             (new-PycKont
+               loc
+               (list param)
+               (new-PycCallKont loc k))))
+      (cps-expr (PycStmtExpr-expr this) kont kraise))
+    this))
 
-;* (define-walk-method (yield-expr* this::PycBreak kbreaks kcontinues)  */
-;*    (with-access::PycBreak this (target)                              */
-;*       (if (assq target kbreaks)                                     */
-;* 	  (list this)                                                  */
-;* 	  '())))                                                       */
-;*                                                                     */
-;* (define-walk-method (yield-expr* this::PycContinue kbreaks kcontinues) */
-;*    (with-access::PycContinue this (target)                           */
-;*       (if (assq target kcontinues)                                  */
-;* 	  (list this)                                                  */
-;* 	  '())))                                                       */
+(define-walk-method (cps-stmt this::PycIf k kbreak kcontinue kraise)
+  (let* ((loc (PycNode-loc this))
+         (test (PycIf-test this))
+         (then (PycIf-then this))
+         (orelse (PycIf-else this)))
+    (if (need-cps? this)
+      (let* ((kparam-var (new-kont-var 'ktest 'kont))
+            (kparam-store (new-kont-ref loc kparam-var 'Store))
+            (kparam-load (new-kont-ref loc kparam-var 'Load)))
+        (cps-expr
+          test
+          (new-PycKont
+            loc
+            (list kparam-store)
+            (let* ((kont-var (new-kont-var 'kont 'block))
+                  (kont-store (new-kont-ref loc kont-var 'Store))
+                  (kont-load (new-kont-ref loc kont-var 'Load)))
+              (new-PycBlock
+                loc
+                (list (new-PycAssig loc kont-store k))
+                (new-PycIf
+                  loc
+                  kparam-load
+                  (cps-stmt then kont-load kbreak kcontinue kraise)
+                  (cps-stmt orelse kont-load kbreak kcontinue kraise)))))
+          kraise))
+        this)))
+
+(define-walk-method (cps-stmt this::PycFor k kbreak kcontinue kraise)
+  (let* ((loc (PycNode-loc this))
+         (target (PycFor-target this))
+         (iter (PycFor-iter this))
+         (body (PycLoop-body this))
+         (forelse (PycLoop-else this)))
+    (if (or (need-cps? iter) (need-cps? body) (need-cps? forelse))
+      (let* ((cps-loop-kont-var (new-kont-var 'cps-for-loop 'kont))
+             (cps-loop-kont-load (new-kont-ref loc cps-loop-kont-var 'Load))
+             (kiter-var (new-kont-var 'kiter 'kont))
+             (kiter-store (new-kont-ref loc kiter-var 'Store))
+             (kiter-load (new-kont-ref loc kiter-var 'Load))
+             (kont-var (new-kont-var 'kont 'block))
+             (kont-store (new-kont-ref loc kont-var 'Store))
+             (kont-load (new-kont-ref loc kont-var 'Load))
+             (else-kont-var (new-kont-var 'else-kont 'block))
+             (else-kont-store (new-kont-ref loc else-kont-var 'Store))
+             (else-kont-load (new-kont-ref loc else-kont-var 'Load)))
+        (cps-expr
+          iter
+          (new-PycKont
+            loc
+            (list kiter-store)
+            (new-PycBlock
+              loc
+              (list
+                ;; continuation for next stmt
+                (new-PycAssig
+                  loc
+                  kont-store
+                  k)
+                ;; continuation for else block
+                (new-PycAssig
+                  loc
+                  else-kont-store
+                  (new-PycKont
+                    loc
+                    '()
+                    (cps-stmt forelse kont-load kbreak kcontinue kraise))))
+              (new-PycCPSFor
+                loc
+                (cps-stmt body cps-loop-kont-load kont-load cps-loop-kont-load kraise)
+                (new-PycCallKont (PycNode-loc forelse) else-kont-load)
+                target
+                kiter-load
+                cps-loop-kont-var
+                else-kont-var)))
+          kraise))
+      this)))
+
+(define-walk-method (cps-stmt this::PycWhile k kbreak kcontinue kraise)
+  (let* ((loc (PycNode-loc this))
+         (test (PycWhile-test this))
+         (body (PycLoop-body this))
+         (whileelse (PycLoop-else this)))
+    (if (or (need-cps? test) (need-cps? body) (need-cps? whileelse))
+      (let* ((kont-var (new-kont-var 'kont 'kont))
+             (kont-store (new-kont-ref loc kont-var 'Store))
+             (kont-load (new-kont-ref loc kont-var 'Load))
+             (loop-kont-var (new-kont-var 'cps-while-loop 'kont))
+             (loop-kont-store (new-kont-ref loc loop-kont-var 'Store))
+             (loop-kont-load (new-kont-ref loc loop-kont-var 'Load))
+             (body-kont-var (new-kont-var 'cps-while-body 'kont))
+             (body-kont-store (new-kont-ref loc body-kont-var 'Store))
+             (body-kont-load (new-kont-ref loc body-kont-var 'Load))
+             (else-kont-var (new-kont-var 'cps-while-else 'kont))
+             (else-kont-store (new-kont-ref loc else-kont-var 'Store))
+             (else-kont-load (new-kont-ref loc else-kont-var 'Load))
+             (ktest-var (new-kont-var 'ktest 'kont))
+             (ktest-store (new-kont-ref loc ktest-var 'Store))
+             (ktest-load (new-kont-ref loc ktest-var 'Load)))
+        (new-PycBlock
+          loc
+          (list
+            ;; next stmt
+            (new-PycAssig
+              loc
+              kont-store
+              k)
+            ;; loop
+            (new-PycAssig
+              loc
+              loop-kont-store
+              (new-PycKont
+                loc
+                '()
+                (cps-expr
+                  test
+                  (new-PycKont
+                    loc
+                    (list ktest-store)
+                    (new-PycIf
+                      loc
+                      ktest-load
+                      (new-PycCallKont loc body-kont-load)
+                      (cps-stmt whileelse kont-load kbreak kcontinue kraise)))
+                  kraise)))
+            ;; body
+            (new-PycAssig
+              loc
+              body-kont-store
+              (new-PycKont
+                loc
+                '()
+                (cps-stmt body loop-kont-load kont-load loop-kont-load kraise)))
+            ;; else
+            (new-PycAssig
+              loc
+              else-kont-store
+              (new-PycKont
+                loc
+                '()
+                (cps-stmt whileelse kont-load kbreak kcontinue kraise))))
+          (new-PycCallKont loc loop-kont-load)))
+      this)))
+
+(define-walk-method (cps-stmt this::PycBreak k kbreak kcontinue kraise)
+  (new-PycCallKont (PycNode-loc this) kbreak))
+
+(define-walk-method (cps-stmt this::PycContinue k kbreak kcontinue kraise)
+  (new-PycCallKont (PycNode-loc this) kcontinue))
+
+(define-walk-method (cps-stmt this::PycAssig k kbreak kcontinue kraise)
+  (if (need-cps? this)
+    (let* ((loc (PycNode-loc this))
+           (lhs (PycAssig-lhs this))
+           (rhs (PycAssig-rhs this))
+           (rhs-var (new-kont-var 'kassig 'kont))
+           (rhs-store (new-kont-ref loc rhs-var 'Store))
+           (rhs-load (new-kont-ref loc rhs-var 'Load)))
+      (cps-expr
+        rhs
+        (new-PycKont
+          loc
+          (list rhs-store)
+          (new-PycSeq
+            loc
+            (list
+              (new-PycAssig loc lhs rhs-load)
+              (new-PycCallKont loc k))))
+        kraise))
+    this))
+
+;; transform generators expressions to cps
+
+(define-walk-method (cps-expr this::PycNode k kraise)
+  (error "cps-expr" "should not be called on statements" (pyc->list this)))
+
+(define-walk-method (cps-expr this::PycExpr k kraise)
+  (cond
+    ((not k)
+      this)
+    ((not (need-cps? this))
+      (new-PycCallKont (PycNode-loc this) k args: (list this)))
+    (else
+      (error "cps-expr" "Unimplemented expression for generators" (pyc->list this)))))
+
+(define-walk-method (cps-expr this::PycYield k kraise)
+  (let ((loc (PycNode-loc this))
+        (val (PycYield-val this)))
+    (if (need-cps? val)
+      (let* ((var (new-kont-var 'kparam 'kont))
+             (param (new-kont-ref loc var 'Store))
+             (param-load (new-kont-ref loc var 'Load))
+             (kont
+               (new-PycKont
+                 loc
+                 (list param)
+                 (new-PycReturnYield loc param-load k generator: #t))))
+        (cps-expr val kont kraise))
+      (new-PycReturnYield loc val k generator: #t))))

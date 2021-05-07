@@ -284,12 +284,23 @@
 	     `(,return-sym ,(scheme (PycReturn-val this) conf))))))
 
 (define-walk-method (scheme this::PycReturnYield conf)
-   (let ((kont (PycReturnYield-kont this))
-	 (gen (PycReturnYield-generator this)))
-      (epairify this
-	 `(,(if gen 'py-generator-yield* 'py-generator-yield)
-	   %gen ,(scheme (PycReturnYield-val this) conf)
-	   ,(scheme kont conf)))))
+   (let* ((kont (PycReturnYield-kont this))
+	        (generator (PycReturnYield-generator this))
+          (val (scheme (PycReturnYield-val this) conf))
+          (sent-sym (my-gensym 'sent))
+          (exc-sym (my-gensym 'exc))
+          (exc-val-sym (my-gensym 'val))
+          (exc-tb-sym (my-gensym 'tb)))
+    (epairify this
+      `(py-generator-yield
+        %current-generator
+        ,val
+        (lambda (,sent-sym ,exc-sym ,exc-val-sym ,exc-tb-sym)
+          (if ,sent-sym
+            (,(scheme kont conf) ,sent-sym)
+            (if ,exc-val-sym
+              (py-throw-with-values ,exc-sym ,exc-val-sym)
+              (py-throw ,exc-sym))))))))
 
 (define-walk-method (scheme this::PycStmtExpr conf)
    (scheme (PycStmtExpr-expr this) conf))
@@ -369,9 +380,9 @@
 
    (define (scheme-for this)
       (let ((loop (my-gensym '%for))
-	    (target (my-gensym '%target))
-	    (iterable (my-gensym '%iterable))
-	    (iterator (my-gensym '%iterator)))
+            (target (my-gensym '%target))
+            (iterable (my-gensym '%iterable))
+            (iterator (my-gensym '%iterator)))
 	 (epairify this
 	    `(let* ((,iterable ,(scheme (PycFor-iter this) conf))
       		    (,iterator (py-iter ,iterable)))
@@ -407,6 +418,28 @@
 	  `(begin
 	      ,(scheme-for this)
 	      ,(scheme (PycLoop-else this) conf))))))
+
+(define-walk-method (scheme this::PycCPSFor conf)
+  (let* ((loop-kont-var (PycCPSFor-loop-kont-var this))
+         (else-kont-var (PycCPSFor-else-kont-var this))
+         (loop (scheme-var-name loop-kont-var conf))
+         (forelse (scheme-var-name else-kont-var conf))
+         (target (my-gensym '%target))
+         (iterable (my-gensym '%iterable))
+         (iterator (my-gensym '%iterator)))
+    (epairify this
+     `(let* ((,iterable ,(scheme (PycFor-iter this) conf))
+             (,iterator (py-iter ,iterable)))
+         (let ,loop ()
+              (let ((,target (py-next ,iterator)))
+           (if ,target
+              (begin
+                ,(let ((assig (new-PycAssig (PycNode-loc this)
+                     (PycFor-target this)
+                     (new-PycPragma (PycNode-loc this) target))))
+                    (scheme  assig conf))
+                ,(scheme (PycLoop-body this) conf)) ;; the cps body had ,loop as its own continuation
+              (,forelse))))))))
 
 (define-walk-method (scheme this::PycIf conf)
   (epairify this
@@ -1116,10 +1149,26 @@
 
   (define (generator this exp)
     (if (PycFun-generator this)
-      (epairify this
-        `(letrec ((%gen (py-make-generator (lambda (%v %e) ,exp))))
-          %gen))
-      exp))
+      (let ((sent-sym (my-gensym 'sent))
+            (exc-sym (my-gensym 'exc))
+            (exc-val-sym (my-gensym 'val))
+            (exc-tb-sym (my-gensym 'tb)))
+
+        (epairify this
+          `(letrec* ((%current-generator
+                      (py-make-generator
+                        (lambda (,sent-sym ,exc-sym ,exc-val-sym ,exc-tb-sym)
+                          (cond
+                            ((eq? ,sent-sym py-None)
+                              ,exp)
+                            (,sent-sym
+                              (py-throw-exception-with-message
+                                py-builtin-TypeError
+                                "can't send non-None value to a just-started generator"))
+                            (else
+                              (py-throw (py-call ,exc-sym ,exc-val-sym))))))))
+            %current-generator)))
+        exp))
 
   (define (locals fun body)
     (let ((body-with-vars
@@ -1210,17 +1259,16 @@
             `(begin ,body-with-vars ,(pyc-class this))))))))
 
 (define-walk-method (scheme this::PycKont conf)
-   (epairify this
-      `(lambda ,(map (lambda (p)
-			(let ((d (PycRef-decl p)))
-			   (scheme-var-name d conf)))
-		   (PycKont-params this))
-	  ,(scheme (PycKont-body this) conf))))
+  (epairify this
+    `(lambda
+      ,(map (lambda (p) (let ((d (PycRef-decl p))) (scheme-var-name d conf)))
+            (PycKont-params this))
+      ,(scheme (PycKont-body this) conf))))
 
 (define-walk-method (scheme this::PycCallKont conf)
-   (epairify this
-      `(,(scheme (PycCallKont-kont this) conf)
-	,@(map (lambda (a) (scheme a conf)) (PycCallKont-args this)))))
+  (epairify this
+    `(,(scheme (PycCallKont-kont this) conf)
+      ,@(map (lambda (a) (scheme a conf)) (PycCallKont-args this)))))
 
 (define (get-def-with-var global-funs var)
   (if (null? global-funs)

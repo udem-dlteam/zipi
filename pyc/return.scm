@@ -60,6 +60,14 @@
              (not (car else-found-path-to-next-ref)))
       (set-car! found-path-to-next-ref #f))))
 
+(define-walk-method (remove-unreachable this::PycLoop found-path-to-next-ref)
+  ;; TODO incomplete detection, need info on break/continue
+  ;; for this reason we just consider the next block as reachable
+  (let ((loop-found-path-to-next-ref (cons #t '()))
+        (else-found-path-to-next-ref (cons #t '())))
+    (remove-unreachable (PycLoop-body this) loop-found-path-to-next-ref)
+    (remove-unreachable (PycLoop-body this) else-found-path-to-next-ref)))
+
 (define-walk-method (remove-unreachable this::PycTry found-path-to-next-ref)
   (let ((body (PycTry-body this))
         (handlers (PycTry-handlers this))
@@ -173,14 +181,13 @@
 (define-walk-method (return this::PycFun block tail conf)
    (return (PycFun-body this) this #t conf))
 
-(define-walk-method (return this::PycLoop block tail conf)
-   (return (PycLoop-body this) block #f conf))
-
 (define-walk-method (return this::PycFor block tail conf)
    (return (PycLoop-body this) block #f conf)
+   (return (PycLoop-else this) block tail conf)
    (return (PycFor-target this) block #f conf)
    (return (PycFor-iter this) block #f conf))
 
 (define-walk-method (return this::PycWhile block tail conf)
    (return (PycLoop-body this) block #f conf)
+   (return (PycLoop-else this) block tail conf)
    (return (PycWhile-test this) block #f conf))

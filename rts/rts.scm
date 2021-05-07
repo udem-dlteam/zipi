@@ -244,141 +244,114 @@
 ;;  HIDDEN CLASSES
 ;; =============================================================================
 
-(define py-object-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
+(define-macro (define-hclass-of-instances-preallocations . names)
+  `(begin
+    ,@(map
+      (lambda (name)
+        `(define ,name
+          (make-builtin-HClass
+            '#()
+            '())))
+      names)))
 
-(define py-str-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-tuple-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-int-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-bool-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-float-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-complex-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-slice-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-
-(define py-bytearray-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-method-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-classmethod-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-staticmethod-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-function-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-list-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-dict-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-set-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-module-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-list-iterator-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-;; bytearray iterator
-(define py-bytearray-iterator-hclass-of-instances
-  (make-builtin-HClass
-   '#()
-   '()))
-
-;; tuple iterator
-(define py-tuple-iterator-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-;; dict-keys iterator
-(define py-dict-keyiterator-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-generator-hclass
-  (make-builtin-HClass
-   '#()
-;*     (& "__next__")                                                  */
-;*     (& "send"))                                                     */
-   '()))
-
-(define py-TextIOWrapper-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-super-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-range-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
-
-(define py-range_iterator-hclass-of-instances
-  (make-builtin-HClass
-    '#()
-    '()))
+(define-hclass-of-instances-preallocations
+  py-object-hclass-of-instances
+  py-str-hclass-of-instances
+  py-tuple-hclass-of-instances
+  py-int-hclass-of-instances
+  py-bool-hclass-of-instances
+  py-float-hclass-of-instances
+  py-complex-hclass-of-instances
+  py-slice-hclass-of-instances
+  py-bytearray-hclass-of-instances
+  py-method-hclass-of-instances
+  py-classmethod-hclass-of-instances
+  py-staticmethod-hclass-of-instances
+  py-function-hclass-of-instances
+  py-generator-hclass-of-instances
+  py-list-hclass-of-instances
+  py-dict-hclass-of-instances
+  py-set-hclass-of-instances
+  py-module-hclass-of-instances
+  py-list-iterator-hclass-of-instances
+  py-bytearray-iterator-hclass-of-instances
+  py-tuple-iterator-hclass-of-instances
+  py-dict-keyiterator-hclass-of-instances
+  py-generator-hclass
+  py-TextIOWrapper-hclass-of-instances
+  py-super-hclass-of-instances
+  py-range-hclass-of-instances
+  py-range_iterator-hclass-of-instances
+  py-NotImplementedType-hclass-of-instances
+  py-NoneType-hclass-of-instances
+  py-staticmethod-hclass-of-instances
+  py-classmethod-hclass-of-instances
+  py-ArithmeticError-hclass-of-instances
+  py-AssertionError-hclass-of-instances
+  py-AttributeError-hclass-of-instances
+  py-BaseException-hclass-of-instances
+  py-BlockingIOError-hclass-of-instances
+  py-BrokenPipeError-hclass-of-instances
+  py-BufferError-hclass-of-instances
+  py-BytesWarning-hclass-of-instances
+  py-ChildProcessError-hclass-of-instances
+  py-ConnectionAbortedError-hclass-of-instances
+  py-ConnectionError-hclass-of-instances
+  py-ConnectionRefusedError-hclass-of-instances
+  py-ConnectionResetError-hclass-of-instances
+  py-DeprecationWarning-hclass-of-instances
+  py-EOFError-hclass-of-instances
+  py-EnvironmentError-hclass-of-instances
+  py-Exception-hclass-of-instances
+  py-FileExistsError-hclass-of-instances
+  py-FileNotFoundError-hclass-of-instances
+  py-FloatingPointError-hclass-of-instances
+  py-FutureWarning-hclass-of-instances
+  py-GeneratorExit-hclass-of-instances
+  py-IOError-hclass-of-instances
+  py-ImportError-hclass-of-instances
+  py-ImportWarning-hclass-of-instances
+  py-IndentationError-hclass-of-instances
+  py-IndexError-hclass-of-instances
+  py-InterruptedError-hclass-of-instances
+  py-IsADirectoryError-hclass-of-instances
+  py-KeyError-hclass-of-instances
+  py-KeyboardInterrupt-hclass-of-instances
+  py-LookupError-hclass-of-instances
+  py-MemoryError-hclass-of-instances
+  py-ModuleNotFoundError-hclass-of-instances
+  py-NameError-hclass-of-instances
+  py-NotADirectoryError-hclass-of-instances
+  py-NotImplementedError-hclass-of-instances
+  py-OSError-hclass-of-instances
+  py-OverflowError-hclass-of-instances
+  py-PendingDeprecationWarning-hclass-of-instances
+  py-PermissionError-hclass-of-instances
+  py-ProcessLookupError-hclass-of-instances
+  py-RecursionError-hclass-of-instances
+  py-ReferenceError-hclass-of-instances
+  py-ResourceWarning-hclass-of-instances
+  py-RuntimeError-hclass-of-instances
+  py-RuntimeWarning-hclass-of-instances
+  py-StopAsyncIteration-hclass-of-instances
+  py-StopIteration-hclass-of-instances
+  py-SyntaxError-hclass-of-instances
+  py-SyntaxWarning-hclass-of-instances
+  py-SystemError-hclass-of-instances
+  py-SystemExit-hclass-of-instances
+  py-TabError-hclass-of-instances
+  py-TimeoutError-hclass-of-instances
+  py-TypeError-hclass-of-instances
+  py-UnboundLocalError-hclass-of-instances
+  py-UnicodeDecodeError-hclass-of-instances
+  py-UnicodeEncodeError-hclass-of-instances
+  py-UnicodeError-hclass-of-instances
+  py-UnicodeTranslateError-hclass-of-instances
+  py-UnicodeWarning-hclass-of-instances
+  py-UserWarning-hclass-of-instances
+  py-ValueError-hclass-of-instances
+  py-Warning-hclass-of-instances
+  py-ZeroDivisionError-hclass-of-instances)
 
 ;; object allocation
 
@@ -1221,15 +1194,29 @@
       (py-is-in-mro? parent mro))
     #f))
 
-(define (py-throw exc)
+(define (py-throw-with-values exc . values)
   (cond ((not (PyObject? exc))
          (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))
+        ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
+          (if (null? values)
+            (raise exc)
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "instance exception may not have a separate value")))
+        ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
+         (raise (py-call-generic exc values)))
+        (else
+         (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
+
+(define (py-throw exc)
+  (cond ((not (PyObject? exc))
+         (raise (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
         ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
          (raise (py-call exc)))
         (else
-         (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
+         (raise (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))))
 
 ;; =============================================================================
 ;; Exception thrower helpers
@@ -2337,6 +2324,7 @@
 (define py-dict-class   #f)
 (define py-set-class    #f)
 (define py-module-class #f)
+(define py-generator-class #f)
 
 ;;;----------------------------------------------------------------------------
 
@@ -4595,20 +4583,125 @@
 ;;  Generators
 ;; =============================================================================
 
-(define (py-generator-yield gen val kont)
-   (py-throw-exception-with-message
-     py-builtin-NotImplementedError
-     "py-generator-yield not implemented"))
-
 (define (py-make-generator proc)
-  (py-throw-exception-with-message
-    py-builtin-NotImplementedError
-    "py-make-generator not implemented"))
+  (make-PyObjectGenerator
+    py-generator-hclass-of-instances
+    '#()
+    py-generator-class
+    proc
+    #f
+    #t))
+
+(define (py-generator-yield gen val kont)
+  (PyObjectGenerator-continuation-set! gen kont)
+  (PyObjectGenerator-is-running-set! gen #f)
+  val)
+
+;; TODO add checks that methods are called with correct types
 
 (define (py-generator-send self value)
+  (if (PyObjectGenerator-is-running self)
+    (py-throw-exception-with-message
+      py-builtin-ValueError
+      "generator is already executing")
+    (let ((cont (PyObjectGenerator-continuation self)))
+      (PyObjectGenerator-is-running-set! self #t)
+      (PyObjectGenerator-continuation-set! self #f)
+      (cont value #f #f #f))))
+
+(define generator.send
+  (procedure->py-function
+    py-generator-send
+    (make-signature posonlyargs: (self value))))
+
+(define (py-generator-throw self type value traceback)
+  (if (PyObjectGenerator-is-running self)
+    (py-throw-exception-with-message
+      py-builtin-ValueError
+      "generator is already executing")
+    (let ((cont (PyObjectGenerator-continuation self)))
+      (PyObjectGenerator-is-running-set! self #t)
+      (PyObjectGenerator-continuation-set! self #f)
+      (cont #f type value traceback))))
+
+(define generator.throw
+  (procedure->py-function
+    py-generator-throw
+    (make-signature
+      posonlyargs: (self type value traceback)
+      defaults: '#(#f #f))))
+
+(define closed-generator-continuation
+  (lambda (value exc exc-value traceback)
+    (if value
+      (py-throw py-builtin-StopIteration))
+      (py-throw-with-values exc value)))
+
+(define (py-generator-close self)
+  (cond
+    ((PyObjectGenerator-is-running self)
+      (py-throw-exception-with-message
+        py-builtin-ValueError
+        "generator is already executing"))
+    ((not (PyObjectGenerator-is-active self))
+      py-None)
+    (else
+      (with-exception-catcher
+        (lambda (e)
+          (if (or (py-isinstance? e py-builtin-StopIteration)
+                  (py-isinstance? e py-builtin-GeneratorExit))
+            (begin
+              (PyObjectGenerator-is-active-set! self #f)
+              (PyObjectGenerator-is-running-set! self #f)
+              (PyObjectGenerator-continuation-set! self closed-generator-continuation)
+              py-None)
+            (py-throw e)))
+        (lambda ()
+          (let ((cont (PyObjectGenerator-continuation self)))
+            (PyObjectGenerator-is-running-set! self #t)
+            (PyObjectGenerator-continuation-set! self #f)
+            (cont #f py-builtin-GeneratorExit #f #f)
+            (py-throw-exception-with-message py-builtin-RuntimeError "generator ignored GeneratorExit")))))))
+
+(define generator.close
+  (procedure->py-function
+    py-generator-close
+    (make-signature
+      posonlyargs: (self))))
+
+(define (py-generator-next self)
+  (if (PyObjectGenerator-is-running self)
+    (py-throw-exception-with-message
+      py-builtin-ValueError
+      "generator is already executing")
+    (let ((cont (PyObjectGenerator-continuation self)))
+      (PyObjectGenerator-is-running-set! self #t)
+      (PyObjectGenerator-continuation-set! self #f)
+      (cont py-None #f #f #f))))
+
+(define generator.__next__
+  (procedure->py-function
+    py-generator-next
+    (make-signature posonlyargs: (self))))
+
+(define generator.__iter__
+  (procedure->py-function
+    (lambda (self) self)
+    (make-signature posonlyargs: (self))))
+
+(define (py-generator-new cls)
   (py-throw-exception-with-message
-    py-builtin-NotImplementedError
-    "py-generator-send not implemented"))
+    py-builtin-TypeError
+    "cannot create 'generator' instances"))
+
+(define generator.__new__
+  (procedure->py-function
+    py-generator-new
+    (make-signature posonlyargs: (cls))))
+
+;; =============================================================================
+;;  Next protocol
+;; =============================================================================
 
 (define (py-next iterator)
   (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
@@ -5133,6 +5226,18 @@
      (& "complex")
      (& "builtins")
      (list)))
+
+  (set! py-generator-class
+    (py-make-builtin-class
+     (&& "generator")
+     (&& "builtins")
+     (list)
+     (& "__new__") generator.__new__
+     (& "__next__") generator.__next__
+     (& "__iter__") generator.__iter__
+     (& "send") generator.send
+     (& "throw") generator.throw
+     (& "close") generator.close))
 
   (set! py-slice-class
     (py-make-builtin-class
