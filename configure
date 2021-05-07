@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Sun Apr 25 08:39:39 2021 (serrano)                */
+#*    Last change :  Wed May  5 09:37:13 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    Zipi autoconfiguration                                           */
@@ -42,7 +42,7 @@ buildzpcdir=$PWD/zpc
 builddepdir=$PWD/dependencies
 buildbuilddepdir=$PWD/build-dependencies
 
-install="install -m a+r,u+r"
+install="install -m a+rx,u+rx"
 
 shell=/bin/sh
 
@@ -142,6 +142,7 @@ while : ; do
 done
 
 prefix=${prefix%/}
+installbindir=$prefix/bin
 zipiroot=$prefix/lib/zipi-${version}/zipi
 etcdir=$zipiroot/etc
 rtsdir=$zipiroot/rts
@@ -261,6 +262,7 @@ for file in Makefile.zipiconfig configure.scm zpc.bigloo.sh; do
           -e "s|@BINDIR@|$bindir|" \
           -e "s|@LIBDIR@|$libdir|" \
           -e "s|@PREFIX@|$prefix|" \
+          -e "s|@INSTALLBINDIR@|$installbindir|" \
           -e "s|@ZIPIROOT@|$zipiroot|" \
           -e "s|@ETCDIR@|$etcdir|" \
           -e "s|@RTSDIR@|$rtsdir|" \

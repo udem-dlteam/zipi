@@ -39,10 +39,13 @@ rts/builtins.bgl
 rts/builtins/*
 rts/zemantics.bgl
 rts/behaviors.bgl
+rts/zemantics.sch
+rts/behaviors.sch
 rts/zemantics.scm
 rts/behaviors.scm
 rts/configure.scm
 rts/rts.sld
+stdlib/.afile
 stdlib/builtins.py
 stdlib/builtins.sld
 stdlib/builtins.bgl

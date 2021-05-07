@@ -1,10 +1,10 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/rts#.scm                        */
+;*    serrano/prgm/project/zipi/rts/rts#.scm                           */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Sat May 23 06:58:13 2020 (serrano)                */
-;*    Copyright   :  2019-20 M. Feeley & M. Serrano                    */
+;*    Last change :  Wed May  5 09:24:24 2021 (serrano)                */
+;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
 ;*=====================================================================*/
@@ -401,6 +401,8 @@
   index)
 
 
+;; MS 5 May 2021: Is there a reason why these macros are here instead of
+;; rts.scm? Because of this I have had to duplicate them in rts.bgl
 (define-macro (make-init-PCache)
   `(make-PCache #f -1))
 
@@ -431,6 +433,8 @@
  ;; how to bind the object ('self or 'none)
  bind)
 
+;; MS 5 May 2021: Is there a reason why these macros are here instead of
+;; rts.scm? Because of this I have had to duplicate them in rts.bgl
 (define-macro (AttributeCache-set! cache object-hclass mro-hclass module-hclass type-hclass index attr owner bind)
   `(let (($c ,cache))
      (AttributeCache-object-hclass-set! $c ,object-hclass)

@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Sun May  2 14:53:30 2021 (serrano)                */
+;*    Last change :  Wed May  5 09:02:34 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -47,6 +47,8 @@
               is-builtin
 	      can-have-getter
               magic-attrs)
+
+	   (class PyObjectModule::PyObject)
 
            (abstract-class PyObjectNumber::PyObject
               value)
@@ -758,19 +760,13 @@
    o)
 
 (define-inline (subvector-move! src-vector src-start src-end dst-vector dst-start)
-  (if (< src-start src-end)
-    (begin
-      (vector-set! dst-vector dst-start (vector-ref src-vector src-start))
-      (subvector-move! src-vector (+ 1 src-start) src-end dst-vector (+ 1 dst-start)))))
+   (vector-copy! dst-vector dst-start src-vector src-start src-end))
 
 ;*---------------------------------------------------------------------*/
 ;*    get-registered-constants-table ...                               */
 ;*---------------------------------------------------------------------*/
 (define (get-registered-constants-table)
    (let ((table (create-hashtable :eqtest string=?)))
-;*       (vector-for-each (lambda (v)                                  */
-;*                        (hashtable-put! table "foo" v))              */
-;*       __py_strings)                                                 */
       table))
 
 ;*---------------------------------------------------------------------*/
@@ -850,7 +846,77 @@
 ;*    exception-notify ::PyObject ...                                  */
 ;*---------------------------------------------------------------------*/
 (define-method (exception-notify o::PyObject)
-   (print-exception o))
+   (display (format "*** EXCEPTION: ~s\n" o) (current-error-port)))
 
 (define (bootstrap-builtins)
   (error "NotImplemented:" "builtins.py bootstrap as module" ""))
+
+;*---------------------------------------------------------------------*/
+;*    PCache                                                           */
+;*    -------------------------------------------------------------    */
+;*    See rts#.scm                                                     */
+;*---------------------------------------------------------------------*/
+(define-macro (make-init-PCache)
+  `(make-PCache #f -1))
+
+(define-macro (PCache-set! pc hc i)
+  `(let (($pc ,pc))
+     (PCache-hclass-set! $pc ,hc)
+     (PCache-index-set! $pc ,i)))
+
+;*---------------------------------------------------------------------*/
+;*    Cache macros                                                     */
+;*    -------------------------------------------------------------    */
+;*    See rts#.scm                                                     */
+;*---------------------------------------------------------------------*/
+(define-macro (AttributeCache-set! cache object-hclass mro-hclass module-hclass type-hclass index attr owner bind)
+  `(let (($c ,cache))
+     (AttributeCache-object-hclass-set! $c ,object-hclass)
+     (AttributeCache-mro-hclass-set! $c ,mro-hclass)
+     (AttributeCache-module-hclass-set! $c ,module-hclass)
+     (AttributeCache-type-hclass-set! $c ,type-hclass)
+     (AttributeCache-index-set! $c ,index)
+     (AttributeCache-attr-set! $c ,attr)
+     (AttributeCache-owner-set! $c ,owner)
+     (AttributeCache-bind-set! $c ,bind)))
+
+(define-macro (make-init-AttributeCache)
+  `(make-AttributeCache #f #f #f #f -1 #f #f #f))
+
+(define-macro (AttributeCache-reset! cache)
+  `(AttributeCache-set! ,cache #f #f #f #f -1 #f #f #f))
+
+(define-macro (AttributeCache-mro-reset! cache)
+  `(let (($c ,cache))
+     (AttributeCache-mro-hclass-set! $c #f)
+     (AttributeCache-type-hclass-set! $c #f)
+     (AttributeCache-attr-set! $c #f)
+     (AttributeCache-owner-set! $c #f)
+     (AttributeCache-bind-set! $c #f)))
+
+(define-macro (AttributeCache-object-hit! cache object-hclass index)
+  `(AttributeCache-set! ,cache ,object-hclass #f #f #f ,index #f #f #f))
+
+(define-macro (AttributeCache-module-hit! cache module-hclass index)
+  `(AttributeCache-set! ,cache #f #f ,module-hclass #f ,index #f #f #f))
+
+(define-macro (AttributeCache-type-hit! cache type-hclass attr owner)
+  `(AttributeCache-set! ,cache #f #f #f ,type-hclass -1 ,attr ,owner (quote 'none)))
+
+(define-macro (AttributeCache-mro-hit! cache mro-hclass attr owner)
+  `(AttributeCache-set! ,cache #f ,mro-hclass #f #f -1 ,attr ,owner #f))
+
+;; this happens when the attribute is present in the object hclass
+;; but is py-absent and ends up being found in the mro
+(define-macro (AttributeCache-object-or-mro-hit! cache object-hclass index attr owner)
+  `(let (($object-hclass ,object-hclass))
+    (AttributeCache-set! ,cache $object-hclass $object-hclass #f #f ,index ,attr ,owner #f)))
+
+;; NOTE: there is no AttributeCache-module-mro-hit! macro since this case is identical to AttributeCache-object-mro-hit!
+
+(define-macro (AttributeCache-module-or-mro-hit! cache module-hclass index attr owner)
+  `(let (($module-hclass ,module-hclass))
+    (AttributeCache-set! ,cache #f $module-hclass $module-hclass #f ,index ,attr ,owner #f)))
+
+(define-macro (AttributeCache-type-mro-hit! cache type-hclass attr owner)
+  `(AttributeCache-set! ,cache #f #f #f ,type-hclass -1 ,attr ,owner (quote 'self)))

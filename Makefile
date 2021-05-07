@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Sat Apr 24 16:54:06 2021 (serrano)                */
+#*    Last change :  Wed May  5 09:38:00 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -50,8 +50,8 @@ install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C zpc install
 	$(MAKE) -C rts install
 	$(MAKE) install.systems
-	ln -sf $(ZIPIBINDIR)/zipi $(ZIPIPREFIX)/bin/zipi
-	ln -sf $(ZIPIBINDIR)/zipi $(ZIPIPREFIX)/bin/zipi-$(PYTHONVERSION)
+	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi
+	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi-$(PYTHONVERSION)
 
 install-bin: zipi-dirs
 	for file in zipi zipi.gambit zipi-compile-and-run.gambit zipi.bigloo zpc zpc.gambit pysexp_script.py; \
@@ -78,8 +78,10 @@ install-bin: zipi-dirs
 		done;
 	rm -rf $(ZIPIBINDIR)/pysexp
 	cp -r $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
-	rm -rf $(ZIPIDEPDIR)
-	cp -r $(BUILDDEPDIR) $(ZIPIDEPDIR)
+	if [ -d $(BUILDDEPDIR) ]; then \
+	  rm -rf $(ZIPIDEPDIR); \
+	  cp -r $(BUILDDEPDIR) $(ZIPIDEPDIR); \
+	fi
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
 
