@@ -27,7 +27,23 @@
       (else
         (loop (cdr children-need-cps))))))
 
+(define-walk-method (remove-need-return this::PycNode)
+  (call-default-walker))
+
+(define-walk-method (remove-need-return this::PycStmt)
+  (PycStmt-need-return-set! this #f)
+  (call-default-walker))
+
+(define-walk-method (remove-need-return this::PycFun)
+  #f)
+
 (define-walk-method (mark-need-cps* this::PycFun return-need-cps break-continue-need-cps)
+  (if (PycFun-generator this)
+    ;; generators do not need non-terminal return since returns are converted to cps
+    (begin
+      (PycFun-need-return-set! this #f)
+      (remove-need-return (PycFun-body this))))
+
   (mark-need-cps* (PycFun-body this) (PycFun-generator this) #f)
   (let loop ((default-need-cps
               (apply append
@@ -296,6 +312,27 @@
 
 (define-walk-method (cps-stmt this::PycContinue k kbreak kcontinue kraise)
   (new-PycCallKont (PycNode-loc this) kcontinue))
+
+(define-walk-method (cps-stmt this::PycAssig k kbreak kcontinue kraise)
+  (if (need-cps? this)
+    (let* ((loc (PycNode-loc this))
+           (lhs (PycAssig-lhs this))
+           (rhs (PycAssig-rhs this))
+           (rhs-var (new-kont-var 'kassig 'kont))
+           (rhs-store (new-kont-ref loc rhs-var 'Store))
+           (rhs-load (new-kont-ref loc rhs-var 'Load)))
+      (cps-expr
+        rhs
+        (new-PycKont
+          loc
+          (list rhs-store)
+          (new-PycSeq
+            loc
+            (list
+              (new-PycAssig loc lhs rhs-load)
+              (new-PycCallKont loc k))))
+        kraise))
+    this))
 
 ;; transform generators expressions to cps
 
