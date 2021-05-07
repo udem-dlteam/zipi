@@ -103,8 +103,7 @@
 	 (body::PycStmt (info '("ast")))
 	 (else::PycStmt (info '("ast")))
 	 (need-break::bool (default #t))
-	 (need-continue::bool (default #t))
-   (cps-loop-kont (default #f)))
+	 (need-continue::bool (default #t)))
 
       (class PycFor::PycLoop
 	 (target::PycExpr (info '("ast")))
@@ -118,6 +117,10 @@
 
       (class PycWhile::PycLoop
 	 (test::PycExpr (info '("ast"))))
+
+   (class PycCPSWhile::PycWhile
+     loop-kont-var::PycVar
+     else-kont-var::PycVar)
 
       (class PycRaise::PycStmt
 	 (exc::PycExpr (info '("ast")))

@@ -186,43 +186,109 @@
              (cps-loop-kont-load (new-kont-ref loc cps-loop-kont-var 'Load))
              (kiter-var (new-kont-var 'kiter 'kont))
              (kiter-store (new-kont-ref loc kiter-var 'Store))
-             (kiter-load (new-kont-ref loc kiter-var 'Load)))
+             (kiter-load (new-kont-ref loc kiter-var 'Load))
+             (kont-var (new-kont-var 'kont 'block))
+             (kont-store (new-kont-ref loc kont-var 'Store))
+             (kont-load (new-kont-ref loc kont-var 'Load))
+             (else-kont-var (new-kont-var 'else-kont 'block))
+             (else-kont-store (new-kont-ref loc else-kont-var 'Store))
+             (else-kont-load (new-kont-ref loc else-kont-var 'Load)))
         (cps-expr
           iter
           (new-PycKont
             loc
             (list kiter-store)
-            (let* ((kont-var (new-kont-var 'kont 'block))
-                   (kont-store (new-kont-ref loc kont-var 'Store))
-                   (kont-load (new-kont-ref loc kont-var 'Load))
-                   (else-kont-var (new-kont-var 'else-kont 'block))
-                   (else-kont-store (new-kont-ref loc else-kont-var 'Store))
-                   (else-kont-load (new-kont-ref loc else-kont-var 'Load)))
-              (new-PycBlock
-                loc
-                (list
-                  ;; continuation for next stmt
-                  (new-PycAssig
-                    loc
-                    kont-store
-                    k)
-                  ;; continuation for else block
-                  (new-PycAssig
-                    loc
-                    else-kont-store
-                    (new-PycKont
-                      loc
-                      '()
-                      (cps-stmt forelse kont-load kbreak kcontinue kraise))))
-                (new-PycCPSFor
+            (new-PycBlock
+              loc
+              (list
+                ;; continuation for next stmt
+                (new-PycAssig
                   loc
-                  (cps-stmt body cps-loop-kont-load kont-load cps-loop-kont-load kraise)
-                  (new-PycCallKont (PycNode-loc forelse) else-kont-load)
-                  target
-                  kiter-load
-                  cps-loop-kont-var
-                  else-kont-var))))
+                  kont-store
+                  k)
+                ;; continuation for else block
+                (new-PycAssig
+                  loc
+                  else-kont-store
+                  (new-PycKont
+                    loc
+                    '()
+                    (cps-stmt forelse kont-load kbreak kcontinue kraise))))
+              (new-PycCPSFor
+                loc
+                (cps-stmt body cps-loop-kont-load kont-load cps-loop-kont-load kraise)
+                (new-PycCallKont (PycNode-loc forelse) else-kont-load)
+                target
+                kiter-load
+                cps-loop-kont-var
+                else-kont-var)))
           kraise))
+      this)))
+
+(define-walk-method (cps-stmt this::PycWhile k kbreak kcontinue kraise)
+  (let* ((loc (PycNode-loc this))
+         (test (PycWhile-test this))
+         (body (PycLoop-body this))
+         (whileelse (PycLoop-else this)))
+    (if (or (need-cps? test) (need-cps? body) (need-cps? whileelse))
+      (let* ((kont-var (new-kont-var 'kont 'kont))
+             (kont-store (new-kont-ref loc kont-var 'Store))
+             (kont-load (new-kont-ref loc kont-var 'Load))
+             (loop-kont-var (new-kont-var 'cps-while-loop 'kont))
+             (loop-kont-store (new-kont-ref loc loop-kont-var 'Store))
+             (loop-kont-load (new-kont-ref loc loop-kont-var 'Load))
+             (body-kont-var (new-kont-var 'cps-while-body 'kont))
+             (body-kont-store (new-kont-ref loc body-kont-var 'Store))
+             (body-kont-load (new-kont-ref loc body-kont-var 'Load))
+             (else-kont-var (new-kont-var 'cps-while-else 'kont))
+             (else-kont-store (new-kont-ref loc else-kont-var 'Store))
+             (else-kont-load (new-kont-ref loc else-kont-var 'Load))
+             (ktest-var (new-kont-var 'ktest 'kont))
+             (ktest-store (new-kont-ref loc ktest-var 'Store))
+             (ktest-load (new-kont-ref loc ktest-var 'Load)))
+        (new-PycBlock
+          loc
+          (list
+            ;; next stmt
+            (new-PycAssig
+              loc
+              kont-store
+              k)
+            ;; loop
+            (new-PycAssig
+              loc
+              loop-kont-store
+              (new-PycKont
+                loc
+                '()
+                (cps-expr
+                  test
+                  (new-PycKont
+                    loc
+                    (list ktest-store)
+                    (new-PycIf
+                      loc
+                      ktest-load
+                      (new-PycCallKont loc body-kont-load)
+                      (cps-stmt whileelse kont-load kbreak kcontinue kraise)))
+                  kraise)))
+            ;; body
+            (new-PycAssig
+              loc
+              body-kont-store
+              (new-PycKont
+                loc
+                '()
+                (cps-stmt body loop-kont-load kont-load loop-kont-load kraise)))
+            ;; else
+            (new-PycAssig
+              loc
+              else-kont-store
+              (new-PycKont
+                loc
+                '()
+                (cps-stmt whileelse kont-load kbreak kcontinue kraise))))
+          (new-PycCallKont loc loop-kont-load)))
       this)))
 
 (define-walk-method (cps-stmt this::PycBreak k kbreak kcontinue kraise)

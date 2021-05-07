@@ -55,21 +55,25 @@
 (define-inline (new-PycWith loc items body #!key (%info #f) (cps #f) (need-return #f))
    (make-PycWith loc %info cps need-return items body))
 
-;; (new-PycLoop loc body else #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cps-loop-kont #f))
-(define-inline (new-PycLoop loc body else #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cps-loop-kont #f))
-   (make-PycLoop loc %info cps need-return body else need-break need-continue cps-loop-kont))
+;; (new-PycLoop loc body else #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t))
+(define-inline (new-PycLoop loc body else #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t))
+   (make-PycLoop loc %info cps need-return body else need-break need-continue))
 
-;; (new-PycFor loc body else target iter #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cps-loop-kont #f) (cachei #f) (cachen #f))
-(define-inline (new-PycFor loc body else target iter #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cps-loop-kont #f) (cachei #f) (cachen #f))
-   (make-PycFor loc %info cps need-return body else need-break need-continue cps-loop-kont target iter cachei cachen))
+;; (new-PycFor loc body else target iter #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cachei #f) (cachen #f))
+(define-inline (new-PycFor loc body else target iter #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cachei #f) (cachen #f))
+   (make-PycFor loc %info cps need-return body else need-break need-continue target iter cachei cachen))
 
-;; (new-PycCPSFor loc body else target iter loop-kont-var else-kont-var #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cps-loop-kont #f) (cachei #f) (cachen #f))
-(define-inline (new-PycCPSFor loc body else target iter loop-kont-var else-kont-var #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cps-loop-kont #f) (cachei #f) (cachen #f))
-   (make-PycCPSFor loc %info cps need-return body else need-break need-continue cps-loop-kont target iter cachei cachen loop-kont-var else-kont-var))
+;; (new-PycCPSFor loc body else target iter loop-kont-var else-kont-var #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cachei #f) (cachen #f))
+(define-inline (new-PycCPSFor loc body else target iter loop-kont-var else-kont-var #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cachei #f) (cachen #f))
+   (make-PycCPSFor loc %info cps need-return body else need-break need-continue target iter cachei cachen loop-kont-var else-kont-var))
 
-;; (new-PycWhile loc body else test #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cps-loop-kont #f))
-(define-inline (new-PycWhile loc body else test #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t) (cps-loop-kont #f))
-   (make-PycWhile loc %info cps need-return body else need-break need-continue cps-loop-kont test))
+;; (new-PycWhile loc body else test #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t))
+(define-inline (new-PycWhile loc body else test #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t))
+   (make-PycWhile loc %info cps need-return body else need-break need-continue test))
+
+;; (new-PycCPSWhile loc body else test loop-kont-var else-kont-var #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t))
+(define-inline (new-PycCPSWhile loc body else test loop-kont-var else-kont-var #!key (%info #f) (cps #f) (need-return #f) (need-break #t) (need-continue #t))
+   (make-PycCPSWhile loc %info cps need-return body else need-break need-continue test loop-kont-var else-kont-var))
 
 ;; (new-PycRaise loc exc cause #!key (%info #f) (cps #f) (need-return #f))
 (define-inline (new-PycRaise loc exc cause #!key (%info #f) (cps #f) (need-return #f))

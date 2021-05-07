@@ -1155,7 +1155,7 @@
             (exc-tb-sym (my-gensym 'tb)))
 
         (epairify this
-          `(letrec ((%current-generator
+          `(letrec* ((%current-generator
                       (py-make-generator
                         (lambda (,sent-sym ,exc-sym ,exc-val-sym ,exc-tb-sym)
                           (cond
