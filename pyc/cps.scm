@@ -56,6 +56,8 @@
         (loop (cdr children-need-cps))))))
 
 (define-walk-method (mark-need-cps* this::PycYield return-need-cps break-continue-need-cps)
+  (call-default-walker)
+  (PycNode-cps-set! this #t)
   '(#t))
 
 (define-walk-method (mark-need-cps* this::PycBreak return-need-cps break-continue-need-cps)
