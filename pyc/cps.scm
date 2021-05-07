@@ -43,7 +43,7 @@
       (else
         (loop (cdr default-need-cps))))))
 
-(define-walk-method (mark-need-cps* this::PycFor return-need-cps break-continue-need-cps)
+(define-walk-method (mark-need-cps* this::PycLoop return-need-cps break-continue-need-cps)
   (let loop ((children-need-cps (call-default-walker)))
     (cond
       ((null? children-need-cps)
