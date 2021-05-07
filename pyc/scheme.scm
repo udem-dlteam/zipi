@@ -380,9 +380,9 @@
 
    (define (scheme-for this)
       (let ((loop (my-gensym '%for))
-      	    (target (my-gensym '%target))
-      	    (iterable (my-gensym '%iterable))
-      	    (iterator (my-gensym '%iterator)))
+            (target (my-gensym '%target))
+            (iterable (my-gensym '%iterable))
+            (iterator (my-gensym '%iterator)))
 	 (epairify this
 	    `(let* ((,iterable ,(scheme (PycFor-iter this) conf))
       		    (,iterator (py-iter ,iterable)))
@@ -1266,9 +1266,9 @@
       ,(scheme (PycKont-body this) conf))))
 
 (define-walk-method (scheme this::PycCallKont conf)
-   (epairify this
-      `(,(scheme (PycCallKont-kont this) conf)
-	       ,@(map (lambda (a) (scheme a conf)) (PycCallKont-args this)))))
+  (epairify this
+    `(,(scheme (PycCallKont-kont this) conf)
+      ,@(map (lambda (a) (scheme a conf)) (PycCallKont-args this)))))
 
 (define (get-def-with-var global-funs var)
   (if (null? global-funs)
