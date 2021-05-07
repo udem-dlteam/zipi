@@ -1194,15 +1194,29 @@
       (py-is-in-mro? parent mro))
     #f))
 
-(define (py-throw exc)
+(define (py-throw-with-values exc . values)
   (cond ((not (PyObject? exc))
          (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))
+        ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
+          (if (null? values)
+            (raise exc)
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "instance exception may not have a separate value")))
+        ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
+         (raise (py-call-generic exc values)))
+        (else
+         (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
+
+(define (py-throw exc)
+  (cond ((not (PyObject? exc))
+         (raise (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
         ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
          (raise (py-call exc)))
         (else
-         (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
+         (raise (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))))
 
 ;; =============================================================================
 ;; Exception thrower helpers
@@ -4612,25 +4626,46 @@
 
 (define generator.throw
   (procedure->py-function
-    py-generator-send
+    py-generator-throw
     (make-signature
       posonlyargs: (self type value traceback)
-      defaults: '(#f #f))))
+      defaults: '#(#f #f))))
+
+(define closed-generator-continuation
+  (lambda (value exc exc-value traceback)
+    (if value
+      (py-throw py-builtin-StopIteration))
+      (py-throw-with-values exc value)))
 
 (define (py-generator-close self)
-  (if (PyObjectGenerator-is-running self)
-    (py-throw-exception-with-message
-      py-builtin-ValueError
-      "generator is already executing")
-    (begin
-      (PyObjectGenerator-is-active-set! self #f)
-      (PyObjectGenerator-is-running-set! self #f)
-      (PyObjectGenerator-continuation-set! self #f)
-      py-None)))
+  (cond
+    ((PyObjectGenerator-is-running self)
+      (py-throw-exception-with-message
+        py-builtin-ValueError
+        "generator is already executing"))
+    ((not (PyObjectGenerator-is-active self))
+      py-None)
+    (else
+      (with-exception-catcher
+        (lambda (e)
+          (if (or (py-isinstance? e py-builtin-StopIteration)
+                  (py-isinstance? e py-builtin-GeneratorExit))
+            (begin
+              (PyObjectGenerator-is-active-set! self #f)
+              (PyObjectGenerator-is-running-set! self #f)
+              (PyObjectGenerator-continuation-set! self closed-generator-continuation)
+              py-None)
+            (py-throw e)))
+        (lambda ()
+          (let ((cont (PyObjectGenerator-continuation self)))
+            (PyObjectGenerator-is-running-set! self #t)
+            (PyObjectGenerator-continuation-set! self #f)
+            (cont #f py-builtin-GeneratorExit #f #f)
+            (py-throw-exception-with-message py-builtin-RuntimeError "generator ignored GeneratorExit")))))))
 
 (define generator.close
   (procedure->py-function
-    py-generator-send
+    py-generator-close
     (make-signature
       posonlyargs: (self))))
 

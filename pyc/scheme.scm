@@ -299,7 +299,7 @@
           (if ,sent-sym
             (,(scheme kont conf) ,sent-sym)
             (if ,exc-val-sym
-              (py-throw (py-call ,exc-sym ,exc-val-sym)) ;; TODO: check that exc is a BaseException should happen first
+              (py-throw-with-values ,exc-sym ,exc-val-sym)
               (py-throw ,exc-sym))))))))
 
 (define-walk-method (scheme this::PycStmtExpr conf)

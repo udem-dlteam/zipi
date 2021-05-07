@@ -59,6 +59,7 @@
     py-isinstance?
     py-issubclass?
     py-throw
+    py-throw-with-values
     py-throw-exception-with-message
 
     py-make-global
