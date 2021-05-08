@@ -87,7 +87,8 @@
       (remove-unreachable finally finally-found-path-to-next-ref))
     (if (or (not (car finally-found-path-to-next-ref))
             (and (not (car body-found-path-to-next-ref))
-                 (not (fold (lambda (l r) (or l r)) #t (map car handlers-found-path-to-next-ref)))
+                 (or (null? handlers)
+                     (not (fold (lambda (l r) (or l r)) #f (map car handlers-found-path-to-next-ref))))
                  (not (car else-found-path-to-next-ref))))
       (set-car! found-path-to-next-ref #f))))
 
