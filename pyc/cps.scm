@@ -27,22 +27,10 @@
       (else
         (loop (cdr children-need-cps))))))
 
-(define-walk-method (remove-need-return this::PycNode)
-  (call-default-walker))
-
-(define-walk-method (remove-need-return this::PycStmt)
-  (PycStmt-need-return-set! this #f)
-  (call-default-walker))
-
-(define-walk-method (remove-need-return this::PycFun)
-  #f)
-
 (define-walk-method (mark-need-cps* this::PycFun return-need-cps break-continue-need-cps)
   (if (PycFun-generator this)
     ;; generators do not need non-terminal return since returns are converted to cps
-    (begin
-      (PycFun-need-return-set! this #f)
-      (remove-need-return (PycFun-body this))))
+    (PycFun-need-return-set! this #f))
 
   (mark-need-cps* (PycFun-body this) (PycFun-generator this) #f)
   (let loop ((default-need-cps

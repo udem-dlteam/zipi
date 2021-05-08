@@ -55,8 +55,7 @@
 	 (cache (default #f)))
 
       ;; statements
-      (class PycStmt::PycNode
-	 (need-return::bool (default #f)))
+      (class PycStmt::PycNode)
 
       (class PycSeq::PycStmt
 	 (nodes::pair-nil (info '("ast"))))
