@@ -153,27 +153,27 @@
         (handlers/else-tail (and tail (not has-finally))))
     (return
       (PycTry-body this)
-      (if has-finally this block)
+      this
       body-tail
       conf)
     (for-each
       (lambda (h)
         (return
           h
-          (if has-finally this block)
+          this
           handlers/else-tail
           conf))
       (PycTry-handlers this))
     (if has-else
       (return
         (PycTry-else this)
-        (if has-finally this block)
+        this
         handlers/else-tail
         conf))
     (if has-finally
       ;; we do not consider finally to be a tail block due to the complexity of
       ;; the code to generate in that case
-      (return finally-block finally-block #f conf))
+      (return finally-block this #f conf))
     (PycTry-tail-set! this tail)
     (if (and (PycStmt-need-return this) (not tail))
       (need-return-set! block #t))))
