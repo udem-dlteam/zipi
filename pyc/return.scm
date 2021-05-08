@@ -67,18 +67,19 @@
     (remove-unreachable (PycLoop-body this) else-found-path-to-next-ref)))
 
 (define-walk-method (remove-unreachable this::PycTry found-path-to-next-ref)
-  (let ((body (PycTry-body this))
+  (let* ((body (PycTry-body this))
         (handlers (PycTry-handlers this))
         (else_ (PycTry-else this))
         (finally (PycTry-finally this))
         (body-found-path-to-next-ref (cons #t '()))
-        (handlers-found-path-to-next-ref (cons #t '()))
+        (handlers-found-path-to-next-ref (map (lambda (_) (cons #t '())) handlers))
         (else-found-path-to-next-ref (cons #t '()))
         (finally-found-path-to-next-ref (cons #t '())))
     (remove-unreachable body body-found-path-to-next-ref)
     (for-each
-      (lambda (h) (remove-unreachable h handlers-found-path-to-next-ref))
-      handlers)
+      (lambda (h fp) (remove-unreachable h fp))
+      handlers
+      handlers-found-path-to-next-ref)
     (if (not (PycPass? else_))
       (remove-unreachable else_ else-found-path-to-next-ref)
       (set-car! else-found-path-to-next-ref #f))
@@ -86,7 +87,7 @@
       (remove-unreachable finally finally-found-path-to-next-ref))
     (if (or (not (car finally-found-path-to-next-ref))
             (and (not (car body-found-path-to-next-ref))
-                 (not (car handlers-found-path-to-next-ref))
+                 (not (fold (lambda (l r) (or l r)) #t (map car handlers-found-path-to-next-ref)))
                  (not (car else-found-path-to-next-ref))))
       (set-car! found-path-to-next-ref #f))))
 
@@ -130,7 +131,8 @@
     (PycReturn-tail-set! this #f)))
 
 (define-walk-method (return this::PycTry fun tail conf)
-  (let ((has-finally (not (isa? (PycTry-finally this) PycPass))))
+  (let ((has-else (not (isa? (PycTry-else this) PycPass)))
+        (has-finally (not (isa? (PycTry-finally this) PycPass))))
     (return (PycTry-body this) fun (and (not has-finally) tail) conf)
     (return (PycTry-else this) fun (and (not has-finally) tail) conf)
     (for-each
@@ -138,7 +140,7 @@
         (return
           h
           fun
-          (and (not has-finally) tail)
+          (and (not (or has-else has-finally)) tail)
           conf))
       (PycTry-handlers this))
     (return (PycTry-finally this) fun #f conf))) ;; finally is never tail because it may need to interrupt unwind to return
