@@ -144,7 +144,6 @@ def f():
     try:
         print("try")
     except Exception as e:
-        print(e)
         print("except")
     else:
         return 42
@@ -157,7 +156,6 @@ def f(x):
     try:
         res = 42 // x
     except ZeroDivisionError as e:
-        print(e)
         print("hello")
         return 0
     except Exception as e:
@@ -179,7 +177,7 @@ def f(x):
     try:
         res = 42 // x
     except ZeroDivisionError as hh:
-        print(hh)
+        print(isinstance(hh, ZeroDivisionError))
     except Exception as x:
         res = None
     else:
@@ -198,7 +196,7 @@ def trying():
     try:
         1//0
     except Exception as e:
-        return e
+        return isinstance(e, ZeroDivisionError)
     else:
         print("hello")
     finally:
