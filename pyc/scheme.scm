@@ -537,7 +537,7 @@
     (let ((handlers-exc-sym (scheme-var-name (PycTry-exc-var this) conf)))
       `(begin
           ,(scheme-try-except body handlers conf)
-          (if (not %current-raised-exception)
+          (if (not %current-raised-exception) ;; TODO: this does not quite work for re-raise, implement a system-wide current-exception
             ,(scheme orelse conf)))))
 
   (define (scheme-try-except-else-finally body handlers orelse finally conf)
