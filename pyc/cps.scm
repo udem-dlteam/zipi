@@ -322,6 +322,134 @@
         kraise))
     this))
 
+(define-walk-method (cps-stmt this::PycHandler k kbreak kcontinue kraise)
+  (if (need-cps? this)
+    (let ((loc (PycNode-loc this))
+          (exc-var (new-kont-var 'exc 'kont))
+          (exc-load (new-kont-ref loc exc-var 'Load))
+          (exc-store (new-kont-ref loc exc-var 'Store)))
+      (cps-expr
+        (PycHandler-type this)
+        (new-PycKont
+          loc
+          (list exc-store)
+          (new-PycHandler
+            loc
+            (PycHandler-exc-var this)
+            exc-load
+            (cps-stmt (PycHandler-body this) k kbreak kcontinue kraise)))
+        kraise))
+    this))
+
+(define-walk-method (cps-stmt this::PycTry k kbreak kcontinue kraise)
+  (define (cps-handlers handlers k kbreak kcontinue kraise)
+    (let* ((try-loc (PycNode-loc this))
+          (handled-var (new-kont-var 'khandled 'kont))
+          (handled-load (new-kont-ref try-loc handled-var 'Load))
+          (handled-store (new-kont-ref try-loc handled-var 'Store)))
+      (new-PycBlock
+        try-loc
+        (list (new-PycAssig try-loc handled-store k))
+        (let loop ((handlers handlers))
+            (if (null? handlers)
+              (new-PycCallKont try-loc kraise args: (list (new-PycRef try-loc (PycTry-exc-var this) 'Load)))
+              (let* ((handler (car handlers))
+                    (loc (PycNode-loc handler))
+                    (exc-var (new-kont-var 'exc 'kont))
+                    (exc-load (new-kont-ref loc exc-var 'Load))
+                    (exc-store (new-kont-ref loc exc-var 'Store)))
+                (cps-expr
+                  (PycHandler-type handler)
+                  (new-PycKont
+                    loc
+                    (list exc-store)
+                    (new-PycHandlerCPS
+                      loc
+                      (PycHandler-exc-var handler)
+                      exc-load
+                      (cps-stmt (PycHandler-body handler) handled-load kbreak kcontinue kraise)
+                      (loop (cdr handlers))))
+                  kraise)))))))
+
+  (let* (;; node attributes
+         (loc (PycNode-loc this))
+         (body (PycTry-body this))
+         (handlers (PycTry-handlers this))
+         (orelse (PycTry-else this))
+         (finally (PycTry-finally this))
+         ;; break continuation references
+         (break-var (new-kont-var 'kbreak 'kont))
+         (break-load (new-kont-ref loc break-var 'Load))
+         (break-store (new-kont-ref loc break-var 'Store))
+         ;; continue continuation references
+         (continue-var (new-kont-var 'kcontinue 'kont))
+         (continue-load (new-kont-ref loc continue-var 'Load))
+         (continue-store (new-kont-ref loc continue-var 'Store))
+         ;; raise continuation references
+         (raise-var (new-kont-var 'kraise 'kont))
+         (raise-load (new-kont-ref loc raise-var 'Load))
+         (raise-store (new-kont-ref loc raise-var 'Store))
+         ;; else continuation references
+         (else-var (new-kont-var 'kelse 'kont))
+         (else-load (new-kont-ref loc else-var 'Load))
+         (else-store (new-kont-ref loc else-var 'Store))
+         ;; else continuation references
+         (exc-var (new-kont-var 'kexc 'kont))
+         (exc-load (new-kont-ref loc exc-var 'Load))
+         (exc-store (new-kont-ref loc exc-var 'Store))
+         ;; continuations
+         (finally-kont
+           (new-PycKont
+             loc
+             '()
+             (cps-stmt finally k kbreak kcontinue kraise)))
+         (else-kont
+           (new-PycKont
+             loc
+             '()
+             (cps-stmt orelse finally-kont kbreak kcontinue kraise)))
+         (finally-break
+           (and
+             kbreak
+             (new-PycKont
+               loc
+               '()
+               (cps-stmt finally kbreak kbreak kcontinue kraise))))
+         (finally-continue
+           (and
+             kcontinue
+             (new-PycKont
+               loc
+               '()
+               (cps-stmt finally kcontinue kbreak kcontinue kraise))))
+         (finally-raise
+           (new-PycKont
+             loc
+             (list exc-store)
+             (cps-stmt
+               finally
+               (or kraise (new-PycKont loc (list exc-store) (new-PycRaise loc exc-load (new-PycUninit loc))))
+               kbreak
+               kcontinue
+               (or kraise (new-PycKont loc (list exc-store) (new-PycRaise loc exc-load (new-PycUninit loc)))))))
+         (raise-kont
+           (new-PycKont
+             loc
+             (list (new-PycRef loc (PycTry-exc-var this) 'Store))
+             (cps-handlers handlers finally-kont finally-break finally-continue finally-raise)))
+         ;; continuations assignments
+         (assigs
+          (append
+            (list (new-PycAssig loc else-store else-kont))
+            (list (new-PycAssig loc raise-store raise-kont))
+            (if kbreak (list (new-PycAssig loc break-store finally-break)) '())
+            (if kcontinue (list (new-PycAssig loc continue-store finally-continue)) '()))))
+    (new-PycBlock
+      loc
+      assigs
+      (cps-stmt body else-kont finally-break finally-continue raise-kont))))
+
+
 ;; transform generators expressions to cps
 
 (define-walk-method (cps-expr this::PycNode k kraise)

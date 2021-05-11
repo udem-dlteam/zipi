@@ -79,13 +79,17 @@
 (define-inline (new-PycRaise loc exc cause #!key (%info #f) (cps #f))
    (make-PycRaise loc %info cps exc cause))
 
-;; (new-PycTry loc body handlers else finally exc-sym #!key (%info #f) (cps #f) (tail #t))
-(define-inline (new-PycTry loc body handlers else finally exc-sym #!key (%info #f) (cps #f) (tail #t))
-   (make-PycTry loc %info cps body handlers else finally exc-sym tail))
+;; (new-PycTry loc body handlers else finally exc-var #!key (%info #f) (cps #f) (tail #t))
+(define-inline (new-PycTry loc body handlers else finally exc-var #!key (%info #f) (cps #f) (tail #t))
+   (make-PycTry loc %info cps body handlers else finally exc-var tail))
 
-;; (new-PycHandler loc type body #!key (%info #f) (cps #f))
-(define-inline (new-PycHandler loc type body #!key (%info #f) (cps #f))
-   (make-PycHandler loc %info cps type body))
+;; (new-PycHandler loc exc-var type body #!key (%info #f) (cps #f))
+(define-inline (new-PycHandler loc exc-var type body #!key (%info #f) (cps #f))
+   (make-PycHandler loc %info cps exc-var type body))
+
+;; (new-PycHandlerCPS loc exc-var type body next-handler #!key (%info #f) (cps #f))
+(define-inline (new-PycHandlerCPS loc exc-var type body next-handler #!key (%info #f) (cps #f))
+   (make-PycHandlerCPS loc %info cps exc-var type body next-handler))
 
 ;; (new-PycBreak loc #!key (%info #f) (cps #f))
 (define-inline (new-PycBreak loc #!key (%info #f) (cps #f))
