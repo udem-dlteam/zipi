@@ -1051,6 +1051,122 @@ class str:
                 return NotImplemented
         else:
             raise TypeError("descriptor '__rmul__' requires a 'str' object but received a '" + type(self).__name__ + "'")
+
+    def __mod__(self, values):
+        mapping = None
+        if isinstance(values, dict):
+            mapping = values
+        if not isinstance(values, tuple):
+            values = (values,)
+        result = ''
+        start = 0
+        end = len(self)
+        value_index = 0
+        pos = start
+        while pos < end:
+            c = self[pos]
+            pos += 1
+            if c == '%':
+                if pos >= end:
+                    raise ValueError('incomplete format')
+                else:
+                    c = self[pos]
+                    pos += 1
+                    if c == '%':
+                        result += self[start:pos-1]
+                        start = pos
+                    else:
+                        result += self[start:pos-2]
+                        if c == '(':
+                            if mapping is None:
+                                raise TypeError('format requires a mapping')
+                            value_index = 1
+                            key_start = pos
+                            while pos < end and self[pos] != ')':
+                                pos += 1
+                            if pos >= end:
+                                raise ValueError('incomplete format key')
+                            key = self[key_start:pos]
+                            pos += 1
+                            if pos >= end:
+                                raise ValueError('incomplete format')
+                            else:
+                                c = self[pos]
+                                pos += 1
+                            value = mapping[key] # ok if this raises a KeyError
+                        else:
+                            if value_index >= len(values):
+                                raise TypeError('not enough arguments for format string')
+                            else:
+                                value = values[value_index]
+                                value_index += 1
+                        flag_zero  = False
+                        flag_minus = False
+                        flag_plus  = False
+                        flag_space = False
+                        flag_alt   = False
+                        while c == '0' or c == '-' or c == '+' or c == ' ' or c == '#':
+                            if c == '0':
+                                flag_zero  = True
+                            elif c == '-':
+                                flag_minus = True
+                            elif c == '+':
+                                flag_plus  = True
+                            elif c == ' ':
+                                flag_space = True
+                            else:
+                                flag_alt   = True
+                            if pos >= end:
+                                raise ValueError('incomplete format')
+                            else:
+                                c = self[pos]
+                                pos += 1
+                        width = 0
+                        while c >= '0' and c <= '9':
+                            width = width*10 + (ord(c) - 48)
+                            if pos >= end:
+                                raise ValueError('incomplete format')
+                            else:
+                                c = self[pos]
+                                pos += 1
+                        start = pos
+                        def output(s):
+                            nonlocal result
+                            n = len(s)
+                            if width <= n:
+                                result += s
+                            elif flag_minus:
+                                result += s + ' '*(width-n)
+                            else:
+                                result += ' '*(width-n) + s
+                        if c == 's' or c == 'r' or c == 'a':
+                            if c == 's':
+                                output(str(value))
+                            elif c == 'r':
+                                output(repr(value))
+                            elif c == 'a':
+                                output(ascii(value))
+                        elif c == 'i' or c == 'd' or c == 'u' or c == 'o' or c == 'x' or c == 'X':
+                            # TODO: handle flags and different formats
+                            output(str(value))
+                        elif c == 'e' or c == 'E' or c == 'f' or c == 'F' or c == 'g' or c == 'G':
+                            # TODO: handle flags and different formats
+                            output(str(value))
+                        elif c == 'c':
+                            if isinstance(value, int):
+                                output(chr(value))
+                            elif isinstance(value, str) and len(value) == 1:
+                                output(value)
+                            else:
+                                raise TypeError('%c requires int or char')
+                        else:
+                            n = ord(c)
+                            raise ValueError('unsupported format character ' + repr(c if n>=32 and n<=126 else '?') + ' (' + hex(n) + ') at index ' + str(pos-1))
+        if mapping is None and value_index != len(values):
+            raise TypeError('not all arguments converted during string formating')
+        if start < pos:
+            result += self[start:pos]
+        return result
 {methods}
 """
 

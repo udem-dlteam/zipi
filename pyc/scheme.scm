@@ -310,9 +310,16 @@
      (if (eq? (PycExpr-type this) 'Ubool)
       (scheme this conf)
       (cond
+        ;; in a test we try to skip conversion of expression to Python bool
+        ;; and convert directly to scheme bool
+        ((isa? this PycUnary)
+          (let ((unop (PycUnary-op this))
+                (expr (PycUnary-expr this)))
+            (case unop
+              ((not)
+                `(not ,(pyc-test expr this)))
+              (else `(py-test ,(scheme this conf))))))
         ((isa? this PycBoolOp)
-          ;; in a test we try to skip conversion of expression to Python bool
-          ;; and convert directly to scheme bool
           (let ((op (PycBoolOp-op this))
                 (args (PycBoolOp-args this)))
             (case op
