@@ -563,7 +563,7 @@
 (define-walk-method (scheme this::PycHandlerCPS conf)
   (let* ((handled-type (PycHandler-type this)))
    (if (isa? handled-type PycUninit)
-     ,(scheme (PycHandler-body this) conf)
+     (scheme (PycHandler-body this) conf)
      `(if (py-isinstance?
              ,(scheme-var-name (PycHandler-exc-var this) conf)
              ,(scheme handled-type conf))

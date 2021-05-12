@@ -355,22 +355,30 @@
             (if (null? handlers)
               (new-PycCallKont try-loc kraise args: (list (new-PycRef try-loc (PycTry-exc-var this) 'Load)))
               (let* ((handler (car handlers))
+                    (handler-type (PycHandler-type handler))
                     (loc (PycNode-loc handler))
                     (exc-var (new-kont-var 'exc 'kont))
                     (exc-load (new-kont-ref loc exc-var 'Load))
                     (exc-store (new-kont-ref loc exc-var 'Store)))
-                (cps-expr
-                  (PycHandler-type handler)
-                  (new-PycKont
+                (if (isa? handler-type PycUninit)
+                  (new-PycHandlerCPS
                     loc
-                    (list exc-store)
-                    (new-PycHandlerCPS
+                    (PycHandler-exc-var handler)
+                    (new-PycUninit loc)
+                    (cps-stmt (PycHandler-body handler) handled-load kbreak kcontinue kraise)
+                    (loop '()))
+                  (cps-expr
+                    handler-type
+                    (new-PycKont
                       loc
-                      (PycHandler-exc-var handler)
-                      exc-load
-                      (cps-stmt (PycHandler-body handler) handled-load kbreak kcontinue kraise)
-                      (loop (cdr handlers))))
-                  kraise)))))))
+                      (list exc-store)
+                      (new-PycHandlerCPS
+                        loc
+                        (PycHandler-exc-var handler)
+                        exc-load
+                        (cps-stmt (PycHandler-body handler) handled-load kbreak kcontinue kraise)
+                        (loop (cdr handlers))))
+                    kraise))))))))
 
   (let* (;; node attributes
          (loc (PycNode-loc this))
