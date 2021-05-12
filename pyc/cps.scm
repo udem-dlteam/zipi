@@ -341,6 +341,7 @@
         kraise))
     this))
 
+;; TODO: fix code duplication in finally branches
 (define-walk-method (cps-stmt this::PycTry k kbreak kcontinue kraise)
   (define (cps-handlers handlers k kbreak kcontinue kraise)
     (let* ((try-loc (PycNode-loc this))
@@ -377,6 +378,10 @@
          (handlers (PycTry-handlers this))
          (orelse (PycTry-else this))
          (finally (PycTry-finally this))
+         ;; k continuation references
+         (k-var (new-kont-var 'kont 'kont))
+         (k-load (new-kont-ref loc k-var 'Load))
+         (k-store (new-kont-ref loc k-var 'Store))
          ;; break continuation references
          (break-var (new-kont-var 'kbreak 'kont))
          (break-load (new-kont-ref loc break-var 'Load))
@@ -389,10 +394,22 @@
          (raise-var (new-kont-var 'kraise 'kont))
          (raise-load (new-kont-ref loc raise-var 'Load))
          (raise-store (new-kont-ref loc raise-var 'Store))
+         ;; handlers continuation references
+         (handlers-var (new-kont-var 'khandlers 'kont))
+         (handlers-load (new-kont-ref loc handlers-var 'Load))
+         (handlers-store (new-kont-ref loc handlers-var 'Store))
          ;; else continuation references
          (else-var (new-kont-var 'kelse 'kont))
          (else-load (new-kont-ref loc else-var 'Load))
          (else-store (new-kont-ref loc else-var 'Store))
+         ;; finally continuation references
+         (finally-var (new-kont-var 'kfinally 'kont))
+         (finally-load (new-kont-ref loc finally-var 'Load))
+         (finally-store (new-kont-ref loc finally-var 'Store))
+         ;; ref to hold continuation to be called in finally block
+         (exit-var (new-kont-var 'kexit 'kont))
+         (exit-load (new-kont-ref loc exit-var 'Load))
+         (exit-store (new-kont-ref loc exit-var 'Store))
          ;; else continuation references
          (exc-var (new-kont-var 'kexc 'kont))
          (exc-load (new-kont-ref loc exc-var 'Load))
@@ -401,53 +418,65 @@
          (finally-kont
            (new-PycKont
              loc
-             '()
-             (cps-stmt finally k kbreak kcontinue kraise)))
-         (else-kont
+             (list exit-store)
+             (cps-stmt finally exit-load kbreak kcontinue kraise)))
+         (finally-exit
            (new-PycKont
              loc
              '()
-             (cps-stmt orelse finally-kont kbreak kcontinue kraise)))
+             (new-PycCallKont loc finally-load args: (list k))))
          (finally-break
            (and
              kbreak
              (new-PycKont
                loc
                '()
-               (cps-stmt finally kbreak kbreak kcontinue kraise))))
+               (new-PycCallKont loc finally-load args: (list kbreak)))))
          (finally-continue
            (and
              kcontinue
              (new-PycKont
                loc
                '()
-               (cps-stmt finally kcontinue kbreak kcontinue kraise))))
+               (new-PycCallKont loc finally-load args: (list kcontinue)))))
+         (else-kont
+           (new-PycKont
+             loc
+             '()
+             (cps-stmt orelse finally-exit kbreak kcontinue kraise)))
          (finally-raise
            (new-PycKont
              loc
              (list exc-store)
              (cps-stmt
                finally
-               (or kraise (new-PycKont loc (list exc-store) (new-PycRaise loc exc-load (new-PycUninit loc))))
+               (if kraise
+                 (new-PycKont loc '() (new-PycCallKont loc kraise args: (list exc-load)))
+                 (new-PycKont loc '() (new-PycRaise loc exc-load (new-PycUninit loc))))
                kbreak
                kcontinue
                (or kraise (new-PycKont loc (list exc-store) (new-PycRaise loc exc-load (new-PycUninit loc)))))))
-         (raise-kont
+         (handlers-kont
            (new-PycKont
              loc
              (list (new-PycRef loc (PycTry-exc-var this) 'Store))
-             (cps-handlers handlers finally-kont finally-break finally-continue finally-raise)))
+             (cps-handlers handlers finally-exit finally-break finally-continue finally-raise)))
          ;; continuations assignments
          (assigs
           (append
+            ;; outer continuations
+            (list (new-PycAssig loc k-store k))
+            (if kbreak (list (new-PycAssig loc break-store kbreak)) '())
+            (if kcontinue (list (new-PycAssig loc continue-store kcontinue)) '())
+            (if kraise (list (new-PycAssig loc raise-store kraise)) '())
+            ;; try inner continuations
+            (list (new-PycAssig loc finally-store finally-kont))
             (list (new-PycAssig loc else-store else-kont))
-            (list (new-PycAssig loc raise-store raise-kont))
-            (if kbreak (list (new-PycAssig loc break-store finally-break)) '())
-            (if kcontinue (list (new-PycAssig loc continue-store finally-continue)) '()))))
+            (list (new-PycAssig loc handlers-store handlers-kont)))))
     (new-PycBlock
       loc
       assigs
-      (cps-stmt body else-kont finally-break finally-continue raise-kont))))
+      (cps-stmt body else-store finally-break finally-continue handlers-load))))
 
 
 ;; transform generators expressions to cps
@@ -464,6 +493,33 @@
     (else
       (error "cps-expr" "Unimplemented expression for generators" (pyc->list this)))))
 
+(define (make-ReturnYield-k loc k kraise)
+  (let* ((var (new-kont-var 'kparam 'kont))
+         (param (new-kont-ref loc var 'Store))
+         (param-load (new-kont-ref loc var 'Load))
+         (exc-var (new-PycVar '(-1 -1) 'exc 'block))
+         (exc-load (new-PycRef loc exc-var 'Load can-direct-access: #t)))
+  (if kraise
+    (new-PycKont
+      loc
+      (list param)
+      (new-PycTry
+        loc
+        (new-PycCallKont loc k args: (list param-load))
+        (list
+          (new-PycHandler
+            loc
+            exc-var
+            (new-PycUninit loc)
+            (new-PycCallKont
+              loc
+              kraise
+              args: (list exc-load))))
+        (new-PycPass loc)
+        (new-PycPass loc)
+        exc-var))
+    k)))
+
 (define-walk-method (cps-expr this::PycYield k kraise)
   (let ((loc (PycNode-loc this))
         (val (PycYield-val this)))
@@ -475,6 +531,6 @@
                (new-PycKont
                  loc
                  (list param)
-                 (new-PycReturnYield loc param-load k generator: #t))))
+                 (new-PycReturnYield loc param-load (make-ReturnYield-k loc k kraise) generator: #t))))
         (cps-expr val kont kraise))
-      (new-PycReturnYield loc val k generator: #t))))
+      (new-PycReturnYield loc val (make-ReturnYield-k loc k kraise) generator: #t))))
