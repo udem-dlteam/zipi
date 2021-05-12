@@ -13,18 +13,12 @@
         ,@body)))
 
 (define-macro (bind-exit exit . body)
-  (if #t ;; use continuation objects
-
-      `(##continuation-capture
-        (lambda ($cont)
-          (let ((,(car exit)
-                 (lambda (result)
-                   (##continuation-return-no-winding $cont result))))
-            ,@body)))
-
-      `(##call-with-current-continuation
-        (lambda ,exit
-          ,@body))))
+  `(##continuation-capture
+    (lambda ($cont)
+      (let ((,(car exit)
+             (lambda (result)
+               (##continuation-return $cont result))))
+        ,@body))))
 
 (define-macro (make-cell e)
   `(box ,e))

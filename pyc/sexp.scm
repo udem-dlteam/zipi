@@ -257,12 +257,12 @@
                    (if cause (sexp cause #f scope conf) (new-PycUninit loc))))
     ((Try ?loc ?body ?handlers ?orelse ?finally)
      ;; Try(stmt* body, excepthandler* handlers, stmt* orelse, stmt* finalbody)
-     (let ((handlers-exc-sym (my-gensym '%exc)))
+     (let ((exc-var (new-PycVar '(-1 -1) 'exc 'block)))
       (new-PycTry loc (compile-stmt* loc body #f scope conf)
-                  (map (lambda (h) (compile-handler h scope handlers-exc-sym conf)) handlers)
+                  (map (lambda (h) (compile-handler h scope exc-var conf)) handlers)
                   (compile-stmt* loc orelse #f scope conf)
                   (compile-stmt* loc finally #f scope conf)
-                  handlers-exc-sym)))
+                  exc-var)))
 
     ((Import ?loc ?aliases)
      ;; Import(alias* names)
@@ -412,27 +412,25 @@
         (sexp obj #f scope conf)
         (sexp exp #f scope conf)))))
 
-(define (compile-handler handler scope exc-sym conf)
+(define (compile-handler handler scope exc-var conf)
   (match-case handler
     ((ExceptHandler ?loc ?type ?name ?body)
-     (let ((expr
-             (if type
-                 (sexp type #f scope conf)
-                 (new-PycUninit loc))))
+     (let ((expr (if type (sexp type #f scope conf) (new-PycUninit loc))))
        (if name
-           (let ((body
-                   (new-PycBlock loc
-                     (list
-                       (new-PycAssig
-                         loc
-                         (new-PycRefUnresolved
-                            loc
-                            name
-                            'Store)
-                         (new-PycPragma loc exc-sym)))
-                     (compile-stmt* loc body #f scope conf))))
-             (new-PycHandler loc expr body))
-           (new-PycHandler loc expr (compile-stmt* loc body #f scope conf)))))
+           (let ((handler-body
+                    (new-PycSeq
+                      loc
+                      (list
+                        (new-PycAssig
+                          loc
+                          (new-PycRefUnresolved
+                             loc
+                             name
+                             'Store)
+                          (new-PycRef loc exc-var 'Load))
+                        (compile-stmt* loc body #f scope conf)))))
+             (new-PycHandler loc exc-var expr handler-body))
+           (new-PycHandler loc exc-var expr (compile-stmt* loc body #f scope conf)))))
     (else
       (error "sexp" "Wrong handler" handler))))
 

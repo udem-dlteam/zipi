@@ -55,8 +55,7 @@
 	 (cache (default #f)))
 
       ;; statements
-      (class PycStmt::PycNode
-	 (need-return::bool (default #f)))
+      (class PycStmt::PycNode)
 
       (class PycSeq::PycStmt
 	 (nodes::pair-nil (info '("ast"))))
@@ -131,12 +130,16 @@
 	 handlers::pair-nil
 	 (else::PycStmt (info '("ast")))
 	 (finally::PycStmt (info '("ast")))
-	 exc-sym::symbol
+	 (exc-var::PycExpr (info '("ast")))
 	 (tail::bool (default #t)))
 
       (class PycHandler::PycNode
+   (exc-var::PycExpr (info '("ast")))
 	 (type::PycExpr (info '("ast")))
 	 (body::PycStmt (info '("ast"))))
+
+  (class PycHandlerCPS::PycHandler
+    next-handler::PycNode)
 
       (class PycBreak::PycStmt)
       (class PycContinue::PycStmt)
@@ -650,7 +653,8 @@
 (gen-walks PycCPSFor target iter body else loop-kont-var else-kont-var)
 (gen-walks PycRaise exc cause)
 (gen-walks PycTry body (handlers) else finally)
-(gen-walks PycHandler type body)
+(gen-walks PycHandler exc-var type body)
+(gen-walks PycHandlerCPS exc-var type body next-handler)
 (gen-walks PycStmtExpr expr)
 (gen-walks PycStarredExpr expr)
 (gen-walks PycFun (args) (posonlyargs) vararg (kwonlyargs) (kw-defaults) kwarg (defaults) body (decorators) (annotation))

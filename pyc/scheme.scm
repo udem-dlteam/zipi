@@ -511,122 +511,64 @@
   (in-contexts (PycWith-items this) (PycWith-body this)))
 
 (define-walk-method (scheme this::PycTry conf)
-  (let* ((body-block (PycTry-body this))
-        (handlers (PycTry-handlers this))
-        (handlers-exc-sym (PycTry-exc-sym this))
-        (else-block (PycTry-else this))
-        (finally-block (PycTry-finally this))
-        (res-sym (my-gensym '%res))
-        (conf-with-exc (cons* current-exc: handlers-exc-sym conf)))
-    (if (PycPass? finally-block)
-      ;; there is no finally block
-      (if (PycPass? else-block)
-        ;; optimized case for try-except simple blocks
-        `(with-handler
-          (lambda (,handlers-exc-sym)
-            (cond
-              ,@(map (lambda (h) (scheme h conf-with-exc)) handlers)
-              (else (raise ,handlers-exc-sym))))
-          ,(scheme body-block conf))
-        ;; try-except-else
-        `(let ((,handlers-exc-sym #f))
-            (let ((,res-sym
-                    (with-handler
-                      (lambda (%exc)
-                        (set! ,handlers-exc-sym %exc)
-                        (cond
-                          ,@(map (lambda (h) (scheme h conf-with-exc)) handlers)
-                          (else (raise ,handlers-exc-sym))))
-                      ,(scheme body-block conf))))
-            (if (not ,handlers-exc-sym)
-              ,(scheme else-block conf)
-               ,res-sym))))
-      ;; there is a finally block
-      (let* ((return-sym (if (PycStmt-need-return this) (my-gensym '%return) #f))
-            (body-conf (if return-sym (cons* return: return-sym conf) conf))
-            (current-exc-sym (my-gensym '%current-exc))
-            (current-ret-sym (my-gensym '%current-ret))
-            (finally-ret-sym (my-gensym '%finally-ret))
-            (handled-flag-sym (my-gensym '%handled-an-exception))
-            (handlers-conf (cons* current-exc: handlers-exc-sym body-conf)))
-        (if return-sym
-          ;; if there is a finally block all returns will be non-tail return
-          ;; it is thus possible to catch them by specifying the bind-exit symbol
-          ;; as return: attribute of the conf
-          `(let* ((,handled-flag-sym #f)
-                 (,current-exc-sym #f)
-                 (,current-ret-sym
-                  (with-handler
-                    (lambda (%exc) (set! ,current-exc-sym %exc) #f)
-                    (bind-exit
-                      (,return-sym)
-                      (begin
-                        (with-handler
-                          (lambda (,handlers-exc-sym)
-                            (set! ,handled-flag-sym #t)
-                            (cond
-                              ,@(map (lambda (h) (scheme h handlers-conf)) handlers)
-                              (else (set! ,current-exc-sym ,handlers-exc-sym))))
-                          ,(scheme body-block body-conf))
-                        (if (not ,handled-flag-sym)
-                          ,(scheme else-block body-conf)
-                           ,res-sym)
-                        ;; return #f if the bind-exit was not exited through the continuation
-                        ;; there can be no tail-return inside a try-except-else followed by a
-                        ;; finally block
-                        #f)))))
-              ,(let* ((finally-conf
-                      (if (PycStmt-need-return finally-block)
-                        (cons* return: finally-ret-sym conf)
-                        conf))
-                    (finally-code
-                      `(begin
-                        ,(scheme finally-block finally-conf)
-                        (cond
-                          (,current-exc-sym
-                            (raise ,current-exc-sym))
-                          (,current-ret-sym
-                            ,(if (PycTry-tail this)
-                                current-ret-sym
-                                `(,(config-get conf return:) ,current-ret-sym)))
-                          (else #f)))))
-              (if (PycStmt-need-return finally-block)
-                `(bind-exit (,finally-ret-sym)
-                    ,finally-code)
-                 finally-code)))
-          ;; if there is no return inside the try-except-else, there is no need
-          ;; to rebind the return
-          `(let ((,handled-flag-sym #f)
-                 (,current-exc-sym #f))
-            (with-handler
-              (lambda (%exc) (set! ,current-exc-sym %exc))
-                (begin
-                  (with-handler
-                    (lambda (,handlers-exc-sym)
-                      (set! ,handled-flag-sym #t)
-                      (cond
-                        ,@(map (lambda (h) (scheme h handlers-conf)) handlers)
-                        (else (set! ,current-exc-sym ,handlers-exc-sym))))
-                    ,(scheme body-block body-conf))
-                  (if (not ,handled-flag-sym)
-                    ,(scheme else-block body-conf))
-                  ;; return #f if the bind-exit was not exited through the continuation
-                  ;; there can be no tail-return inside a try-except-else followed by a
-                  ;; finally block
-                  #f))
-              ,(let* ((finally-conf
-                      (if (PycStmt-need-return finally-block)
-                        (cons* return: finally-ret-sym conf)
-                        conf))
-                    (finally-code
-                      `(begin
-                        ,(scheme finally-block finally-conf)
-                        (if ,current-exc-sym
-                            (raise ,current-exc-sym)))))
-                (if (PycStmt-need-return finally-block)
-                  `(bind-exit (,finally-ret-sym)
-                      ,finally-code)
-                   finally-code))))))))
+  (define (scheme-handlers handlers handlers-exc-sym conf)
+    (if (null? handlers)
+      `(raise ,handlers-exc-sym)
+      (let* ((handler (car handlers))
+             (handled-type (PycHandler-type handler)))
+        (if (isa? handled-type PycUninit)
+          (scheme (PycHandler-body handler) conf)
+          `(if (py-isinstance?
+                  ,(config-get conf current-exc:)
+                  ,(scheme (PycHandler-type handler) conf))
+            ,(scheme (PycHandler-body handler) conf)
+            ,(scheme-handlers (cdr handlers) handlers-exc-sym conf))))))
+
+  (define (scheme-try-except body handlers conf)
+    (let* ((handlers-exc-sym (scheme-var-name (PycTry-exc-var this) conf))
+          (conf-with-exc (cons* current-exc: handlers-exc-sym conf)))
+      `(with-exception-catcher
+        (lambda (,handlers-exc-sym)
+          (set! %current-raised-exception ,handlers-exc-sym)
+          ,(scheme-handlers handlers handlers-exc-sym conf-with-exc))
+        (lambda () ,(scheme body conf)))))
+
+  (define (scheme-try-except-else body handlers orelse conf)
+    (let ((handlers-exc-sym (scheme-var-name (PycTry-exc-var this) conf)))
+      `(begin
+          ,(scheme-try-except body handlers conf)
+          (if (not %current-raised-exception) ;; TODO: this does not quite work for re-raise, implement a system-wide current-exception
+            ,(scheme orelse conf)))))
+
+  (define (scheme-try-except-else-finally body handlers orelse finally conf)
+    `(dynamic-wind
+      (lambda () #f)
+      (lambda () ,(scheme-try-except-else body handlers orelse conf))
+      (lambda () ,(scheme finally conf))))
+
+  (let* ((body (PycTry-body this))
+         (handlers (PycTry-handlers this))
+         (handlers-exc-sym (scheme-var-name (PycTry-exc-var this) conf))
+         (orelse (PycTry-else this))
+         (finally (PycTry-finally this)))
+    `(let ((%current-raised-exception #f))
+      ,(cond
+        ((not (isa? finally PycPass))
+          (scheme-try-except-else-finally body handlers orelse finally conf))
+        ((not (isa? orelse PycPass))
+          (scheme-try-except-else body handlers orelse conf))
+        (else
+          (scheme-try-except body handlers conf))))))
+
+(define-walk-method (scheme this::PycHandlerCPS conf)
+  (let* ((handled-type (PycHandler-type this)))
+   (if (isa? handled-type PycUninit)
+     (scheme (PycHandler-body this) conf)
+     `(if (py-isinstance?
+             ,(scheme-var-name (PycHandler-exc-var this) conf)
+             ,(scheme handled-type conf))
+       ,(scheme (PycHandler-body this) conf)
+       ,(scheme (PycHandlerCPS-next-handler this) conf)))))
 
 (define-walk-method (scheme this::PycRaise conf)
   (let ((exc (PycRaise-exc this)))
@@ -635,13 +577,6 @@
         `(py-throw ,(config-get conf current-exc:)))
       (epairify this
         `(py-throw ,(scheme exc conf))))))
-
-(define-walk-method (scheme this::PycHandler conf)
-   (epairify this
-      `(,(if (isa? (PycHandler-type this) PycUninit)
-	     #t
-	     `(py-isinstance? ,(config-get conf current-exc:) ,(scheme (PycHandler-type this) conf)))
-	,(scheme (PycHandler-body this) conf))))
 
 (define-walk-method (scheme this::PycPass conf)
    #f)

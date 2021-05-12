@@ -2,7 +2,7 @@ def trying():
     try:
         1//0
     except Exception as e:
-        return e
+        return "exception"
     else:
         print("hello")
     finally:

@@ -1196,7 +1196,9 @@
 
 (define (py-throw-with-values exc . values)
   (cond ((not (PyObject? exc))
-         (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))
+          (if (or (fixnum? exc) (flonum? exc))
+            (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")
+            (raise exc))) ;; this is a scheme exception
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
           (if (null? values)
             (raise exc)
@@ -1209,8 +1211,11 @@
          (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
 
 (define (py-throw exc)
+  (if (not (PyObject? exc)) (step))
   (cond ((not (PyObject? exc))
-         (raise (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))
+          (if (or (fixnum? exc) (flonum? exc))
+            (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")
+            (raise exc))) ;; this is a scheme exception
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
          (raise exc))
         ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
