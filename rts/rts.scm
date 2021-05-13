@@ -1211,7 +1211,6 @@
          (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
 
 (define (py-throw exc)
-  (if (not (PyObject? exc)) (step))
   (cond ((not (PyObject? exc))
           (if (or (fixnum? exc) (flonum? exc))
             (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")
@@ -2089,6 +2088,39 @@
     str-repr
     (make-signature posonlyargs: (self))))
 
+(define (str-getitem self index)
+  (if (py-isinstance? self py-str-class)
+    (cond
+      ((py-subtype-of-int? index)
+        (let* ((string-content (py-str-to-scheme self))
+               (len (py-str-len-to-scheme self))
+               (i (py-subtype-of-int-to-scheme index)))
+          (if (index-in-length-range i len)
+            (py-str-from-scheme (string (string-ref string-content (modulo i len))))
+            (py-throw-index-out-of-range "str"))))
+      ((py-isinstance? index py-slice-class)
+        (let* ((string-content (py-str-to-scheme self))
+               (len (py-str-len-to-scheme self))
+               (slice-indices (py-slice-indices index len))
+               (start (vector-ref slice-indices 0))
+               (stop (vector-ref slice-indices 1))
+               (step (vector-ref slice-indices 2))
+               (slice-len (max 0 (ceiling (/ (- stop start) step))))
+               (slice-string (make-string slice-len)))
+          (let loop ((source start) (target 0))
+            (if (< target slice-len)
+              (begin
+                (string-set! slice-string target (string-ref string-content source))
+                (loop (+ source step) (+ target 1)))
+              (py-str-from-scheme slice-string)))))
+      (else (py-throw-wrong-index-type "str" "integers or slices" index)))
+    (py-throw-not-a-type-object "str.__getitem__" self)))
+
+(define str.__getitem__
+  (procedure->py-function
+    str-getitem
+    (make-signature posonlyargs: (self index))))
+
 (define (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
         (names-len (vector-length names))
@@ -2486,6 +2518,7 @@
     (py-own-attr-set! str-class (& "__new__") str.__new__)
     (py-own-attr-set! str-class (& "__hash__") str.__hash__)
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
+    (py-own-attr-set! str-class (& "__getitem__") str.__getitem__)
     (py-own-attr-set! str-class (& "__str__") str.__str__)))
 
 (bootstrap-type-hierarchy-phase1)
@@ -6740,7 +6773,10 @@
 (define py-builtin-hex
   (procedure->py-function
     (lambda (x)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "hex not implemented"))
+      (py-str-from-scheme
+        (string-append
+          "0x"
+          (number->string (py-int-to-scheme (py-index x)) 16))))
     (make-signature posonlyargs: (x))))
 
 ;;-------------------- id(object)
@@ -7284,7 +7320,9 @@
 (define py-builtin-ord
   (procedure->py-function
     (lambda (c)
-      (py-int-from-scheme 0)) ;; dummy implementation for testing
+      (if (and (py-subtype-of-str? c) (fx= (py-str-len-to-scheme c) 1))
+        (py-int-from-scheme (char->integer (string-ref (py-str-to-scheme c) 0)))
+        (py-throw-exception-with-message py-builtin-TypeError "ord() expected string of length 1")))
     (make-signature posonlyargs: (c))))
 
 ;;-------------------- pow(x, y[, z])
