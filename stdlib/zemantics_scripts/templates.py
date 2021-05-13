@@ -928,9 +928,200 @@ class_float_template = \
 def convert_to_float(obj):
     float_conversion = semantics_maybe_to_float(obj)
     if float_conversion is absent:
-        raise TypeError("float() argument must be a string or a number, not '" + type(obj).__name__ + "'")
+        if isinstance(obj, str):
+            return str_to_float(obj)
+        else:
+            raise TypeError("float() argument must be a string or a number, not '" + type(obj).__name__ + "'")
     else:
         return float_conversion
+
+@builtin
+@private
+def str_to_float(s):
+    def err():
+        raise ValueError('could not convert string to float: ' + repr(s))
+    pos = 0
+    end = len(s)
+    if pos >= end:
+        err()
+    after_sign = pos
+    c = ord(s[pos])
+    pos += 1
+    if c == 45 or c == 43:  # '-'/'+' ?
+        after_sign = pos
+        if pos >= end:
+            err()
+        c = ord(s[pos])
+        pos += 1
+    # check for inf and nan
+    if c == 105 or c == 73:  # 'i'/'I' ?
+        # has to be inf... check all possible cases
+        s_lower = s.lower()
+        if after_sign == 0:  # no sign?
+            if s_lower == 'inf' or s_lower == 'infinity':
+                return 1e333  # inf
+            else:
+                err()
+        elif ord(s[0]) == 45:  # '-' sign?
+            if s_lower == '-inf' or s_lower == '-infinity':
+                return -1e333  # -inf
+            else:
+                err()
+        else:  # '+' sign!
+            if s_lower == '+inf' or s_lower == '+infinity':
+                return 1e333  # inf
+            else:
+                err()
+    elif c == 110 or c == 78:  # 'n'/'N' ?
+        # has to be nan... check all possible cases
+        s_lower = s.lower()
+        if after_sign == 0:  # no sign?
+            if s_lower == 'nan':
+                return 1e333-1e333  # nan
+            else:
+                err()
+        elif ord(s[0]) == 45:  # '-' sign?
+            if s_lower == '-nan':
+                return 1e333-1e333  # nan
+            else:
+                err()
+        else:  # '+' sign!
+            if s_lower == '+nan':
+                return 1e333-1e333  # nan
+            else:
+                err()
+    digits = 0
+    if c >= 48 and c <= 57:  # '0'..'9' ?
+        digits = digits*10 + (c-48)
+        if pos >= end:
+            c = -1  # end-of-string
+        else:
+            c = ord(s[pos])
+            pos += 1
+            while c >= 48 and c <= 57 or c == 95:  # '0'..'9'/'_' ?
+                if c == 95:  # '_' ?
+                    if pos >= end:
+                        err()
+                    c = ord(s[pos])
+                    pos += 1
+                    if c >= 48 and c <= 57:  # '0'..'9' ?
+                        digits = digits*10 + (c-48)
+                        if pos >= end:
+                            c = -1  # end-of-string
+                            break
+                        c = ord(s[pos])
+                        pos += 1
+                    else:
+                        err()
+                else:
+                    digits = digits*10 + (c-48)
+                    if pos >= end:
+                        c = -1  # end-of-string
+                        break
+                    c = ord(s[pos])
+                    pos += 1
+    power10 = 0
+    if c == 46:  # '.' ?
+        if pos >= end:
+            c = -1  # end-of-string
+        else:
+            c = ord(s[pos])
+            pos += 1
+            if c >= 48 and c <= 57:  # '0'..'9' ?
+                power10 -= 1
+                digits = digits*10 + (c-48)
+                if pos >= end:
+                    c = -1  # end-of-string
+                else:
+                    c = ord(s[pos])
+                    pos += 1
+                    while c >= 48 and c <= 57 or c == 95:  # '0'..'9'/'_' ?
+                        power10 -= 1
+                        if c == 95:  # '_' ?
+                            if pos >= end:
+                                err()
+                            c = ord(s[pos])
+                            pos += 1
+                            if c >= 48 and c <= 57:  # '0'..'9' ?
+                                digits = digits*10 + (c-48)
+                                if pos >= end:
+                                    c = -1  # end-of-string
+                                    break
+                                c = ord(s[pos])
+                                pos += 1
+                            else:
+                                err()
+                        else:
+                            digits = digits*10 + (c-48)
+                            if pos >= end:
+                                c = -1  # end-of-string
+                                break
+                            c = ord(s[pos])
+                            pos += 1
+        if pos == after_sign+1:
+            err()
+    if c == 101 or c == 69:  # 'e'/'E' ?
+        if pos >= end:
+            err()
+        c = ord(s[pos])
+        pos += 1
+        neg_expo = c == 45  # '-' ?
+        if neg_expo or c == 43:  # '-'/'+' ?
+            if pos >= end:
+                err()
+            c = ord(s[pos])
+            pos += 1
+        expo = 0
+        if c >= 48 and c <= 57:  # '0'..'9' ?
+            expo = expo*10 + (c-48)
+            if pos >= end:
+                c = -1  # end-of-string
+            else:
+                c = ord(s[pos])
+                pos += 1
+                while c >= 48 and c <= 57 or c == 95:  # '0'..'9'/'_' ?
+                    if c == 95:  # '_' ?
+                        if pos >= end:
+                            err()
+                        c = ord(s[pos])
+                        pos += 1
+                        if c >= 48 and c <= 57:  # '0'..'9' ?
+                            expo = expo*10 + (c-48)
+                            if pos >= end:
+                                c = -1  # end-of-string
+                                break
+                            c = ord(s[pos])
+                            pos += 1
+                        else:
+                            err()
+                    else:
+                        expo = expo*10 + (c-48)
+                        if pos >= end:
+                            c = -1  # end-of-string
+                            break
+                        c = ord(s[pos])
+                        pos += 1
+            if neg_expo:
+                power10 -= expo
+            else:
+                power10 += expo
+        else:
+            err()
+    if power10 >= 0:
+        if power10 > 0:
+            digits = digits * (10**power10)
+        if digits > 1.7976931348623158e+308:  # avoid int to float overflow
+            result = 1e333  # inf
+        else:
+            result = 1.0 * digits  # convert to float
+    else:
+        result = digits / (10**-power10)
+    if after_sign == 1 and ord(s[0]) == 45:  # '-' sign?
+        if result == 0.0:
+            result = -0.0  # minus zero
+        else:
+            result = -result
+    return result
 
 @builtin
 class float:
@@ -939,7 +1130,7 @@ class float:
             if val is absent:
                 return 0.0
             else:
-                raise convert_to_float(val)
+                return convert_to_float(val)
         elif isinstance(cls, type) and issubclass(cls, float):
             if val is absent:
                 return alloc(float, cls=cls, value=py_float_to_host(0.0))

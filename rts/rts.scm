@@ -1,7 +1,6 @@
 ;; =============================================================================
 ;;  Common macros
 ;; =============================================================================
-
 (cond-expand
   (gambit
    (define-macro (declare-standard-bindings-extended-bindings-not-safe)
@@ -2089,10 +2088,10 @@
     (make-signature posonlyargs: (self))))
 
 (define (str-getitem self index)
-  (if (py-isinstance? self py-str-class)
+  (if (py-subtype-of-str? self)
     (cond
       ((py-subtype-of-int? index)
-        (let* ((string-content (py-str-to-scheme self))
+        (let* ((string-content (py-subtype-of-str-to-scheme self))
                (len (py-str-len-to-scheme self))
                (i (py-subtype-of-int-to-scheme index)))
           (if (index-in-length-range i len)
@@ -2120,6 +2119,16 @@
   (procedure->py-function
     str-getitem
     (make-signature posonlyargs: (self index))))
+
+(define (str-lower self)
+  (if (py-subtype-of-str? self)
+      (py-str-from-scheme (string-downcase (py-subtype-of-str-to-scheme self)))
+      (py-throw-required-type "lower" "str" self)))
+
+(define str.lower
+  (procedure->py-function
+    str-lower
+    (make-signature posonlyargs: (self))))
 
 (define (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
@@ -2239,10 +2248,15 @@
 
 (define (float-repr self)
   (if (py-subtype-of-float? self)
-      (py-str-from-scheme
-       (let ((value (py-subtype-of-float-to-scheme self)))
-         (float->string-with-padded-zeros value)))
-      (py-throw-required-type "__repr__" "float" self)))
+    (let ((value (py-subtype-of-float-to-scheme self)))
+      (cond
+        ((infinite? value)
+          (if (fl> value 0.) (&& "inf") (&& "-inf")))
+        ((nan? value)
+           (&& "nan"))
+        (else
+          (py-str-from-scheme (float->string-with-padded-zeros value)))))
+    (py-throw-required-type "__repr__" "float" self)))
 
 (define float.__repr__
   (procedure->py-function
@@ -2250,24 +2264,7 @@
    (make-signature posonlyargs: (self))))
 
 (define (py-display obj port)
-  ;; check some common cases first for efficiency
-  (let ((t (py-type obj)))
-    (cond ((eq? t py-builtin-str)
-           (display (py-str-to-scheme obj)
-                    port))
-          ((eq? t py-builtin-int)
-           (display (py-int-to-scheme obj)
-                    port))
-          ((eq? t py-builtin-float)
-           (display (float->string-with-padded-zeros
-                     (py-float-to-scheme obj))
-                    port))
-          ((eq? t py-builtin-bool)
-           (if (eq? obj py-True)
-               (display "True" port)
-               (display "False" port)))
-          (else
-           (display (py-str-to-scheme (py-str obj)) port)))))
+  (display (py-str-to-scheme (py-str obj)) port))
 
 (define (py-str obj)
   (let* ((__str__ (getattribute-from-obj-mro obj (& "__str__")))
@@ -2519,7 +2516,8 @@
     (py-own-attr-set! str-class (& "__hash__") str.__hash__)
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
     (py-own-attr-set! str-class (& "__getitem__") str.__getitem__)
-    (py-own-attr-set! str-class (& "__str__") str.__str__)))
+    (py-own-attr-set! str-class (& "__str__") str.__str__)
+    (py-own-attr-set! str-class (& "lower") str.lower)))
 
 (bootstrap-type-hierarchy-phase1)
 
