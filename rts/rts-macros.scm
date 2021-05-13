@@ -1472,8 +1472,18 @@
   (define (get-behaviors-table-name op)
     (string->symbol (string-append "py-" (symbol->string op) "-behaviors-table")))
 
+  (define (use-default-binary-semantics? op lhs-type rhs-type)
+    (cond
+      ((or (eq? lhs-type 'default) (eq? rhs-type 'default))
+        #t)
+      ((and (memq op '(mod imod))
+            (eq? lhs-type 'str))
+        #t)
+      (else
+        #f)))
+
   (define (get-binary-behavior-name op lhs-type rhs-type)
-    (if (or (eq? lhs-type 'default) (eq? rhs-type 'default))
+    (if (use-default-binary-semantics? op lhs-type rhs-type)
       ;; use the full semantics
       (cond
         ((memq op inplace-ops)

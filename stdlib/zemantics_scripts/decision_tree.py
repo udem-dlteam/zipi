@@ -1258,7 +1258,8 @@ def main_behaviors(semantics_file, builtins_file):
     for name, bin_semantics in semantics_register.iter_binary_semantics():
         for left_type in types_without_int:
             for right_type in types_without_int:
-                register_behavior(name, bin_semantics, left_type, right_type)
+                if (name, left_type, right_type) not in binary_skip:
+                    register_behavior(name, bin_semantics, left_type, right_type)
 
     for name, un_semantics in semantics_register.iter_unary_semantics():
         for type_ in types_without_int:
@@ -1294,6 +1295,13 @@ types = [get_type_name(i) for i in instances]
 int_specialized_types = ['sint', 'bint']
 types += int_specialized_types
 
+class Any:
+    def __eq__(self, o):
+        return True
+
+    def __ne__(self, o):
+        return False
+
 # Replace 'int' by 'sint' and 'bint'
 types_without_int = [t for t in types if t != 'int']
 
@@ -1305,7 +1313,12 @@ target_semantics = [*templates.arithmetic_info,
                     *templates.unary_arithmetic_info,
                     "truth",
                     "test",
-                    "descriptor_get",]
+                    "descriptor_get"]
+
+# Specific semantics cases to skip
+# Those are cases too complex for partial evaluation and which would yield no significant improvements
+binary_skip = [("mod", "str", Any()),
+               ("imod", "str", Any())]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")
