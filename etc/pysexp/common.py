@@ -2,6 +2,7 @@ import argparse
 import ast as AST
 import subprocess
 import sys
+import math
 
 generate_location_information = True    # set to True to get location info
 
@@ -111,7 +112,13 @@ def scm_int(i):
     return str(i)
 
 def scm_float(f):
-    return str(f)
+    if math.isinf(f):
+        if f > 0:
+            return "+inf.0"
+        else:
+            return "-inf.0"
+    else:
+        return str(f)
 
 def scm_complex(c):
     return str(c)
