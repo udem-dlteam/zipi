@@ -121,7 +121,7 @@ def scm_float(f):
         return str(f)
 
 def scm_complex(c):
-    return str(c)
+    return f"{scm_float(c.real)}+{scm_float(c.imag)}i"
 
 def cvt_string_opt(string_opt):
     if string_opt == None:

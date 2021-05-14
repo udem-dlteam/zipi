@@ -879,11 +879,21 @@
 
 ;; TODO: all values are stored as int, float and complex are untreated
 (define-walk-method (scheme this::PycNumber conf)
-   (if (flonum? (PycLiteralValue-val this))
-      (epairify this
-        `(py-float-from-scheme ,(PycLiteralValue-val this)))
-   	  (epairify this
-    	`(py-int-from-scheme ,(PycLiteralValue-val this)))))
+  (let ((value (PycLiteralValue-val this)))
+    (cond
+      ((flonum? value)
+        (epairify this
+          `(py-float-from-scheme ,value)))
+      ((not (real? value))
+        `(py-throw-exception-with-message
+            py-builtin-NotImplementedError
+              "complex number at line "
+              ,(number->string (car (PycNode-loc this)))))
+   	  ((number? value) ;; must be an int
+        (epairify this
+    	    `(py-int-from-scheme ,value)))
+      (else
+        (error "scheme::PycNumber" "unknown value type" value)))))
 
 (define-walk-method (scheme this::PycString conf)
    (epairify this
