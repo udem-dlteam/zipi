@@ -200,6 +200,10 @@ def run_all(cpython='python3', zipi='../bin/zipi', pattern=None):
     for status, n in sorted(results.items(), key=lambda s: s[0].priority):
         print(f'  {status.status_repr()}: {n}')
 
+    if any(not t.is_success() for t in results):
+        exit(1)
+    else:
+        exit(0)
 
 
 if __name__ == "__main__":
