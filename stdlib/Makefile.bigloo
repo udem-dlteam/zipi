@@ -1,4 +1,6 @@
-do.bigloo: 
+do.bigloo:
+
+install.bigloo:
 
 clean.bigloo:
 distclean.bigloo: clean.bigloo

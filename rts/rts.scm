@@ -5625,7 +5625,7 @@
 ;; ===========================================
 
 (define zipi-stdlib-dir (let ((default-dir
-                                (list (path-expand "stdlib" (path-expand "~~zipiroot"))
+                                (list (path-expand (path-expand "libs" "stdlib") (path-expand "~~zipiroot"))
                                       (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
                               (env-dir
                                 (list

@@ -48,6 +48,7 @@ endif
 install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C pyc install
 	$(MAKE) -C zpc install
+	$(MAKE) -C stdlib install
 	$(MAKE) -C rts install
 	$(MAKE) install.systems
 	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi
@@ -105,6 +106,9 @@ zipi-dirs:
   fi
 	if [ ! -d $(ZIPILIBDIR)/zipi ]; then \
 	  mkdir -p $(ZIPILIBDIR)/zipi && chmod $(MODDIR) $(ZIPILIBDIR)/zipi; \
+  fi
+	if [ ! -d $(ZIPISTDLIBDIR)/zipi ]; then \
+	  mkdir -p $(ZIPISTDLIBDIR)/zipi && chmod $(MODDIR) $(ZIPISTDLIBDIR)/zipi; \
   fi
 
 

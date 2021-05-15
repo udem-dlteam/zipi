@@ -27,6 +27,9 @@ behaviors.py: builtins.py zemantics.py
 #*---------------------------------------------------------------------*/
 build: behaviors.py $(ZIPISYSTEMS:%=do.%)
 install: $(ZIPISYSTEMS:%=install.%)
+	rm -rf $(ZIPISTDLIBDIR)/libs
+	cp -r $(BUILDSTDLIBDIR)/libs $(ZIPISTDLIBDIR)/libs
+	chmod -R a+rx,u+rx $(ZIPISTDLIBDIR)/libs
 
 -include Makefile.bigloo
 -include Makefile.gambit

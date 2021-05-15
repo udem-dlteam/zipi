@@ -1,5 +1,7 @@
 do.gambit: zemantics.scm behaviors.scm builtins.sld
 
+install.gambit:
+
 zemantics.scm:
 	../bin/zpc.gambit zemantics.py > zemantics.scm
 
