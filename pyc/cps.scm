@@ -324,10 +324,10 @@
 
 (define-walk-method (cps-stmt this::PycHandler k kbreak kcontinue kraise)
   (if (need-cps? this)
-    (let ((loc (PycNode-loc this))
-          (exc-var (new-kont-var 'exc 'kont))
-          (exc-load (new-kont-ref loc exc-var 'Load))
-          (exc-store (new-kont-ref loc exc-var 'Store)))
+    (let* ((loc (PycNode-loc this))
+	   (exc-var (new-kont-var 'exc 'kont))
+	   (exc-load (new-kont-ref loc exc-var 'Load))
+	   (exc-store (new-kont-ref loc exc-var 'Store)))
       (cps-expr
         (PycHandler-type this)
         (new-PycKont

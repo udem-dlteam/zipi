@@ -1,4 +1,21 @@
-do.bigloo: 
+do.bigloo: builtins.bgl zemantics.bgl behaviors.bgl
+
+builtins.bgl: ./builtins.py
+	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_builtins --bootstrap --bin-dir=$(BUILDBINDIR)
+
+zemantics.bgl: zemantics.py
+	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_zemantics --semantics --bin-dir=$(BUILDBINDIR)
+zemantics.sch: zemantics.py
+	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_zemantics --semantics-macros --bin-dir=$(BUILDBINDIR)
+
+behaviors.bgl: behaviors.py
+	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_behaviors --semantics --bin-dir=$(BUILDBINDIR)
+behaviors.sch: behaviors.py
+	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_behaviors --semantics-macros --bin-dir=$(BUILDBINDIR)
 
 clean.bigloo:
-distclean.bigloo: clean.bigloo
+
+distclean.bigloo:
+	rm -f zemantics.bgl
+	rm -f behaviors.bgl
+	rm -f builtins.bgl

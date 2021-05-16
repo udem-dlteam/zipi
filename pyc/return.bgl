@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Jun  6 15:13:00 2019                          */
-;*    Last change :  Tue Mar 23 08:13:25 2021 (serrano)                */
+;*    Last change :  Sat May 15 09:07:17 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Return annotation                                                */
@@ -21,3 +21,12 @@
    (import __pyc_ast)
    
    (export (pyc-return this::PycNode conf)))
+
+;*---------------------------------------------------------------------*/
+;*    fold ...                                                         */
+;*---------------------------------------------------------------------*/
+(define (fold kons knil lis)
+   (let lp ((lis lis) (ans knil))
+      (if (null? lis)
+	  ans
+	  (lp (cdr lis) (kons (car lis) ans)))))
