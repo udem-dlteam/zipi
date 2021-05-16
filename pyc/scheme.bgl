@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
-;*    Last change :  Sun May  2 07:31:39 2021 (serrano)                */
+;*    Last change :  Sun May 16 15:59:49 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Scheme code generation                                           */
@@ -164,7 +164,7 @@
 	     `(define (main argv)
 		 (bigloo-library-path-set!
 		    (cons ,(config-get conf lib-dir:) (bigloo-library-path)))
-		 (build-builtins)
+		 ;; (build-builtins)
 		 (init-registered-constants)
 		 (with-handler
 		    (lambda (e)

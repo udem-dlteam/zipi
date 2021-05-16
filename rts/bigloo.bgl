@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Sun May  2 17:48:58 2021 (serrano)                */
+;*    Last change :  Sun May 16 15:25:51 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -51,6 +51,8 @@
 	   (inline u8>::bool ::uint8 ::uint8)
 	   
 	   max-fixnum
+	   (inline infinite?::bool ::double)
+	   (inline nan?::bool ::double)
 	   
 	   (inline +fx/overflow::obj ::obj ::obj)
 	   (inline -fx/overflow::obj ::obj ::obj)
@@ -143,6 +145,18 @@
 ;*    max-fixnum ...                                                   */
 ;*---------------------------------------------------------------------*/
 (define max-fixnum (maxvalfx))
+
+;*---------------------------------------------------------------------*/
+;*    infinite? ...                                                    */
+;*---------------------------------------------------------------------*/
+(define-inline (infinite? n)
+   (or (=fl n +inf.0) (=fl n -inf.0)))
+
+;*---------------------------------------------------------------------*/
+;*    nan? ...                                                         */
+;*---------------------------------------------------------------------*/
+(define-inline (nan? n)
+   (nanfl? n))
 
 ;*---------------------------------------------------------------------*/
 ;*    fx operations ...                                                */

@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Wed Mar 15 07:22:39 2006                          */
-#*    Last change :  Wed May  5 16:14:17 2021 (serrano)                */
+#*    Last change :  Sun May 16 16:12:44 2021 (serrano)                */
 #*    Copyright   :  2006-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The common Makefile for building libraries                       */
@@ -242,6 +242,8 @@ install-library: install-$(BACKEND)
 install-native: install-native-heap install-native-libs
 
 install-native-heap:
+	mkdir -p $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)
+	chmod a+rx $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)
 	$(INSTALL) $(BUILDLIBDIR)/$(TARGETNAME).heap $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)/$(TARGETNAME).heap
 	chmod $(MODFILE) $(DESTDIR)$(BGLZIPILIBDIR)/$(BGLZIPIFILDIR)/$(TARGETNAME).heap
 

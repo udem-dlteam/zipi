@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Wed May  5 09:38:00 2021 (serrano)                */
+#*    Last change :  Sun May 16 15:46:17 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -40,10 +40,17 @@ reinstall: uninstall
 	$(MAKE) install-unsafe
 
 install:
+	for p in $(ZIPISYSTEMS); do \
+	  $(MAKE) install-$$p; \
+        done
+
+install-gambit:
 ifeq ($(shell test -e $(ZIPIROOT); echo $$?),0)
 	$(error zipi already installed at $(ZIPIROOT), use make reinstall to overwrite it)
 endif
 	$(MAKE) install-unsafe;
+
+install-bigloo: install-unsafe
 
 install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C pyc install
@@ -51,8 +58,8 @@ install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C stdlib install
 	$(MAKE) -C rts install
 	$(MAKE) install.systems
-	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi
-	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi-$(PYTHONVERSION)
+	$(INSTALL) $(BUILDBINDIR)/zipi $(INSTALLBINDIR)/zipi
+	$(INSTALL) $(BUILDBINDIR)/zipi $(INSTALLBINDIR)/zipi-$(PYTHONVERSION)
 
 install-bin: zipi-dirs
 	for file in zipi zipi.gambit zipi-compile-and-run.gambit zipi.bigloo zpc zpc.gambit pysexp_script.py; \
@@ -75,10 +82,11 @@ install-bin: zipi-dirs
 						-e "s|@ZIPICACHE@|$(ZIPICACHE)|g" \
 						-e "s|@ZIPIROOT@|$(ZIPIROOT)|g" \
 			> $(ZIPIBINDIR)/$$file; \
-		chmod +x $(ZIPIBINDIR)/$$file; \
+		chmod a+xr $(ZIPIBINDIR)/$$file; \
 		done;
 	rm -rf $(ZIPIBINDIR)/pysexp
 	cp -r $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
+	chmod a+rx -R $(ZIPIBINDIR)/pysexp
 	if [ -d $(BUILDDEPDIR) ]; then \
 	  rm -rf $(ZIPIDEPDIR); \
 	  cp -r $(BUILDDEPDIR) $(ZIPIDEPDIR); \
@@ -88,6 +96,8 @@ install.systems: $(ZIPISYSTEMS:%=install.system.%)
 
 -include etc/Makefile.bigloo
 -include etc/Makefile.gambit
+
+-include Makefile.bigloo
 
 zipi-dirs:
 	mkdir -p $(ZIPIPREFIX)/bin

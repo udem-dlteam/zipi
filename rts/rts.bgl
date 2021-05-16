@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Wed May  5 09:02:34 2021 (serrano)                */
+;*    Last change :  Sun May 16 15:27:51 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -84,6 +84,11 @@
               procedure
               arity
               signature)
+
+	   (class PyObjectGenerator::PyObject
+	      continuation
+	      is-running
+	      is-active)
 
 	   (class AttributeCache
 	      object-hclass
@@ -395,7 +400,7 @@
 
            (class PyGenerator::PyObject %next)
            (py-make-generator ::procedure)
-           (py-generator-yield ::PyGenerator ::obj ::procedure)
+           (py-generator-yield ::PyObjectGenerator ::obj ::procedure)
            (py-next ::obj)
 
            (class PCache
