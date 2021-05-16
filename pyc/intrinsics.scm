@@ -867,24 +867,25 @@
 
     (if behavior-decorator
       (begin
-        (resolve-statics!
-          (PycFun-body this)
-          (car intrinsics-info)
-          (cadr intrinsics-info)
-          (caddr intrinsics-info)
-          #t)
-        (if (PycSemantics-has-inlinable-annotation this)
-          ;; TODO: both semantics have the same (eq?) body, might be safer to make a deepcopy
-          (new-PycSeq
-            loc
-            (list
-              (make-behavior (make-fallback-behavior-name name) body #f #f)
-              (make-behavior (make-inline-behavior-name name) body #t #f)))
-          (new-PycSeq
-            loc
-            (list
-              (make-behavior (make-fallback-behavior-name name) body #f #f)
-              (make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t #t)))))
+	 (resolve-statics!
+	    (PycFun-body this)
+	    (car intrinsics-info)
+	    (cadr intrinsics-info)
+	    (caddr intrinsics-info)
+	    #t)
+	 (if (PycSemantics-has-inlinable-annotation this)
+	     ;; TODO: both semantics have the same (eq?) body, might be safer to make a deepcopy
+	     ;; MS, 16may2021: new seq binary operator, see scheme.scm
+	     (new-PycBinary
+		loc
+		'seq
+		(make-behavior (make-fallback-behavior-name name) body #f #f)
+		(make-behavior (make-inline-behavior-name name) body #t #f))
+	     (new-PycBinary
+		loc
+		'seq
+		(make-behavior (make-fallback-behavior-name name) body #f #f)
+		(make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t #t))))
       this)))
 
 ;; lambda lifting of semantics
