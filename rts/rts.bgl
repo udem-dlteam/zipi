@@ -318,7 +318,7 @@
 	   (py-getattribute-cached-fallback/no-module obj hclass name cache)
 	   (py-getattribute-cached-modular-fallback obj hclass name cache
 	      include-object include-mro include-type include-module)
-	   
+
            (inline PyObject-elements-ref ::PyObject ::long)
            (PyObject-elements-set! ::PyObject ::long ::obj)
 
@@ -370,7 +370,7 @@
 
            (py-slice-from-scheme ::obj ::obj ::obj)
 
-           (py-obj-alloc cls hclass-of-instances)
+           (py-obj-alloc cls)
 
            procedure->py-function
 

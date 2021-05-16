@@ -260,7 +260,6 @@
   py-int-hclass-of-instances
   py-bool-hclass-of-instances
   py-float-hclass-of-instances
-  py-complex-hclass-of-instances
   py-slice-hclass-of-instances
   py-bytearray-hclass-of-instances
   py-method-hclass-of-instances
@@ -276,93 +275,19 @@
   py-bytearray-iterator-hclass-of-instances
   py-tuple-iterator-hclass-of-instances
   py-dict-keyiterator-hclass-of-instances
-  py-generator-hclass
   py-TextIOWrapper-hclass-of-instances
   py-super-hclass-of-instances
   py-range-hclass-of-instances
-  py-range_iterator-hclass-of-instances
-  py-NotImplementedType-hclass-of-instances
-  py-NoneType-hclass-of-instances
-  py-staticmethod-hclass-of-instances
-  py-classmethod-hclass-of-instances
-  py-ArithmeticError-hclass-of-instances
-  py-AssertionError-hclass-of-instances
-  py-AttributeError-hclass-of-instances
-  py-BaseException-hclass-of-instances
-  py-BlockingIOError-hclass-of-instances
-  py-BrokenPipeError-hclass-of-instances
-  py-BufferError-hclass-of-instances
-  py-BytesWarning-hclass-of-instances
-  py-ChildProcessError-hclass-of-instances
-  py-ConnectionAbortedError-hclass-of-instances
-  py-ConnectionError-hclass-of-instances
-  py-ConnectionRefusedError-hclass-of-instances
-  py-ConnectionResetError-hclass-of-instances
-  py-DeprecationWarning-hclass-of-instances
-  py-EOFError-hclass-of-instances
-  py-EnvironmentError-hclass-of-instances
-  py-Exception-hclass-of-instances
-  py-FileExistsError-hclass-of-instances
-  py-FileNotFoundError-hclass-of-instances
-  py-FloatingPointError-hclass-of-instances
-  py-FutureWarning-hclass-of-instances
-  py-GeneratorExit-hclass-of-instances
-  py-IOError-hclass-of-instances
-  py-ImportError-hclass-of-instances
-  py-ImportWarning-hclass-of-instances
-  py-IndentationError-hclass-of-instances
-  py-IndexError-hclass-of-instances
-  py-InterruptedError-hclass-of-instances
-  py-IsADirectoryError-hclass-of-instances
-  py-KeyError-hclass-of-instances
-  py-KeyboardInterrupt-hclass-of-instances
-  py-LookupError-hclass-of-instances
-  py-MemoryError-hclass-of-instances
-  py-ModuleNotFoundError-hclass-of-instances
-  py-NameError-hclass-of-instances
-  py-NotADirectoryError-hclass-of-instances
-  py-NotImplementedError-hclass-of-instances
-  py-OSError-hclass-of-instances
-  py-OverflowError-hclass-of-instances
-  py-PendingDeprecationWarning-hclass-of-instances
-  py-PermissionError-hclass-of-instances
-  py-ProcessLookupError-hclass-of-instances
-  py-RecursionError-hclass-of-instances
-  py-ReferenceError-hclass-of-instances
-  py-ResourceWarning-hclass-of-instances
-  py-RuntimeError-hclass-of-instances
-  py-RuntimeWarning-hclass-of-instances
-  py-StopAsyncIteration-hclass-of-instances
-  py-StopIteration-hclass-of-instances
-  py-SyntaxError-hclass-of-instances
-  py-SyntaxWarning-hclass-of-instances
-  py-SystemError-hclass-of-instances
-  py-SystemExit-hclass-of-instances
-  py-TabError-hclass-of-instances
-  py-TimeoutError-hclass-of-instances
-  py-TypeError-hclass-of-instances
-  py-UnboundLocalError-hclass-of-instances
-  py-UnicodeDecodeError-hclass-of-instances
-  py-UnicodeEncodeError-hclass-of-instances
-  py-UnicodeError-hclass-of-instances
-  py-UnicodeTranslateError-hclass-of-instances
-  py-UnicodeWarning-hclass-of-instances
-  py-UserWarning-hclass-of-instances
-  py-ValueError-hclass-of-instances
-  py-Warning-hclass-of-instances
-  py-ZeroDivisionError-hclass-of-instances)
+  py-range_iterator-hclass-of-instances)
 
 ;; object allocation
 
-(define (py-obj-alloc cls hclass-of-instances)
-  (let ((self
-         (make-PyObject
-          hclass-of-instances
-          (make-vector
-            (vector-length (HClass-names hclass-of-instances))
-            py-absent)
-          cls)))
-    self))
+(define (py-obj-alloc cls)
+  (let ((hclass-of-instances (PyObjectType-hclass-of-instances cls)))
+    (make-PyObject
+      hclass-of-instances
+      (make-vector (vector-length (HClass-names hclass-of-instances)) py-absent)
+      cls)))
 
 (define (py-module-alloc cls hclass-of-instances)
   (let ((self
@@ -421,18 +346,14 @@
 (define (py-dict-alloc ordered-table)
   (make-PyObjectDict
     py-dict-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-dict-hclass-of-instances))
-      py-absent)
+    '#()
     py-dict-class
     ordered-table))
 
 (define (py-dict-keyiterator-alloc first iterator-token)
   (make-PyObjectDictKeyIterator
     py-dict-keyiterator-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-dict-keyiterator-hclass-of-instances))
-      py-absent)
+    '#()
     py-dict-keyiterator-class
     first
     iterator-token))
@@ -440,9 +361,7 @@
 (define (py-list-iterator-alloc index lst)
   (make-PyObjectListIterator
     py-list-iterator-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-list-iterator-hclass-of-instances))
-      py-absent)
+    '#()
     py-list-iterator-class
     index
     lst))
@@ -450,9 +369,7 @@
 (define (py-tuple-iterator-alloc index vec)
   (make-PyObjectTupleIterator
     py-tuple-iterator-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-tuple-iterator-hclass-of-instances))
-      py-absent)
+    '#()
     py-tuple-iterator-class
     index
     vec))
@@ -460,9 +377,7 @@
 (define (py-bytearray-iterator-alloc index bytearray)
   (make-PyObjectBytearrayIterator
     py-bytearray-iterator-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-bytearray-iterator-hclass-of-instances))
-      py-absent)
+    '#()
     py-bytearray-iterator-class
     index
     bytearray))
@@ -470,9 +385,7 @@
 (define (py-TextIOWrapper-alloc port mode encoding)
   (make-PyObjectTextIOWrapper
     py-TextIOWrapper-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-TextIOWrapper-hclass-of-instances))
-      py-absent)
+    '#()
     py-TextIOWrapper-class
     port
     mode
@@ -686,9 +599,7 @@
   (let ((py-function
           (py-make-PyObjectFunction
             py-function-hclass-of-instances
-            (make-vector
-              (vector-length (HClass-names py-function-hclass-of-instances))
-              py-absent)
+            '#()
             #f
             procedure
             (signature->arity signature)
@@ -701,9 +612,7 @@
 (define (postbootstrap-procedure->py-function procedure signature)
   (py-make-PyObjectFunction
     py-function-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-function-hclass-of-instances))
-      py-absent)
+    '#()
     py-function-class
     procedure
     (signature->arity signature)
@@ -1765,7 +1674,7 @@
 ;; TODO: that's really a lot of todos...
 (define (object-new cls args)
   (if (py-isinstance? cls py-type-class)
-    (py-obj-alloc cls (PyObjectType-hclass-of-instances cls))
+    (py-obj-alloc cls)
     (py-throw
       (py-call py-builtin-TypeError
         (&& "object.__new__(X): X is not a type object")))))
@@ -1794,10 +1703,7 @@
 (define (py-str-from-string len string)
   (make-PyObjectStr
    py-str-hclass-of-instances
-   '#() #;
-   (make-vector
-    (vector-length (HClass-names py-str-hclass-of-instances))
-    py-absent)
+   '#()
    py-str-class
    len
    string
@@ -1806,10 +1712,7 @@
 (define (py-subtype-of-str-from-string len string str-subclass)
   (make-PyObjectStr
    py-str-hclass-of-instances
-   '#() #;
-   (make-vector
-    (vector-length (HClass-names py-str-hclass-of-instances))
-    py-absent)
+   '#()
    str-subclass
    len
    string
@@ -1818,10 +1721,7 @@
 (define (py-str-from-concat len str1 str2)
   (make-PyObjectStr
    py-str-hclass-of-instances
-   '#() #;
-   (make-vector
-    (vector-length (HClass-names py-str-hclass-of-instances))
-    py-absent)
+   '#()
    py-str-class
    len
    str1
@@ -1832,10 +1732,7 @@
           (make-still-copy
              (make-PyObjectStrRep
               py-str-hclass-of-instances
-              '#() #;
-              (make-vector
-               (vector-length (HClass-names py-str-hclass-of-instances))
-               py-absent)
+              '#()
               py-str-class
               len
               string
@@ -2373,10 +2270,8 @@
 (define (py-subtype-of-int-from-scheme value int-subclass)
   ;; int-subclass is known to not be int-class
   (make-PyObjectInt
-    py-int-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-int-hclass-of-instances))
-      py-absent)
+    (PyObjectType-hclass-of-instances int-subclass)
+    '#()
     int-subclass
     value))
 
@@ -2385,19 +2280,15 @@
    value
    (make-PyObjectFloat
     py-float-hclass-of-instances
-    (make-vector
-     (vector-length (HClass-names py-float-hclass-of-instances))
-     py-absent)
+    '#()
     py-builtin-float
     value)))
 
 (define (py-subtype-of-float-from-scheme value float-subclass)
   ;; float-subclass is known to not be float-class
   (make-PyObjectFloat
-    py-float-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-float-hclass-of-instances))
-      py-absent)
+    (PyObjectType-hclass-of-instances float-subclass)
+    '#()
     float-subclass
     value))
 
@@ -2409,18 +2300,14 @@
 (define (py-bytearray-from-scheme len-vec-pair)
   (make-PyObjectBytearray
     py-bytearray-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-bytearray-hclass-of-instances))
-      py-absent)
+    '#()
     py-bytearray-class
     len-vec-pair))
 
 (define (py-bytearray-subtype-from-scheme len-vec-pair bytearray-subtype)
   (make-PyObjectBytearray
-    py-bytearray-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-bytearray-hclass-of-instances))
-      py-absent)
+    (PyObjectType-hclass-of-instances bytearray-subtype)
+    '#()
     bytearray-subtype
     len-vec-pair))
 
@@ -2978,18 +2865,14 @@
 (define (py-list-from-scheme len-vec-pair)
   (make-PyObjectList
     py-list-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-list-hclass-of-instances))
-      py-absent)
+    '#()
     py-list-class
     len-vec-pair))
 
 (define (py-list-subtype-from-scheme len-vec-pair cls)
   (make-PyObjectList
-    py-list-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-list-hclass-of-instances))
-      py-absent)
+    (PyObjectType-hclass-of-instances cls)
+    '#()
     cls
     len-vec-pair))
 
@@ -4148,9 +4031,7 @@
 (define (py-slice-from-scheme start stop step)
   (make-PyObjectSlice
     py-slice-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-slice-hclass-of-instances))
-      py-absent)
+    '#()
     py-slice-class
     start
     stop
@@ -5184,7 +5065,7 @@
                   #f ;; can-have-getter
                   (vector py-object-class) ;; bases
                   #f ;; mro
-                  py-int-hclass-of-instances))
+                  py-bool-hclass-of-instances))
            (float-class
               (py-builtin-type-alloc
                   py-type-class
@@ -5192,7 +5073,7 @@
                   #f ;; can-have-getter
                   (vector py-object-class) ;; bases
                   #f ;; mro
-                  py-int-hclass-of-instances))
+                  py-float-hclass-of-instances))
            (function-class
               (py-builtin-type-alloc
                  py-type-class
@@ -5510,10 +5391,7 @@
       (& "__new__") NotImplementedType.__new__
       (& "__repr__") NotImplementedType.__repr__))
 
-(define py-NotImplemented
-  (py-obj-alloc
-    py-NotImplementedType-class
-    py-object-hclass-of-instances))
+(define py-NotImplemented (py-obj-alloc py-NotImplementedType-class))
 
 ;; None object
 
@@ -5568,10 +5446,7 @@
       (& "__repr__") NoneType.__repr__
       (& "__bool__") NoneType.__bool__))
 
-(define py-None
-  (py-obj-alloc
-    py-NoneType-class
-    py-object-hclass-of-instances))
+(define py-None (py-obj-alloc py-NoneType-class))
 
 ;;;----------------------------------------------------------------------------
 
@@ -5584,18 +5459,14 @@
 (define (py-tuple-from-scheme elements)
   (make-PyObjectTuple
     py-tuple-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-tuple-hclass-of-instances))
-      py-absent)
+    '#()
     py-tuple-class
     elements))
 
 (define (py-tuple-subtype-from-scheme elements cls)
   (make-PyObjectTuple
-    py-tuple-hclass-of-instances
-    (make-vector
-      (vector-length (HClass-names py-tuple-hclass-of-instances))
-      py-absent)
+    (PyObjectType-hclass-of-instances cls)
+    '#()
     cls
     elements))
 
@@ -5625,7 +5496,7 @@
 ;; ===========================================
 
 (define zipi-stdlib-dir (let ((default-dir
-                                (list (path-expand "stdlib" (path-expand "~~zipiroot"))
+                                (list (path-expand (path-expand "libs" "stdlib") (path-expand "~~zipiroot"))
                                       (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
                               (env-dir
                                 (list
