@@ -1,0 +1,15 @@
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/Makefile.bigloo                        */
+#*    -------------------------------------------------------------    */
+#*    Author      :  manuel serrano                                    */
+#*    Creation    :  Sun May 16 15:45:59 2021                          */
+#*    Last change :  Sun May 16 15:48:36 2021 (serrano)                */
+#*    Copyright   :  2021 manuel serrano                               */
+#*    -------------------------------------------------------------    */
+#*    Dummy Bigloo Makefile to avoid Makefile warning if               */
+#*    install.bigloo is declared inside etc/Makefile.bigloo.in         */
+#*=====================================================================*/
+.PHONY:  bigloo.install
+
+install.bigloo:
+	true
