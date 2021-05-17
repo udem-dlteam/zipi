@@ -87,6 +87,11 @@
 (define (new-kont-ref loc var ctx)
   (new-PycRef loc var ctx can-direct-access: #t))
 
+(define (new-PycCallKont-as-stmt loc k #!key (args '()))
+  (new-PycStmtExpr
+    loc
+    (new-PycCallKont loc k)))
+
 (define-walk-method (cps-stmt this::PycNode k kbreak kcontinue kraise)
   (error "cps-stmt" "should not be called on this" (pyc->list this)))
 
@@ -221,7 +226,7 @@
               (new-PycCPSFor
                 loc
                 (cps-stmt body cps-loop-kont-load kont-load cps-loop-kont-load kraise)
-                (new-PycCallKont (PycNode-loc forelse) else-kont-load)
+                (new-PycCallKont-as-stmt (PycNode-loc forelse) else-kont-load)
                 target
                 kiter-load
                 cps-loop-kont-var
@@ -273,7 +278,7 @@
                     (new-PycIf
                       loc
                       ktest-load
-                      (new-PycCallKont loc body-kont-load)
+                      (new-PycCallKont-as-stmt loc body-kont-load)
                       (cps-stmt whileelse kont-load kbreak kcontinue kraise)))
                   kraise)))
             ;; body
@@ -292,14 +297,14 @@
                 loc
                 '()
                 (cps-stmt whileelse kont-load kbreak kcontinue kraise))))
-          (new-PycCallKont loc loop-kont-load)))
+          (new-PycCallKont-as-stmt loc loop-kont-load)))
       this)))
 
 (define-walk-method (cps-stmt this::PycBreak k kbreak kcontinue kraise)
-  (new-PycCallKont (PycNode-loc this) kbreak))
+  (new-PycCallKont-as-stmt (PycNode-loc this) kbreak))
 
 (define-walk-method (cps-stmt this::PycContinue k kbreak kcontinue kraise)
-  (new-PycCallKont (PycNode-loc this) kcontinue))
+  (new-PycCallKont-as-stmt (PycNode-loc this) kcontinue))
 
 (define-walk-method (cps-stmt this::PycAssig k kbreak kcontinue kraise)
   (if (need-cps? this)
@@ -513,13 +518,13 @@
       (list param)
       (new-PycTry
         loc
-        (new-PycCallKont loc k args: (list param-load))
+        (new-PycCallKont-as-stmt loc k args: (list param-load))
         (list
           (new-PycHandler
             loc
             exc-var
             (new-PycUninit loc)
-            (new-PycCallKont
+            (new-PycCallKont-as-stmt
               loc
               kraise
               args: (list exc-load))))
