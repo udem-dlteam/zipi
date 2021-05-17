@@ -169,9 +169,14 @@ if [ -z $python ]; then
     echo "WARNING: cPython was configured, but its installation was skipped"
   fi
 else
-  echo "Using cPython at '$python' for Zipi (we recommend letting Zipi install its own cPython version)"
-  # If a python executable is given, use the same for build and runtime
-  buildpython=$python
+  if [ $($python -c "import sys; print(sys.version_info>=(3,9))") = "True" ]; then
+    echo "Using cPython at '$python' for Zipi (we recommend letting Zipi install its own cPython version)"
+    # If a python executable is given, use the same for build and runtime
+    buildpython=$python
+  else
+    echo "Zipi requires python>=3.9 (version $($python -c "import sys; print(sys.version.split()[0])") was provided)"
+    exit 1
+  fi
 fi
 
 
