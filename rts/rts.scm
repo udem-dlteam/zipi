@@ -301,6 +301,10 @@
 
 ;; initialize index for magic methods
 
+;; some attributes are stored at a specific index in PyObjectType for fast lookup in the mro
+;; these are typically attributes for magic methods (ex: __add__, __next__, etc.)
+;; These indices are stored in the string representative of the attribute
+;; Here we loop over the list of such attributes and populate their magic-index field
 (define-macro (fill-representatives-magic-index)
   `(with-list-of-magic-attrs $fill-representatives-magic-index))
 
