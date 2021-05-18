@@ -2101,7 +2101,11 @@
                  (fixnum? ,$stop)
                  (fixnum? ,$step)
                  (not (fx= ,$step 0))
-                 (fixnum? (+ ,$stop ,$step)))
+                 (cond-expand
+                   (gambit
+                     (|##fx+?| ,$stop ,$step))
+                   (bigloo
+                     (fixnum? (+ ,$stop ,$step)))))
           ,$state
           (py-iter (py-call ,$iter-callee ,@args-names))))
       (py-iter (py-call ,iter-callee ,@args)))))
