@@ -280,9 +280,6 @@
     (set! py-builtin-staticmethod &py-builtin-staticmethod)
     (set! py-method-class &py-builtin-method)
 
-    ;; required to detect for X in RANGE optimisation
-    (set! range.__iter__ (py-own-attr-ref py-builtin-range (& "__iter__")))
-
     ;; Reuse sorted procedure for list.sort
     (set! list.sort
       (procedure->py-function

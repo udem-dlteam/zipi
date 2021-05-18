@@ -2077,26 +2077,27 @@
         (py-descriptor-get-fallback $attr $instance $owner)))))
 
 (define-macro (py-for-each-maybe-range-call:iter $iter-callee $start $stop $step . args)
-  (let ((set-range-args
+  (let* ((args-names (map (lambda (a) (gensym 'arg)) args))
+        (set-range-args
           (case (length args)
             ((1)
-              `((set! ,$stop ,(car args))))
+              `((set! ,$stop ,(car args-names))))
             ((2)
-              `((set! ,$start ,(car args))
-                (set! ,$stop ,(cadr args))))
+              `((set! ,$start ,(car args-names))
+                (set! ,$stop ,(cadr args-names))))
             ((3)
-              `((set! ,$start ,(car args))
-                (set! ,$stop ,(cadr args))
-                (set! ,$step (caddr args))))
+              `((set! ,$start ,(car args-names))
+                (set! ,$stop ,(cadr args-names))
+                (set! ,$step ,(caddr args-names))))
             (else
               #f))))
     (if set-range-args
       `(py-if-specialized-sint-representation
-          (begin
+          (let (,@(map (lambda (a v) `(,a ,v)) args-names args))
             ,@set-range-args
             (cond
-              ((not (eq? (getattribute-from-obj-mro ,$iter-callee (& "__call__")) range.__iter__))
-                (py-iter (py-call ,$iter-callee ,@args)))
+              ((not (eq? ,$iter-callee py-builtin-range))
+                (py-iter (py-call ,$iter-callee ,@args-names)))
               ;; case where we have a range in a fixnum interval, change that to a scheme loop with fixnums
               ((and
                  (fixnum? ,$start)
@@ -2106,7 +2107,7 @@
                  (fixnum? (+ ,$stop ,$step)))
                  #f) ;; flag that we are not allocating an iterator, use start, stop, step instead
               (else
-                (py-iter (py-call ,$iter-callee ,@args)))))
+                (py-iter (py-call ,$iter-callee ,@args-names)))))
           (py-iter (py-call ,$iter-callee ,@args)))
       (py-iter (py-call ,iter-callee ,@args)))))
 
@@ -2114,10 +2115,10 @@
   (let (($next (gensym 'next)))
     `(py-if-specialized-sint-representation
         (cond
-          ($it
-            (py-next $it))
-          ((or (and (fx< 0 ,$step) (fx> ,$start ,$stop))
-               (and (fx> 0 ,$step) (fx< ,$start ,$stop)))
+          (,$it
+            (py-next ,$it))
+          ((or (and (fx< ,$step 0) (fx> ,$start ,$stop))
+               (and (fx> ,$step 0) (fx< ,$start ,$stop)))
             (let ((,$next ,$start))
               (set! ,$start (fx+ ,$start ,$step))
               ,$next))

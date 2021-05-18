@@ -196,6 +196,7 @@
     py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro
+    getattribute-from-obj-mro-fallback
     py-own-attr-ref-2cont
 
     py-descriptor-get
@@ -508,7 +509,6 @@
     PyObjectRange-start-set!
     PyObjectRange-stop-set!
     PyObjectRange-step-set!
-    range.__iter__
 
     make-PyObjectRangeIterator
     PyObjectRangeIterator-start
