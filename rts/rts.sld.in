@@ -508,6 +508,7 @@
     PyObjectRange-start-set!
     PyObjectRange-stop-set!
     PyObjectRange-step-set!
+    range.__iter__
 
     make-PyObjectRangeIterator
     PyObjectRangeIterator-start
@@ -528,6 +529,9 @@
     $get-behavior-type-index
 
     py-for-each
+    py-for-each-maybe-range-call
+    py-for-each-maybe-range-call:next
+    py-for-each-maybe-range-call:iter
     py-obj->iterator
     py-iter
     iterator-next

@@ -384,21 +384,48 @@
           ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycFor conf)
-  (define (scheme-for this)
+  (define (scheme-for-body-with-assig this target)
+    (let ((inner-body
+            `(begin
+              ,(scheme
+                (new-PycAssig (PycNode-loc this)
+                  (PycFor-target this)
+                  (new-PycPragma (PycNode-loc this) target)) conf)
+                ,(scheme (PycLoop-body this) conf))))
+      (if (PycLoop-need-continue this) `(bind-exit (%continue) ,inner-body) inner-body)))
+
+  (define (scheme-for-default this)
     (let* ((target (my-gensym '%target))
            (iterable (scheme (PycFor-iter this) conf))
-           (inner-body
-             `(begin
-     			     ,(scheme
-                 (new-PycAssig (PycNode-loc this)
-                   (PycFor-target this)
-                   (new-PycPragma (PycNode-loc this) target)) conf)
-                 ,(scheme (PycLoop-body this) conf)))
-           (body (if (PycLoop-need-continue this) `(bind-exit (%continue) ,inner-body) inner-body)))
+           (body (scheme-for-body-with-assig this target)))
       `(py-for-each
         ,target
         ,iterable
         ,body)))
+
+  (define (scheme-for-call this)
+    (let ((target (my-gensym '%target))
+          (iter (PycFor-iter this)))
+      (if (and
+            (isa? (PycCall-fun iter) PycRefUnresolved)
+            (eq? (PycRefUnresolved-id (PycCall-fun iter)) 'range)
+            (null? (PycCall-keywords-values iter)))
+        (let* ((iter-callee (PycCall-fun iter))
+              (iter-args (PycCall-args iter))
+              (iter-args-len (length iter-args)))
+          (if (and (>= iter-args-len 1) (<= iter-args-len 3))
+            `(py-for-each-maybe-range-call
+              ,target
+              ,(scheme iter-callee conf)
+              ,(scheme-for-body-with-assig this target)
+              ,@(map (lambda (a) (scheme a conf)) iter-args))
+            (scheme-for-default this)))
+        (scheme-for-default this))))
+
+  (define (scheme-for this)
+    (if (isa? (PycFor-iter this) PycCall)
+      (scheme-for-call this)
+      (scheme-for-default this)))
 
   (cond
     ((PycLoop-need-break this)

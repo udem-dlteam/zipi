@@ -2076,6 +2076,75 @@
       (else
         (py-descriptor-get-fallback $attr $instance $owner)))))
 
+(define-macro (py-for-each-maybe-range-call:iter $iter-callee $start $stop $step . args)
+  (let ((set-range-args
+          (case (length args)
+            ((1)
+              `((set! ,$stop ,(car args))))
+            ((2)
+              `((set! ,$start ,(car args))
+                (set! ,$stop ,(cadr args))))
+            ((3)
+              `((set! ,$start ,(car args))
+                (set! ,$stop ,(cadr args))
+                (set! ,$step (caddr args))))
+            (else
+              #f))))
+    (if set-range-args
+      `(py-if-specialized-sint-representation
+          (begin
+            ,@set-range-args
+            (cond
+              ((not (eq? (getattribute-from-obj-mro ,$iter-callee (& "__call__")) range.__iter__))
+                (py-iter (py-call ,$iter-callee ,@args)))
+              ;; case where we have a range in a fixnum interval, change that to a scheme loop with fixnums
+              ((and
+                 (fixnum? ,$start)
+                 (fixnum? ,$stop)
+                 (fixnum? ,$step)
+                 (not (fx= ,$step 0))
+                 (fixnum? (+ ,$stop ,$step)))
+                 #f) ;; flag that we are not allocating an iterator, use start, stop, step instead
+              (else
+                (py-iter (py-call ,$iter-callee ,@args)))))
+          (py-iter (py-call ,$iter-callee ,@args)))
+      (py-iter (py-call ,iter-callee ,@args)))))
+
+(define-macro (py-for-each-maybe-range-call:next $it $start $stop $step)
+  (let (($next (gensym 'next)))
+    `(py-if-specialized-sint-representation
+        (cond
+          ($it
+            (py-next $it))
+          ((or (and (fx< 0 ,$step) (fx> ,$start ,$stop))
+               (and (fx> 0 ,$step) (fx< ,$start ,$stop)))
+            (let ((,$next ,$start))
+              (set! ,$start (fx+ ,$start ,$step))
+              ,$next))
+          (else
+            #f))
+        (py-next ,$it))))
+
+(define-macro (py-for-each-maybe-range-call element iter-callee body . args)
+  (let (($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($iter-callee (gensym 'range???))
+        ($iterator (gensym 'iterator))
+        (loop-sym (gensym 'loop)))
+    `(py-if-specialized-sint-representation
+      (let* ((,$start 0)
+             (,$stop #f)
+             (,$step 1)
+             (,$iter-callee ,iter-callee)
+             (,$iterator (py-for-each-maybe-range-call:iter ,$iter-callee ,$start ,$stop ,$step ,@args)))
+        (let ,loop-sym ((,element (py-for-each-maybe-range-call:next ,$iterator ,$start ,$stop ,$step)))
+          (if ,element
+            (begin
+              ,body
+              (,loop-sym (py-for-each-maybe-range-call:next ,$iterator ,$start ,$stop ,$step))))))
+      (py-for-each ,element (py-iter (py-call ,iter-callee ,@args)) ,body))))
+
 (define-macro (py-for-each element iterable body)
   (let ((iterator-sym (gensym 'it))
         (loop-sym (gensym 'loop)))
