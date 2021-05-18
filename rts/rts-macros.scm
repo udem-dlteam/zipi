@@ -1299,6 +1299,7 @@
       (bytearray_iterator . py-bytearray-iterator-hclass-of-instances)
       (tuple_iterator . py-tuple-iterator-hclass-of-instances)
       (dict_keyiterator . py-dict-keyiterator-hclass-of-instances)
+      (dict_valueiterator . py-dict-valueiterator-hclass-of-instances)
       (TextIOWrapper . py-TextIOWrapper-hclass-of-instances)
       (super . py-super-hclass-of-instances)
       (range . py-range-hclass-of-instances)

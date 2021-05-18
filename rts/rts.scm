@@ -275,6 +275,7 @@
   py-bytearray-iterator-hclass-of-instances
   py-tuple-iterator-hclass-of-instances
   py-dict-keyiterator-hclass-of-instances
+  py-dict-valueiterator-hclass-of-instances
   py-TextIOWrapper-hclass-of-instances
   py-super-hclass-of-instances
   py-range-hclass-of-instances
@@ -355,10 +356,18 @@
     ordered-table))
 
 (define (py-dict-keyiterator-alloc first iterator-token)
-  (make-PyObjectDictKeyIterator
+  (make-PyObjectDictItemsIterator
     py-dict-keyiterator-hclass-of-instances
     '#()
     py-dict-keyiterator-class
+    first
+    iterator-token))
+
+(define (py-dict-valueiterator-alloc first iterator-token)
+  (make-PyObjectDictItemsIterator
+    py-dict-valueiterator-hclass-of-instances
+    '#()
+    py-dict-valueiterator-class
     first
     iterator-token))
 
@@ -4987,10 +4996,7 @@
 ;; TODO: incorrect implementation, should return a dict_keys object
 (define (dict-keys self)
   (if (py-isinstance? self py-dict-class)
-    (py-tuple-from-scheme
-      (list->vector
-        (iterator->list
-          (dict->dict-keyiterator self))))
+    (dict->dict-keyiterator self)
     (py-throw-not-a-type-object "dict.keys" self)))
 
 (define dict.keys
@@ -4998,20 +5004,32 @@
     dict-keys
     (make-signature posonlyargs: (self))))
 
+;; TODO: incorrect implementation, should return a dict_values object
+(define (dict-values self)
+  (if (py-isinstance? self py-dict-class)
+    (dict->dict-valueiterator self)
+    (py-throw-not-a-type-object "dict.values" self)))
+
+(define dict.values
+  (procedure->py-function
+    dict-values
+    (make-signature posonlyargs: (self))))
+
 ;; =============================================================================
 ;;  Dict iterators
 ;; =============================================================================
 
-(define (dict-keyiterator-iter self)
-  (if (PyObjectDictKeyIterator? self)
-    self
-    (py-throw-not-a-type-object "dict_keyiterator.__iter__" self)))
-
+;; key iterator
 (define (dict->dict-keyiterator d)
   (let* ((ordered-table (PyObjectDict-value d))
         (first (ordered-table-first ordered-table))
         (token (ordered-table-iterator-token ordered-table)))
     (py-dict-keyiterator-alloc first token)))
+
+(define (dict-keyiterator-iter self)
+  (if (py-isinstance? self py-dict-keyiterator-class)
+    self
+    (py-throw-not-a-type-object "dict_keyiterator.__iter__" self)))
 
 (define dict_keyiterator.__iter__
   (procedure->py-function
@@ -5020,8 +5038,8 @@
 
 (define (dict-keyiterator-next self)
   (if (py-isinstance? self py-dict-keyiterator-class)
-    (let ((node (PyObjectDictKeyIterator-node self))
-          (token (PyObjectDictKeyIterator-iterator-token self)))
+    (let ((node (PyObjectDictItemsIterator-node self))
+          (token (PyObjectDictItemsIterator-iterator-token self)))
       (cond
         ((not node)
           (py-throw py-builtin-StopIteration))
@@ -5033,7 +5051,7 @@
           (let* ((cell (doubly-linked-list-node-value node))
                 (key (dict-cell-key cell))
                 (next (doubly-linked-list-node-next node)))
-            (PyObjectDictKeyIterator-node-set! self next)
+            (PyObjectDictItemsIterator-node-set! self next)
             key))))
     (py-throw-not-a-type-object "dict_keyiterator.__next__" self)))
 
@@ -5049,6 +5067,55 @@
     (list)
       (& "__iter__") dict_keyiterator.__iter__
       (& "__next__") dict_keyiterator.__next__))
+
+;; value iterator
+(define (dict->dict-valueiterator d)
+  (let* ((ordered-table (PyObjectDict-value d))
+        (first (ordered-table-first ordered-table))
+        (token (ordered-table-iterator-token ordered-table)))
+    (py-dict-valueiterator-alloc first token)))
+
+(define (dict-valueiterator-iter self)
+  (if (py-isinstance? self py-dict-valueiterator-class)
+    self
+    (py-throw-not-a-type-object "dict_valueiterator.__iter__" self)))
+
+(define dict_valueiterator.__iter__
+  (procedure->py-function
+    dict-valueiterator-iter
+    (make-signature posonlyargs: (self))))
+
+(define (dict-valueiterator-next self)
+  (if (py-isinstance? self py-dict-valueiterator-class)
+    (let ((node (PyObjectDictItemsIterator-node self))
+          (token (PyObjectDictItemsIterator-iterator-token self)))
+      (cond
+        ((not node)
+          (py-throw py-builtin-StopIteration))
+        ((not (unbox token)) ;; will be #f if the dict length changed
+          (py-throw-exception-with-message
+            py-builtin-RuntimeError
+            "dictionary changed size during iteration"))
+        (else
+          (let* ((cell (doubly-linked-list-node-value node))
+                (value (dict-cell-value cell))
+                (next (doubly-linked-list-node-next node)))
+            (PyObjectDictItemsIterator-node-set! self next)
+            value))))
+    (py-throw-not-a-type-object "dict_valueiterator.__next__" self)))
+
+(define dict_valueiterator.__next__
+  (procedure->py-function
+    dict-valueiterator-next
+    (make-signature posonlyargs: (self))))
+
+(define py-dict-valueiterator-class
+  (py-make-builtin-class
+    (&& "dict_valueiterator")
+    (&& "builtins")
+    (list)
+      (& "__iter__") dict_valueiterator.__iter__
+      (& "__next__") dict_valueiterator.__next__))
 
 ;; -----------------------------------------------------------------------------
 
@@ -5217,6 +5284,7 @@
      (& "__len__") dict.__len__
      (& "__iter__") dict.__iter__
      (& "keys") dict.keys
+     (& "values") dict.values
      (& "get") dict.get))
 
   (set! py-set-class

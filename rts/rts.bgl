@@ -132,7 +132,7 @@
               index
               vec)
 
-           (class PyObjectDictKeyIterator::PyObject
+           (class PyObjectDictItemsIterator::PyObject
               node
               iterator-token)
 
