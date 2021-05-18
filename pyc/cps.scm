@@ -90,7 +90,7 @@
 (define (new-PycCallKont-as-stmt loc k #!key (args '()))
   (new-PycStmtExpr
     loc
-    (new-PycCallKont loc k)))
+    (new-PycCallKont loc k args: args)))
 
 (define-walk-method (cps-stmt this::PycNode k kbreak kcontinue kraise)
   (error "cps-stmt" "should not be called on this" (pyc->list this)))
