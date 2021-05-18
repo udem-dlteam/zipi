@@ -384,47 +384,35 @@
           ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycFor conf)
+  (define (scheme-for this)
+    (let* ((target (my-gensym '%target))
+           (iterable (scheme (PycFor-iter this) conf))
+           (inner-body
+             `(begin
+     			     ,(scheme
+                 (new-PycAssig (PycNode-loc this)
+                   (PycFor-target this)
+                   (new-PycPragma (PycNode-loc this) target)) conf)
+                 ,(scheme (PycLoop-body this) conf)))
+           (body (if (PycLoop-need-continue this) `(bind-exit (%continue) ,inner-body) inner-body)))
+      `(py-for-each
+        ,target
+        ,iterable
+        ,body)))
 
-   (define (scheme-for this)
-      (let ((loop (my-gensym '%for))
-            (target (my-gensym '%target))
-            (iterable (my-gensym '%iterable))
-            (iterator (my-gensym '%iterator)))
-	 (epairify this
-	    `(let* ((,iterable ,(scheme (PycFor-iter this) conf))
-      		    (,iterator (py-iter ,iterable)))
-		(let ,loop ()
-        ;; TODO: there is definitely an optimisation to have here
-        ;; cPython recovers __next__ everytime we loop, but if we are
-        ;; assured that the __next__ method is never rassigned *anywhere* in
-        ;; the mro, then we can get __next__ once at the start.
-		     (let ((,target (py-next ,iterator)))
-			(when ,target
-			   ,(let ((assig (new-PycAssig (PycNode-loc this)
-					    (PycFor-target this)
-					    (new-PycPragma (PycNode-loc this) target))))
-			       (scheme  assig conf))
-			   ,(if (PycLoop-need-continue this)
-				`(bind-exit (%continue)
-				    ,(scheme (PycLoop-body this) conf))
-				(scheme (PycLoop-body this) conf))
-			   (,loop))))))))
-
-   (cond
-      ((PycLoop-need-break this)
-       (epairify this
-	  `(bind-exit (%break)
-	      ,(scheme-for this)
-	      ,@(if (isa? (PycLoop-else this) PycPass)
-		    '()
-		    (list (scheme (PycLoop-else this) conf))))))
-      ((isa? (PycLoop-else this) PycPass)
-       (scheme-for this))
-      (else
-       (epairify this
-	  `(begin
-	      ,(scheme-for this)
-	      ,(scheme (PycLoop-else this) conf))))))
+  (cond
+    ((PycLoop-need-break this)
+      (epairify this
+        `(bind-exit (%break)
+          ,(scheme-for this)
+          ,@(if (isa? (PycLoop-else this) PycPass) '() (list (scheme (PycLoop-else this) conf))))))
+    ((isa? (PycLoop-else this) PycPass)
+      (scheme-for this))
+    (else
+      (epairify this
+        `(begin
+          ,(scheme-for this)
+          ,(scheme (PycLoop-else this) conf))))))
 
 (define-walk-method (scheme this::PycCPSFor conf)
   (let* ((loop-kont-var (PycCPSFor-loop-kont-var this))
@@ -949,15 +937,15 @@
     (and res (cdr res))))
 
 (define-walk-method (scheme this::PycBinary conf)
-   
+
    (define native-types '(Uint Usint Ubint Ufloat Ubool Ustr))
-   
+
    (define (python-op)
       (epairify this
 	 `(,(symbol-append 'py- (PycBinary-op this))
 	   ,(scheme (PycBinary-lhs this) conf)
 	   ,(scheme (PycBinary-rhs this) conf))))
-   
+
    (define (scheme-op)
       (epairify this
 	 (let ((op (dispatch-native-bin-operator (PycBinary-op this))))

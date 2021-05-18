@@ -2075,3 +2075,13 @@
         (py-descriptor-get-functionX-inline $attr $instance $owner))
       (else
         (py-descriptor-get-fallback $attr $instance $owner)))))
+
+(define-macro (py-for-each element iterable body)
+  (let ((iterator-sym (gensym 'it))
+        (loop-sym (gensym 'loop)))
+    `(let ((,iterator-sym (py-iter ,iterable)))
+      (let ,loop-sym ((,element (py-next ,iterator-sym)))
+        (if ,element
+          (begin
+            ,body
+            (,loop-sym (py-next ,iterator-sym))))))))

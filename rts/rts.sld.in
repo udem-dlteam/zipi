@@ -527,6 +527,7 @@
     get-behavior-type-index
     $get-behavior-type-index
 
+    py-for-each
     py-obj->iterator
     py-iter
     iterator-next
