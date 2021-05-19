@@ -2076,39 +2076,19 @@
       (else
         (py-descriptor-get-fallback $attr $instance $owner)))))
 
-(define-macro (py-for-each-maybe-range-call:iter $iter-callee $stop $step . args)
-  (let* (($state (gensym 'state))
-        (args-names (map (lambda (a) (gensym 'arg)) args))
-        (set-range-args
-          (case (length args)
-            ((1)
-              `((define ,$state 0)
-                (set! ,$stop ,(car args-names))))
-            ((2)
-              `((define ,$state ,(car args-names))
-                (set! ,$stop ,(cadr args-names))))
-            ((3)
-              `((define ,$state ,(car args-names))
-                (set! ,$stop ,(cadr args-names))
-                (set! ,$step ,(caddr args-names))))
-            (else
-              #f))))
-    (if set-range-args
-      `(let (,@(map (lambda (a v) `(,a ,v)) args-names args))
-        ,@set-range-args
-        (if (and (eq? ,$iter-callee py-builtin-range)
-                 (fixnum? ,$state)
-                 (fixnum? ,$stop)
-                 (fixnum? ,$step)
-                 (not (fx= ,$step 0))
-                 (cond-expand
-                   (gambit
-                     (|##fx+?| ,$stop ,$step))
-                   (bigloo
-                     (fixnum? (+ ,$stop ,$step)))))
-          ,$state
-          (py-iter (py-call ,$iter-callee ,@args-names))))
-      (py-iter (py-call ,iter-callee ,@args)))))
+(define-macro (py-for-each-maybe-range-call:iter $iter-callee $start $stop $step . args-names)
+  `(if (and (eq? ,$iter-callee py-builtin-range)
+           (fixnum? ,$start)
+           (fixnum? ,$stop)
+           (fixnum? ,$step)
+           (not (fx= ,$step 0))
+           (cond-expand
+             (gambit
+               (|##fx+?| ,$stop ,$step))
+             (bigloo
+               (fixnum? (+ ,$stop ,$step)))))
+    ,$start
+    (py-iter (py-call ,$iter-callee ,@args-names))))
 
 (define-macro (py-for-each-maybe-range-call:next $state $stop $step)
   `(if (fixnum? ,$state)
@@ -2119,23 +2099,43 @@
     (py-next ,$state)))
 
 (define-macro (py-for-each-maybe-range-call element iter-callee body . args)
-  (let (($state (gensym 'state))
+  (let* (($state (gensym 'state))
+        ($start (gensym 'start))
         ($stop (gensym 'stop))
         ($step (gensym 'step))
         ($iter-callee (gensym 'range???))
         ($iterator (gensym 'iterator))
-        (loop-sym (gensym 'loop)))
+        (loop-sym (gensym 'loop))
+        (args-names (map (lambda (a) (gensym 'arg)) args))
+        (range-args
+          (case (length args)
+            ((1)
+              `((,$start 0)
+                (,$stop ,(car args-names))
+                (,$step 1)))
+            ((2)
+              `((,$start ,(car args-names))
+                (,$stop ,(cadr args-names))
+                (,$step 1)))
+            ((3)
+              `((,$start ,(car args-names))
+                (,$stop ,(cadr args-names))
+                (,$step ,(caddr args-names))))
+            (else
+              #f))))
     `(py-if-specialized-sint-representation
-      (let* ((,$stop #f)
-             (,$step 1)
-             (,$iter-callee ,iter-callee)
-             (,$state (py-for-each-maybe-range-call:iter ,$iter-callee ,$stop ,$step ,@args)))
-        (let ,loop-sym ((,$state ,$state) (,$stop ,$stop) (,$step ,$step))
-          (let ((,element (py-for-each-maybe-range-call:next ,$state ,$stop ,$step)))
-            (if ,element
-              (begin
-                ,body
-                (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state) ,$stop ,$step))))))
+      (if range-args
+        (let* (,@(map (lambda (a v) `(,a ,v)) args-names args)
+               ,@range-args
+               (,$iter-callee ,iter-callee)
+               (,$state (py-for-each-maybe-range-call:iter ,$iter-callee ,$start ,$stop ,$step ,@args-names)))
+          (let ,loop-sym ((,$state ,$state))
+            (let ((,element (py-for-each-maybe-range-call:next ,$state ,$stop ,$step)))
+              (if ,element
+                (begin
+                  ,body
+                  (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
+        (py-for-each ,element (py-iter (py-call ,iter-callee ,@args)) ,body))
       (py-for-each ,element (py-iter (py-call ,iter-callee ,@args)) ,body))))
 
 (define-macro (py-for-each element iterable body)
