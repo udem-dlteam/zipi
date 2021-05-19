@@ -2111,15 +2111,12 @@
       (py-iter (py-call ,iter-callee ,@args)))))
 
 (define-macro (py-for-each-maybe-range-call:next $state $stop $step)
-  (let (($next (gensym 'next)))
-    `(if (fixnum? ,$state)
-      (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
-              (and (fx> ,$step 0) (fx< ,$state ,$stop)))
-        (let ((,$next ,$state))
-          (set! ,$state (fx+ ,$state ,$step))
-          ,$next)
-        #f)
-      (py-next ,$state))))
+  `(if (fixnum? ,$state)
+    (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
+            (and (fx> ,$step 0) (fx< ,$state ,$stop)))
+      ,$state
+      #f)
+    (py-next ,$state)))
 
 (define-macro (py-for-each-maybe-range-call element iter-callee body . args)
   (let (($state (gensym 'state))
@@ -2133,11 +2130,12 @@
              (,$step 1)
              (,$iter-callee ,iter-callee)
              (,$state (py-for-each-maybe-range-call:iter ,$iter-callee ,$stop ,$step ,@args)))
-        (let ,loop-sym ((,element (py-for-each-maybe-range-call:next ,$state ,$stop ,$step)))
-          (if ,element
-            (begin
-              ,body
-              (,loop-sym (py-for-each-maybe-range-call:next ,$state ,$stop ,$step))))))
+        (let ,loop-sym ((,$state ,$state) (,$stop ,$stop) (,$step ,$step))
+          (let ((,element (py-for-each-maybe-range-call:next ,$state ,$stop ,$step)))
+            (if ,element
+              (begin
+                ,body
+                (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state) ,$stop ,$step))))))
       (py-for-each ,element (py-iter (py-call ,iter-callee ,@args)) ,body))))
 
 (define-macro (py-for-each element iterable body)
