@@ -2135,8 +2135,8 @@
                 (begin
                   ,body
                   (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
-        `(py-for-each ,element (py-iter (py-call ,iter-callee ,@args)) ,body))
-      (py-for-each ,element (py-iter (py-call ,iter-callee ,@args)) ,body))))
+        `(py-for-each ,element (py-call ,iter-callee ,@args) ,body))
+      (py-for-each ,element (py-call ,iter-callee ,@args) ,body))))
 
 (define-macro (py-for-each element iterable body)
   (let ((iterator-sym (gensym 'it))
