@@ -11,6 +11,9 @@ print(3 in r3)
 
 r = range(5)
 
+for X in r:
+    print(X)
+
 i = iter(r)
 
 x = next(i, 999)

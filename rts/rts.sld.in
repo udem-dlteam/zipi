@@ -530,8 +530,10 @@
 
     py-for-each
     py-for-each-maybe-range-call
-    py-for-each-maybe-range-call:next
+    py-for-each-maybe-range:next
     py-for-each-maybe-range-call:iter
+    py-for-each-maybe-range:iter
+    py-for-each-maybe-range
     py-obj->iterator
     py-iter
     iterator-next

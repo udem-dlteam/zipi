@@ -398,7 +398,7 @@
     (let* ((target (my-gensym '%target))
            (iterable (scheme (PycFor-iter this) conf))
            (body (scheme-for-body-with-assig this target)))
-      `(py-for-each
+      `(py-for-each-maybe-range
         ,target
         ,iterable
         ,body)))
