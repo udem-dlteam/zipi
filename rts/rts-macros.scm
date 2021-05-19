@@ -2124,8 +2124,8 @@
             (else
               #f))))
     `(py-if-specialized-sint-representation
-      (if range-args
-        (let* (,@(map (lambda (a v) `(,a ,v)) args-names args)
+      ,(if range-args
+        `(let* (,@(map (lambda (a v) `(,a ,v)) args-names args)
                ,@range-args
                (,$iter-callee ,iter-callee)
                (,$state (py-for-each-maybe-range-call:iter ,$iter-callee ,$start ,$stop ,$step ,@args-names)))
@@ -2135,7 +2135,7 @@
                 (begin
                   ,body
                   (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
-        (py-for-each ,element (py-iter (py-call ,iter-callee ,@args)) ,body))
+        `(py-for-each ,element (py-iter (py-call ,iter-callee ,@args)) ,body))
       (py-for-each ,element (py-iter (py-call ,iter-callee ,@args)) ,body))))
 
 (define-macro (py-for-each element iterable body)
