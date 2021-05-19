@@ -5594,7 +5594,7 @@
    (global-own-attr-put-no-cache! mod (& "path")
     (py-make-list-elems (map py-str-from-scheme-fallback zipi-stdlib-dir)))
    (global-own-attr-put-no-cache! mod (& "builtin_module_names")
-    (py-tuple-from-scheme (list->vector (map py-str-from-scheme-fallback (list "_sys" "builtins" "itertools" "math" "random" "sys" "time")))))
+    (py-tuple-from-scheme (list->vector (map py-str-from-scheme-fallback (list "_sys" "_time" "builtins" "itertools" "math" "random" "sys" "time")))))
    mod))
 
 (define sys-mod (py-make-sys-mod))
@@ -5854,15 +5854,68 @@
 
 ;; time
 
+(define time.clock_getres
+  (procedure->py-function
+    (lambda (clk_id)
+      (py-float-from-scheme 1e-6))
+    (make-signature posonlyargs: (clk_id))))
+
+(define time.clock_gettime
+  (procedure->py-function
+    (lambda (clk_id)
+      (py-float-from-scheme (time->seconds (current-time))))
+    (make-signature posonlyargs: (clk_id))))
+
+(define time.monotonic
+  (procedure->py-function
+    (lambda ()
+      (py-float-from-scheme (time->seconds (current-time))))
+    (make-signature)))
+
+(define time.perf_counter
+  (procedure->py-function
+    (lambda ()
+      (py-float-from-scheme (time->seconds (current-time))))
+    (make-signature)))
+
+(define time.process_time
+  (procedure->py-function
+    (lambda ()
+      (py-float-from-scheme (time->seconds (current-time))))
+    (make-signature)))
+
 (define time.time
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
     (make-signature)))
 
+(define time.thread_time
+  (procedure->py-function
+    (lambda ()
+      (py-float-from-scheme (time->seconds (current-time))))
+    (make-signature)))
+
+(define time.sleep
+  (procedure->py-function
+    (lambda (secs)
+      (let ((s (py-float-to-scheme secs)))
+        (cond-expand
+          (gambit (thread-sleep! s))
+          (bigloo (sleep (floor (inexact->exact (* s 1e6))))))
+        py-None))
+    (make-signature posonlyargs: (secs))))
+
 (define (make-time-mod)
-  (let ((mod (py-make-module (& "time") (& "") #f)))
-   (global-own-attr-put-no-cache! mod (& "time") time.time)))
+  (let ((mod (py-make-module (& "_time") (& "") #f)))
+    (global-own-attr-put-no-cache! mod (& "clock_getres") time.clock_getres)
+    (global-own-attr-put-no-cache! mod (& "clock_gettime") time.clock_gettime)
+    (global-own-attr-put-no-cache! mod (& "monotonic") time.monotonic)
+    (global-own-attr-put-no-cache! mod (& "perf_counter") time.perf_counter)
+    (global-own-attr-put-no-cache! mod (& "process_time") time.process_time)
+    (global-own-attr-put-no-cache! mod (& "time") time.time)
+    (global-own-attr-put-no-cache! mod (& "thread_time") time.thread_time)
+    (global-own-attr-put-no-cache! mod (& "sleep") time.sleep)))
 
 (make-time-mod)
 
