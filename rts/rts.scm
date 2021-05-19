@@ -4635,13 +4635,14 @@
 
 (define (py-next iterator)
   (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
-     (with-handler
-        (lambda (e)
-          (if (and (PyObject? e) (py-isinstance? e py-builtin-StopIteration))
-                 #f
-                 (raise e)))
-        (py-call next iterator))))
-
+     (if (eq? next py-absent)
+       (py-throw-exception-with-message py-builtin-TypeError "object is not an iterator")
+       (with-handler
+          (lambda (e)
+            (if (and (PyObject? e) (py-isinstance? e py-builtin-StopIteration))
+                   #f
+                   (raise e)))
+          (py-call next iterator)))))
 
 ;; =============================================================================
 ;;  Dict
@@ -7430,6 +7431,8 @@
 
 (define py-builtin-range #f)
 (define py-builtin-range_iterator #f)
+
+(define range.__iter__ #f)
 
 ;;-------------------- repr(object)
 

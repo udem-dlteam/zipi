@@ -2075,3 +2075,112 @@
         (py-descriptor-get-functionX-inline $attr $instance $owner))
       (else
         (py-descriptor-get-fallback $attr $instance $owner)))))
+
+(define-macro (py-for-each-maybe-range-call:iter $iter-callee $start $stop $step . args-names)
+  `(if (and (eq? ,$iter-callee py-builtin-range)
+           (fixnum? ,$start)
+           (fixnum? ,$stop)
+           (fixnum? ,$step)
+           (not (fx= ,$step 0))
+           (cond-expand
+             (gambit
+               (|##fx+?| ,$stop ,$step))
+             (bigloo
+               (fixnum? (+ ,$stop ,$step)))))
+    ,$start
+    (py-iter (py-call ,$iter-callee ,@args-names))))
+
+(define-macro (py-for-each-maybe-range:next $state $stop $step)
+  `(if (fixnum? ,$state)
+    (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
+            (and (fx> ,$step 0) (fx< ,$state ,$stop)))
+      ,$state
+      #f)
+    (py-next ,$state)))
+
+(define-macro (py-for-each-maybe-range-call element iter-callee body . args)
+  (let* (($state (gensym 'state))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($iter-callee (gensym 'range???))
+        ($iterator (gensym 'iterator))
+        (loop-sym (gensym 'loop))
+        (args-names (map (lambda (a) (gensym 'arg)) args))
+        (range-args
+          (case (length args)
+            ((1)
+              `((,$start 0)
+                (,$stop ,(car args-names))
+                (,$step 1)))
+            ((2)
+              `((,$start ,(car args-names))
+                (,$stop ,(cadr args-names))
+                (,$step 1)))
+            ((3)
+              `((,$start ,(car args-names))
+                (,$stop ,(cadr args-names))
+                (,$step ,(caddr args-names))))
+            (else
+              #f))))
+    `(py-if-specialized-sint-representation
+      ,(if range-args
+        `(let* (,@(map (lambda (a v) `(,a ,v)) args-names args)
+               ,@range-args
+               (,$iter-callee ,iter-callee)
+               (,$state (py-for-each-maybe-range-call:iter ,$iter-callee ,$start ,$stop ,$step ,@args-names)))
+          (let ,loop-sym ((,$state ,$state))
+            (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
+              (if ,element
+                (begin
+                  ,body
+                  (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
+        `(py-for-each ,element (py-call ,iter-callee ,@args) ,body))
+      (py-for-each ,element (py-call ,iter-callee ,@args) ,body))))
+
+(define-macro (py-for-each-maybe-range:iter $iterable $start $stop $step)
+  `(if (and (fixnum? ,$start)
+            (fixnum? ,$stop)
+            (fixnum? ,$step)
+            (not (fx= ,$step 0))
+            (cond-expand
+              (gambit
+                (|##fx+?| ,$stop ,$step))
+              (bigloo
+                (fixnum? (+ ,$stop ,$step)))))
+    ,$start
+    (py-iter ,$iterable)))
+
+(define-macro (py-for-each-maybe-range element iterable body)
+  (let* (($state (gensym 'state))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($iterable (gensym 'range-obj???))
+        ($iterator (gensym 'iterator))
+        (loop-sym (gensym 'loop)))
+    `(py-if-specialized-sint-representation
+      (let* ((,$iterable ,iterable))
+        (if (eq? (py-obj-cls ,$iterable) py-builtin-range)
+          (let* ((,$start (PyObjectRange-start ,$iterable))
+                (,$stop (PyObjectRange-stop ,$iterable))
+                (,$step (PyObjectRange-step ,$iterable))
+                (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
+          (let ,loop-sym ((,$state ,$state))
+            (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
+              (if ,element
+                (begin
+                  ,body
+                  (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
+          (py-for-each ,element ,$iterable ,body)))
+      (py-for-each ,element ,iterable ,body))))
+
+(define-macro (py-for-each element iterable body)
+  (let ((iterator-sym (gensym 'it))
+        (loop-sym (gensym 'loop)))
+    `(let ((,iterator-sym (py-iter ,iterable)))
+      (let ,loop-sym ((,element (py-next ,iterator-sym)))
+        (if ,element
+          (begin
+            ,body
+            (,loop-sym (py-next ,iterator-sym))))))))
