@@ -5584,25 +5584,17 @@
   (global-own-attr-put-no-cache! sys-mod (& "argv")
        (py-make-list-elems (map py-str-from-scheme-fallback list-with-file-name))))
 
-(define (sys-setrecursionlimit limit)
-  ;; zipi has no recursion limit, this procedure does nothing
-  py-None)
-
-(define sys.setrecursionlimit
-  (procedure->py-function
-    sys-setrecursionlimit
-    (make-signature posonlyargs: (limit))))
-
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
-   (global-own-attr-put-no-cache! mod (& "__name__") (&& "sys"))
+   (global-own-attr-put-no-cache! mod (& "__name__") (&& "_sys"))
    (global-own-attr-put-no-cache! mod (& "modules")
-                     (py-make-dict (list (cons (&& "sys") mod))))
+                     (py-make-dict (list (cons (&& "_sys") mod))))
 
    (global-own-attr-put-no-cache! mod (& "maxsize") (py-int-from-scheme max-fixnum))
    (global-own-attr-put-no-cache! mod (& "path")
     (py-make-list-elems (map py-str-from-scheme-fallback zipi-stdlib-dir)))
-   (global-own-attr-put-no-cache! mod (& "setrecursionlimit") sys.setrecursionlimit)
+   (global-own-attr-put-no-cache! mod (& "builtin_module_names")
+    (py-tuple-from-scheme (list->vector (map py-str-from-scheme-fallback (list "_sys" "builtins" "itertools" "math" "random" "sys" "time")))))
    mod))
 
 (define sys-mod (py-make-sys-mod))
