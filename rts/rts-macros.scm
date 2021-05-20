@@ -2152,7 +2152,8 @@
     (py-iter ,$iterable)))
 
 (define-macro (py-for-each-maybe-range element iterable body)
-  (let* (($state (gensym 'state))
+  (let* (($it-cls (gensym 'iterator-cls))
+        ($state (gensym 'state))
         ($start (gensym 'start))
         ($stop (gensym 'stop))
         ($step (gensym 'step))
@@ -2160,27 +2161,61 @@
         ($iterator (gensym 'iterator))
         (loop-sym (gensym 'loop)))
     `(py-if-specialized-sint-representation
-      (let* ((,$iterable ,iterable))
-        (if (eq? (py-obj-cls ,$iterable) py-builtin-range)
-          (let* ((,$start (PyObjectRange-start ,$iterable))
-                (,$stop (PyObjectRange-stop ,$iterable))
-                (,$step (PyObjectRange-step ,$iterable))
-                (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
-          (let ,loop-sym ((,$state ,$state))
-            (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
-              (if ,element
-                (begin
-                  ,body
-                  (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
-          (py-for-each ,element ,$iterable ,body)))
+      (let* ((,$iterable ,iterable)
+            (,$it-cls (py-obj-cls ,$iterable))
+            (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
+            (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
+            (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
+            (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
+        (let ,loop-sym ((,$state ,$state))
+          (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
+            (if ,element
+              (begin
+                ,body
+                (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
       (py-for-each ,element ,iterable ,body))))
 
-(define-macro (py-for-each element iterable body)
-  (let ((iterator-sym (gensym 'it))
-        (loop-sym (gensym 'loop)))
+(define-macro (py-for-each-maybe-range-cps:next $state $stop $step)
+  (let (($next (gensym 'next-state)))
+    `(if (fixnum? ,$state)
+      (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
+              (and (fx> ,$step 0) (fx< ,$state ,$stop)))
+        (let ((,$next ,$state)) (set! ,$state (fx+ ,$next ,$step)) ,$next)
+        #f)
+      (py-next ,$state))))
+
+(define-macro (py-for-each-maybe-range-cps element iterable body loop forelse)
+  (let* (($it-cls (gensym 'iterator-cls))
+        ($state (gensym 'state))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($iterable (gensym 'range-obj???))
+        ($iterator (gensym 'iterator)))
+    `(py-if-specialized-sint-representation
+      (let* ((,$iterable ,iterable)
+            (,$it-cls (py-obj-cls ,$iterable))
+            (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
+            (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
+            (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
+            (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
+        (let ,loop ()
+          (let ((,element (py-for-each-maybe-range-cps:next ,$state ,$stop ,$step)))
+            (if ,element
+              ,body
+              ,forelse))))
+      (py-for-each ,element ,iterable ,body cps: #t loop: loop forelse: forelse))))
+
+(define-macro (py-for-each element iterable body #!key (cps #f) (loop (gensym 'loop)) (forelse #f))
+  (let ((iterator-sym (gensym 'it)))
     `(let ((,iterator-sym (py-iter ,iterable)))
-      (let ,loop-sym ((,element (py-next ,iterator-sym)))
-        (if ,element
-          (begin
-            ,body
-            (,loop-sym (py-next ,iterator-sym))))))))
+      (let ,loop ()
+        (let ((,element (py-next ,iterator-sym)))
+          (if ,element
+            (begin
+              ,body
+              ,@(if cps '() (list `(,loop))))
+            ,@(if forelse (list forelse) '())))))))
+
+(define-macro (py-for-each-cps element iterable body)
+  #f)

@@ -534,6 +534,8 @@
     py-for-each-maybe-range-call:iter
     py-for-each-maybe-range:iter
     py-for-each-maybe-range
+    py-for-each-maybe-range-cps:next
+    py-for-each-maybe-range-cps
     py-obj->iterator
     py-iter
     iterator-next
