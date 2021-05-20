@@ -2175,12 +2175,16 @@
           (py-for-each ,element ,$iterable ,body)))
       (py-for-each ,element ,iterable ,body))))
 
-(define-macro (py-for-each element iterable body)
-  (let ((iterator-sym (gensym 'it))
-        (loop-sym (gensym 'loop)))
+(define-macro (py-for-each element iterable body #!key (cps #f) (loop (gensym 'loop)) (forelse #f))
+  (let ((iterator-sym (gensym 'it)))
     `(let ((,iterator-sym (py-iter ,iterable)))
-      (let ,loop-sym ((,element (py-next ,iterator-sym)))
-        (if ,element
-          (begin
-            ,body
-            (,loop-sym (py-next ,iterator-sym))))))))
+      (let ,loop ()
+        (let ((,element (py-next ,iterator-sym)))
+          (if ,element
+            (begin
+              ,body
+              ,@(if cps '() (list `(,loop))))
+            ,@(if forelse (list forelse) '())))))))
+
+(define-macro (py-for-each-cps element iterable body)
+  #f)
