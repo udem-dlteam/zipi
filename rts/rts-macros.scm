@@ -2175,6 +2175,37 @@
                 (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
       (py-for-each ,element ,iterable ,body))))
 
+(define-macro (py-for-each-maybe-range-cps:next $state $stop $step)
+  (let (($next (gensym 'next-state)))
+    `(if (fixnum? ,$state)
+      (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
+              (and (fx> ,$step 0) (fx< ,$state ,$stop)))
+        (let ((,$next ,$state)) (set! ,$state (fx+ ,$next ,$step)) ,$next)
+        #f)
+      (py-next ,$state))))
+
+(define-macro (py-for-each-maybe-range-cps element iterable body loop forelse)
+  (let* (($it-cls (gensym 'iterator-cls))
+        ($state (gensym 'state))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($iterable (gensym 'range-obj???))
+        ($iterator (gensym 'iterator)))
+    `(py-if-specialized-sint-representation
+      (let* ((,$iterable ,iterable)
+            (,$it-cls (py-obj-cls ,$iterable))
+            (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
+            (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
+            (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
+            (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
+        (let ,loop ()
+          (let ((,element (py-for-each-maybe-range-cps:next ,$state ,$stop ,$step)))
+            (if ,element
+              ,body
+              ,forelse))))
+      (py-for-each ,element ,iterable ,body cps: #t loop: loop forelse: forelse))))
+
 (define-macro (py-for-each element iterable body #!key (cps #f) (loop (gensym 'loop)) (forelse #f))
   (let ((iterator-sym (gensym 'it)))
     `(let ((,iterator-sym (py-iter ,iterable)))
