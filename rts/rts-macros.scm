@@ -2152,7 +2152,8 @@
     (py-iter ,$iterable)))
 
 (define-macro (py-for-each-maybe-range element iterable body)
-  (let* (($state (gensym 'state))
+  (let* (($it-cls (gensym 'iterator-cls))
+        ($state (gensym 'state))
         ($start (gensym 'start))
         ($stop (gensym 'stop))
         ($step (gensym 'step))
@@ -2160,19 +2161,18 @@
         ($iterator (gensym 'iterator))
         (loop-sym (gensym 'loop)))
     `(py-if-specialized-sint-representation
-      (let* ((,$iterable ,iterable))
-        (if (eq? (py-obj-cls ,$iterable) py-builtin-range)
-          (let* ((,$start (PyObjectRange-start ,$iterable))
-                (,$stop (PyObjectRange-stop ,$iterable))
-                (,$step (PyObjectRange-step ,$iterable))
-                (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
-          (let ,loop-sym ((,$state ,$state))
-            (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
-              (if ,element
-                (begin
-                  ,body
-                  (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
-          (py-for-each ,element ,$iterable ,body)))
+      (let* ((,$iterable ,iterable)
+            (,$it-cls (py-obj-cls ,$iterable))
+            (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
+            (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
+            (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
+            (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
+        (let ,loop-sym ((,$state ,$state))
+          (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
+            (if ,element
+              (begin
+                ,body
+                (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
       (py-for-each ,element ,iterable ,body))))
 
 (define-macro (py-for-each element iterable body #!key (cps #f) (loop (gensym 'loop)) (forelse #f))
