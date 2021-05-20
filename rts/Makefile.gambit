@@ -19,7 +19,7 @@ zipi-build-symlink:
 	cd $(BUILDDIR); rm -f zipi; ln -s . zipi
 
 zipi-install-symlink:
-	cd $(ZIPIROOT); ln -s . zipi
+	cd $(ZIPIROOT); rm -f zipi; ln -s . zipi
 
 build.gambit: zipi-build-symlink rts.sld rts.sld.in builtins
 	$(BUILDGAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts/hash
