@@ -1,92 +1,30 @@
 include ../etc/Makefile.zipiconfig
 
-all: micro
+.PHONE: build update run
 
-gen-micro-c-markers:
-	scripts/gen_micro_bench.py --c-code-marker
+system ?= $(BUILDBINDIR)/zipi
 
-gen-micro:
-	scripts/gen_micro_bench.py
+zipi-benchmarks:
+	git clone git@github.com:udem-dlteam/zipi-benchmarks.git
+	cd zipi-benchmarks; ./configure
 
-micro:
-	@echo "system   cpython2  cpython3 (higher than 1x means faster than cpython2/3)"
-	@for bench in micro_*.py; do \
-	  ./compare-to-cpython $$bench $(ZIPISYSTEMS); \
-	done
+update: zipi-benchmarks
+	cd zipi-benchmarks; ./update
 
-micro-gambit:
-	../bin/zipi.gambit -X reset
-	@echo "system   cpython2  cpython3 (higher than 1x means faster than cpython2/3)"
-	@for bench in micro_*.py; do \
-	  ./compare-to-cpython $$bench gambit; \
-	done
+run: zipi-benchmarks
+	@cd zipi-benchmarks; ./run --system $(system) --filter $(filter)
 
-micro-bigloo:
-	@echo "system   cpython2  cpython3 (higher than 1x means faster than cpython2/3)"
-	@for bench in micro_*.py; do \
-	  ./compare-to-cpython $$bench bigloo; \
-	done
+compare-to-cpython: zipi-benchmarks
+	@$(BUILDPYTHON) compare.py --systems $(BUILDPYTHON) $(BUILDDIR)/bin/zipi --filter $(filter)
 
-micro-pypy:
-	@echo "system   cpython2  cpython3 (higher than 1x means faster than cpython2/3)"
-	@for bench in micro_*.py; do \
-	  ./compare-to-cpython $$bench pypy; \
-	done
+scm-compare-to-cpython: zipi-benchmarks
+	@$(BUILDPYTHON) compare.py --systems $(BUILDPYTHON) $(BUILDDIR)/bin/zipi --filter scm
 
-scm:
-	@echo "system   cpython2  cpython3 (higher than 1x means faster than cpython2/3)"
-	@for bench in scm_*.py; do \
-	  ./compare-to-cpython $$bench $(ZIPISYSTEMS); \
-	done
+micro-compare-to-cpython: zipi-benchmarks
+	@$(BUILDPYTHON) compare.py --systems $(BUILDPYTHON) $(BUILDDIR)/bin/zipi --filter micro
 
-scm-gambit:
-	../bin/zipi.gambit -X reset
-	@echo "system   cpython2  cpython3 (higher than 1x means faster than cpython2/3)"
-	@for bench in scm_*.py; do \
-	  ./compare-to-cpython $$bench gambit; \
-	done
+compare: zipi-benchmarks
+	@$(BUILDPYTHON) compare.py --systems $(systems) --filter $(filter)
 
-scm-bigloo:
-	@echo "system   cpython2  cpython3 (higher than 1x means faster than cpython2/3)"
-	@for bench in scm_*.py; do \
-	  ./compare-to-cpython $$bench bigloo; \
-	done
-
-scm-pypy:
-	@echo "system   cpython2  cpython3 (higher than 1x means faster than cpython2/3)"
-	@for bench in scm_*.py; do \
-	  ./compare-to-cpython $$bench pypy; \
-	done
-
-.PHONY: profile
-
-profile:
-	@for bench in *.py; do \
-	  ./profile-zipi $$bench $(ZIPISYSTEMS); \
-	done
-
-profile-gambit:
-	../bin/zipi.gambit -X reset
-	@for bench in *.py; do \
-	  ./profile-zipi $$bench gambit; \
-	done
-
-profile-bigloo:
-	@for bench in *.py; do \
-	  ./profile-zipi $$bench bigloo; \
-	done
-
-list:
-	@for bench in micro_*.py; do \
-          echo $$bench; \
-	done
-
-lib-pyperformance:
-	git clone https://github.com/python/pyperformance lib-pyperformance
-
-realclean: clean
-	rm -rf lib-pyperformance
-	-rm micro_*.py
-
-clean:
-	-rm marked_*.py
+make clean:
+	rm -rf zipi-benchmarks
