@@ -2938,7 +2938,7 @@
 (define (list-add self other)
   (if (py-isinstance? self py-list-class)
     (if (py-isinstance? other py-list-class)
-      (py-add-listX-listY self other)
+      (py-add-listX-listY-inline self other)
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__add__" self)))
 
@@ -3064,7 +3064,7 @@
       ((py-subtype-of-int? item)
         (py-getitem-listX-intY self item))
       ((py-isinstance? item py-slice-class)
-        (py-getitem-listX-sliceY slef item))
+        (py-getitem-listX-sliceY self item))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__getitem__" self)))
 
@@ -3131,7 +3131,7 @@
     (make-signature posonlyargs: (self item value))))
 
 (define (list-shrink! list)
-  (let ((len (PyObjectList-len list))
+  (let* ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list))
         (new-inner-len (get-list-inner-len len)))
     (PyObjectList-vector-set! list (subvector vec 0 new-inner-len))))
@@ -3240,7 +3240,7 @@
         (let* ((len (PyObjectList-len self))
                (i (py-subtype-of-int-to-scheme item)))
           (if (index-in-length-range i len)
-            (list-shift-left! dvec (+ (modulo i len) 1))
+            (list-shift-left! self (+ (modulo i len) 1))
             (py-throw-action-out-of-range "list" "assignement"))))
       ((py-isinstance? item py-slice-class)
         (let* ((len (PyObjectList-len self))
@@ -3250,8 +3250,8 @@
               (step (vector-ref indices 2)))
           (if (= step 1)
             (let ((size (- stop start)))
-              (list-shift-left-by! dvec stop size))
-            (list-del-extended-slice! dvec start stop step))))
+              (list-shift-left-by! self stop size))
+            (list-del-extended-slice! self start stop step))))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__delitem__" self))
   py-None)
@@ -3409,13 +3409,13 @@
     (make-signature posonlyargs: (self index value))))
 
 (define (list-extend-with-vector-head! lst source-vec stop)
-  (let* ((len (PyObject-list-len lst))
-        (vec (PyObject-list-vector lst))
+  (let* ((len (PyObjectList-len lst))
+        (vec (PyObjectList-vector lst))
         (inner-len (vector-length vec)))
     (if (>= stop (- inner-len len))
       (begin
-        (list-grow-by! dvec stop)
-        (set! vec (PyObject-list-vector lst))))
+        (list-grow-by! lst stop)
+        (set! vec (PyObjectList-vector lst))))
     (let loop ((i len) (j 0))
       (if (< j stop)
         (begin
@@ -3449,7 +3449,7 @@
 
 (define (list-extend self iterable)
   (if (py-isinstance? self py-list-class)
-    (list-extend-with-iterable self iterable)
+    (list-extend-with-iterable! self iterable)
     (py-throw-not-a-type-object "list.extend" self))
   py-None)
 
@@ -3460,7 +3460,7 @@
 
 (define (list-iadd self other)
   (if (py-isinstance? self py-list-class)
-    (list-extend-with-iterable dvec other)
+    (list-extend-with-iterable! self other)
     (py-throw-not-a-type-object "list.__iadd__" self))
   self)
 
@@ -3475,7 +3475,7 @@
            (vec (PyObjectList-vector self)))
       (let ((index (py-index-in-subvector item vec 0 len)))
         (if index
-          (list-shift-left! dvec (+ index 1))
+          (list-shift-left! self (+ index 1))
           (py-throw
             (py-call
               py-builtin-ValueError
