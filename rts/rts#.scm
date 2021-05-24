@@ -210,7 +210,8 @@
   copier: #f
   macros: ;; this will inline the operations on this type
   ;; attrs
-  value)
+  vector
+  len)
 
 (define-type-of-PyObject PyObjectListIterator
   id: PyObjectListIterator-C6486EB6-1522-42BA-A082-B6563F943CDF

@@ -1667,8 +1667,9 @@
                   (let ((value (PyObjectTuple-value iterable)))
                    (py-tuple-subtype-from-scheme value cls))))
              ((eq? iterable-type py-list-class)
-              (let* ((value (PyObjectList-value iterable))
-                     (vec (subvector (cdr value) 0 (car value))))
+              (let* ((vec (PyObjectList-vector iterable))
+                     (len (PyObjectList-len iterable))
+                     (elements (subvector vec 0 len)))
                (py-tuple-subtype-from-scheme (vector-copy vec) cls)))
              (else
                (let* ((iterator (py-iter iterable))
@@ -2087,15 +2088,14 @@
 
 ;; TODO need some type checks in those dir methods
 (define (object-dir self)
-  (py-list-from-scheme
-    (list->dynamic-vector
-      (if (PyObject? self)
-        (py-get-list-of-obj*-str-attr
-          self
-          (py-obj-cls self))
-        ;; Non-PyObject such as fixnums have no attributes
-        (py-get-list-of-obj*-str-attr
-          (py-obj-cls self))))))
+  (py-make-list-from-elems
+    (if (PyObject? self)
+      (py-get-list-of-obj*-str-attr
+        self
+        (py-obj-cls self))
+      ;; Non-PyObject such as fixnums have no attributes
+      (py-get-list-of-obj*-str-attr
+        (py-obj-cls self)))))
 
 (define object.__dir__
   (procedure->py-function
@@ -2103,11 +2103,10 @@
     (make-signature posonlyargs: (self))))
 
 (define (type-dir self)
-  (py-list-from-scheme
-    (list->dynamic-vector
-      (py-get-list-of-obj*-str-attr
-        self
-        (py-obj-cls self)))))
+  (py-make-list-from-elems
+    (py-get-list-of-obj*-str-attr
+      self
+      (py-obj-cls self))))
 
 (define type.__dir__
   (procedure->py-function
@@ -2516,9 +2515,8 @@
 
 (define (module-dir self)
   (if (py-isinstance? self py-module-class)
-    (py-list-from-scheme
-      (list->dynamic-vector
-        (py-get-list-of-global*-str-attr self)))
+    (py-make-list-from-elems
+        (py-get-list-of-global*-str-attr self))
     (throw-returned-wrong-type "__dir__" self "not a module")))
 
 (define module.__dir__
@@ -2658,7 +2656,7 @@
             (fill-right tail)))
 
         (define (fill-right tail)
-          (vector lefts (py-make-list-vec mids) (list->vector tail)))
+          (vector lefts (py-make-list-from-vec mids) (list->vector tail)))
 
         (fill-left 0 elts)))))
 
@@ -2695,9 +2693,8 @@
     (let ((index (PyObjectListIterator-index self)))
       (if index
         (let* ((lst (PyObjectListIterator-list self))
-               (len-vec-pair (PyObjectList-value lst))
-               (len (car len-vec-pair))
-               (vec (cdr len-vec-pair)))
+               (vec (PyObjectList-vector lst))
+               (len (PyObjectList-len lst)))
           (if (< index len)
             (let ((item (vector-ref vec index)))
               (PyObjectListIterator-index-set! self (+ index 1))
@@ -2800,9 +2797,6 @@
 ;; These classes are used for lists and bytearrays
 ;; list class
 
-(define-macro (make-dynamic-vector len vector)
-  `(cons ,len ,vector))
-
 (define (index-in-length-range index len)
   (and (< index len) (>= index (- len))))
 
@@ -2821,7 +2815,7 @@
 (define min-list-inner-length 5)
 (define list-empty-cell (cons 'empty-cell '()))
 
-(define (get-dvec-inner-len len)
+(define (get-list-inner-len len)
   (+
     min-list-inner-length
     (inexact->exact (round (* len list-growth-factor)))))
@@ -2829,98 +2823,61 @@
 (define (get-shrink-threshold-len inner-len)
   (- (round (/ inner-len list-shrink-threshold)) min-list-inner-length))
 
-(define (list->dynamic-vector elements)
-  (let* ((len (length elements))
-        (vec-len (get-dvec-inner-len len))
-        (vec (make-vector vec-len list-empty-cell)))
-    (let loop ((i 0) (elements elements))
-      (if (null? elements)
-        (make-dynamic-vector len vec)
-        (begin
-          (vector-set! vec i (car elements))
-          (loop (+ i 1) (cdr elements)))))))
-
-(define-macro (define-concat-dynamic-vector name vref vset vmake vempty-list)
-`(define (,name container1 container2)
-  (let* ((len1 (car container1))
-        (v1 (cdr container1))
-        (len2 (car container2))
-        (v2 (cdr container2))
-        (total-len (+ len1 len2))
-        (vec-len (get-dvec-inner-len total-len))
-        (vec (,vmake vec-len ,vempty-list)))
-    (let loop1 ((target-pos 0) (source-pos 0))
-      (if (< source-pos len1)
-        (begin
-          (,vset vec target-pos (,vref v1 source-pos))
-          (loop1 (+ target-pos 1) (+ source-pos 1)))))
-    (let loop2 ((target-pos len1) (source-pos 0))
-      (if (< source-pos len2)
-        (begin
-          (,vset vec target-pos (,vref v2 source-pos))
-          (loop2 (+ target-pos 1) (+ source-pos 1)))))
-    (make-dynamic-vector total-len vec))))
-
-(define-concat-dynamic-vector concat-dynamic-vectors vector-ref vector-set! make-vector list-empty-cell)
-(define-concat-dynamic-vector concat-dynamic-u8vectors u8vector-ref u8vector-set! make-u8vector 0)
-
 (define (py-make-list . elements)
-  (let ((len-vec-pair (list->dynamic-vector elements)))
-    (py-list-from-scheme len-vec-pair)))
+  (let ((vec (list->vector elements)))
+    (py-list-from-scheme
+      vec
+      (vector-length vec))))
 
-(define (py-make-list-elems elements)
-  (let ((len-vec-pair (list->dynamic-vector elements)))
-    (py-list-from-scheme len-vec-pair)))
+(define (py-make-list-from-elems elements)
+  (let ((vec (list->vector elements)))
+    (py-list-from-scheme
+      vec
+      (vector-length vec))))
 
-(define (py-make-list-vec vec)
-  (py-list-from-scheme (make-dynamic-vector (vector-length vec) vec)))
+(define (py-make-list-from-vec vec)
+  (py-list-from-scheme vec (vector-length vec)))
 
-(define (py-list-from-scheme len-vec-pair)
+(define (py-list-from-scheme vec len)
   (make-PyObjectList
     py-list-hclass-of-instances
     '#()
     py-list-class
-    len-vec-pair))
+    vec
+    len))
 
-(define (py-list-subtype-from-scheme len-vec-pair cls)
+(define (py-list-subtype-from-scheme cls vec len)
   (make-PyObjectList
     (PyObjectType-hclass-of-instances cls)
     '#()
     cls
-    len-vec-pair))
-
-(define (vector-head->dynamic-vector vec stop)
-  (let ((inner-len (get-dvec-inner-len stop)))
-    (make-dynamic-vector
-      stop
-      (vector-append
-        (subvector vec 0 stop)
-        (make-vector (- inner-len stop) list-empty-cell)))))
+    vec
+    len))
 
 (define (list-new cls iterable)
   (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
       (if (eq? iterable py-absent)
-          (py-list-subtype-from-scheme (make-dynamic-vector 0 '#()) cls)
+          (py-list-subtype-from-scheme cls '#() 0)
           (let ((iterable-type (py-type iterable)))
            (cond
              ((eq? iterable-type py-tuple-class)
               (let ((vec (PyObjectTuple-value iterable)))
                (py-list-subtype-from-scheme
-                 (vector-head->dynamic-vector vec (vector-length vec))
-                 cls)))
+                 cls
+                 vec
+                 (vector-length vec))))
              ((eq? iterable-type py-list-class)
-              (let* ((dvec (PyObjectList-value iterable))
-                     (len (car dvec))
-                     (vec (cdr dvec)))
-                (py-list-subtype-from-scheme
-                  (vector-head->dynamic-vector vec len)
-                  cls)))
+               (py-list-subtype-from-scheme
+                 cls
+                 (PyObjectList-vector iterable)
+                 (PyObjectList-len iterable)))
              (else
                (let* ((iterator (py-iter iterable))
                       (content (list->vector (iterator->list iterator))))
                  (py-list-subtype-from-scheme
-                   (vector-head->dynamic-vector content (vector-length content))
-                   cls))))))
+                   cls
+                   content
+                   (vector-length content)))))))
       (py-throw-wrong-new-argument "list" cls)))
 
 (define list.__new__
@@ -2942,9 +2899,8 @@
 ;; otherwise this will crash once list is an actual dynamic array
 (define (list-contains self item)
   (if (py-isinstance? self py-list-class)
-    (let* ((len-vec-pair (PyObjectList-value self))
-           (len (car len-vec-pair))
-           (vec (cdr len-vec-pair)))
+    (let* ((len (PyObjectList-len self))
+           (vec (PyObjectList-vector self)))
       (let loop ((i 0))
         (if (< i len)
           (if (py-test (py-eq item (vector-ref vec i)))
@@ -2961,9 +2917,8 @@
 ;; TODO: print cyclic structures
 (define (list-repr self)
   (if (py-isinstance? self py-list-class)
-    (let* ((len-vec-pair (PyObjectList-value self))
-           (len (car len-vec-pair))
-           (vec (cdr len-vec-pair))
+    (let* ((len (PyObjectList-len self))
+           (vec (PyObjectList-vector self))
            (content-strs (vector-map py-repr (subvector vec 0 len)))
            (content-strings
             (vector-map (lambda (x) (py-subtype-of-str-to-scheme x))
@@ -2983,9 +2938,7 @@
 (define (list-add self other)
   (if (py-isinstance? self py-list-class)
     (if (py-isinstance? other py-list-class)
-      (let ((c1 (PyObjectList-value self))
-            (c2 (PyObjectList-value other)))
-        (py-list-from-scheme (concat-dynamic-vectors c1 c2)))
+      (py-add-listX-listY self other)
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__add__" self)))
 
@@ -2994,34 +2947,12 @@
     list-add
     (make-signature posonlyargs: (self other))))
 
-(define-macro (define-*n-dynamic-vector name vref vset vmake vempty-list)
-  `(define (,name c n)
-  (let* ((len (car c))
-         (vec (cdr c))
-         (total-len (fx* len n))
-         (target-inner-len (get-dvec-inner-len total-len))
-         (out (,vmake target-inner-len ,vempty-list)))
-    (let loop ((target-pos 0))
-      (if (fx< target-pos total-len)
-        (let inner-loop ((source-pos 0))
-          (if (fx< source-pos len)
-            (begin
-              (,vset out (fx+ target-pos source-pos) (,vref vec source-pos))
-              (inner-loop (fx+ source-pos 1)))
-            (loop (fx+ target-pos len))))
-        (make-dynamic-vector total-len out))))))
-
-(define-*n-dynamic-vector dynamic-vector*n vector-ref vector-set! make-vector list-empty-cell)
-(define-*n-dynamic-vector dynamic-u8vector*n u8vector-ref u8vector-set! make-u8vector 0)
-
 (define (list-mul self n)
   (if (py-isinstance? self py-list-class)
-      (if (py-subtype-of-int? n)
-          (let ((c (PyObjectList-value self))
-                (n (py-subtype-of-int-to-scheme n)))
-            (py-list-from-scheme (dynamic-vector*n c n)))
-          py-NotImplemented)
-      (py-throw-not-a-type-object "list.__mul__" self)))
+    (if (py-subtype-of-int? n)
+      (py-mul-listX-UintY self (py-subtype-of-int-to-scheme n))
+      py-NotImplemented)
+    (py-throw-not-a-type-object "list.__mul__" self)))
 
 (define list.__mul__
   (procedure->py-function
@@ -3036,11 +2967,11 @@
 (define (list-imul self n)
   (if (py-isinstance? self py-list-class)
       (if (py-subtype-of-int? n)
-          (let ((c (PyObjectList-value self))
-                (n (py-subtype-of-int-to-scheme n)))
-            (PyObjectList-value-set! self (dynamic-vector*n c n))
-            self)
-          py-NotImplemented)
+        (let ((res (py-mul-listX-UintY self (py-subtype-of-int-to-scheme n))))
+          (PyObjectList-vector-set! self (PyObjectList-vector res))
+          (PyObjectList-len-set! self (PyObjectList-len res))
+          self)
+        py-NotImplemented)
       (py-throw-not-a-type-object "list.__mul__" self)))
 
 (define list.__imul__
@@ -3050,9 +2981,7 @@
 
 (define (list-len self)
   (if (py-isinstance? self py-list-class)
-    (py-int-from-scheme
-      (car
-        (PyObjectList-value self)))
+    (py-int-from-scheme (PyObjectList-len self))
     (py-throw-not-a-type-object "list.__len__" self)))
 
 (define list.__len__
@@ -3060,61 +2989,12 @@
     list-len
     (make-signature posonlyargs: (self))))
 
-(define (dynamic-vector-py-eq? c1 c2)
-  (let ((len1 (car c1))
-        (v1 (cdr c1))
-        (len2 (car c2))
-        (v2 (cdr c2)))
-    (if (= len1 len2)
-      (let loop ((i 0))
-        (if (< i len1)
-          (let* ((el1 (vector-ref v1 i))
-                 (el2 (vector-ref v2 i)))
-            (if (py-test (py-eq el1 el2))
-              (loop (+ i 1))
-              #f))
-          #t))
-      #f)))
-
-(define (dynamic-vector-py-ne? v1 v2)
-  (not (dynamic-vector-py-eq? v1 v2)))
-
-(define-macro (define-dynamic-vector-comparator name py-strict-op scheme-op)
-  `(define (,name c1 c2)
-    (let* ((len1 (car c1))
-          (len2 (car c2))
-          (v1 (cdr c1))
-          (v2 (cdr c2))
-          (min-len (min len1 len2)))
-      (let loop ((i 0))
-        (if (< i min-len)
-          (let* ((el1 (vector-ref v1 i))
-                 (el2 (vector-ref v2 i)))
-            (if (py-test (,py-strict-op el1 el2))
-              #t
-              (if (py-test (py-eq el1 el2))
-                (loop (+ i 1))
-                #f)))
-          (,scheme-op len1 len2))))))
-
-(define-dynamic-vector-comparator dynamic-vector-py-lt? py-lt <)
-
-(define-dynamic-vector-comparator dynamic-vector-py-le? py-lt <=)
-
-(define-dynamic-vector-comparator dynamic-vector-py-gt? py-gt >)
-
-(define-dynamic-vector-comparator dynamic-vector-py-ge? py-gt >=)
-
-(define-macro (define-list-binary-comparator name py-name dynamic-vector-comparator)
+(define-macro (define-list-binary-comparator name py-name py-compare)
   `(begin
     (define (,name self other)
       (if (py-isinstance? self py-list-class)
         (if (py-isinstance? other py-list-class)
-          (let ((c1 (PyObjectList-value self))
-                (c2 (PyObjectList-value other)))
-            (if (,dynamic-vector-comparator c1 c2)
-              py-True
-              py-False))
+          (,py-compare self other)
           py-NotImplemented)
         (py-throw-not-a-type-object ,(symbol->string py-name) self)))
 
@@ -3123,32 +3003,17 @@
         ,name
         (make-signature posonlyargs: (self other))))))
 
-(define-list-binary-comparator list-eq list.__eq__ dynamic-vector-py-eq?)
+(define-list-binary-comparator list-eq list.__eq__ py-eq-listX-listY)
 
-(define-list-binary-comparator list-ne list.__ne__ dynamic-vector-py-ne?)
+(define-list-binary-comparator list-ne list.__ne__ py-ne-listX-listY)
 
-(define-list-binary-comparator list-lt list.__lt__ dynamic-vector-py-lt?)
+(define-list-binary-comparator list-lt list.__lt__ py-lt-listX-listY)
 
-(define-list-binary-comparator list-le list.__le__ dynamic-vector-py-le?)
+(define-list-binary-comparator list-le list.__le__ py-le-listX-listY)
 
-(define-list-binary-comparator list-gt list.__gt__ dynamic-vector-py-gt?)
+(define-list-binary-comparator list-gt list.__gt__ py-gt-listX-listY)
 
-(define-list-binary-comparator list-ge list.__ge__ dynamic-vector-py-ge?)
-
-(define-macro (define-slice-dynamic-vector name vref vset vmake vlist-empty)
-  `(define (,name vec start stop step)
-  (let* ((len (max 0 (ceiling (/ (- stop start) step))))
-        (inner-len (get-dvec-inner-len len))
-        (out (,vmake inner-len ,vlist-empty)))
-    (let loop ((source start) (target 0))
-      (if (< target len)
-        (begin
-          (,vset out target (,vref vec source))
-          (loop (+ source step) (+ target 1)))))
-    (make-dynamic-vector len out))))
-
-(define-slice-dynamic-vector dynamic-vector-slice vector-ref vector-set! make-vector list-empty-cell)
-(define-slice-dynamic-vector dynamic-u8vector-slice u8vector-ref u8vector-set! make-u8vector 0)
+(define-list-binary-comparator list-ge list.__ge__ py-ge-listX-listY)
 
 ;; NOTE: follows requirements of slice.indices(len)
 (define (py-slice-indices slice len)
@@ -3193,36 +3058,13 @@
         (vector first last step))
       (vector 0 0 step))))
 
-(define-macro (define-py-slice-dynamic-vector name vref vdynamic-slice)
-  `(define (,name dvec slice)
-  (let* ((len (car dvec))
-        (vec (cdr dvec))
-        (slice-indices (py-slice-indices slice len)))
-    (,vdynamic-slice
-      vec
-      (vector-ref slice-indices 0)
-      (vector-ref slice-indices 1)
-      (vector-ref slice-indices 2)))))
-
-(define-py-slice-dynamic-vector dynamic-vector-py-slice vector-ref dynamic-vector-slice)
-(define-py-slice-dynamic-vector dynamic-u8vector-py-slice u8vector-ref dynamic-u8vector-slice)
-
 (define (list-getitem self item)
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-subtype-of-int? item)
-        (let* ((container (PyObjectList-value self))
-               (len (car container))
-               (vec (cdr container))
-               (i (py-subtype-of-int-to-scheme item)))
-          (if (index-in-length-range i len)
-            (vector-ref vec (modulo i len))
-            (py-throw-index-out-of-range "list"))))
+        (py-getitem-listX-intY self item))
       ((py-isinstance? item py-slice-class)
-        (py-list-from-scheme
-          (dynamic-vector-py-slice
-            (PyObjectList-value self)
-            item)))
+        (py-getitem-listX-sliceY slef item))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__getitem__" self)))
 
@@ -3231,54 +3073,14 @@
     list-getitem
     (make-signature posonlyargs: (self item))))
 
-(define-macro (vector-ref-to-scheme-int vec index)
-  `(py-subtype-of-int-to-scheme (vector-ref ,vec ,index)))
+(define-macro (list-set-simple-slice! lst start stop vec len)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "list-set-simple-slice!"))
 
-;; slices of the form lst[1:4]
-(define-macro (define-set-simple-slice-dynamic-vector name vshift-right-by vshift-left-by vset vref)
-  `(define (,name dvec start stop vec len)
-    (let* ((self-vec (cdr dvec))
-           (slice-len (- stop start))
-           (len-diff (- slice-len len)))
-      (cond
-       ((< len-diff 0)
-        (,vshift-right-by dvec start (- len-diff)))
-       ((> len-diff 0)
-        (,vshift-left-by dvec start len-diff)))
-      ;; Update the vector which may have been updated when shifting
-      (set! self-vec (cdr dvec))
-      (let loop ((src-index 0) (tgt-index start))
-        (if (< src-index len)
-            (begin
-              (,vset self-vec tgt-index (,vref vec src-index))
-              (loop (+ src-index 1) (+ tgt-index 1))))))))
-
-
-(define-set-simple-slice-dynamic-vector dynamic-vector-set-simple-slice! dynamic-vector-shift-right-by! dynamic-vector-shift-left-by! vector-set! vector-ref)
-(define-set-simple-slice-dynamic-vector dynamic-u8vector-u8vector-set-simple-slice! dynamic-u8vector-shift-right-by! dynamic-u8vector-shift-left-by! u8vector-set! u8vector-ref)
-(define-set-simple-slice-dynamic-vector dynamic-u8vector-vector-set-simple-slice! dynamic-u8vector-shift-right-by! dynamic-u8vector-shift-left-by! u8vector-set! vector-ref-to-scheme-int)
-
-
-;;slices of the form lst[1:6:2] (i.e. with a step)
-(define-macro (define-set-extended-dynamic-vector name vref vset)
-  `(define (,name dvec start stop step vec len)
-  (let ((self-vec (cdr dvec))
-        (slice-len (max 0 (ceiling (/ (- stop start) step)))))
-    (if (= len slice-len)
-      (let loop ((src-index 0) (tgt-index start))
-        (if (< src-index len)
-          (begin
-            (,vset self-vec tgt-index (,vref vec src-index))
-            (loop (+ src-index 1) (+ tgt-index step)))))
-      (py-throw-extended-slice-wrong-len len slice-len)))))
-
-(define-set-extended-dynamic-vector dynamic-vector-set-extended-slice! vector-ref vector-set!)
-(define-set-extended-dynamic-vector dynamic-u8vector-u8vector-set-extended-slice! u8vector-ref u8vector-set!)
-(define-set-extended-dynamic-vector dynamic-u8vector-vector-set-extended-slice! vector-ref-to-scheme-int u8vector-set!)
+(define-macro (list-set-extended-slice! lst start stop step vec len)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "list-set-extended-slice!"))
 
 (define (list-set-slice self slice value)
-  (let* ((dvec (PyObjectList-value self))
-        (self-len (car dvec))
+  (let* ((self-len (PyObjectList-len self))
         (indices (py-slice-indices slice self-len))
         (start (vector-ref indices 0))
         (stop (vector-ref indices 1))
@@ -3286,35 +3088,33 @@
         (value-type (py-type value)))
     (cond
       ((eq? value-type py-list-class)
-        (let* ((value-dvec (PyObjectList-value value))
-              (value-len (car value-dvec))
-              (value-vec (cdr value-dvec)))
+        (let* ((value-len (PyObjectList-len value))
+              (value-vec (PyObjectList-vector value)))
           (if (eq? step 1)
-            (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
-            (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
+            (list-set-simple-slice! self start stop value-vec value-len)
+            (list-set-extended-slice! self start stop step value-vec value-len))))
       ((eq? value-type py-tuple-class)
         (let* ((value-vec (PyObjectTuple-value value))
                (value-len (vector-length value-vec)))
           (if (eq? step 1)
-            (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
-            (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len))))
+            (list-set-simple-slice! self start stop value-vec value-len)
+            (list-set-extended-slice! self start stop step value-vec value-len))))
       (else
         (let ((iterator (py-obj->iterator value)))
           (if iterator
             (let* ((value-vec (list->vector (iterator->list iterator)))
                   (value-len (vector-length value-vec)))
               (if (eq? step 1)
-                (dynamic-vector-set-simple-slice! dvec start stop value-vec value-len)
-                (dynamic-vector-set-extended-slice! dvec start stop step value-vec value-len)))
+                (list-set-simple-slice! self start stop value-vec value-len)
+                (list-set-extended-slice! self start stop step value-vec value-len)))
             (py-throw-can-only-assign-iterable)))))))
 
 (define (list-setitem self item value)
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-subtype-of-int? item)
-        (let* ((container (PyObjectList-value self))
-               (len (car container))
-               (vec (cdr container))
+        (let* ((len (PyObjectList-len self))
+               (vec (PyObjectList-vector self))
                (i (py-subtype-of-int-to-scheme item)))
           (if (index-in-length-range i len)
             (vector-set! vec (modulo i len) value)
@@ -3330,126 +3130,91 @@
     list-setitem
     (make-signature posonlyargs: (self item value))))
 
-(define-macro (define-shrink-dynamic-vector name vsubvec)
-  `(define (,name dvec)
-    (let* ((len (car dvec))
-           (vec (cdr dvec))
-           (new-inner-len (get-dvec-inner-len len)))
-      (set-cdr! dvec (,vsubvec vec 0 new-inner-len)))))
+(define (list-shrink! list)
+  (let ((len (PyObjectList-len list))
+        (vec (PyObjectList-vector list))
+        (new-inner-len (get-list-inner-len len)))
+    (PyObjectList-vector-set! list (subvector vec 0 new-inner-len))))
 
-(define-shrink-dynamic-vector dynamic-vector-shrink! subvector)
-(define-shrink-dynamic-vector dynamic-u8vector-shrink! subu8vector)
+(define (list-grow! list)
+  (list-grow-by! list 1))
 
-(define-macro (define-grow-dynamic-vector name vset vmake vlist-empty vappend)
-  `(define (,name dvec)
-  (let* ((len (car dvec))
-        (vec (cdr dvec))
-        (new-inner-len (get-dvec-inner-len len)))
-    (set-cdr!
-      dvec
-      (,vappend vec (,vmake (- new-inner-len len) ,vlist-empty))))))
+(define (list-grow-by! list amount)
+  (let* ((len (PyObjectList-len list))
+        (vec (PyObjectList-vector list))
+        (new-inner-len (get-list-inner-len (+ len amount))))
+    (PyObjectList-vector-set!
+      list
+      (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
 
-(define-grow-dynamic-vector dynamic-vector-grow! vector-set! make-vector list-empty-cell vector-append)
-(define-grow-dynamic-vector dynamic-u8vector-grow! u8vector-set! make-u8vector 0 u8vector-append)
-
-(define-macro (define-grow-by-dynamic-vector name vmake vlist-empty vappend )
-  `(define (,name dvec amount)
-    (let* ((len (car dvec))
-           (vec (cdr dvec))
-           (new-inner-len (get-dvec-inner-len (+ len amount))))
-      (set-cdr!
-       dvec
-       (,vappend vec (,vmake (- new-inner-len len) ,vlist-empty))))))
-
-(define-grow-by-dynamic-vector dynamic-vector-grow-by! make-vector list-empty-cell vector-append)
-(define-grow-by-dynamic-vector dynamic-u8vector-grow-by! make-u8vector 0 u8vector-append)
-
-(define (dynamic-vector-shift-left! dvec index)
-  (let ((len (car dvec))
-        (vec (cdr dvec)))
+(define (list-shift-left! lst index)
+  (let ((len (PyObjectList-len lst))
+        (vec (PyObjectList-vector lst)))
     (let loop ((i index))
       (if (< i len)
         (begin
           (vector-set! vec (- i 1) (vector-ref vec i))
           (loop (+ i 1)))))
     (vector-set! vec (- len 1) list-empty-cell)
-    (set-car! dvec (- len 1))
-    (if (<
-          len
-          (get-shrink-threshold-len (vector-length vec)))
-      (dynamic-vector-shrink! dvec))))
+    (PyObjectList-len-set! lst (- len 1))
+    (if (< len (get-shrink-threshold-len (vector-length vec)))
+      (list-shrink! lst))))
 
-(define-macro (define-shift-left-by-dynamic-vector name vshrink-by vset vempty-list vref vlength)
-  `(define (,name dvec index amount)
-    (if (> amount 0)
-        (let ((len (car dvec))
-              (vec (cdr dvec)))
-          (let loop ((i (max index amount)))
-            (if (< i len)
-                (begin
-                  (,vset vec (- i amount) (,vref vec i))
-                  (,vset vec i ,vempty-list)
-                  (loop (+ i 1)))))
-          (set-car! dvec (- len amount))
-          (if (<
-               len
-               (get-shrink-threshold-len (,vlength vec)))
-              (,vshrink-by dvec))))))
-
-(define-shift-left-by-dynamic-vector dynamic-vector-shift-left-by! dynamic-vector-shrink! vector-set! list-empty-cell vector-ref vector-length)
-(define-shift-left-by-dynamic-vector dynamic-u8vector-shift-left-by! dynamic-u8vector-shrink! u8vector-set! 0 u8vector-ref u8vector-length)
+(define (list-shift-left-by! list index amount)
+  (let ((len (PyObjectList-len lst))
+        (vec (PyObjectList-vector lst)))
+    (let loop ((i (max index amount)))
+      (if (< i len)
+        (begin
+          (vector-set! vec (- i amount) (vector-ref vec i))
+          (vector-set! vec i list-empty-cell)
+          (loop (+ i 1)))))
+    (vector-set! vec (- len 1) list-empty-cell)
+    (PyObjectList-len-set! lst (- len 1))
+    (if (< len (get-shrink-threshold-len (vector-length vec)))
+      (list-shrink! lst))))
 
 ;; NOTE: shift-right does not insert 'list-empty-cell' at index
 ;;       it is assumed shift is done with intent to write at index
-(define (dynamic-vector-shift-right! dvec index)
-  (let ((len (car dvec))
-        (vec (cdr dvec)))
+(define (list-shift-right! list index)
+  (let ((len (PyObjectList-len list))
+        (vec (PyObjectList-vector list)))
     (if (= len (vector-length vec))
-      (begin
-        (dynamic-vector-grow! dvec)
-        (set! vec (cdr dvec))))
+      (list-grow! list))
     (let loop ((i len))
       (if (> i index)
         (begin
           (vector-set! vec i (vector-ref vec (- i 1)))
           (loop (- i 1)))))
-    (set-car! dvec (+ len 1))))
+    (PyObjectList-len-set! list (+ len 1))))
 
-(define-macro (define-shift-right-by-dynamic-vector name vgrow-by vset vref vlength)
-  `(define (,name dvec index amount)
-    (if (> amount 0)
-        (let ((len (car dvec))
-              (vec (cdr dvec)))
-          (if (>= (+ amount len) (,vlength vec))
-              (begin
-                (,vgrow-by dvec amount)
-                (set! vec (cdr dvec))))
-          (let loop ((i (+ amount len -1)))
-            (if (>= (- i amount) index)
-                (begin
-                  (,vset vec i (,vref vec (- i amount)))
-                  (loop (- i 1)))))
-          (set-car! dvec (+ len amount))))))
+(define (list-shift-right-by! lst index amount)
+  (if (> amount 0)
+    (let ((len (PyObjectList-len lst))
+          (vec (PyObjectList-vector lst)))
+      (if (>= (+ amount len) (vector-length vec))
+        (list-grow-by! lst amount))
+      (let loop ((i (+ amount len -1)))
+        (if (>= (- i amount) index)
+          (begin
+            (vector-set! vec i (vector-ref vec (- i amount)))
+            (loop (- i 1)))))
+      (PyObjectList-len-set! lst (+ len amount)))))
 
-(define-shift-right-by-dynamic-vector dynamic-vector-shift-right-by! dynamic-vector-grow-by! vector-set! vector-ref vector-length)
-(define-shift-right-by-dynamic-vector dynamic-u8vector-shift-right-by! dynamic-u8vector-grow-by! u8vector-set! u8vector-ref u8vector-length)
-
-(define (dynamic-vector-pop-last! dvec)
-  (let* ((len (car dvec))
-        (vec (cdr dvec))
+(define (list-pop-last! lst)
+  (let* ((len (PyObjectList-len lst))
+        (vec (PyObjectList-vector lst))
         (last-index (- len 1))
         (last (vector-ref vec last-index)))
     (vector-set! vec last-index list-empty-cell)
-    (set-car! dvec last-index)
-    (if (<
-          len
-          (get-shrink-threshold-len (vector-length vec)))
-      (dynamic-vector-shrink! dvec))
-    last))
+    (PyObjectList-len-set! lst last-index)
+    (if (< len (get-shrink-threshold-len (vector-length vec)))
+      (list-shrink! lst))
+      last))
 
-(define (dynamic-vector-del-extended-slice! dvec start stop step)
-  (let* ((len (car dvec))
-        (vec (cdr dvec))
+(define (list-del-extended-slice! lst start stop step)
+  (let* ((len (PyObjectList-len lst))
+        (vec (PyObjectList-vector lst))
         (slice-len (max 0 (ceiling (/ (- stop start) step))))
         (abs-step (abs step))
         (first
@@ -3465,30 +3230,28 @@
           (begin
             (vector-set! vec write-index (vector-ref vec read-index))
             (loop (+ read-index 1) (+ write-index 1))))
-        ;; shift-left handles dynamic-vector-shrink
-        (dynamic-vector-shift-left-by! dvec read-index slice-len)))))
+        ;; shift-left handles shrink
+        (list-shift-left-by! lst read-index slice-len)))))
 
 (define (list-delitem self item)
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-subtype-of-int? item)
-        (let* ((dvec (PyObjectList-value self))
-               (len (car dvec))
+        (let* ((len (PyObjectList-len self))
                (i (py-subtype-of-int-to-scheme item)))
           (if (index-in-length-range i len)
-            (dynamic-vector-shift-left! dvec (+ (modulo i len) 1))
+            (list-shift-left! dvec (+ (modulo i len) 1))
             (py-throw-action-out-of-range "list" "assignement"))))
       ((py-isinstance? item py-slice-class)
-        (let* ((dvec (PyObjectList-value self))
-              (len (car dvec))
+        (let* ((len (PyObjectList-len self))
               (indices (py-slice-indices item len))
               (start (vector-ref indices 0))
               (stop (vector-ref indices 1))
               (step (vector-ref indices 2)))
           (if (= step 1)
             (let ((size (- stop start)))
-              (dynamic-vector-shift-left-by! dvec stop size))
-            (dynamic-vector-del-extended-slice! dvec start stop step))))
+              (list-shift-left-by! dvec stop size))
+            (list-del-extended-slice! dvec start stop step))))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__delitem__" self))
   py-None)
@@ -3502,20 +3265,18 @@
   (if (py-isinstance? self py-list-class)
     (cond
       ((eq? index py-absent)
-        (let* ((dvec (PyObjectList-value self))
-               (len (car dvec)))
+        (let ((len (PyObjectList-len self)))
           (if (> len 0)
-            (dynamic-vector-pop-last! dvec)
+            (list-pop-last! self)
             (py-throw-pop-from-empty-list))))
       ((py-subtype-of-int? index)
-        (let* ((dvec (PyObjectList-value self))
-               (len (car dvec))
-               (vec (cdr dvec))
+        (let* ((len (PyObjectList-len self))
+               (vec (PyObjectList-vector self))
                (i (py-subtype-of-int-to-scheme index)))
           (if (index-in-length-range i len)
-            (let* ((actual-i (modulo i len))
-                   (element (vector-ref vec actual-i)))
-              (dynamic-vector-shift-left! dvec (+ actual-i 1))
+            (let* ((real-i (modulo i len))
+                   (element (vector-ref vec real-i)))
+              (list-shift-left! self (+ real-i 1))
               element)
             (py-throw-action-out-of-range "list" "pop"))))
       ((py-isinstance? index py-slice-class)
@@ -3530,15 +3291,14 @@
 
 (define (list-append self value)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (PyObjectList-value self))
-          (len (car dvec))
-          (vec (cdr dvec)))
+    (let* ((len (PyObjectList-len self))
+           (vec (PyObjectList-vector self)))
       (if (= len (vector-length vec))
         (begin
-          (dynamic-vector-grow! dvec)
-          (set! vec (cdr dvec))))
+          (list-grow! self)
+          (set! vec (PyObjectList-vector self))))
       (vector-set! vec len value)
-      (set-car! dvec (+ len 1)))
+      (PyObjectList-len-set! self (+ len 1)))
     (py-throw-not-a-type-object "list.append" self))
   py-None)
 
@@ -3549,9 +3309,9 @@
 
 (define (list-clear self)
   (if (py-isinstance? self py-list-class)
-    (PyObjectList-value-set!
-      self
-      (make-dynamic-vector 0 (make-vector min-list-inner-length list-empty-cell)))
+    (begin
+      (PyObjectList-vector-set! self (make-vector min-list-inner-length list-empty-cell))
+      (PyObjectList-len-set! self 0))
     (py-throw-not-a-type-object "list.clear" self))
   py-None)
 
@@ -3563,12 +3323,9 @@
 ;; Could not call list-copy due to collision with Scheme list-copy
 (define (list-copy-procedure self)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (PyObjectList-value self))
-          (dvec-copy
-            (make-dynamic-vector
-              (car dvec)
-              (vector-copy (cdr dvec)))))
-      (py-list-from-scheme dvec-copy))
+    (py-list-from-scheme
+      (vector-copy (PyObjectList-vector self))
+      (PyObjectList-len self))
     (py-throw-not-a-type-object "list.copy" self)))
 
 (define list.copy
@@ -3578,9 +3335,8 @@
 
 (define (list-count self item)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (PyObjectList-value self))
-           (len (car dvec))
-           (vec (cdr dvec)))
+    (let* ((len (PyObjectList-len self))
+           (vec (PyObjectList-vector self)))
       (let loop ((i 0) (count 0))
         (cond
           ((= i len)
@@ -3598,11 +3354,10 @@
 
 (define (list-index self item start stop)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (PyObjectList-value self))
-           (len (car dvec))
-           (vec (cdr dvec))
+    (let* ((len (PyObjectList-len self))
+           (vec (PyObjectList-vector self))
            (start-index
-            (if (eq? start py-absent)
+            (if start
               0
               (if (py-subtype-of-int? start)
                 (let ((val (py-subtype-of-int-to-scheme start)))
@@ -3611,7 +3366,7 @@
                     (min len val)))
                     (py-throw-wrong-index-type "list" "integers" start))))
            (stop-index
-             (if (eq? stop py-absent)
+             (if stop
                len
                (if (py-subtype-of-int? stop)
                  (let ((val (py-subtype-of-int-to-scheme stop)))
@@ -3631,20 +3386,19 @@
 (define list.index
   (procedure->py-function
     list-index
-    (make-signature posonlyargs: (self item start stop) defaults: (vector py-absent py-absent))))
+    (make-signature posonlyargs: (self item start stop) defaults: '#(#f #f))))
 
 (define (list-insert self index value)
   (if (py-isinstance? self py-list-class)
     (if (py-subtype-of-int? index)
-      (let* ((dvec (PyObjectList-value self))
-            (len (car dvec))
+      (let* ((len (PyObjectList-len self))
             (i (py-subtype-of-int-to-scheme index)))
         (let ((insertion-index
                 (if (< i 0)
                   (modulo (max (- len) i) len)
                   (min len i))))
-          (dynamic-vector-shift-right! dvec insertion-index)
-          (vector-set! (cdr dvec) insertion-index value)))
+          (list-shift-right! self insertion-index)
+          (vector-set! (PyObjectList-vector self) insertion-index value)))
         (py-throw-wrong-index-type "list" "integers" index))
     (py-throw-not-a-type-object "list.insert" self))
   py-None)
@@ -3654,50 +3408,48 @@
     list-insert
     (make-signature posonlyargs: (self index value))))
 
-(define (extend-dynamic-vector-with-vector-head dvec source-vec stop)
-  (let* ((len (car dvec))
-        (vec (cdr dvec))
+(define (list-extend-with-vector-head! lst source-vec stop)
+  (let* ((len (PyObject-list-len lst))
+        (vec (PyObject-list-vector lst))
         (inner-len (vector-length vec)))
     (if (>= stop (- inner-len len))
       (begin
-        (dynamic-vector-grow-by! dvec stop)
-        (set! vec (cdr dvec))))
+        (list-grow-by! dvec stop)
+        (set! vec (PyObject-list-vector lst))))
     (let loop ((i len) (j 0))
       (if (< j stop)
         (begin
           (vector-set! vec i (vector-ref source-vec j))
           (loop (+ i 1) (+ j 1)))))
-    (set-car! dvec (+ len stop))))
+    (PyObjectList-len-set! lst (+ len stop))))
 
-(define (dynamic-vector-extend-with-iterable dvec iterable)
+(define (list-extend-with-iterable! lst iterable)
   (let ((iterable-type (py-type iterable)))
     (cond
       ((eq? iterable-type py-tuple-class)
         (let ((vec (PyObjectTuple-value iterable)))
-          (extend-dynamic-vector-with-vector-head
-            dvec
+          (list-extend-with-vector-head!
+            lst
             vec
             (vector-length vec))))
       ((eq? iterable-type py-list-class)
-        (let* ((other-dvec (PyObjectList-value iterable))
-               (len (car other-dvec))
-               (vec (cdr other-dvec)))
-          (extend-dynamic-vector-with-vector-head
-            dvec
+        (let* ((len (PyObjectList-len iterable))
+               (vec (PyObjectList-vector iterable)))
+          (list-extend-with-vector-head!
+            lst
             vec
             len)))
       (else
         (let* ((iterator (py-iter iterable))
                (content (list->vector (iterator->list iterator))))
-          (extend-dynamic-vector-with-vector-head
-            dvec
+          (list-extend-with-vector-head!
+            lst
             content
             (vector-length content)))))))
 
 (define (list-extend self iterable)
   (if (py-isinstance? self py-list-class)
-    (let ((dvec (PyObjectList-value self)))
-      (dynamic-vector-extend-with-iterable dvec iterable))
+    (list-extend-with-iterable self iterable)
     (py-throw-not-a-type-object "list.extend" self))
   py-None)
 
@@ -3708,8 +3460,7 @@
 
 (define (list-iadd self other)
   (if (py-isinstance? self py-list-class)
-    (let ((dvec (PyObjectList-value self)))
-      (dynamic-vector-extend-with-iterable dvec other))
+    (list-extend-with-iterable dvec other)
     (py-throw-not-a-type-object "list.__iadd__" self))
   self)
 
@@ -3720,12 +3471,11 @@
 
 (define (list-remove self item)
   (if (py-isinstance? self py-list-class)
-    (let* ((dvec (PyObjectList-value self))
-           (len (car dvec))
-           (vec (cdr dvec)))
+    (let* ((len (PyObjectList-len self))
+           (vec (PyObjectList-vector self)))
       (let ((index (py-index-in-subvector item vec 0 len)))
         (if index
-          (dynamic-vector-shift-left! dvec (+ index 1))
+          (list-shift-left! dvec (+ index 1))
           (py-throw
             (py-call
               py-builtin-ValueError
@@ -3738,20 +3488,17 @@
     list-remove
     (make-signature posonlyargs: (self item))))
 
-(define (dynamic-vector-reverse! dvec)
-  (let ((len (car dvec))
-        (vec (cdr dvec)))
-    (let loop ((left 0) (right (- len 1)))
-      (if (< left right)
-        (begin
-          (let ((tmp (vector-ref vec left)))
-            (vector-set! vec left (vector-ref vec right))
-            (vector-set! vec right tmp))
-          (loop (+ left 1) (- right 1)))))))
-
 (define (list-reverse self)
     (if (py-isinstance? self py-list-class)
-      (dynamic-vector-reverse! (PyObjectList-value self))
+      (let ((len (PyObjectList-len self))
+            (vec (PyObjectList-vector self)))
+        (let loop ((left 0) (right (- len 1)))
+          (if (< left right)
+            (begin
+              (let ((tmp (vector-ref vec left)))
+                (vector-set! vec left (vector-ref vec right))
+                (vector-set! vec right tmp))
+              (loop (+ left 1) (- right 1))))))
       (py-throw-not-a-type-object "list.reverse" self))
     py-None)
 
@@ -4084,6 +3831,199 @@
     slice-indices
     (make-signature posonlyargs: (self len))))
 
+
+;; ===========================================
+;; dynamic vector operations used by bytearray
+;; ===========================================
+;; TODO: replace this implementation of dynamic vector as pairs of (len . vector)
+;; by attributes of PyObjectBytearray objects (see PyObjectList)
+
+(define-macro (make-dynamic-vector len vector)
+  `(cons ,len ,vector))
+
+(define-macro (define-concat-dynamic-vector name vref vset vmake vempty-list)
+`(define (,name container1 container2)
+  (let* ((len1 (car container1))
+        (v1 (cdr container1))
+        (len2 (car container2))
+        (v2 (cdr container2))
+        (total-len (+ len1 len2))
+        (vec-len (get-list-inner-len total-len))
+        (vec (,vmake vec-len ,vempty-list)))
+    (let loop1 ((target-pos 0) (source-pos 0))
+      (if (< source-pos len1)
+        (begin
+          (,vset vec target-pos (,vref v1 source-pos))
+          (loop1 (+ target-pos 1) (+ source-pos 1)))))
+    (let loop2 ((target-pos len1) (source-pos 0))
+      (if (< source-pos len2)
+        (begin
+          (,vset vec target-pos (,vref v2 source-pos))
+          (loop2 (+ target-pos 1) (+ source-pos 1)))))
+    (make-dynamic-vector total-len vec))))
+
+(define-concat-dynamic-vector concat-dynamic-u8vectors u8vector-ref u8vector-set! make-u8vector 0)
+
+
+(define-macro (define-*n-dynamic-vector name vref vset vmake vempty-list)
+  `(define (,name c n)
+  (let* ((len (car c))
+         (vec (cdr c))
+         (total-len (fx* len n))
+         (target-inner-len (get-list-inner-len total-len))
+         (out (,vmake target-inner-len ,vempty-list)))
+    (let loop ((target-pos 0))
+      (if (fx< target-pos total-len)
+        (let inner-loop ((source-pos 0))
+          (if (fx< source-pos len)
+            (begin
+              (,vset out (fx+ target-pos source-pos) (,vref vec source-pos))
+              (inner-loop (fx+ source-pos 1)))
+            (loop (fx+ target-pos len))))
+        (make-dynamic-vector total-len out))))))
+
+(define-*n-dynamic-vector dynamic-u8vector*n u8vector-ref u8vector-set! make-u8vector 0)
+
+
+(define-macro (define-slice-dynamic-vector name vref vset vmake vlist-empty)
+  `(define (,name vec start stop step)
+  (let* ((len (max 0 (ceiling (/ (- stop start) step))))
+        (inner-len (get-list-inner-len len))
+        (out (,vmake inner-len ,vlist-empty)))
+    (let loop ((source start) (target 0))
+      (if (< target len)
+        (begin
+          (,vset out target (,vref vec source))
+          (loop (+ source step) (+ target 1)))))
+    (make-dynamic-vector len out))))
+
+(define-slice-dynamic-vector dynamic-u8vector-slice u8vector-ref u8vector-set! make-u8vector 0)
+
+
+(define-macro (define-py-slice-dynamic-vector name vref vdynamic-slice)
+  `(define (,name dvec slice)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (slice-indices (py-slice-indices slice len)))
+    (,vdynamic-slice
+      vec
+      (vector-ref slice-indices 0)
+      (vector-ref slice-indices 1)
+      (vector-ref slice-indices 2)))))
+
+(define-py-slice-dynamic-vector dynamic-u8vector-py-slice u8vector-ref dynamic-u8vector-slice)
+
+
+(define-macro (vector-ref-to-scheme-int vec index)
+  `(py-subtype-of-int-to-scheme (vector-ref ,vec ,index)))
+
+;; slices of the form lst[1:4]
+(define-macro (define-set-simple-slice-dynamic-vector name vshift-right-by vshift-left-by vset vref)
+  `(define (,name dvec start stop vec len)
+    (let* ((self-vec (cdr dvec))
+           (slice-len (- stop start))
+           (len-diff (- slice-len len)))
+      (cond
+       ((< len-diff 0)
+        (,vshift-right-by dvec start (- len-diff)))
+       ((> len-diff 0)
+        (,vshift-left-by dvec start len-diff)))
+      ;; Update the vector which may have been updated when shifting
+      (set! self-vec (cdr dvec))
+      (let loop ((src-index 0) (tgt-index start))
+        (if (< src-index len)
+            (begin
+              (,vset self-vec tgt-index (,vref vec src-index))
+              (loop (+ src-index 1) (+ tgt-index 1))))))))
+
+
+(define-set-simple-slice-dynamic-vector dynamic-u8vector-u8vector-set-simple-slice! dynamic-u8vector-shift-right-by! dynamic-u8vector-shift-left-by! u8vector-set! u8vector-ref)
+(define-set-simple-slice-dynamic-vector dynamic-u8vector-vector-set-simple-slice! dynamic-u8vector-shift-right-by! dynamic-u8vector-shift-left-by! u8vector-set! vector-ref-to-scheme-int)
+
+;;slices of the form lst[1:6:2] (i.e. with a step)
+(define-macro (define-set-extended-dynamic-vector name vref vset)
+  `(define (,name dvec start stop step vec len)
+  (let ((self-vec (cdr dvec))
+        (slice-len (max 0 (ceiling (/ (- stop start) step)))))
+    (if (= len slice-len)
+      (let loop ((src-index 0) (tgt-index start))
+        (if (< src-index len)
+          (begin
+            (,vset self-vec tgt-index (,vref vec src-index))
+            (loop (+ src-index 1) (+ tgt-index step)))))
+      (py-throw-extended-slice-wrong-len len slice-len)))))
+
+(define-set-extended-dynamic-vector dynamic-u8vector-u8vector-set-extended-slice! u8vector-ref u8vector-set!)
+(define-set-extended-dynamic-vector dynamic-u8vector-vector-set-extended-slice! vector-ref-to-scheme-int u8vector-set!)
+
+
+(define-macro (define-shrink-dynamic-vector name vsubvec)
+  `(define (,name dvec)
+    (let* ((len (car dvec))
+           (vec (cdr dvec))
+           (new-inner-len (get-list-inner-len len)))
+      (set-cdr! dvec (,vsubvec vec 0 new-inner-len)))))
+
+(define-shrink-dynamic-vector dynamic-u8vector-shrink! subu8vector)
+
+(define-macro (define-grow-dynamic-vector name vset vmake vlist-empty vappend)
+  `(define (,name dvec)
+  (let* ((len (car dvec))
+        (vec (cdr dvec))
+        (new-inner-len (get-list-inner-len len)))
+    (set-cdr!
+      dvec
+      (,vappend vec (,vmake (- new-inner-len len) ,vlist-empty))))))
+
+(define-grow-dynamic-vector dynamic-u8vector-grow! u8vector-set! make-u8vector 0 u8vector-append)
+
+(define-macro (define-grow-by-dynamic-vector name vmake vlist-empty vappend )
+  `(define (,name dvec amount)
+    (let* ((len (car dvec))
+           (vec (cdr dvec))
+           (new-inner-len (get-list-inner-len (+ len amount))))
+      (set-cdr!
+       dvec
+       (,vappend vec (,vmake (- new-inner-len len) ,vlist-empty))))))
+
+(define-grow-by-dynamic-vector dynamic-u8vector-grow-by! make-u8vector 0 u8vector-append)
+
+(define-macro (define-shift-left-by-dynamic-vector name vshrink-by vset vempty-list vref vlength)
+  `(define (,name dvec index amount)
+    (if (> amount 0)
+        (let ((len (car dvec))
+              (vec (cdr dvec)))
+          (let loop ((i (max index amount)))
+            (if (< i len)
+                (begin
+                  (,vset vec (- i amount) (,vref vec i))
+                  (,vset vec i ,vempty-list)
+                  (loop (+ i 1)))))
+          (set-car! dvec (- len amount))
+          (if (<
+               len
+               (get-shrink-threshold-len (,vlength vec)))
+              (,vshrink-by dvec))))))
+
+(define-shift-left-by-dynamic-vector dynamic-u8vector-shift-left-by! dynamic-u8vector-shrink! u8vector-set! 0 u8vector-ref u8vector-length)
+
+(define-macro (define-shift-right-by-dynamic-vector name vgrow-by vset vref vlength)
+  `(define (,name dvec index amount)
+    (if (> amount 0)
+        (let ((len (car dvec))
+              (vec (cdr dvec)))
+          (if (>= (+ amount len) (,vlength vec))
+              (begin
+                (,vgrow-by dvec amount)
+                (set! vec (cdr dvec))))
+          (let loop ((i (+ amount len -1)))
+            (if (>= (- i amount) index)
+                (begin
+                  (,vset vec i (,vref vec (- i amount)))
+                  (loop (- i 1)))))
+          (set-car! dvec (+ len amount))))))
+
+(define-shift-right-by-dynamic-vector dynamic-u8vector-shift-right-by! dynamic-u8vector-grow-by! u8vector-set! u8vector-ref u8vector-length)
 
 ;; =========================
 ;; bytearray operations
@@ -5583,7 +5523,7 @@
 ;; note here that we assume that the list is at least of size 1 and contains as first argument the filename
 (define (command-line-argv-set! list-with-file-name)
   (global-own-attr-put-no-cache! sys-mod (& "argv")
-       (py-make-list-elems (map py-str-from-scheme-fallback list-with-file-name))))
+       (py-make-list-from-elems (map py-str-from-scheme-fallback list-with-file-name))))
 
 (define (py-make-sys-mod)
   (let ((mod (py-make-global)))
@@ -5593,7 +5533,7 @@
 
    (global-own-attr-put-no-cache! mod (& "maxsize") (py-int-from-scheme max-fixnum))
    (global-own-attr-put-no-cache! mod (& "path")
-    (py-make-list-elems (map py-str-from-scheme-fallback zipi-stdlib-dir)))
+    (py-make-list-from-elems (map py-str-from-scheme-fallback zipi-stdlib-dir)))
    (global-own-attr-put-no-cache! mod (& "builtin_module_names")
     (py-tuple-from-scheme (list->vector (map py-str-from-scheme-fallback (list "_sys" "builtins" "itertools" "math" "random" "sys" "time")))))
    mod))

@@ -58,7 +58,8 @@
            (class PyObjectComplex::PyObjectNumber)
 
            (class PyObjectList::PyObject
-              value)
+              vector
+              len)
 
            (class PyObjectListIterator::PyObject
               index

@@ -953,6 +953,45 @@
 (define-macro (py-add-strX-strY str1 str2)
   `(py-add-SstrX-SstrY-fallback ,str1 ,str2))
 
+;; operations on lists
+
+(define-macro (py-add-listX-listY list1 list2)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "py-add-listX-listY"))
+
+(define-macro (py-mul-listX-UintY lst n)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "py-mul-listX-UintY"))
+
+(define-macro (py-getitem-listX-sliceY lst item)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "py-getitem-listX-sliceY"))
+
+(define-macro (py-getitem-listX-intY lst item)
+  (let (($lst (gensym 'list)))
+    `(let* ((,$lst ,$lst)
+           (len (PyObjectList-len ,$lst))
+           (vec (PyObjectList-vector ,$lst))
+           (i (py-subtype-of-int-to-scheme item)))
+      (if (index-in-length-range i len)
+        (vector-ref vec (modulo i len))
+        (py-throw-index-out-of-range "list")))))
+
+(define-macro (py-eq-listX-listY list1 list2)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "py-eq-listX-listY"))
+
+(define-macro (py-ne-listX-listY list1 list2)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "py-ne-listX-listY"))
+
+(define-macro (py-lt-listX-listY list1 list2)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "py-lt-listX-listY"))
+
+(define-macro (py-le-listX-listY list1 list2)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "py-le-listX-listY"))
+
+(define-macro (py-gt-listX-listY list1 list2)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "py-gt-listX-listY"))
+
+(define-macro (py-ge-listX-listY list1 list2)
+  `(py-throw-exception-with-message py-builtin-NotImplementedError "py-ge-listX-listY"))
+
 ;; all zipi PyObjectType have reserved slots for the following magic methods
 ;; see: ;; https://docs.python.org/3/reference/datamodel.html
 (define-macro (with-list-of-magic-attrs . args)
@@ -1251,7 +1290,7 @@
 (define-macro (with-class-indices-info . args)
   (let ((info
             ;; WARNING: type must be ordered by class-index and only one
-            ;; type by index can have has-specialized-behavior set to #t
+            ;; type by index can have has-arithmetic-behavior set to #t
 
             ;; name   class-index  has-arithmetic-behavior   can-have-getter
           '((default       0               #t                   #t)
