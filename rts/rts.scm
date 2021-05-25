@@ -3133,8 +3133,10 @@
 (define (list-shrink! list)
   (let* ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list))
-        (new-inner-len (get-list-inner-len len)))
-    (PyObjectList-vector-set! list (subvector vec 0 new-inner-len))))
+        (new-inner-len (get-list-inner-len len))
+        (new-vector (subvector vec 0 new-inner-len)))
+    (PyObjectList-vector-set! list new-vector)
+    new-vector))
 
 (define (list-grow! list)
   (list-grow-by! list 1))
@@ -3142,10 +3144,12 @@
 (define (list-grow-by! list amount)
   (let* ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list))
-        (new-inner-len (get-list-inner-len (+ len amount))))
+        (new-inner-len (get-list-inner-len (+ len amount)))
+        (new-vector (vector-append vec (make-vector (- new-inner-len len) list-empty-cell))))
     (PyObjectList-vector-set!
       list
-      (vector-append vec (make-vector (- new-inner-len len) list-empty-cell)))))
+      new-vector)
+    new-vector))
 
 (define (list-shift-left! lst index)
   (let ((len (PyObjectList-len lst))
@@ -3160,19 +3164,20 @@
     (if (< len (get-shrink-threshold-len (vector-length vec)))
       (list-shrink! lst))))
 
-(define (list-shift-left-by! list index amount)
-  (let ((len (PyObjectList-len lst))
-        (vec (PyObjectList-vector lst)))
-    (let loop ((i (max index amount)))
-      (if (< i len)
-        (begin
-          (vector-set! vec (- i amount) (vector-ref vec i))
-          (vector-set! vec i list-empty-cell)
-          (loop (+ i 1)))))
-    (vector-set! vec (- len 1) list-empty-cell)
-    (PyObjectList-len-set! lst (- len 1))
-    (if (< len (get-shrink-threshold-len (vector-length vec)))
-      (list-shrink! lst))))
+(define (list-shift-left-by! lst index amount)
+  (if (> amount 0)
+    (let ((len (PyObjectList-len lst))
+          (vec (PyObjectList-vector lst)))
+      (let loop ((i (max index amount)))
+        (if (< i len)
+          (begin
+            (vector-set! vec (- i amount) (vector-ref vec i))
+            (vector-set! vec i list-empty-cell)
+            (loop (+ i 1)))))
+      (vector-set! vec (- len 1) list-empty-cell)
+      (PyObjectList-len-set! lst (- len amount))
+      (if (< len (get-shrink-threshold-len (vector-length vec)))
+        (list-shrink! lst)))))
 
 ;; NOTE: shift-right does not insert 'list-empty-cell' at index
 ;;       it is assumed shift is done with intent to write at index
@@ -3180,7 +3185,7 @@
   (let ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list)))
     (if (= len (vector-length vec))
-      (list-grow! list))
+      (set! vec (list-grow! list)))
     (let loop ((i len))
       (if (> i index)
         (begin
@@ -3193,7 +3198,7 @@
     (let ((len (PyObjectList-len lst))
           (vec (PyObjectList-vector lst)))
       (if (>= (+ amount len) (vector-length vec))
-        (list-grow-by! lst amount))
+        (set! vec (list-grow-by! lst amount)))
       (let loop ((i (+ amount len -1)))
         (if (>= (- i amount) index)
           (begin
@@ -3358,22 +3363,22 @@
            (vec (PyObjectList-vector self))
            (start-index
             (if start
-              0
               (if (py-subtype-of-int? start)
                 (let ((val (py-subtype-of-int-to-scheme start)))
                   (if (< val 0)
                     (modulo (max (- len) val) len)
                     (min len val)))
-                    (py-throw-wrong-index-type "list" "integers" start))))
+                    (py-throw-wrong-index-type "list" "integers" start))
+              0))
            (stop-index
              (if stop
-               len
                (if (py-subtype-of-int? stop)
                  (let ((val (py-subtype-of-int-to-scheme stop)))
                    (if (< val 0)
                      (modulo (max (- len) val) len)
                      (min len val)))
-                     (py-throw-wrong-index-type "list" "integers" stop)))))
+                     (py-throw-wrong-index-type "list" "integers" stop))
+              len)))
       (let ((res (py-index-in-subvector item vec start-index stop-index)))
         (if res
           (py-int-from-scheme res)

@@ -1014,7 +1014,7 @@
     (let loop ((source ,$start) (target 0))
       (if (< target ,$res-len)
         (begin
-          (vector-set ,$res-vec target (vector-ref ,$vec source))
+          (vector-set! ,$res-vec target (vector-ref ,$vec source))
           (loop (+ source ,$step) (+ target 1)))
         (py-list-from-scheme ,$res-vec ,$res-len))))))
 
