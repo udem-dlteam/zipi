@@ -2220,16 +2220,27 @@
               ,forelse))))
       (py-for-each ,element ,iterable ,body cps: #t loop: loop forelse: forelse))))
 
-(define-macro (py-for-each element iterable body #!key (cps #f) (loop (gensym 'loop)) (forelse #f))
-  (let ((iterator-sym (gensym 'it)))
-    `(let ((,iterator-sym (py-iter ,iterable)))
-      (let ,loop ()
-        (let ((,element (py-next ,iterator-sym)))
-          (if ,element
-            (begin
-              ,body
-              ,@(if cps '() (list `(,loop))))
-            ,@(if forelse (list forelse) '())))))))
+(define-macro (py-for-each element iterable body . rest)
+   (let ((cps #f)
+	 (loop (gensym 'loop))
+	 (forelse #f))
+      (when (pair? rest)
+	 (set! cps (car rest))
+	 (set! rest (cdr rest)))
+      (when (pair? rest)
+	 (set! loop (car rest))
+	 (set! rest (cdr rest)))
+      (when (pair? rest)
+	 (set! forelse (car rest)))
+      (let ((iterator-sym (gensym 'it)))
+	 `(let ((,iterator-sym (py-iter ,iterable)))
+	     (let ,loop ()
+		  (let ((,element (py-next ,iterator-sym)))
+		     (if ,element
+			 (begin
+			    ,body
+			    ,@(if cps '() (list `(,loop))))
+			 ,@(if forelse (list forelse) '()))))))))
 
 (define-macro (py-for-each-cps element iterable body)
   #f)

@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Mar 28 15:09:08 2019                          */
-;*    Last change :  Sun Apr 12 13:07:06 2020 (serrano)                */
+;*    Last change :  Tue May 25 13:15:43 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    HopScript constant expanders                                     */
@@ -246,7 +246,8 @@
 		 (else
 		  (vector 2 n)))))
 	  ((eq? (string-minimal-charset val) 'ascii)
-	   (vector 0 val))
+;* 	   (vector 0 val)                                              */
+	   `(&pystring ,val))
 	  (else
 	   (vector 1 val))))
       (else
