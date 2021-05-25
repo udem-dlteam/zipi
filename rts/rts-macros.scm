@@ -987,6 +987,20 @@
     ;; add info as first arg to allow rest arguments
     `(,(car args) ,list-of-magic-attrs ,@(cdr args))))
 
+(define-macro (fill-representatives-magic-index)
+  `(with-list-of-magic-attrs $fill-representatives-magic-index))
+
+(define-macro ($fill-representatives-magic-index list-of-magic-attrs)
+  `(begin
+    ,@(let loop ((list-of-magic-attrs list-of-magic-attrs) (i 0))
+      (if (null? list-of-magic-attrs)
+        '()
+        (cons
+          `(PyObjectStrRep-magic-index-set!
+            (& ,(car list-of-magic-attrs))
+            ,i)
+          (loop (cdr list-of-magic-attrs) (+ i 1)))))))
+
 (define-macro (get-list-of-magic-attrs)
   `(with-list-of-magic-attrs $get-list-of-magic-attrs))
 
