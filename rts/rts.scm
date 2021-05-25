@@ -2861,15 +2861,14 @@
           (let ((iterable-type (py-type iterable)))
            (cond
              ((eq? iterable-type py-tuple-class)
-              (let ((vec (PyObjectTuple-value iterable)))
                (py-list-subtype-from-scheme
                  cls
-                 vec
-                 (vector-length vec))))
+                 (vector-copy (PyObjectTuple-value iterable))
+                 (vector-length vec)))
              ((eq? iterable-type py-list-class)
                (py-list-subtype-from-scheme
                  cls
-                 (PyObjectList-vector iterable)
+                 (vector-copy (PyObjectList-vector iterable))
                  (PyObjectList-len iterable)))
              (else
                (let* ((iterator (py-iter iterable))
@@ -3073,11 +3072,33 @@
     list-getitem
     (make-signature posonlyargs: (self item))))
 
-(define-macro (list-set-simple-slice! lst start stop vec len)
-  `(py-throw-exception-with-message py-builtin-NotImplementedError "list-set-simple-slice!"))
+(define (list-set-simple-slice! lst start stop vec len)
+  (let* ((self-vec (PyObjectList-vector lst))
+         (slice-len (- stop start))
+         (len-diff (- slice-len len)))
+    (cond
+     ((< len-diff 0)
+      (list-shift-right-by! lst start (- len-diff)))
+     ((> len-diff 0)
+      (list-shift-left-by! lst start len-diff)))
+    ;; Update the vector which may have been updated when shifting
+    (set! self-vec (PyObjectList-vector lst))
+    (let loop ((source 0) (target start))
+      (if (< source len)
+          (begin
+            (vector-set! self-vec target (vector-ref vec source))
+            (loop (+ source 1) (+ target 1)))))))
 
-(define-macro (list-set-extended-slice! lst start stop step vec len)
-  `(py-throw-exception-with-message py-builtin-NotImplementedError "list-set-extended-slice!"))
+(define (list-set-extended-slice! lst start stop step vec len)
+  (let ((self-vec (PyObjectList-vector lst))
+         (slice-len (max 0 (ceiling (/ (- stop start) step)))))
+    (if (= len slice-len)
+      (let loop ((source 0) (target start))
+        (if (< source len)
+          (begin
+            (vector-set! self-vec target (vector-ref vec source))
+            (loop (+ source 1) (+ target step)))))
+      (py-throw-extended-slice-wrong-len len slice-len))))
 
 (define (list-set-slice self slice value)
   (let* ((self-len (PyObjectList-len self))
