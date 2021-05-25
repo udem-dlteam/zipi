@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Mar 28 15:09:08 2019                          */
-;*    Last change :  Tue May 25 13:15:43 2021 (serrano)                */
+;*    Last change :  Tue May 25 14:51:00 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    HopScript constant expanders                                     */
@@ -240,14 +240,15 @@
 		 ((char=? (string-ref val 0) #\+)
 		  (vector 0 val))
 		 ((=fx (string-length val) 1)
-		  (vector 2 n))
+		  ;;(vector 2 n)
+		  (vector 0 val))
 		 ((and (char=? (string-ref val 0) #\0) (not (=fx n 0)))
 		  (vector 0 val))
 		 (else
-		  (vector 2 n)))))
+		  ;;(vector 2 n)
+		  (vector 0 val)))))
 	  ((eq? (string-minimal-charset val) 'ascii)
-;* 	   (vector 0 val)                                              */
-	   `(&pystring ,val))
+	   (vector 0 val))
 	  (else
 	   (vector 1 val))))
       (else

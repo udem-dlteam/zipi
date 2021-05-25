@@ -320,7 +320,7 @@
             ,i)
           (loop (cdr list-of-magic-attrs) (+ i 1)))))))
 
-(fill-representatives-magic-index)
+;; (fill-representatives-magic-index)
 
 (define list-of-magic-attrs (get-list-of-magic-attrs))
 
@@ -2369,6 +2369,7 @@
 
     ;; init all object (& ...) to a py-str object
     (init-registered-constants)
+    (fill-representatives-magic-index)
 
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)

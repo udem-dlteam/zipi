@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue May 25 12:37:12 2021 (serrano)                */
+;*    Last change :  Tue May 25 14:46:00 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -416,7 +416,6 @@
 
            (&pystring-init str)
            (py-init-registered-constants strings)
-	   (&pystring str)
 
            (py-make-tuple . els)
 
@@ -810,17 +809,8 @@
 	  py-str-hclass-of-instances))
       (else
        (vector-map! (lambda (s)
-                       (let ((str (vector-ref s 1)))
-			  (cond
-			     ((table-ref (get-registered-constants-table) str)
-			      =>
-			      (lambda (o) o))
-			     ((isa? s PyObjectStrRep)
-			      (with-access::PyObjectStrRep s (hclass class)
-				 (set! hclass py-str-hclass-of-instances)
-				 (set! class py-str-class)
-				 s))
-			     (else
+		       (let ((str (vector-ref s 1)))
+			  (or (table-ref (get-registered-constants-table) str)
 			      (let ((o (instantiate::PyObjectStrRep
 					  (len (string-length str))
 					  (part1-or-string str)
@@ -831,8 +821,9 @@
 					  (class py-str-class))))
 				 (with-access::PyObjectStrRep o (part2-or-rep)
 				    (set! part2-or-rep o))
-				 (table-set! (get-registered-constants-table) str o)
-				 o)))))
+				 (table-set! (get-registered-constants-table)
+				    str o)
+				 o))))
 	  strings))))
 
 ;*---------------------------------------------------------------------*/
@@ -854,24 +845,6 @@
        #f))
 
 ;*---------------------------------------------------------------------*/
-;*    &pystring ...                                                    */
-;*---------------------------------------------------------------------*/
-(define (&pystring str)
-   (or (table-ref (get-registered-constants-table) str)
-       (let ((o (instantiate::PyObjectStrRep
-		   (len (string-length str))
-		   (part1-or-string str)
-		   (part2-or-rep #f)
-		   (hash 0)
-		   (magic-index #f)
-		   (hclass #f)
-		   (class #f))))
-	  (with-access::PyObjectStrRep o (part2-or-rep)
-	     (set! part2-or-rep o))
-	  (table-set! (get-registered-constants-table) str o)
-	  o)))
-
-;*---------------------------------------------------------------------*/
 ;*    constants                                                        */
 ;*---------------------------------------------------------------------*/
 (start-registering-constants)
@@ -887,8 +860,11 @@
 (define-method (exception-notify o::PyObject)
    (display (format "*** EXCEPTION: ~s\n" o) (current-error-port)))
 
+;*---------------------------------------------------------------------*/
+;*    bootstrap-builtins ...                                           */
+;*---------------------------------------------------------------------*/
 (define (bootstrap-builtins)
-  (error "NotImplemented:" "builtins.py bootstrap as module" ""))
+   ((@ zipi-init __stdlib_builtins) "builtins" "" ""))
 
 ;*---------------------------------------------------------------------*/
 ;*    PCache                                                           */
