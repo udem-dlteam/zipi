@@ -955,6 +955,67 @@
 
 ;; operations on lists
 
+(define-macro (list-get-inner-len len)
+  `(let (($len ,len))
+    (fx+
+      4
+      (fx+ $len
+           (fxquotient $len 8))))) ;; growth factor = 1.125
+
+(define-macro (list-get-shrink-threshold len)
+  `(let (($len ,len))
+    (fxmax
+      4
+      (fx- $len
+           (fxquotient $len 3)))))
+
+(define-macro (py-make-list . elements)
+  (define (list-get-inner-len len)
+    (fx+ 4 (fx+ len (fxquotient len 8)))) ;; must mirror list-get-inner-len macro
+
+  (let* ((len (length elements))
+         (inner-len (list-get-inner-len len))
+         (empty-len (- inner-len len)))
+    `(py-list-from-scheme
+      (vector ,@elements ,@(make-list empty-len #f))
+      ,len)))
+
+(define-macro (py-list-from-scheme vec len)
+  `(make-PyObjectList
+    py-list-hclass-of-instances
+    '#()
+    py-list-class
+    ,vec
+    ,len))
+
+(define-macro (py-list-subtype-from-scheme cls vec len)
+  `(make-PyObjectList
+    (PyObjectType-hclass-of-instances cls)
+    '#()
+    ,cls
+    ,vec
+    ,len))
+
+(define-macro (py-make-list-from-elems elements)
+  `(let* (($elements ,elements)
+          (len (length $elements))
+          (inner-len (list-get-inner-len len))
+          (vec (make-vector inner-len #f)))
+    (let loop ((i 0) (lst $elements))
+      (if (null? lst)
+        (py-list-from-scheme vec len)
+        (begin
+          (vector-set! vec i (car lst))
+          (loop (fx+ i 1) (cdr lst)))))))
+
+(define-macro (py-make-list-from-vec vec)
+  `(let* (($vec ,vec)
+          (len (vector-length $vec))
+          (inner-len (list-get-inner-len len))
+          (new-vector (make-vector inner-len #f)))
+    (subvector-move! $vec 0 len new-vector 0)
+    (py-list-from-scheme new-vector len)))
+
 (define-macro (py-add-listX-listY-inline list1 list2)
   (let (($list1 (gensym 'list))
         ($list2 (gensym 'list))
@@ -967,7 +1028,7 @@
            (,$len1 (PyObjectList-len ,$list1))
            (,$len2 (PyObjectList-len ,$list2))
            (,$res-len (fx+ ,$len1 ,$len2))
-           (,$res-vec (make-vector (get-list-inner-len ,$res-len) list-empty-cell)))
+           (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
       (subvector-move! (PyObjectList-vector ,$list1) 0 ,$len1 ,$res-vec 0)
       (subvector-move! (PyObjectList-vector ,$list2) 0 ,$len2 ,$res-vec ,$len1)
       (py-list-from-scheme ,$res-vec ,$res-len))))
@@ -984,7 +1045,7 @@
            (,$vec (PyObjectList-vector ,$list))
            (,$n ,n)
            (,$res-len (* ,$n ,$len))
-           (,$res-vec (make-vector (get-list-inner-len ,$res-len) list-empty-cell)))
+           (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
       (let loop ((i 0))
         (if (< i ,$res-len)
           (begin
@@ -1010,7 +1071,7 @@
          (,$stop (vector-ref ,$indices 1))
          (,$step (vector-ref ,$indices 2))
          (,$res-len (max 0 (ceiling (/ (- ,$stop ,$start) ,$step))))
-         (,$res-vec (make-vector (get-list-inner-len ,$res-len) list-empty-cell)))
+         (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
     (let loop ((source ,$start) (target 0))
       (if (< target ,$res-len)
         (begin

@@ -1668,9 +1668,8 @@
                    (py-tuple-subtype-from-scheme value cls))))
              ((eq? iterable-type py-list-class)
               (let* ((vec (PyObjectList-vector iterable))
-                     (len (PyObjectList-len iterable))
-                     (elements (subvector vec 0 len)))
-               (py-tuple-subtype-from-scheme (vector-copy vec) cls)))
+                     (len (PyObjectList-len iterable)))
+               (py-tuple-subtype-from-scheme (subvector vec 0 len) cls)))
              (else
                (let* ((iterator (py-iter iterable))
                       (content (list->vector (iterator->list iterator))))
@@ -2810,50 +2809,6 @@
       (else
         (loop (+ i 1))))))
 
-(define list-growth-factor 1.125)
-(define list-shrink-threshold 1.5)
-(define min-list-inner-length 5)
-(define list-empty-cell (cons 'empty-cell '()))
-
-(define (get-list-inner-len len)
-  (+
-    min-list-inner-length
-    (inexact->exact (round (* len list-growth-factor)))))
-
-(define (get-shrink-threshold-len inner-len)
-  (- (round (/ inner-len list-shrink-threshold)) min-list-inner-length))
-
-(define (py-make-list . elements)
-  (let ((vec (list->vector elements)))
-    (py-list-from-scheme
-      vec
-      (vector-length vec))))
-
-(define (py-make-list-from-elems elements)
-  (let ((vec (list->vector elements)))
-    (py-list-from-scheme
-      vec
-      (vector-length vec))))
-
-(define (py-make-list-from-vec vec)
-  (py-list-from-scheme vec (vector-length vec)))
-
-(define (py-list-from-scheme vec len)
-  (make-PyObjectList
-    py-list-hclass-of-instances
-    '#()
-    py-list-class
-    vec
-    len))
-
-(define (py-list-subtype-from-scheme cls vec len)
-  (make-PyObjectList
-    (PyObjectType-hclass-of-instances cls)
-    '#()
-    cls
-    vec
-    len))
-
 (define (list-new cls iterable)
   (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
       (if (eq? iterable py-absent)
@@ -3154,7 +3109,7 @@
 (define (list-shrink! list)
   (let* ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list))
-        (new-inner-len (get-list-inner-len len))
+        (new-inner-len (list-get-inner-len len))
         (new-vector (subvector vec 0 new-inner-len)))
     (PyObjectList-vector-set! list new-vector)
     new-vector))
@@ -3165,8 +3120,8 @@
 (define (list-grow-by! list amount)
   (let* ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list))
-        (new-inner-len (get-list-inner-len (+ len amount)))
-        (new-vector (vector-append vec (make-vector (- new-inner-len len) list-empty-cell))))
+        (new-inner-len (list-get-inner-len (+ len amount)))
+        (new-vector (vector-append vec (make-vector (- new-inner-len len) #f))))
     (PyObjectList-vector-set!
       list
       new-vector)
@@ -3180,9 +3135,9 @@
         (begin
           (vector-set! vec (- i 1) (vector-ref vec i))
           (loop (+ i 1)))))
-    (vector-set! vec (- len 1) list-empty-cell)
+    (vector-set! vec (- len 1) #f)
     (PyObjectList-len-set! lst (- len 1))
-    (if (< len (get-shrink-threshold-len (vector-length vec)))
+    (if (< len (list-get-shrink-threshold (vector-length vec)))
       (list-shrink! lst))))
 
 (define (list-shift-left-by! lst index amount)
@@ -3193,14 +3148,14 @@
         (if (< i len)
           (begin
             (vector-set! vec (- i amount) (vector-ref vec i))
-            (vector-set! vec i list-empty-cell)
+            (vector-set! vec i #f)
             (loop (+ i 1)))))
-      (vector-set! vec (- len 1) list-empty-cell)
+      (vector-set! vec (- len 1) #f)
       (PyObjectList-len-set! lst (- len amount))
-      (if (< len (get-shrink-threshold-len (vector-length vec)))
+      (if (< len (list-get-shrink-threshold (vector-length vec)))
         (list-shrink! lst)))))
 
-;; NOTE: shift-right does not insert 'list-empty-cell' at index
+;; NOTE: shift-right does not insert #f at index
 ;;       it is assumed shift is done with intent to write at index
 (define (list-shift-right! list index)
   (let ((len (PyObjectList-len list))
@@ -3232,9 +3187,9 @@
         (vec (PyObjectList-vector lst))
         (last-index (- len 1))
         (last (vector-ref vec last-index)))
-    (vector-set! vec last-index list-empty-cell)
+    (vector-set! vec last-index #f)
     (PyObjectList-len-set! lst last-index)
-    (if (< len (get-shrink-threshold-len (vector-length vec)))
+    (if (< len (list-get-shrink-threshold (vector-length vec)))
       (list-shrink! lst))
       last))
 
@@ -3318,11 +3273,11 @@
 (define (list-append self value)
   (if (py-isinstance? self py-list-class)
     (let* ((len (PyObjectList-len self))
-           (vec (PyObjectList-vector self)))
-      (if (= len (vector-length vec))
-        (begin
-          (list-grow! self)
-          (set! vec (PyObjectList-vector self))))
+           (vec
+             (let ((vec (PyObjectList-vector self)))
+               (if (= len (vector-length vec))
+                  (list-grow! self)
+                  vec))))
       (vector-set! vec len value)
       (PyObjectList-len-set! self (+ len 1)))
     (py-throw-not-a-type-object "list.append" self))
@@ -3336,7 +3291,7 @@
 (define (list-clear self)
   (if (py-isinstance? self py-list-class)
     (begin
-      (PyObjectList-vector-set! self (make-vector min-list-inner-length list-empty-cell))
+      (PyObjectList-vector-set! self (make-vector (list-get-inner-len 0) #f))
       (PyObjectList-len-set! self 0))
     (py-throw-not-a-type-object "list.clear" self))
   py-None)
@@ -3349,9 +3304,7 @@
 ;; Could not call list-copy due to collision with Scheme list-copy
 (define (list-copy-procedure self)
   (if (py-isinstance? self py-list-class)
-    (py-list-from-scheme
-      (vector-copy (PyObjectList-vector self))
-      (PyObjectList-len self))
+    (py-list-from-scheme (vector-copy (PyObjectList-vector self)) (PyObjectList-len self))
     (py-throw-not-a-type-object "list.copy" self)))
 
 (define list.copy
@@ -3436,12 +3389,11 @@
 
 (define (list-extend-with-vector-head! lst source-vec stop)
   (let* ((len (PyObjectList-len lst))
-        (vec (PyObjectList-vector lst))
-        (inner-len (vector-length vec)))
-    (if (>= stop (- inner-len len))
-      (begin
-        (list-grow-by! lst stop)
-        (set! vec (PyObjectList-vector lst))))
+         (vec
+           (let ((vec (PyObjectList-vector lst)))
+             (if (>= stop (- (vector-length vec) len))
+                 (list-grow-by! lst stop)
+                 vec))))
     (let loop ((i len) (j 0))
       (if (< j stop)
         (begin
@@ -3715,7 +3667,7 @@
 
 (define (vector-slice vec start stop step)
   (let* ((len (max 0 (ceiling (/ (- stop start) step))))
-        (out (make-vector len list-empty-cell)))
+        (out (make-vector len #f)))
     (let loop ((source start) (target 0))
       (if (< target len)
         (begin
@@ -3857,7 +3809,6 @@
     slice-indices
     (make-signature posonlyargs: (self len))))
 
-
 ;; ===========================================
 ;; dynamic vector operations used by bytearray
 ;; ===========================================
@@ -3874,7 +3825,7 @@
         (len2 (car container2))
         (v2 (cdr container2))
         (total-len (+ len1 len2))
-        (vec-len (get-list-inner-len total-len))
+        (vec-len (list-get-inner-len total-len))
         (vec (,vmake vec-len ,vempty-list)))
     (let loop1 ((target-pos 0) (source-pos 0))
       (if (< source-pos len1)
@@ -3896,7 +3847,7 @@
   (let* ((len (car c))
          (vec (cdr c))
          (total-len (fx* len n))
-         (target-inner-len (get-list-inner-len total-len))
+         (target-inner-len (list-get-inner-len total-len))
          (out (,vmake target-inner-len ,vempty-list)))
     (let loop ((target-pos 0))
       (if (fx< target-pos total-len)
@@ -3914,7 +3865,7 @@
 (define-macro (define-slice-dynamic-vector name vref vset vmake vlist-empty)
   `(define (,name vec start stop step)
   (let* ((len (max 0 (ceiling (/ (- stop start) step))))
-        (inner-len (get-list-inner-len len))
+        (inner-len (list-get-inner-len len))
         (out (,vmake inner-len ,vlist-empty)))
     (let loop ((source start) (target 0))
       (if (< target len)
@@ -3987,7 +3938,7 @@
   `(define (,name dvec)
     (let* ((len (car dvec))
            (vec (cdr dvec))
-           (new-inner-len (get-list-inner-len len)))
+           (new-inner-len (list-get-inner-len len)))
       (set-cdr! dvec (,vsubvec vec 0 new-inner-len)))))
 
 (define-shrink-dynamic-vector dynamic-u8vector-shrink! subu8vector)
@@ -3996,7 +3947,7 @@
   `(define (,name dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
-        (new-inner-len (get-list-inner-len len)))
+        (new-inner-len (list-get-inner-len len)))
     (set-cdr!
       dvec
       (,vappend vec (,vmake (- new-inner-len len) ,vlist-empty))))))
@@ -4007,7 +3958,7 @@
   `(define (,name dvec amount)
     (let* ((len (car dvec))
            (vec (cdr dvec))
-           (new-inner-len (get-list-inner-len (+ len amount))))
+           (new-inner-len (list-get-inner-len (+ len amount))))
       (set-cdr!
        dvec
        (,vappend vec (,vmake (- new-inner-len len) ,vlist-empty))))))
@@ -4028,7 +3979,7 @@
           (set-car! dvec (- len amount))
           (if (<
                len
-               (get-shrink-threshold-len (,vlength vec)))
+               (list-get-shrink-threshold (,vlength vec)))
               (,vshrink-by dvec))))))
 
 (define-shift-left-by-dynamic-vector dynamic-u8vector-shift-left-by! dynamic-u8vector-shrink! u8vector-set! 0 u8vector-ref u8vector-length)

@@ -452,12 +452,20 @@
     py-concat-strX-strY
     py-mul-UstrX-UintY
 
+    py-list-class
+    py-make-list
+    py-list-from-scheme
+    py-make-list-from-elems
+    py-make-list-from-vec
+    make-PyObjectList
+    PyObjectType-hclass-of-instances
+    list-get-inner-len
+    list-get-shrink-threshold
+
     py-slice-from-scheme
     py-bytearray-from-scheme
     py-set-from-scheme
     py-tuple-from-scheme
-    py-make-list
-    py-make-list-vec
     py-make-dict
     py-make-set
     py-make-tuple
