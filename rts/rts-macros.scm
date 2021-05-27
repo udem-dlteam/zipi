@@ -1455,20 +1455,22 @@
 
 (define-macro (with-class-indices-info . args)
   (let ((info
-            ;; WARNING: type must be ordered by class-index and only one
-            ;; type by index can have has-arithmetic-behavior set to #t
+            ;; WARNING: type must be ordered by class-index
 
             ;; name   class-index  has-arithmetic-behavior   can-have-getter
-          '((default       0               #t                   #t)
-            (type          0               #f                   #f)
-            (object        0               #f                   #f)
-            (tuple         0               #f                   #f)
-            (sint          1               #t                   #f) ;; is a sint index necessary?
+          '((default       0               #t                   #t) ;; reserved spot for default semantics
+            (sint          1               #t                   #f)
             (bint          2               #t                   #f)
             (bool          3               #t                   #f)
             (float         4               #t                   #f)
             (str           5               #t                   #f)
-            (function      6               #f                   #t))))
+            ;; extra indices with no arithmetic optimisations (NOTE: must be at tail of the list)
+            (object        6               #f                   #f)
+            (type          7               #f                   #f)
+            (function      8               #f                   #t)
+            (generator     9               #f                   #f)
+            (tuple         10              #f                   #f)
+            (list          11              #f                   #f))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -1561,9 +1563,11 @@
     (error "py-make-builtin-class" "name argument must be a static PyObjectStr" name)))
 
 (define-macro (init-behavior-dispatch-vector)
- `(with-class-indices-info $init-behavior-dispatch-vector))
+ `(begin
+   (with-class-indices-info $init-arithmetic-behavior-dispatch-vector)
+   (with-class-indices-info $init-iteration-behavior-dispatch-vector)))
 
-(define-macro ($init-behavior-dispatch-vector indices-info)
+(define-macro ($init-arithmetic-behavior-dispatch-vector indices-info)
   (define types-with-specialized-behaviors
     (let loop ((info indices-info))
       (cond
@@ -1572,7 +1576,10 @@
           (cons (car info) (loop (cdr info))))
         (else (loop (cdr info))))))
 
-  (define behavior-table-size (length types-with-specialized-behaviors)) ;; one by behavior + default
+  (define behavior-table-size (+ 1 (apply max (map cadr indices-info)))) ;; one by behavior + default
+
+  ;; those are the tail behaviors which have no arithmetic behavior, but have a class index and so must have a slot in the vector
+  (define behavior-table-default-tail-size (- behavior-table-size (length types-with-specialized-behaviors)))
 
   (define inplace-ops
     '(iadd ibitand ibitor ifloordiv ilshift imatmul imod imul ipow irshift isub itruediv ixor))
@@ -1610,7 +1617,10 @@
 
   (define (use-default-binary-semantics? op lhs-type rhs-type)
     (cond
-      ((or (eq? lhs-type 'default) (eq? rhs-type 'default))
+      ((or (eq? lhs-type 'default)
+           (eq? rhs-type 'default)
+           (not (memq lhs-type types-with-specialized-behaviors))
+           (not (memq rhs-type types-with-specialized-behaviors)))
         #t)
       ((and (memq op '(mod imod))
             (eq? lhs-type 'str))
@@ -1646,7 +1656,7 @@
           "Y-fallback"))))
 
   (define (get-unary-behavior-name op type)
-    (if (eq? type 'default)
+    (if (or (eq? type 'default) (not (memq type types-with-specialized-behaviors)))
       ;; use the full semantics
       (string->symbol
           (string-append "py-" (symbol->string op) "-fallback:normal"))
@@ -1660,7 +1670,7 @@
           "X-fallback"))))
 
   (define (get-unary-truthiness-behavior-name op type)
-    (if (eq? type 'default)
+    (if (or (eq? type 'default) (not (memq type types-with-specialized-behaviors)))
       ;; use the full semantics
       (string->symbol
           (string-append "py-" (symbol->string op) "-fallback"))
@@ -1674,10 +1684,10 @@
           "X-fallback"))))
 
   (define (make-binary-behaviors-list op)
-    (let lhs-loop ((lhs-types types-with-specialized-behaviors))
+    (let lhs-loop ((lhs-types indices-info))
       (if (null? lhs-types)
         '()
-        (let rhs-loop ((rhs-types types-with-specialized-behaviors))
+        (let rhs-loop ((rhs-types indices-info))
           (if (null? rhs-types)
             (lhs-loop (cdr lhs-types))
             (cons
@@ -1685,7 +1695,7 @@
               (rhs-loop (cdr rhs-types))))))))
 
   (define (make-unary-behaviors-list op)
-    (let loop ((types types-with-specialized-behaviors))
+    (let loop ((types indices-info))
       (if (null? types)
         '()
         (cons
@@ -1693,7 +1703,7 @@
           (loop (cdr types))))))
 
   (define (make-unary-truthiness-behaviors-list op)
-    (let loop ((types types-with-specialized-behaviors))
+    (let loop ((types indices-info))
       (if (null? types)
         '()
         (cons
@@ -1770,6 +1780,26 @@
     `(begin
         ,@tables-init-code
         ,@behavior-call-fallbacks)))
+
+(define-macro ($init-iteration-behavior-dispatch-vector indices-info)
+  (define for-iter-behavior-table-size (+ 1 (apply max (map cadr indices-info))))
+
+  `(begin
+    (define py-for-iter-behaviors-table
+      (make-vector ,for-iter-behavior-table-size py-iter-fallback))
+
+    (vector-set!
+      py-for-iter-behaviors-table
+      (get-behavior-type-index list)
+      (lambda (lst)
+        (let ((i 0))
+          (lambda ()
+            (let ((len (PyObjectList-len lst))
+                  (vec (PyObjectList-vector lst)))
+              (and (fx< i len)
+                   (let ((tmp (vector-ref vec i)))
+                     (set! i (fx+ i 1))
+                     tmp)))))))))
 
 (define-macro (get-behavior-index lhs-index rhs-index)
    `(with-class-indices-info $get-behavior-index ,lhs-index ,rhs-index))
@@ -2281,6 +2311,16 @@
       (else
         (py-descriptor-get-fallback $attr $instance $owner)))))
 
+(define-macro (py-iter obj)
+  `(py-iter-fallback ,obj))
+
+(define-macro (py-for-iter obj)
+  (let (($obj (gensym 'iterable))
+        ($index (gensym 'cls-index)))
+    `(let* ((,$obj ,obj)
+            (,$index (py-obj-class-index ,$obj)))
+      ((vector-ref py-for-iter-behaviors-table ,$index) ,$obj))))
+
 (define-macro (py-for-each-maybe-range-call:iter $iter-callee $start $stop $step . args-names)
   `(if (and (eq? ,$iter-callee py-builtin-range)
            (fixnum? ,$start)
@@ -2293,15 +2333,19 @@
              (bigloo
                (fixnum? (+ ,$stop ,$step)))))
     ,$start
-    (py-iter (py-call ,$iter-callee ,@args-names))))
+    (py-for-iter (py-call ,$iter-callee ,@args-names))))
 
 (define-macro (py-for-each-maybe-range:next $state $stop $step)
-  `(if (fixnum? ,$state)
-    (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
-            (and (fx> ,$step 0) (fx< ,$state ,$stop)))
-      ,$state
-      #f)
-    (py-next ,$state)))
+  `(cond
+    ((fixnum? ,$state)
+      (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
+              (and (fx> ,$step 0) (fx< ,$state ,$stop)))
+        ,$state
+        #f))
+    ((procedure? ,$state)
+      (,$state))
+    (else
+      (py-next ,$state))))
 
 (define-macro (py-for-each-maybe-range-call element iter-callee body . args)
   (let* (($state (gensym 'state))
@@ -2354,7 +2398,7 @@
               (bigloo
                 (fixnum? (+ ,$stop ,$step)))))
     ,$start
-    (py-iter ,$iterable)))
+    (py-for-iter ,$iterable)))
 
 (define-macro (py-for-each-maybe-range element iterable body)
   (let* (($it-cls (gensym 'iterator-cls))
@@ -2380,12 +2424,16 @@
 
 (define-macro (py-for-each-maybe-range-cps:next $state $stop $step)
   (let (($next (gensym 'next-state)))
-    `(if (fixnum? ,$state)
-      (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
-              (and (fx> ,$step 0) (fx< ,$state ,$stop)))
-        (let ((,$next ,$state)) (set! ,$state (fx+ ,$next ,$step)) ,$next)
-        #f)
-      (py-next ,$state))))
+    `(cond
+      ((fixnum? ,$state)
+        (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
+                (and (fx> ,$step 0) (fx< ,$state ,$stop)))
+          (let ((,$next ,$state)) (set! ,$state (fx+ ,$next ,$step)) ,$next)
+          #f))
+      ((procedure? ,$state)
+        (,$state))
+      (else
+        (py-next ,$state)))))
 
 (define-macro (py-for-each-maybe-range-cps element iterable body loop forelse)
   (let* (($it-cls (gensym 'iterator-cls))

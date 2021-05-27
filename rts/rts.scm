@@ -1577,6 +1577,98 @@
 (define (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
 
+;; =============================================================================
+;;  ITER PROTOCOL
+;; =============================================================================
+
+;; TODO: implement the sequence protocole where object are iterable if they
+;; have a __getitem__ method starting from index 0
+(define (py-obj->iterator obj)
+ (let ((__iter__ (getattribute-from-obj-mro obj (& "__iter__"))))
+   (if (eq? __iter__ py-absent)
+     #f
+     (py-call __iter__ obj))))
+
+;; Wraps py-obj->iterator to raise a TypeError when the object is not iterable
+(define (py-iter-fallback obj)
+ (or (py-obj->iterator obj)
+     (throw-not-iterable obj)))
+
+(define (iterator-next obj default)
+   (let ((__next__ (getattribute-from-obj-mro obj (& "__next__"))))
+     (if (eq? __next__ py-absent)
+       (py-throw-not-an-iterator obj)
+       (if (eq? default py-absent)
+         (py-call __next__ obj)
+         (with-handler
+           (lambda (exc)
+             (if (and (PyObject? exc)
+                      (py-isinstance? exc py-builtin-StopIteration))
+               default
+               (raise exc)))
+           (py-call __next__ obj))))))
+
+(define (iterator->list it)
+ (let loop ((acc '()))
+   (let ((nxt (iterator-next it #f)))
+     (if nxt
+       (loop (cons nxt acc))
+       (reverse! acc)))))
+
+(define (py-unpack it)
+ (iterator->list (py-iter it)))
+
+(define (py-ternary-unpack it nleft nright)
+ ;; return a 3-vector (left-elements list right-elements)
+ ;;  left-elements is a vector containing the nleft elements
+ ;;  list is a Python list containing the middle elements
+ ;;  right-elements is a vector containing the nright elements
+ (let* ((elts (py-unpack it))
+        (min-required (fx+ nleft nright))
+        (len-elts (length elts)))
+   (if (< len-elts min-required)
+     (py-throw-exception-with-message
+       py-builtin-ValueError
+       "not enough values to unpack (expected at least "
+       (number->string min-required)
+       ", got "
+       (number->string len-elts)
+       ")")
+     (let* ((lefts (make-vector nleft))
+           (mids-len (- len-elts min-required))
+           (mids (make-vector mids-len))
+           (rights (make-vector nright)))
+
+       (define (fill-left i tail)
+         (if (fx< i nleft)
+           (begin
+             (vector-set! lefts i (car tail))
+             (fill-left (fx+ i 1) (cdr tail)))
+           (fill-mid 0 tail)))
+
+       (define (fill-mid i tail)
+         (if (fx< i mids-len)
+           (begin
+             (vector-set! mids i (car tail))
+             (fill-mid (fx+ i 1) (cdr tail)))
+           (fill-right tail)))
+
+       (define (fill-right tail)
+         (vector lefts (py-make-list-from-vec mids) (list->vector tail)))
+
+       (fill-left 0 elts)))))
+
+(define (iterables*->list lst)
+ (let outer-loop ((iterators lst) (outer-acc '()))
+   (if (null? iterators)
+     (reverse! outer-acc)
+     (let ((it (py-iter (car iterators))))
+       (let inner-loop ((inner-acc outer-acc))
+         (let ((nxt (iterator-next it #f)))
+           (if nxt
+             (inner-loop (cons nxt inner-acc))
+             (outer-loop (cdr iterators) inner-acc))))))))
+
 ;; =============
 ;; CALL PROTOCOL
 ;; =============
@@ -2576,99 +2668,6 @@
   (procedure->py-function
     module-setattr
     (make-signature posonlyargs: (self name val))))
-
-
-;; =============================================================================
-;;  ITER PROTOCOL
-;; =============================================================================
-
-;; TODO: implement the sequence protocole where object are iterable if they
-;; have a __getitem__ method starting from index 0
-(define (py-obj->iterator obj)
-  (let ((__iter__ (getattribute-from-obj-mro obj (& "__iter__"))))
-    (if (eq? __iter__ py-absent)
-      #f
-      (py-call __iter__ obj))))
-
-;; Wraps py-obj->iterator to raise a TypeError when the object is not iterable
-(define (py-iter obj)
-  (or (py-obj->iterator obj)
-      (throw-not-iterable obj)))
-
-(define (iterator-next obj default)
-    (let ((__next__ (getattribute-from-obj-mro obj (& "__next__"))))
-      (if (eq? __next__ py-absent)
-        (py-throw-not-an-iterator obj)
-        (if (eq? default py-absent)
-          (py-call __next__ obj)
-          (with-handler
-            (lambda (exc)
-              (if (and (PyObject? exc)
-                       (py-isinstance? exc py-builtin-StopIteration))
-                default
-                (raise exc)))
-            (py-call __next__ obj))))))
-
-(define (iterator->list it)
-  (let loop ((acc '()))
-    (let ((nxt (iterator-next it #f)))
-      (if nxt
-        (loop (cons nxt acc))
-        (reverse! acc)))))
-
-(define (py-unpack it)
-  (iterator->list (py-iter it)))
-
-(define (py-ternary-unpack it nleft nright)
-  ;; return a 3-vector (left-elements list right-elements)
-  ;;  left-elements is a vector containing the nleft elements
-  ;;  list is a Python list containing the middle elements
-  ;;  right-elements is a vector containing the nright elements
-  (let* ((elts (py-unpack it))
-         (min-required (fx+ nleft nright))
-         (len-elts (length elts)))
-    (if (< len-elts min-required)
-      (py-throw-exception-with-message
-        py-builtin-ValueError
-        "not enough values to unpack (expected at least "
-        (number->string min-required)
-        ", got "
-        (number->string len-elts)
-        ")")
-      (let* ((lefts (make-vector nleft))
-            (mids-len (- len-elts min-required))
-            (mids (make-vector mids-len))
-            (rights (make-vector nright)))
-
-        (define (fill-left i tail)
-          (if (fx< i nleft)
-            (begin
-              (vector-set! lefts i (car tail))
-              (fill-left (fx+ i 1) (cdr tail)))
-            (fill-mid 0 tail)))
-
-        (define (fill-mid i tail)
-          (if (fx< i mids-len)
-            (begin
-              (vector-set! mids i (car tail))
-              (fill-mid (fx+ i 1) (cdr tail)))
-            (fill-right tail)))
-
-        (define (fill-right tail)
-          (vector lefts (py-make-list-from-vec mids) (list->vector tail)))
-
-        (fill-left 0 elts)))))
-
-(define (iterables*->list lst)
-  (let outer-loop ((iterators lst) (outer-acc '()))
-    (if (null? iterators)
-      (reverse! outer-acc)
-      (let ((it (py-iter (car iterators))))
-        (let inner-loop ((inner-acc outer-acc))
-          (let ((nxt (iterator-next it #f)))
-            (if nxt
-              (inner-loop (cons nxt inner-acc))
-              (outer-loop (cdr iterators) inner-acc))))))))
 
 ;; list iterator
 

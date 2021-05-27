@@ -388,6 +388,8 @@
     py-test-le-behaviors-table
     py-test-lt-behaviors-table
 
+    py-for-iter-behaviors-table
+
     py-descriptor-get-behaviors-table
     py-descriptor-get-behavior-call-fallback
 
@@ -546,6 +548,8 @@
     py-for-each-maybe-range-cps
     py-obj->iterator
     py-iter
+    py-iter-fallback
+    py-for-iter
     iterator-next
     iterator->list
     py-ternary-unpack
