@@ -2365,20 +2365,18 @@
         ($iterable (gensym 'range-obj???))
         ($iterator (gensym 'iterator))
         (loop-sym (gensym 'loop)))
-    `(py-if-specialized-sint-representation
-      (let* ((,$iterable ,iterable)
-            (,$it-cls (py-obj-cls ,$iterable))
-            (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
-            (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
-            (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
-            (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
-        (let ,loop-sym ((,$state ,$state))
-          (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
-            (if ,element
-              (begin
-                ,body
-                (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
-      (py-for-each ,element ,iterable ,body))))
+    `(let* ((,$iterable ,iterable)
+          (,$it-cls (py-obj-cls ,$iterable))
+          (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
+          (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
+          (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
+          (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
+      (let ,loop-sym ((,$state ,$state))
+        (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
+          (if ,element
+            (begin
+              ,body
+              (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))))
 
 (define-macro (py-for-each-maybe-range-cps:next $state $stop $step)
   (let (($next (gensym 'next-state)))
@@ -2397,21 +2395,20 @@
         ($step (gensym 'step))
         ($iterable (gensym 'range-obj???))
         ($iterator (gensym 'iterator)))
-    `(py-if-specialized-sint-representation
-      (let* ((,$iterable ,iterable)
-            (,$it-cls (py-obj-cls ,$iterable))
-            (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
-            (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
-            (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
-            (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
-        (let ,loop ()
-          (let ((,element (py-for-each-maybe-range-cps:next ,$state ,$stop ,$step)))
-            (if ,element
-              ,body
-              ,forelse))))
-      (py-for-each ,element ,iterable ,body cps: #t loop: loop forelse: forelse))))
+    `(let* ((,$iterable ,iterable)
+          (,$it-cls (py-obj-cls ,$iterable))
+          (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
+          (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
+          (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
+          (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
+      (let ,loop ()
+        (let ((,element (py-for-each-maybe-range-cps:next ,$state ,$stop ,$step)))
+          (if ,element
+            ,body
+            ,forelse))))))
 
-(define-macro (py-for-each element iterable body #!key (cps #f) (loop (gensym 'loop)) (forelse #f))
+;; default implementation when fixnum optimisation is not activated
+(define-macro (py-for-each-fallback element iterable body cps loop forelse)
   (let ((iterator-sym (gensym 'it)))
     `(let ((,iterator-sym (py-iter ,iterable)))
       (let ,loop ()
@@ -2422,5 +2419,9 @@
               ,@(if cps '() (list `(,loop))))
             ,@(if forelse (list forelse) '())))))))
 
-(define-macro (py-for-each-cps element iterable body)
-  #f)
+(define-macro (py-for-each element iterable body #!key (cps #f) (loop (gensym 'loop)) (forelse #f))
+  `(py-if-specialized-sint-representation
+    ,(if cps
+      `(py-for-each-maybe-range-cps ,element ,iterable ,body ,loop ,forelse)
+      `(py-for-each-maybe-range ,element ,iterable ,body))
+    (py-for-each-fallback ,element ,iterable ,body ,cps ,loop ,forelse)))

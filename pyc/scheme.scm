@@ -398,7 +398,7 @@
     (let* ((target (my-gensym '%target))
            (iterable (scheme (PycFor-iter this) conf))
            (body (scheme-for-body-with-assig this target)))
-      `(py-for-each-maybe-range
+      `(py-for-each
         ,target
         ,iterable
         ,body)))
@@ -454,12 +454,13 @@
                  conf)))
   (epairify
     this
-    `(py-for-each-maybe-range-cps
+    `(py-for-each
       ,target
       ,(scheme (PycFor-iter this) conf)
       ,body
-      ,(scheme-var-name (PycCPSFor-loop-kont-var this) conf)
-      (,(scheme-var-name (PycCPSFor-else-kont-var this) conf))))))
+      cps: #t
+      loop: ,(scheme-var-name (PycCPSFor-loop-kont-var this) conf)
+      forelse: (,(scheme-var-name (PycCPSFor-else-kont-var this) conf))))))
 
 (define-walk-method (scheme this::PycIf conf)
   (epairify this
