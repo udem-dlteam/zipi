@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
-;*    Last change :  Sun May 16 15:59:49 2021 (serrano)                */
+;*    Last change :  Wed May 26 15:56:31 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Scheme code generation                                           */
@@ -140,10 +140,13 @@
 		       '()))
           (conf-with-defs (cons* global-funs: global-funs conf))
           (prog (scheme ast (cons* global-funs: global-funs conf-with-defs)))
-      	  (full-path (if (and file path) (make-file-path path file) #f)))
+      	  (full-path (if (and file path) (make-file-path path file) #f))
+	  (mod (if (config-get conf :bootstrap)
+		   (pyc-scheme-bigloo-ast-bootstrap-module ast conf)
+		   (pyc-scheme-bigloo-ast-module conf))))
       
       `(;; module declaration
-	,(pyc-scheme-bigloo-ast-module conf)
+	,mod
 	(start-registering-constants)
 	,@(if (config-get conf-with-defs optim-globals:)
 	      `((define %global #f)
@@ -198,6 +201,16 @@
       (if (config-get conf main:)
 	  '((main main))
 	  '((export (zipi-init ::bstring ::bstring ::bstring))))))
+
+;*---------------------------------------------------------------------*/
+;*    pyc-scheme-bigloo-ast-bootstrap-module ...                       */
+;*---------------------------------------------------------------------*/
+(define (pyc-scheme-bigloo-ast-bootstrap-module ast conf)
+   (let ((globals (delete-duplicates (map PycRef-decl (collect-globals* ast)))))
+      (append (pyc-scheme-bigloo-ast-module conf)
+	 `((export
+	      ,@(map (lambda (v) (scheme-var-name v conf))
+		   globals))))))
 
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-semantics-module ...                           */
