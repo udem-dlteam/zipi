@@ -41,8 +41,8 @@ install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C stdlib install
 	$(MAKE) -C rts install
 	$(MAKE) install.systems
-	$(INSTALL) $(BUILDBINDIR)/zipi $(INSTALLBINDIR)/zipi
-	$(INSTALL) $(BUILDBINDIR)/zipi $(INSTALLBINDIR)/zipi-$(PYTHONVERSION)
+	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi
+	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi-$(PYTHONVERSION)
 
 install-bin: zipi-dirs
 	for file in zipi zipi.gambit zipi-compile-and-run.gambit zipi.bigloo zpc zpc.gambit pysexp_script.py; \
