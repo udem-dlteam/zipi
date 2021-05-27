@@ -1573,7 +1573,7 @@
       (cond
         ((null? info) '())
         ((caddar info) ;; has-specialized-behavior
-          (cons (car info) (loop (cdr info))))
+          (cons (caar info) (loop (cdr info))))
         (else (loop (cdr info))))))
 
   (define behavior-table-size (+ 1 (apply max (map cadr indices-info)))) ;; one by behavior + default
@@ -1805,13 +1805,7 @@
    `(with-class-indices-info $get-behavior-index ,lhs-index ,rhs-index))
 
 (define-macro ($get-behavior-index indices-info lhs-index rhs-index)
-  (define indices
-    (let loop ((info indices-info))
-      (cond
-        ((null? info) '())
-        ((caddar info) ;has-specialized-behavior
-          (cons (cadar info) (loop (cdr info))))
-        (else (loop (cdr info))))))
+  (define indices (map cadr indices-info))
 
   (define indices-length (length indices))
 
