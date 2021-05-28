@@ -1815,13 +1815,7 @@
       py-for-behaviors-table
       (get-behavior-type-index tuple)
       (lambda (iterable body)
-        (let* ((vec (PyObjectTuple-value iterable))
-               (len (vector-length vec)))
-          (let loop ((i 0))
-            (if (fx< i len)
-              (begin
-                (body (vector-ref vec i))
-                (loop (fx+ i 1))))))))
+        (vector-for-each body (PyObjectTuple-value iterable))))
 
     (define py-next-behaviors-table
       (make-vector ,behavior-tables-size py-next-fallback))))
