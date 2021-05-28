@@ -1801,6 +1801,28 @@
     (define py-for-behaviors-table
       (make-vector ,behavior-tables-size py-for-each-fallback))
 
+    (vector-set!
+      py-for-behaviors-table
+      (get-behavior-type-index list)
+      (lambda (iterable body)
+        (let loop ((i 0))
+          (if (fx< i (PyObjectList-len iterable))
+            (begin
+              (body (vector-ref (PyObjectList-vector iterable) i))
+              (loop (fx+ i 1)))))))
+
+    (vector-set!
+      py-for-behaviors-table
+      (get-behavior-type-index tuple)
+      (lambda (iterable body)
+        (let* ((vec (PyObjectTuple-value iterable))
+               (len (vector-length vec)))
+          (let loop ((i 0))
+            (if (fx< i len)
+              (begin
+                (body (vector-ref vec i))
+                (loop (fx+ i 1))))))))
+
     (define py-next-behaviors-table
       (make-vector ,behavior-tables-size py-next-fallback))))
 
