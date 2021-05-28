@@ -1158,6 +1158,19 @@
 (define-macro (py-ge-listX-listY list1 list2)
   `(py-CMP?-listX-listY ,list1 ,list2 py-gt >=))
 
+;; operations on generators
+
+(define-macro (py-generator-next self)
+  `(let (($self ,self))
+    (if (PyObjectGenerator-is-running $self)
+      (py-throw-exception-with-message
+        py-builtin-ValueError
+        "generator is already executing")
+      (let ((cont (PyObjectGenerator-continuation $self)))
+        (PyObjectGenerator-is-running-set! $self #t)
+        (PyObjectGenerator-continuation-set! $self #f)
+        (cont py-None #f #f #f)))))
+
 ;; all zipi PyObjectType have reserved slots for the following magic methods
 ;; see: ;; https://docs.python.org/3/reference/datamodel.html
 (define-macro (with-list-of-magic-attrs . args)
@@ -1782,24 +1795,14 @@
         ,@behavior-call-fallbacks)))
 
 (define-macro ($init-iteration-behavior-dispatch-vector indices-info)
-  (define for-iter-behavior-table-size (+ 1 (apply max (map cadr indices-info))))
+  (define behavior-tables-size (+ 1 (apply max (map cadr indices-info))))
 
   `(begin
-    (define py-for-iter-behaviors-table
-      (make-vector ,for-iter-behavior-table-size py-iter-fallback))
+    (define py-for-behaviors-table
+      (make-vector ,behavior-tables-size py-for-each-fallback))
 
-    (vector-set!
-      py-for-iter-behaviors-table
-      (get-behavior-type-index list)
-      (lambda (lst)
-        (let ((i 0))
-          (lambda ()
-            (let ((len (PyObjectList-len lst))
-                  (vec (PyObjectList-vector lst)))
-              (and (fx< i len)
-                   (let ((tmp (vector-ref vec i)))
-                     (set! i (fx+ i 1))
-                     tmp)))))))))
+    (define py-next-behaviors-table
+      (make-vector ,behavior-tables-size py-next-fallback))))
 
 (define-macro (get-behavior-index lhs-index rhs-index)
    `(with-class-indices-info $get-behavior-index ,lhs-index ,rhs-index))
@@ -2308,38 +2311,8 @@
 (define-macro (py-iter obj)
   `(py-iter-fallback ,obj))
 
-(define-macro (py-for-iter obj)
-  (let (($obj (gensym 'iterable))
-        ($index (gensym 'cls-index)))
-    `(let* ((,$obj ,obj)
-            (,$index (py-obj-class-index ,$obj)))
-      ((vector-ref py-for-iter-behaviors-table ,$index) ,$obj))))
-
-(define-macro (py-for-each-maybe-range-call:iter $iter-callee $start $stop $step . args-names)
-  `(if (and (eq? ,$iter-callee py-builtin-range)
-           (fixnum? ,$start)
-           (fixnum? ,$stop)
-           (fixnum? ,$step)
-           (not (fx= ,$step 0))
-           (cond-expand
-             (gambit
-               (|##fx+?| ,$stop ,$step))
-             (bigloo
-               (fixnum? (+ ,$stop ,$step)))))
-    ,$start
-    (py-for-iter (py-call ,$iter-callee ,@args-names))))
-
-(define-macro (py-for-each-maybe-range:next $state $stop $step)
-  `(cond
-    ((fixnum? ,$state)
-      (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
-              (and (fx> ,$step 0) (fx< ,$state ,$stop)))
-        ,$state
-        #f))
-    ((procedure? ,$state)
-      (,$state))
-    (else
-      (py-next ,$state))))
+(define-macro (py-next obj)
+  `(py-next-fallback ,obj))
 
 (define-macro (py-for-each-maybe-range-call element iter-callee body . args)
   (let* (($state (gensym 'state))
@@ -2348,6 +2321,7 @@
         ($step (gensym 'step))
         ($iter-callee (gensym 'range???))
         ($iterator (gensym 'iterator))
+        ($body (gensym 'body))
         (loop-sym (gensym 'loop))
         (args-names (map (lambda (a) (gensym 'arg)) args))
         (range-args
@@ -2371,99 +2345,45 @@
         `(let* (,@(map (lambda (a v) `(,a ,v)) args-names args)
                ,@range-args
                (,$iter-callee ,iter-callee)
-               (,$state (py-for-each-maybe-range-call:iter ,$iter-callee ,$start ,$stop ,$step ,@args-names)))
-          (let ,loop-sym ((,$state ,$state))
-            (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
-              (if ,element
+               (,$body (lambda (,element) ,body)))
+          (if (and (eq? ,$iter-callee py-builtin-range)
+                   (fixnum? ,$start)
+                   (fixnum? ,$stop)
+                   (fixnum? ,$step)
+                   (not (fx= ,$step 0))
+                   (cond-expand
+                     (gambit
+                       (|##fx+?| ,$stop ,$step))
+                     (bigloo
+                       (fixnum? (+ ,$stop ,$step)))))
+            (let loop ((,$state ,$start))
+              (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
+                      (and (fx> ,$step 0) (fx< ,$state ,$stop)))
                 (begin
-                  ,body
-                  (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
-        `(py-for-each ,element (py-call ,iter-callee ,@args) ,body))
-      (py-for-each ,element (py-call ,iter-callee ,@args) ,body))))
+                  (,$body ,$state)
+                  (loop  (fx+ ,$state ,$step)))))
+            (py-for-each ,element (py-call ,$iter-callee ,@args) (,$body ,element))))
+        (py-for-each ,element (py-call ,$iter-callee ,@args) ,$body))
+      (py-for-each ,element (py-call ,$iter-callee ,@args) ,$body))))
 
-(define-macro (py-for-each-maybe-range:iter $iterable $start $stop $step)
-  `(if (and (fixnum? ,$start)
-            (fixnum? ,$stop)
-            (fixnum? ,$step)
-            (not (fx= ,$step 0))
-            (cond-expand
-              (gambit
-                (|##fx+?| ,$stop ,$step))
-              (bigloo
-                (fixnum? (+ ,$stop ,$step)))))
-    ,$start
-    (py-for-iter ,$iterable)))
+(define-macro (py-for-each element iterable body)
+  (let (($iterable (gensym 'iterable)))
+    `(let* ((,$iterable ,iterable))
+      ((vector-ref py-for-behaviors-table (py-obj-class-index ,$iterable))
+        ,$iterable
+        (lambda (,element) ,body)))))
 
-(define-macro (py-for-each-maybe-range element iterable body)
-  (let* (($it-cls (gensym 'iterator-cls))
-        ($state (gensym 'state))
-        ($start (gensym 'start))
-        ($stop (gensym 'stop))
-        ($step (gensym 'step))
-        ($iterable (gensym 'range-obj???))
+(define-macro (py-for-each-cps element iterable body loop forelse)
+  (let (($body (gensym 'for-body))
+        ($forelse (gensym 'for-else))
         ($iterator (gensym 'iterator))
-        (loop-sym (gensym 'loop)))
-    `(let* ((,$iterable ,iterable)
-          (,$it-cls (py-obj-cls ,$iterable))
-          (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
-          (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
-          (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
-          (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
-      (let ,loop-sym ((,$state ,$state))
-        (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
-          (if ,element
-            (begin
-              ,body
-              (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))))
-
-(define-macro (py-for-each-maybe-range-cps:next $state $stop $step)
-  (let (($next (gensym 'next-state)))
-    `(cond
-      ((fixnum? ,$state)
-        (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
-                (and (fx> ,$step 0) (fx< ,$state ,$stop)))
-          (let ((,$next ,$state)) (set! ,$state (fx+ ,$next ,$step)) ,$next)
-          #f))
-      ((procedure? ,$state)
-        (,$state))
-      (else
-        (py-next ,$state)))))
-
-(define-macro (py-for-each-maybe-range-cps element iterable body loop forelse)
-  (let* (($it-cls (gensym 'iterator-cls))
-        ($state (gensym 'state))
-        ($start (gensym 'start))
-        ($stop (gensym 'stop))
-        ($step (gensym 'step))
-        ($iterable (gensym 'range-obj???))
-        ($iterator (gensym 'iterator)))
-    `(let* ((,$iterable ,iterable)
-          (,$it-cls (py-obj-cls ,$iterable))
-          (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
-          (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
-          (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
-          (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
+        ($index (gensym 'cls-index))
+        ($behavior-next (gensym 'behavior-next)))
+    `(letrec ((,$iterator (py-iter ,iterable))
+              (,$index (py-obj-class-index ,$iterator))
+              (,$behavior-next (vector-ref py-next-behaviors-table ,$index)))
       (let ,loop ()
-        (let ((,element (py-for-each-maybe-range-cps:next ,$state ,$stop ,$step)))
+        (let ((,element (,$behavior-next ,$iterator)))
           (if ,element
             ,body
             ,forelse))))))
-
-;; default implementation when fixnum optimisation is not activated
-(define-macro (py-for-each-fallback element iterable body cps loop forelse)
-  (let ((iterator-sym (gensym 'it)))
-    `(let ((,iterator-sym (py-iter ,iterable)))
-      (let ,loop ()
-        (let ((,element (py-next ,iterator-sym)))
-          (if ,element
-            (begin
-              ,body
-              ,@(if cps '() (list `(,loop))))
-            ,@(if forelse (list forelse) '())))))))
-
-(define-macro (py-for-each element iterable body #!key (cps #f) (loop (gensym 'loop)) (forelse #f))
-  `(py-if-specialized-sint-representation
-    ,(if cps
-      `(py-for-each-maybe-range-cps ,element ,iterable ,body ,loop ,forelse)
-      `(py-for-each-maybe-range ,element ,iterable ,body))
-    (py-for-each-fallback ,element ,iterable ,body ,cps ,loop ,forelse)))

@@ -1669,6 +1669,30 @@
              (inner-loop (cons nxt inner-acc))
              (outer-loop (cdr iterators) inner-acc))))))))
 
+(define (py-for-each-fallback iterable body)
+  (let ((iterator (py-iter iterable)))
+    (let loop ()
+      (let ((element (py-next iterator)))
+        (if element
+          (begin
+            (body element)
+            (loop)))))))
+
+;; =============================================================================
+;;  NEXT PROTOCOL
+;; =============================================================================
+
+(define (py-next-fallback iterator)
+ (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
+    (if (eq? next py-absent)
+      (py-throw-exception-with-message py-builtin-TypeError "object is not an iterator")
+      (with-handler
+         (lambda (e)
+           (if (and (PyObject? e) (py-isinstance? e py-builtin-StopIteration))
+                  #f
+                  (raise e)))
+         (py-call next iterator)))))
+
 ;; =============
 ;; CALL PROTOCOL
 ;; =============
@@ -4515,19 +4539,12 @@
     (make-signature
       posonlyargs: (self))))
 
-(define (py-generator-next self)
-  (if (PyObjectGenerator-is-running self)
-    (py-throw-exception-with-message
-      py-builtin-ValueError
-      "generator is already executing")
-    (let ((cont (PyObjectGenerator-continuation self)))
-      (PyObjectGenerator-is-running-set! self #t)
-      (PyObjectGenerator-continuation-set! self #f)
-      (cont py-None #f #f #f))))
+(define (py-generator-next-fallback self)
+  (py-generator-next self))
 
 (define generator.__next__
   (procedure->py-function
-    py-generator-next
+    py-generator-next-fallback
     (make-signature posonlyargs: (self))))
 
 (define generator.__iter__
@@ -4544,21 +4561,6 @@
   (procedure->py-function
     py-generator-new
     (make-signature posonlyargs: (cls))))
-
-;; =============================================================================
-;;  Next protocol
-;; =============================================================================
-
-(define (py-next iterator)
-  (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
-     (if (eq? next py-absent)
-       (py-throw-exception-with-message py-builtin-TypeError "object is not an iterator")
-       (with-handler
-          (lambda (e)
-            (if (and (PyObject? e) (py-isinstance? e py-builtin-StopIteration))
-                   #f
-                   (raise e)))
-          (py-call next iterator)))))
 
 ;; =============================================================================
 ;;  Dict

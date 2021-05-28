@@ -454,13 +454,12 @@
                  conf)))
   (epairify
     this
-    `(py-for-each
+    `(py-for-each-cps
       ,target
       ,(scheme (PycFor-iter this) conf)
       ,body
-      cps: #t
-      loop: ,(scheme-var-name (PycCPSFor-loop-kont-var this) conf)
-      forelse: (,(scheme-var-name (PycCPSFor-else-kont-var this) conf))))))
+      ,(scheme-var-name (PycCPSFor-loop-kont-var this) conf)
+      (,(scheme-var-name (PycCPSFor-else-kont-var this) conf))))))
 
 (define-walk-method (scheme this::PycIf conf)
   (epairify this

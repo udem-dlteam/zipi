@@ -158,7 +158,6 @@
     py-truth
 
     py-not
-    py-next
     py-import
     py-import-relative
 
@@ -388,7 +387,8 @@
     py-test-le-behaviors-table
     py-test-lt-behaviors-table
 
-    py-for-iter-behaviors-table
+    py-for-behaviors-table
+    py-next-behaviors-table
 
     py-descriptor-get-behaviors-table
     py-descriptor-get-behavior-call-fallback
@@ -539,17 +539,13 @@
     $get-behavior-type-index
 
     py-for-each
+    py-for-each-cps
     py-for-each-maybe-range-call
-    py-for-each-maybe-range:next
-    py-for-each-maybe-range-call:iter
-    py-for-each-maybe-range:iter
-    py-for-each-maybe-range
-    py-for-each-maybe-range-cps:next
-    py-for-each-maybe-range-cps
     py-obj->iterator
     py-iter
     py-iter-fallback
-    py-for-iter
+    py-next
+    py-next-fallback
     iterator-next
     iterator->list
     py-ternary-unpack
