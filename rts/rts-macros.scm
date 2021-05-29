@@ -1795,8 +1795,7 @@
         ,@behavior-call-fallbacks)))
 
 (define-macro (py-for-each-listX iterable body)
-  (let (($iterable (gensym 'iterable))
-        ($body (gensym 'body)))
+  (let (($iterable (gensym 'iterable)))
   `(let ((,$iterable ,iterable))
     (let loop ((i 0))
       (if (fx< i (PyObjectList-len ,$iterable))
@@ -1805,7 +1804,17 @@
           (loop (fx+ i 1))))))))
 
 (define-macro (py-for-each-tupleX iterable body)
-  `(vector-for-each ,body (PyObjectTuple-value ,iterable)))
+  (let (($iterable (gensym 'iterable))
+        ($vec (gensym 'vector))
+        ($len (gensym 'len)))
+  `(let* ((,$iterable ,iterable)
+          (,$vec (PyObjectTuple-value ,$iterable))
+          (,$len (vector-length ,$vec)))
+    (let loop ((i 0))
+      (if (fx< i ,$len)
+        (begin
+          (,body (vector-ref ,$vec i))
+          (loop (fx+ i 1))))))))
 
 (define-macro ($init-iteration-behavior-dispatch-vector indices-info)
   (define behavior-tables-size (+ 1 (apply max (map cadr indices-info))))
