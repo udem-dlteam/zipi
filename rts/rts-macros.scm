@@ -1794,6 +1794,19 @@
         ,@tables-init-code
         ,@behavior-call-fallbacks)))
 
+(define-macro (py-for-each-listX iterable body)
+  (let (($iterable (gensym 'iterable))
+        ($body (gensym 'body)))
+  `(let ((,$iterable ,iterable))
+    (let loop ((i 0))
+      (if (fx< i (PyObjectList-len ,$iterable))
+        (begin
+          (,body (vector-ref (PyObjectList-vector ,$iterable) i))
+          (loop (fx+ i 1))))))))
+
+(define-macro (py-for-each-tupleX iterable body)
+  `(vector-for-each ,body (PyObjectTuple-value ,iterable)))
+
 (define-macro ($init-iteration-behavior-dispatch-vector indices-info)
   (define behavior-tables-size (+ 1 (apply max (map cadr indices-info))))
 
@@ -1804,18 +1817,12 @@
     (vector-set!
       py-for-behaviors-table
       (get-behavior-type-index list)
-      (lambda (iterable body)
-        (let loop ((i 0))
-          (if (fx< i (PyObjectList-len iterable))
-            (begin
-              (body (vector-ref (PyObjectList-vector iterable) i))
-              (loop (fx+ i 1)))))))
+      (lambda (iterable body) (py-for-each-listX iterable body)))
 
     (vector-set!
       py-for-behaviors-table
       (get-behavior-type-index tuple)
-      (lambda (iterable body)
-        (vector-for-each body (PyObjectTuple-value iterable))))
+      (lambda (iterable body) (py-for-each-tupleX iterable body)))
 
     (define py-next-behaviors-table
       (make-vector ,behavior-tables-size py-next-fallback))))
@@ -2383,11 +2390,21 @@
       (py-for-each ,element (py-call ,$iter-callee ,@args) ,$body))))
 
 (define-macro (py-for-each element iterable body)
-  (let (($iterable (gensym 'iterable)))
-    `(let* ((,$iterable ,iterable))
-      ((vector-ref py-for-behaviors-table (py-obj-class-index ,$iterable))
-        ,$iterable
-        (lambda (,element) ,body)))))
+  (let (($iterable (gensym 'iterable))
+        ($index (gensym 'cls-index))
+        ($body (gensym 'body)))
+    `(let* ((,$iterable ,iterable)
+            (,$index (py-obj-class-index ,$iterable))
+            (,$body (lambda (,element) ,body)))
+      (cond
+        ((eq? ,$index (get-behavior-type-index tuple))
+          (py-for-each-tupleX ,$iterable ,$body))
+        ((eq? ,$index (get-behavior-type-index list))
+          (py-for-each-listX ,$iterable ,$body))
+        (else
+          ((vector-ref py-for-behaviors-table ,$index)
+            ,$iterable
+            ,$body))))))
 
 (define-macro (py-for-each-cps element iterable body loop forelse)
   (let (($body (gensym 'for-body))

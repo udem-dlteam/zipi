@@ -388,6 +388,13 @@
     py-test-lt-behaviors-table
 
     py-for-behaviors-table
+
+    py-for-each-tupleX
+    py-for-each-listX
+    PyObjectTuple-value
+    PyObjectList-len
+    PyObjectList-vector
+
     py-next-behaviors-table
 
     py-descriptor-get-behaviors-table
