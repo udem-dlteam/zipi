@@ -387,13 +387,11 @@
     py-test-le-behaviors-table
     py-test-lt-behaviors-table
 
-    py-for-behaviors-table
-
-    py-for-each-tupleX
-    py-for-each-listX
     PyObjectTuple-value
     PyObjectList-len
     PyObjectList-vector
+    py-for-iter
+    py-for-next
 
     py-next-behaviors-table
 
@@ -547,7 +545,7 @@
 
     py-for-each
     py-for-each-cps
-    py-for-each-maybe-range-call
+    py-for-each-range-call
     py-obj->iterator
     py-iter
     py-iter-fallback

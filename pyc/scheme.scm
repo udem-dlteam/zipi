@@ -414,7 +414,7 @@
               (iter-args (PycCall-args iter))
               (iter-args-len (length iter-args)))
           (if (and (>= iter-args-len 1) (<= iter-args-len 3))
-            `(py-for-each-maybe-range-call
+            `(py-for-each-range-call
               ,target
               ,(scheme iter-callee conf)
               ,(scheme-for-body-with-assig this target)
