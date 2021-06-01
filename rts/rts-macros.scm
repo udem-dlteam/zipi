@@ -1160,6 +1160,13 @@
 
 ;; operations on generators
 
+(define-macro (py-generator-yield gen val kont)
+  (let (($gen (gensym 'gen)))
+    `(let ((,$gen ,gen))
+      (PyObjectGenerator-continuation-set! ,$gen ,kont)
+      (PyObjectGenerator-is-running-set! ,$gen #f)
+      ,val)))
+
 (define-macro (py-generator-next self)
   `(let (($self ,self))
     (if (PyObjectGenerator-is-running $self)
@@ -1169,7 +1176,7 @@
       (let ((cont (PyObjectGenerator-continuation $self)))
         (PyObjectGenerator-is-running-set! $self #t)
         (PyObjectGenerator-continuation-set! $self #f)
-        (cont py-None #f #f #f)))))
+        (cont py-None #f)))))
 
 ;; all zipi PyObjectType have reserved slots for the following magic methods
 ;; see: ;; https://docs.python.org/3/reference/datamodel.html
@@ -1471,20 +1478,23 @@
             ;; WARNING: type must be ordered by class-index
 
             ;; name   class-index  has-arithmetic-behavior   can-have-getter
-          '((default       0               #t                   #t) ;; reserved spot for default semantics
-            (sint          1               #t                   #f)
-            (bint          2               #t                   #f)
-            (bool          3               #t                   #f)
-            (float         4               #t                   #f)
-            (str           5               #t                   #f)
+          '((default        0               #t                   #t) ;; reserved spot for default semantics
+            (sint           1               #t                   #f)
+            (bint           2               #t                   #f)
+            (bool           3               #t                   #f)
+            (float          4               #t                   #f)
+            (str            5               #t                   #f)
             ;; extra indices with no arithmetic optimisations (NOTE: must be at tail of the list)
-            (object        6               #f                   #f)
-            (type          7               #f                   #f)
-            (function      8               #f                   #t)
-            (generator     9               #f                   #f)
-            (tuple         10              #f                   #f)
-            (list          11              #f                   #f)
-            (range         12              #f                   #f))))
+            (object         6               #f                   #f)
+            (type           7               #f                   #f)
+            (function       8               #f                   #t)
+            (generator      9               #f                   #f)
+            (tuple          10              #f                   #f)
+            (tuple_iterator 11              #f                   #f)
+            (list           12              #f                   #f)
+            (list_iterator  13              #f                   #f)
+            (range          14              #f                   #f)
+            (range_iterator 15              #f                   #f))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -1822,7 +1832,18 @@
 
   `(begin
     (define py-next-behaviors-table
-      (make-vector ,behavior-tables-size py-next-fallback))))
+      (make-vector ,behavior-tables-size py-next-fallback))
+
+    (vector-set!
+      py-next-behaviors-table
+      (get-behavior-type-index generator)
+      (lambda (obj)
+        (with-exception-catcher
+          (lambda (e)
+            (if (py-isinstance? e py-builtin-StopIteration)
+              #f
+              (py-throw e)))
+          (lambda () (py-generator-next obj)))))))
 
 (define-macro (get-behavior-index lhs-index rhs-index)
    `(with-class-indices-info $get-behavior-index ,lhs-index ,rhs-index))
@@ -2332,7 +2353,9 @@
   `(py-iter-fallback ,obj))
 
 (define-macro (py-next obj)
-  `(py-next-fallback ,obj))
+  (let* (($obj (gensym 'obj)))
+    `(let* ((,$obj ,obj))
+      ((vector-ref py-next-behaviors-table (py-obj-class-index ,$obj)) ,$obj))))
 
 (define-macro (py-for-each-range-call $element iter-callee body . args)
   (let* (($iterator (gensym 'iterator))

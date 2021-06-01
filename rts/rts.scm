@@ -2361,6 +2361,114 @@
             ")")))))))
 
 ;; =============================================================================
+;;  Generators
+;; =============================================================================
+
+(define (py-make-generator proc)
+  (make-PyObjectGenerator
+    py-generator-hclass-of-instances
+    '#()
+    py-generator-class
+    proc
+    #f
+    #t))
+
+;; TODO add checks that methods are called with correct types
+
+(define (py-generator-send self value)
+  (if (PyObjectGenerator-is-running self)
+    (py-throw-exception-with-message
+      py-builtin-ValueError
+      "generator is already executing")
+    (let ((cont (PyObjectGenerator-continuation self)))
+      (PyObjectGenerator-is-running-set! self #t)
+      (PyObjectGenerator-continuation-set! self #f)
+      (cont value #f))))
+
+(define generator.send
+  (procedure->py-function
+    py-generator-send
+    (make-signature posonlyargs: (self value))))
+
+(define (py-generator-throw self type value traceback)
+  (if (PyObjectGenerator-is-running self)
+    (py-throw-exception-with-message
+      py-builtin-ValueError
+      "generator is already executing")
+    (let ((cont (PyObjectGenerator-continuation self)))
+      (PyObjectGenerator-is-running-set! self #t)
+      (PyObjectGenerator-continuation-set! self #f)
+      (cont #f (vector type value traceback)))))
+
+(define generator.throw
+  (procedure->py-function
+    py-generator-throw
+    (make-signature
+      posonlyargs: (self type value traceback)
+      defaults: '#(#f #f))))
+
+(define closed-generator-continuation
+  (lambda (value exc-info)
+    (if value
+      (py-throw py-builtin-StopIteration))
+      (py-throw-with-values exc value)))
+
+(define (py-generator-close self)
+  (cond
+    ((PyObjectGenerator-is-running self)
+      (py-throw-exception-with-message
+        py-builtin-ValueError
+        "generator is already executing"))
+    ((not (PyObjectGenerator-is-active self))
+      py-None)
+    (else
+      (with-exception-catcher
+        (lambda (e)
+          (if (or (py-isinstance? e py-builtin-StopIteration)
+                  (py-isinstance? e py-builtin-GeneratorExit))
+            (begin
+              (PyObjectGenerator-is-active-set! self #f)
+              (PyObjectGenerator-is-running-set! self #f)
+              (PyObjectGenerator-continuation-set! self closed-generator-continuation)
+              py-None)
+            (py-throw e)))
+        (lambda ()
+          (let ((cont (PyObjectGenerator-continuation self)))
+            (PyObjectGenerator-is-running-set! self #t)
+            (PyObjectGenerator-continuation-set! self #f)
+            (cont #f (vector py-builtin-GeneratorExit #f #f))
+            (py-throw-exception-with-message py-builtin-RuntimeError "generator ignored GeneratorExit")))))))
+
+(define generator.close
+  (procedure->py-function
+    py-generator-close
+    (make-signature
+      posonlyargs: (self))))
+
+(define (py-generator-next-fallback self)
+  (py-generator-next self))
+
+(define generator.__next__
+  (procedure->py-function
+    py-generator-next-fallback
+    (make-signature posonlyargs: (self))))
+
+(define generator.__iter__
+  (procedure->py-function
+    (lambda (self) self)
+    (make-signature posonlyargs: (self))))
+
+(define (py-generator-new cls)
+  (py-throw-exception-with-message
+    py-builtin-TypeError
+    "cannot create 'generator' instances"))
+
+(define generator.__new__
+  (procedure->py-function
+    py-generator-new
+    (make-signature posonlyargs: (cls))))
+
+;; =============================================================================
 ;;  BUILTIN CLASSES
 ;; =============================================================================
 
@@ -4448,119 +4556,6 @@
   (procedure->py-function
    bytearray-iter
    (make-signature posonlyargs: (self))))
-
-;; =============================================================================
-;;  Generators
-;; =============================================================================
-
-(define (py-make-generator proc)
-  (make-PyObjectGenerator
-    py-generator-hclass-of-instances
-    '#()
-    py-generator-class
-    proc
-    #f
-    #t))
-
-(define (py-generator-yield gen val kont)
-  (PyObjectGenerator-continuation-set! gen kont)
-  (PyObjectGenerator-is-running-set! gen #f)
-  val)
-
-;; TODO add checks that methods are called with correct types
-
-(define (py-generator-send self value)
-  (if (PyObjectGenerator-is-running self)
-    (py-throw-exception-with-message
-      py-builtin-ValueError
-      "generator is already executing")
-    (let ((cont (PyObjectGenerator-continuation self)))
-      (PyObjectGenerator-is-running-set! self #t)
-      (PyObjectGenerator-continuation-set! self #f)
-      (cont value #f #f #f))))
-
-(define generator.send
-  (procedure->py-function
-    py-generator-send
-    (make-signature posonlyargs: (self value))))
-
-(define (py-generator-throw self type value traceback)
-  (if (PyObjectGenerator-is-running self)
-    (py-throw-exception-with-message
-      py-builtin-ValueError
-      "generator is already executing")
-    (let ((cont (PyObjectGenerator-continuation self)))
-      (PyObjectGenerator-is-running-set! self #t)
-      (PyObjectGenerator-continuation-set! self #f)
-      (cont #f type value traceback))))
-
-(define generator.throw
-  (procedure->py-function
-    py-generator-throw
-    (make-signature
-      posonlyargs: (self type value traceback)
-      defaults: '#(#f #f))))
-
-(define closed-generator-continuation
-  (lambda (value exc exc-value traceback)
-    (if value
-      (py-throw py-builtin-StopIteration))
-      (py-throw-with-values exc value)))
-
-(define (py-generator-close self)
-  (cond
-    ((PyObjectGenerator-is-running self)
-      (py-throw-exception-with-message
-        py-builtin-ValueError
-        "generator is already executing"))
-    ((not (PyObjectGenerator-is-active self))
-      py-None)
-    (else
-      (with-exception-catcher
-        (lambda (e)
-          (if (or (py-isinstance? e py-builtin-StopIteration)
-                  (py-isinstance? e py-builtin-GeneratorExit))
-            (begin
-              (PyObjectGenerator-is-active-set! self #f)
-              (PyObjectGenerator-is-running-set! self #f)
-              (PyObjectGenerator-continuation-set! self closed-generator-continuation)
-              py-None)
-            (py-throw e)))
-        (lambda ()
-          (let ((cont (PyObjectGenerator-continuation self)))
-            (PyObjectGenerator-is-running-set! self #t)
-            (PyObjectGenerator-continuation-set! self #f)
-            (cont #f py-builtin-GeneratorExit #f #f)
-            (py-throw-exception-with-message py-builtin-RuntimeError "generator ignored GeneratorExit")))))))
-
-(define generator.close
-  (procedure->py-function
-    py-generator-close
-    (make-signature
-      posonlyargs: (self))))
-
-(define (py-generator-next-fallback self)
-  (py-generator-next self))
-
-(define generator.__next__
-  (procedure->py-function
-    py-generator-next-fallback
-    (make-signature posonlyargs: (self))))
-
-(define generator.__iter__
-  (procedure->py-function
-    (lambda (self) self)
-    (make-signature posonlyargs: (self))))
-
-(define (py-generator-new cls)
-  (py-throw-exception-with-message
-    py-builtin-TypeError
-    "cannot create 'generator' instances"))
-
-(define generator.__new__
-  (procedure->py-function
-    py-generator-new
-    (make-signature posonlyargs: (cls))))
 
 ;; =============================================================================
 ;;  Dict

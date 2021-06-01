@@ -560,6 +560,9 @@
     py-make-generator
     py-generator-send
 
+    PyObjectGenerator-continuation-set!
+    PyObjectGenerator-is-running-set!
+
     py-enter
     py-exit
 

@@ -1,7 +1,6 @@
 ;; annotate return statements with tail/notail information
 ;; annotation function definitions with need-return values
 (define (pyc-return this conf)
-   (add-implicit-return-none this)
    (remove-unreachable this (cons #t '()))
    (return this #f #t conf)
    this)
@@ -17,24 +16,6 @@
       (PycFun-need-return-set! node value))
     (else
       (error "need-return-set!" "cannot set need return" node))))
-
-(define-walk-method (add-implicit-return-none this::PycNode)
-  (call-default-walker))
-
-(define-walk-method (add-implicit-return-none this::PycFun)
-  (let* ((body (PycFun-body this))
-         (seq
-           (cond
-             ((PycBlock? body) (PycBlock-body body))
-             ((PycSeq? body) body)
-             (else (error "add-implicit-return-none::PycFun" "unknown body type" body))))
-         (nodes (PycSeq-nodes seq))
-         (tail (last-cdr nodes))
-         (loc (PycNode-loc (car tail))))
-    (add-implicit-return-none body)
-    ;; add "return None" to all functions tail
-    ;; this return will later be removed if it is unreachable
-    (set-cdr! tail (list (new-PycReturn loc (new-PycNone loc #f))))))
 
 (define-walk-method (remove-unreachable this::PycNode found-path-to-next-ref)
   (call-default-walker))
