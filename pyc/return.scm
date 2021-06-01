@@ -31,6 +31,7 @@
          (nodes (PycSeq-nodes seq))
          (tail (last-cdr nodes))
          (loc (PycNode-loc (car tail))))
+    (add-implicit-return-none body)
     ;; add "return None" to all functions tail
     ;; this return will later be removed if it is unreachable
     (set-cdr! tail (list (new-PycReturn loc (new-PycNone loc #f))))))

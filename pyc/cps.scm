@@ -12,7 +12,8 @@
   (if (PycFun-generator this)
     (PycFun-body-set!
       this
-      (cps-stmt (cps-fun! (PycFun-body this)) 'not-a-continuation-placeholder #f #f #f)))
+      (cps-stmt (cps-fun! (PycFun-body this)) #f #f #f #f))
+    (PycFun-body-set! this (cps-fun! (PycFun-body this))))
   this)
 
 ;; does an expression need cps
