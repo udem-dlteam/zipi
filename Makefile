@@ -33,24 +33,7 @@ build:
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
 #*---------------------------------------------------------------------*/
-uninstall:
-	rm -r $(ZIPIROOT)
-
-reinstall: uninstall
-	$(MAKE) install-unsafe
-
-install:
-	for p in $(ZIPISYSTEMS); do \
-	  $(MAKE) install-$$p; \
-        done
-
-install-gambit:
-ifeq ($(shell test -e $(ZIPIROOT); echo $$?),0)
-	$(error zipi already installed at $(ZIPIROOT), use make reinstall to overwrite it)
-endif
-	$(MAKE) install-unsafe;
-
-install-bigloo: install-unsafe
+install: install-unsafe
 
 install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C pyc install
@@ -58,8 +41,8 @@ install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C stdlib install
 	$(MAKE) -C rts install
 	$(MAKE) install.systems
-	$(INSTALL) $(BUILDBINDIR)/zipi $(INSTALLBINDIR)/zipi
-	$(INSTALL) $(BUILDBINDIR)/zipi $(INSTALLBINDIR)/zipi-$(PYTHONVERSION)
+	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi
+	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi-$(PYTHONVERSION)
 
 install-bin: zipi-dirs
 	for file in zipi zipi.gambit zipi-compile-and-run.gambit zipi.bigloo zpc zpc.gambit pysexp_script.py; \

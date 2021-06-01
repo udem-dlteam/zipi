@@ -127,7 +127,7 @@ maxunicode = 1114111
 
 meta_path = []  # TODO
 
-modules = {}  # TODO
+modules = _sys.modules
 
 path = _sys.path
 #path = ['']

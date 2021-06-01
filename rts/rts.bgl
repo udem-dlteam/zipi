@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Sun May 16 15:27:51 2021 (serrano)                */
+;*    Last change :  Wed May 26 14:09:09 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -768,11 +768,17 @@
    (vector-copy! dst-vector dst-start src-vector src-start src-end))
 
 ;*---------------------------------------------------------------------*/
+;*    registered-constants-table ...                                   */
+;*---------------------------------------------------------------------*/
+(define registered-constants-table
+   (let ((table (create-hashtable :eqtest string=?)))
+      table))
+
+;*---------------------------------------------------------------------*/
 ;*    get-registered-constants-table ...                               */
 ;*---------------------------------------------------------------------*/
 (define (get-registered-constants-table)
-   (let ((table (create-hashtable :eqtest string=?)))
-      table))
+   registered-constants-table)
 
 ;*---------------------------------------------------------------------*/
 ;*    &pystring-init ...                                               */
@@ -803,11 +809,11 @@
 	  py-str-hclass-of-instances))
       (else
        (vector-map! (lambda (s)
-                       (let ((string (vector-ref s 1)))
-			  (or (table-ref str-representatives-htable string)
+		       (let ((str (vector-ref s 1)))
+			  (or (table-ref (get-registered-constants-table) str)
 			      (let ((o (instantiate::PyObjectStrRep
-					  (len (string-length string))
-					  (part1-or-string string)
+					  (len (string-length str))
+					  (part1-or-string str)
 					  (part2-or-rep #f)
 					  (hash 0)
 					  (magic-index #f)
@@ -815,7 +821,8 @@
 					  (class py-str-class))))
 				 (with-access::PyObjectStrRep o (part2-or-rep)
 				    (set! part2-or-rep o))
-				 (table-set! str-representatives-htable string o)
+				 (table-set! (get-registered-constants-table)
+				    str o)
 				 o))))
 	  strings))))
 
@@ -853,8 +860,185 @@
 (define-method (exception-notify o::PyObject)
    (display (format "*** EXCEPTION: ~s\n" o) (current-error-port)))
 
+;*---------------------------------------------------------------------*/
+;*    bootstrap-builtins ...                                           */
+;*---------------------------------------------------------------------*/
 (define (bootstrap-builtins)
-  (error "NotImplemented:" "builtins.py bootstrap as module" ""))
+   (let ((builtins-mod (native-builtin-__import__ "builtins")))
+      
+      ;; builtin functions
+      (set! py-builtin-sorted &py-builtin-sorted)
+      
+      ;; Exceptions
+      (set! py-builtin-ArithmeticError &py-builtin-ArithmeticError)
+      (set! py-builtin-AssertionError &py-builtin-AssertionError)
+      (set! py-builtin-AttributeError &py-builtin-AttributeError)
+      (set! py-builtin-BaseException &py-builtin-BaseException)
+      (set! py-builtin-BlockingIOError &py-builtin-BlockingIOError)
+      (set! py-builtin-BrokenPipeError &py-builtin-BrokenPipeError)
+      (set! py-builtin-BufferError &py-builtin-BufferError)
+      (set! py-builtin-BytesWarning &py-builtin-BytesWarning)
+      (set! py-builtin-ChildProcessError &py-builtin-ChildProcessError)
+      (set! py-builtin-ConnectionAbortedError &py-builtin-ConnectionAbortedError)
+      (set! py-builtin-ConnectionError &py-builtin-ConnectionError)
+      (set! py-builtin-ConnectionRefusedError &py-builtin-ConnectionRefusedError)
+      (set! py-builtin-ConnectionResetError &py-builtin-ConnectionResetError)
+      (set! py-builtin-DeprecationWarning &py-builtin-DeprecationWarning)
+      (set! py-builtin-EOFError &py-builtin-EOFError)
+      (set! py-builtin-EnvironmentError &py-builtin-EnvironmentError)
+      (set! py-builtin-Exception &py-builtin-Exception)
+      (set! py-builtin-FileExistsError &py-builtin-FileExistsError)
+      (set! py-builtin-FileNotFoundError &py-builtin-FileNotFoundError)
+      (set! py-builtin-FloatingPointError &py-builtin-FloatingPointError)
+      (set! py-builtin-FutureWarning &py-builtin-FutureWarning)
+      (set! py-builtin-GeneratorExit &py-builtin-GeneratorExit)
+      (set! py-builtin-IOError &py-builtin-IOError)
+      (set! py-builtin-ImportError &py-builtin-ImportError)
+      (set! py-builtin-ImportWarning &py-builtin-ImportWarning)
+      (set! py-builtin-IndentationError &py-builtin-IndentationError)
+      (set! py-builtin-IndexError &py-builtin-IndexError)
+      (set! py-builtin-InterruptedError &py-builtin-InterruptedError)
+      (set! py-builtin-IsADirectoryError &py-builtin-IsADirectoryError)
+      (set! py-builtin-KeyError &py-builtin-KeyError)
+      (set! py-builtin-KeyboardInterrupt &py-builtin-KeyboardInterrupt)
+      (set! py-builtin-LookupError &py-builtin-LookupError)
+      (set! py-builtin-MemoryError &py-builtin-MemoryError)
+      (set! py-builtin-ModuleNotFoundError &py-builtin-ModuleNotFoundError)
+      (set! py-builtin-NameError &py-builtin-NameError)
+      (set! py-builtin-NotADirectoryError &py-builtin-NotADirectoryError)
+      (set! py-builtin-NotImplementedError &py-builtin-NotImplementedError)
+      (set! py-builtin-OSError &py-builtin-OSError)
+      (set! py-builtin-OverflowError &py-builtin-OverflowError)
+      (set! py-builtin-PendingDeprecationWarning &py-builtin-PendingDeprecationWarning)
+      (set! py-builtin-PermissionError &py-builtin-PermissionError)
+      (set! py-builtin-ProcessLookupError &py-builtin-ProcessLookupError)
+      (set! py-builtin-RecursionError &py-builtin-RecursionError)
+      (set! py-builtin-ReferenceError &py-builtin-ReferenceError)
+      (set! py-builtin-ResourceWarning &py-builtin-ResourceWarning)
+      (set! py-builtin-RuntimeError &py-builtin-RuntimeError)
+      (set! py-builtin-RuntimeWarning &py-builtin-RuntimeWarning)
+      (set! py-builtin-StopAsyncIteration &py-builtin-StopAsyncIteration)
+      (set! py-builtin-StopIteration &py-builtin-StopIteration)
+      (set! py-builtin-SyntaxError &py-builtin-SyntaxError)
+      (set! py-builtin-SyntaxWarning &py-builtin-SyntaxWarning)
+      (set! py-builtin-SystemError &py-builtin-SystemError)
+      (set! py-builtin-SystemExit &py-builtin-SystemExit)
+      (set! py-builtin-TabError &py-builtin-TabError)
+      (set! py-builtin-TimeoutError &py-builtin-TimeoutError)
+      (set! py-builtin-TypeError &py-builtin-TypeError)
+      (set! py-builtin-UnboundLocalError &py-builtin-UnboundLocalError)
+      (set! py-builtin-UnicodeDecodeError &py-builtin-UnicodeDecodeError)
+      (set! py-builtin-UnicodeEncodeError &py-builtin-UnicodeEncodeError)
+      (set! py-builtin-UnicodeError &py-builtin-UnicodeError)
+      (set! py-builtin-UnicodeTranslateError &py-builtin-UnicodeTranslateError)
+      (set! py-builtin-UnicodeWarning &py-builtin-UnicodeWarning)
+      (set! py-builtin-UserWarning &py-builtin-UserWarning)
+      (set! py-builtin-ValueError &py-builtin-ValueError)
+      (set! py-builtin-Warning &py-builtin-Warning)
+      (set! py-builtin-ZeroDivisionError &py-builtin-ZeroDivisionError)
+      (set! py-builtin-range &py-builtin-range)
+      (set! py-builtin-range_iterator &py-builtin-range_iterator)
+      (set! py-builtin-int &py-builtin-int)
+      (set! py-builtin-bool &py-builtin-bool)
+      (set! py-builtin-float &py-builtin-float)
+      (set! py-builtin-str &py-builtin-str)
+      (set! py-builtin-classmethod &py-builtin-classmethod)
+      (set! py-builtin-staticmethod &py-builtin-staticmethod)
+      (set! py-method-class &py-builtin-method)
+      
+      ;; Reuse sorted procedure for list.sort
+      (set! list.sort
+	 (procedure->py-function
+	    (lambda (self key reversed)
+	       (PyObjectList-value-set!
+		  self
+		  (PyObjectList-value
+		     ((PyObjectFunction-procedure py-builtin-sorted)
+		      self key reversed)))
+	       py-None)
+	    
+	    ;;TODO: change default arguments to kwonlyargs
+	    (make-signature
+	       args: (self key reversed)
+	       defaults: (vector py-None py-False))))
+      (py-own-attr-set! py-list-class (& "sort") list.sort)
+      
+      ;; make constants
+      (PyObject-class-set! py-True py-builtin-bool)
+      (PyObject-class-set! py-False py-builtin-bool)
+      
+      ;; expand builtins.py with scheme-defined builtins
+      (global-own-attr-put-no-cache! builtins-mod (& "None") py-None)
+      (global-own-attr-put-no-cache! builtins-mod (& "NotImplemented") py-NotImplemented)
+      (global-own-attr-put-no-cache! builtins-mod (& "False") py-False)
+      (global-own-attr-put-no-cache! builtins-mod (& "True") py-True)
+      (global-own-attr-put-no-cache! builtins-mod (& "abs") py-builtin-abs)
+      (global-own-attr-put-no-cache! builtins-mod (& "all") py-builtin-all)
+      (global-own-attr-put-no-cache! builtins-mod (& "any") py-builtin-any)
+      (global-own-attr-put-no-cache! builtins-mod (& "ascii") py-builtin-ascii)
+      (global-own-attr-put-no-cache! builtins-mod (& "bin") py-builtin-bin)
+      (global-own-attr-put-no-cache! builtins-mod (& "breakpoint") py-builtin-breakpoint)
+      (global-own-attr-put-no-cache! builtins-mod (& "bytearray") py-builtin-bytearray)
+      (global-own-attr-put-no-cache! builtins-mod (& "bytes") py-builtin-bytes)
+      (global-own-attr-put-no-cache! builtins-mod (& "callable") py-builtin-callable)
+      (global-own-attr-put-no-cache! builtins-mod (& "chr") py-builtin-chr)
+      (global-own-attr-put-no-cache! builtins-mod (& "compile") py-builtin-compile)
+      (global-own-attr-put-no-cache! builtins-mod (& "complex") py-builtin-complex)
+      (global-own-attr-put-no-cache! builtins-mod (& "delattr") py-builtin-delattr)
+      (global-own-attr-put-no-cache! builtins-mod (& "dict") py-builtin-dict)
+      (global-own-attr-put-no-cache! builtins-mod (& "dir") py-builtin-dir)
+      (global-own-attr-put-no-cache! builtins-mod (& "divmod") py-builtin-divmod)
+      (global-own-attr-put-no-cache! builtins-mod (& "enumerate") py-builtin-enumerate)
+      (global-own-attr-put-no-cache! builtins-mod (& "eval") py-builtin-eval)
+      (global-own-attr-put-no-cache! builtins-mod (& "exec") py-builtin-exec)
+      (global-own-attr-put-no-cache! builtins-mod (& "filter") py-builtin-filter)
+      (global-own-attr-put-no-cache! builtins-mod (& "float") py-builtin-float)
+      (global-own-attr-put-no-cache! builtins-mod (& "format") py-builtin-format)
+      (global-own-attr-put-no-cache! builtins-mod (& "frozenset") py-builtin-frozenset)
+      (global-own-attr-put-no-cache! builtins-mod (& "getattr") py-builtin-getattr)
+      (global-own-attr-put-no-cache! builtins-mod (& "globals") py-builtin-globals)
+      (global-own-attr-put-no-cache! builtins-mod (& "hasattr") py-builtin-hasattr)
+      (global-own-attr-put-no-cache! builtins-mod (& "hash") py-builtin-hash)
+      (global-own-attr-put-no-cache! builtins-mod (& "help") py-builtin-help)
+      (global-own-attr-put-no-cache! builtins-mod (& "hex") py-builtin-hex)
+      (global-own-attr-put-no-cache! builtins-mod (& "id") py-builtin-id)
+      (global-own-attr-put-no-cache! builtins-mod (& "input") py-builtin-input)
+      (global-own-attr-put-no-cache! builtins-mod (& "isinstance") py-builtin-isinstance)
+      (global-own-attr-put-no-cache! builtins-mod (& "issubclass") py-builtin-issubclass)
+      (global-own-attr-put-no-cache! builtins-mod (& "iter") py-builtin-iter)
+      (global-own-attr-put-no-cache! builtins-mod (& "len") py-builtin-len)
+      (global-own-attr-put-no-cache! builtins-mod (& "list") py-builtin-list)
+      (global-own-attr-put-no-cache! builtins-mod (& "locals") py-builtin-locals)
+      (global-own-attr-put-no-cache! builtins-mod (& "map") py-builtin-map)
+      (global-own-attr-put-no-cache! builtins-mod (& "max") py-builtin-max)
+      (global-own-attr-put-no-cache! builtins-mod (& "memoryview") py-builtin-memoryview)
+      (global-own-attr-put-no-cache! builtins-mod (& "min") py-builtin-min)
+      (global-own-attr-put-no-cache! builtins-mod (& "next") py-builtin-next)
+      (global-own-attr-put-no-cache! builtins-mod (& "object") py-builtin-object)
+      (global-own-attr-put-no-cache! builtins-mod (& "oct") py-builtin-oct)
+      (global-own-attr-put-no-cache! builtins-mod (& "open") py-builtin-open)
+      (global-own-attr-put-no-cache! builtins-mod (& "ord") py-builtin-ord)
+      (global-own-attr-put-no-cache! builtins-mod (& "pow") py-builtin-pow)
+      (global-own-attr-put-no-cache! builtins-mod (& "print") py-builtin-print)
+      (global-own-attr-put-no-cache! builtins-mod (& "property") py-builtin-property)
+      (global-own-attr-put-no-cache! builtins-mod (& "repr") py-builtin-repr)
+      (global-own-attr-put-no-cache! builtins-mod (& "reversed") py-builtin-reversed)
+      (global-own-attr-put-no-cache! builtins-mod (& "round") py-builtin-round)
+      (global-own-attr-put-no-cache! builtins-mod (& "set") py-builtin-set)
+      (global-own-attr-put-no-cache! builtins-mod (& "setattr") py-builtin-setattr)
+      (global-own-attr-put-no-cache! builtins-mod (& "slice") py-builtin-slice)
+      (global-own-attr-put-no-cache! builtins-mod (& "sorted") py-builtin-sorted)
+      (global-own-attr-put-no-cache! builtins-mod (& "staticmethod") py-builtin-staticmethod)
+      (global-own-attr-put-no-cache! builtins-mod (& "str") py-builtin-str)
+      (global-own-attr-put-no-cache! builtins-mod (& "sum") py-builtin-sum)
+      (global-own-attr-put-no-cache! builtins-mod (& "super") py-builtin-super)
+      (global-own-attr-put-no-cache! builtins-mod (& "tuple") py-builtin-tuple)
+      (global-own-attr-put-no-cache! builtins-mod (& "type") py-builtin-type)
+      (global-own-attr-put-no-cache! builtins-mod (& "vars") py-builtin-vars)
+      (global-own-attr-put-no-cache! builtins-mod (& "zip") py-builtin-zip)
+      (global-own-attr-put-no-cache! builtins-mod (& "__import__") py-builtin-__import__)
+      
+      builtins-mod))
 
 ;*---------------------------------------------------------------------*/
 ;*    PCache                                                           */

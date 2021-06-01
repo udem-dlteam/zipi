@@ -7,6 +7,8 @@ pyc/.afile~
 pyc/configure.scm
 dependencies
 dependencies/*
+bench/zipi-benchmarks
+bench/zipi-benchmarks/*
 etc/Makefile.zipiconfig
 etc/Makefile.bigloo
 etc/pyc.init

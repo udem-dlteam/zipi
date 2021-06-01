@@ -196,6 +196,7 @@
     py-setattribute
     py-own-attr-set!
     getattribute-from-obj-mro
+    getattribute-from-obj-mro-fallback
     py-own-attr-ref-2cont
 
     py-descriptor-get
@@ -527,6 +528,14 @@
     get-behavior-type-index
     $get-behavior-type-index
 
+    py-for-each
+    py-for-each-maybe-range-call
+    py-for-each-maybe-range:next
+    py-for-each-maybe-range-call:iter
+    py-for-each-maybe-range:iter
+    py-for-each-maybe-range
+    py-for-each-maybe-range-cps:next
+    py-for-each-maybe-range-cps
     py-obj->iterator
     py-iter
     iterator-next
