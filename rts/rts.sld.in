@@ -158,7 +158,6 @@
     py-truth
 
     py-not
-    py-next
     py-import
     py-import-relative
 
@@ -388,6 +387,14 @@
     py-test-le-behaviors-table
     py-test-lt-behaviors-table
 
+    PyObjectTuple-value
+    PyObjectList-len
+    PyObjectList-vector
+    py-for-iter
+    py-for-next
+
+    py-next-behaviors-table
+
     py-descriptor-get-behaviors-table
     py-descriptor-get-behavior-call-fallback
 
@@ -452,12 +459,20 @@
     py-concat-strX-strY
     py-mul-UstrX-UintY
 
+    py-list-class
+    py-make-list
+    py-list-from-scheme
+    py-make-list-from-elems
+    py-make-list-from-vec
+    make-PyObjectList
+    PyObjectType-hclass-of-instances
+    list-get-inner-len
+    list-get-shrink-threshold
+
     py-slice-from-scheme
     py-bytearray-from-scheme
     py-set-from-scheme
     py-tuple-from-scheme
-    py-make-list
-    py-make-list-vec
     py-make-dict
     py-make-set
     py-make-tuple
@@ -529,15 +544,13 @@
     $get-behavior-type-index
 
     py-for-each
-    py-for-each-maybe-range-call
-    py-for-each-maybe-range:next
-    py-for-each-maybe-range-call:iter
-    py-for-each-maybe-range:iter
-    py-for-each-maybe-range
-    py-for-each-maybe-range-cps:next
-    py-for-each-maybe-range-cps
+    py-for-each-cps
+    py-for-each-range-call
     py-obj->iterator
     py-iter
+    py-iter-fallback
+    py-next
+    py-next-fallback
     iterator-next
     iterator->list
     py-ternary-unpack
@@ -546,6 +559,9 @@
     py-generator-yield
     py-make-generator
     py-generator-send
+
+    PyObjectGenerator-continuation-set!
+    PyObjectGenerator-is-running-set!
 
     py-enter
     py-exit

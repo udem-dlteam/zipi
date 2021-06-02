@@ -953,6 +953,264 @@
 (define-macro (py-add-strX-strY str1 str2)
   `(py-add-SstrX-SstrY-fallback ,str1 ,str2))
 
+;; operations on lists
+
+(define-macro (list-get-inner-len len)
+  `(let (($len ,len))
+    (fx+
+      4
+      (fx+ $len
+           (fxquotient $len 8))))) ;; growth factor = 1.125
+
+(define-macro (list-get-shrink-threshold len)
+  `(let (($len ,len))
+    (fxmax
+      4
+      (fx- $len
+           (fxquotient $len 3)))))
+
+(define-macro (py-make-list . elements)
+  (let* ((len (length elements))
+         (inner-len (+ 4 (+ len (quotient len 8)))) ;; must mirror list-get-inner-len macro
+         (empty-len (- inner-len len)))
+    `(py-list-from-scheme
+      (vector ,@elements ,@(make-list empty-len #f))
+      ,len)))
+
+(define-macro (py-list-from-scheme vec len)
+  `(make-PyObjectList
+    py-list-hclass-of-instances
+    '#()
+    py-list-class
+    ,vec
+    ,len))
+
+(define-macro (py-list-subtype-from-scheme cls vec len)
+  `(make-PyObjectList
+    (PyObjectType-hclass-of-instances cls)
+    '#()
+    ,cls
+    ,vec
+    ,len))
+
+(define-macro (py-make-list-from-elems elements)
+  `(let* (($elements ,elements)
+          (len (length $elements))
+          (inner-len (list-get-inner-len len))
+          (vec (make-vector inner-len #f)))
+    (let loop ((i 0) (lst $elements))
+      (if (null? lst)
+        (py-list-from-scheme vec len)
+        (begin
+          (vector-set! vec i (car lst))
+          (loop (fx+ i 1) (cdr lst)))))))
+
+(define-macro (py-make-list-from-vec vec)
+  `(let* (($vec ,vec)
+          (len (vector-length $vec))
+          (inner-len (list-get-inner-len len))
+          (new-vector (make-vector inner-len #f)))
+    (subvector-move! $vec 0 len new-vector 0)
+    (py-list-from-scheme new-vector len)))
+
+(define-macro (py-add-listX-listY-inline list1 list2)
+  (let (($list1 (gensym 'list))
+        ($list2 (gensym 'list))
+        ($len1 (gensym 'len))
+        ($len2 (gensym 'len))
+        ($res-len (gensym 'len))
+        ($res-vec (gensym 'vec)))
+    `(let* ((,$list1 ,list1)
+           (,$list2 ,list2)
+           (,$len1 (PyObjectList-len ,$list1))
+           (,$len2 (PyObjectList-len ,$list2))
+           (,$res-len (fx+ ,$len1 ,$len2))
+           (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
+      (subvector-move! (PyObjectList-vector ,$list1) 0 ,$len1 ,$res-vec 0)
+      (subvector-move! (PyObjectList-vector ,$list2) 0 ,$len2 ,$res-vec ,$len1)
+      (py-list-from-scheme ,$res-vec ,$res-len))))
+
+(define-macro (py-mul-listX-UintY lst n)
+  (let (($list (gensym 'list))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($n (gensym 'n))
+        ($res-len (gensym 'len))
+        ($res-vec (gensym 'vec)))
+    `(let* ((,$list ,lst)
+           (,$len (PyObjectList-len ,$list))
+           (,$vec (PyObjectList-vector ,$list))
+           (,$n ,n)
+           (,$res-len (* ,$n ,$len))
+           (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
+      (let loop ((i 0))
+        (if (< i ,$res-len)
+          (begin
+            (subvector-move! ,$vec 0 ,$len ,$res-vec i)
+            (loop (+ i ,$len)))
+          (py-list-from-scheme ,$res-vec ,$res-len))))))
+
+(define-macro (py-getitem-listX-sliceY lst slice)
+  (let (($list (gensym 'list))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($indices (gensym 'indices))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($res-len (gensym 'len))
+        ($res-vec (gensym 'vec)))
+  `(let* ((,$list ,lst)
+         (,$len (PyObjectList-len ,$list))
+         (,$vec (PyObjectList-vector ,$list))
+         (,$indices (py-slice-indices ,slice ,$len))
+         (,$start (vector-ref ,$indices 0))
+         (,$stop (vector-ref ,$indices 1))
+         (,$step (vector-ref ,$indices 2))
+         (,$res-len (max 0 (ceiling (/ (- ,$stop ,$start) ,$step))))
+         (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
+    (let loop ((source ,$start) (target 0))
+      (if (< target ,$res-len)
+        (begin
+          (vector-set! ,$res-vec target (vector-ref ,$vec source))
+          (loop (+ source ,$step) (+ target 1)))
+        (py-list-from-scheme ,$res-vec ,$res-len))))))
+
+(define-macro (py-getitem-listX-intY lst item)
+  (let (($lst (gensym 'list))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($i (gensym 'i)))
+    `(let* ((,$lst ,lst)
+            (,$len (PyObjectList-len ,$lst))
+            (,$vec (PyObjectList-vector ,$lst))
+            (,$i (py-subtype-of-int-to-scheme ,item)))
+      (if (index-in-length-range ,$i ,$len)
+        (vector-ref ,$vec (modulo ,$i ,$len))
+        (py-throw-index-out-of-range "list")))))
+
+(define-macro (py-EQUAL?-listX-listY list1 list2 yes no)
+  (let (($list1 (gensym 'list))
+        ($list2 (gensym 'list))
+        ($len1 (gensym 'len))
+        ($len2 (gensym 'len))
+        ($vec1 (gensym 'vec))
+        ($vec2 (gensym 'vec)))
+    `(let* ((,$list1 ,list1)
+           (,$list2 ,list2)
+           (,$len1 (PyObjectList-len ,$list1))
+           (,$len2 (PyObjectList-len ,$list2))
+           (,$vec1 (PyObjectList-vector ,$list1))
+           (,$vec2 (PyObjectList-vector ,$list2)))
+      (if (fx= ,$len1 ,$len2)
+        (let loop ((i 0))
+          (if (< i ,$len1)
+            (if (py-test (py-eq (vector-ref ,$vec1 i) (vector-ref ,$vec2 i)))
+              (loop (+ i 1))
+              ,no)
+            ,yes))
+        ,no))))
+
+(define-macro (py-eq-listX-listY list1 list2)
+  `(py-EQUAL?-listX-listY ,list1 ,list2 py-True py-False))
+
+(define-macro (py-ne-listX-listY list1 list2)
+  `(py-EQUAL?-listX-listY ,list1 ,list2 py-False py-True))
+
+(define-macro (py-CMP?-listX-listY list1 list2 py-op tiebreak)
+  (let (($list1 (gensym 'list))
+        ($list2 (gensym 'list))
+        ($len1 (gensym 'len))
+        ($len2 (gensym 'len))
+        ($min-len (gensym 'len))
+        ($vec1 (gensym 'vec))
+        ($vec2 (gensym 'vec)))
+    `(let* ((,$list1 ,list1)
+           (,$list2 ,list2)
+           (,$len1 (PyObjectList-len ,$list1))
+           (,$len2 (PyObjectList-len ,$list2))
+           (,$min-len (min ,$len1 ,$len2))
+           (,$vec1 (PyObjectList-vector ,$list1))
+           (,$vec2 (PyObjectList-vector ,$list2)))
+      (let loop ((i 0))
+        (if (< i ,$min-len)
+          (let ((el1 (vector-ref ,$vec1 i))
+                (el2 (vector-ref ,$vec2 i)))
+            (if (py-test (,py-op el1 el2))
+              py-True
+              (if (py-test (py-eq el1 el2))
+                (loop (fx+ i 1))
+                py-False)))
+          (if (,tiebreak ,$len1 ,$len2) py-True py-False))))))
+
+(define-macro (py-lt-listX-listY list1 list2)
+  `(py-CMP?-listX-listY ,list1 ,list2 py-lt <))
+
+(define-macro (py-le-listX-listY list1 list2)
+  `(py-CMP?-listX-listY ,list1 ,list2 py-lt <=))
+
+(define-macro (py-gt-listX-listY list1 list2)
+  `(py-CMP?-listX-listY ,list1 ,list2 py-gt >))
+
+(define-macro (py-ge-listX-listY list1 list2)
+  `(py-CMP?-listX-listY ,list1 ,list2 py-gt >=))
+
+(define-macro (stop-list-iterator iterator raise)
+  `(begin
+    (PyObjectListIterator-index-set! ,iterator #f)
+    ,(if raise `(py-throw py-builtin-StopIteration) #f)))
+
+(define-macro (list-iterator-next self raise)
+  (let (($self (gensym 'self)))
+    `(let* ((,$self ,self)
+            (index (PyObjectListIterator-index ,$self)))
+      (if index
+        (let* ((lst (PyObjectListIterator-list ,$self))
+               (vec (PyObjectList-vector lst))
+               (len (PyObjectList-len lst)))
+          (if (< index len)
+            (let ((item (vector-ref vec index)))
+              (PyObjectListIterator-index-set! ,$self (+ index 1))
+              item)
+            (stop-list-iterator ,$self ,raise)))
+          (stop-list-iterator ,$self ,raise)))))
+
+;; operations on tuples
+
+(define-macro (tuple-iterator-next self raise)
+  (let (($self (gensym 'self)))
+    `(let* ((,$self ,self)
+            (index (PyObjectTupleIterator-index ,$self))
+                   (vec (PyObjectTupleIterator-vec ,$self)))
+              (if (< index (vector-length vec))
+                (let ((item (vector-ref vec index)))
+                  (begin
+                    (PyObjectTupleIterator-index-set! ,$self (+ index 1))
+                    item))
+                ,(if raise
+                   `(py-throw py-builtin-StopIteration)
+                   #f)))))
+
+;; operations on generators
+
+(define-macro (py-generator-yield gen val kont)
+  (let (($gen (gensym 'gen)))
+    `(let ((,$gen ,gen))
+      (PyObjectGenerator-continuation-set! ,$gen ,kont)
+      (PyObjectGenerator-is-running-set! ,$gen #f)
+      ,val)))
+
+(define-macro (py-generator-next self)
+  `(let (($self ,self))
+    (if (PyObjectGenerator-is-running $self)
+      (py-throw-exception-with-message
+        py-builtin-ValueError
+        "generator is already executing")
+      (let ((cont (PyObjectGenerator-continuation $self)))
+        (PyObjectGenerator-is-running-set! $self #t)
+        (PyObjectGenerator-continuation-set! $self #f)
+        (cont py-None #f)))))
+
 ;; all zipi PyObjectType have reserved slots for the following magic methods
 ;; see: ;; https://docs.python.org/3/reference/datamodel.html
 (define-macro (with-list-of-magic-attrs . args)
@@ -1264,20 +1522,26 @@
 
 (define-macro (with-class-indices-info . args)
   (let ((info
-            ;; WARNING: type must be ordered by class-index and only one
-            ;; type by index can have has-specialized-behavior set to #t
+            ;; WARNING: type must be ordered by class-index
 
             ;; name   class-index  has-arithmetic-behavior   can-have-getter
-          '((default       0               #t                   #t)
-            (type          0               #f                   #f)
-            (object        0               #f                   #f)
-            (tuple         0               #f                   #f)
-            (sint          1               #t                   #f) ;; is a sint index necessary?
-            (bint          2               #t                   #f)
-            (bool          3               #t                   #f)
-            (float         4               #t                   #f)
-            (str           5               #t                   #f)
-            (function      6               #f                   #t))))
+          '((default        0               #t                   #t) ;; reserved spot for default semantics
+            (sint           1               #t                   #f)
+            (bint           2               #t                   #f)
+            (bool           3               #t                   #f)
+            (float          4               #t                   #f)
+            (str            5               #t                   #f)
+            ;; extra indices with no arithmetic optimisations (NOTE: must be at tail of the list)
+            (object         6               #f                   #f)
+            (type           7               #f                   #f)
+            (function       8               #f                   #t)
+            (generator      9               #f                   #f)
+            (tuple          10              #f                   #f)
+            (tuple_iterator 11              #f                   #f)
+            (list           12              #f                   #f)
+            (list_iterator  13              #f                   #f)
+            (range          14              #f                   #f)
+            (range_iterator 15              #f                   #f))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -1370,18 +1634,23 @@
     (error "py-make-builtin-class" "name argument must be a static PyObjectStr" name)))
 
 (define-macro (init-behavior-dispatch-vector)
- `(with-class-indices-info $init-behavior-dispatch-vector))
+ `(begin
+   (with-class-indices-info $init-arithmetic-behavior-dispatch-vector)
+   (with-class-indices-info $init-iteration-behavior-dispatch-vector)))
 
-(define-macro ($init-behavior-dispatch-vector indices-info)
+(define-macro ($init-arithmetic-behavior-dispatch-vector indices-info)
   (define types-with-specialized-behaviors
     (let loop ((info indices-info))
       (cond
         ((null? info) '())
         ((caddar info) ;; has-specialized-behavior
-          (cons (car info) (loop (cdr info))))
+          (cons (caar info) (loop (cdr info))))
         (else (loop (cdr info))))))
 
-  (define behavior-table-size (length types-with-specialized-behaviors)) ;; one by behavior + default
+  (define behavior-table-size (+ 1 (apply max (map cadr indices-info)))) ;; one by behavior + default
+
+  ;; those are the tail behaviors which have no arithmetic behavior, but have a class index and so must have a slot in the vector
+  (define behavior-table-default-tail-size (- behavior-table-size (length types-with-specialized-behaviors)))
 
   (define inplace-ops
     '(iadd ibitand ibitor ifloordiv ilshift imatmul imod imul ipow irshift isub itruediv ixor))
@@ -1419,7 +1688,10 @@
 
   (define (use-default-binary-semantics? op lhs-type rhs-type)
     (cond
-      ((or (eq? lhs-type 'default) (eq? rhs-type 'default))
+      ((or (eq? lhs-type 'default)
+           (eq? rhs-type 'default)
+           (not (memq lhs-type types-with-specialized-behaviors))
+           (not (memq rhs-type types-with-specialized-behaviors)))
         #t)
       ((and (memq op '(mod imod))
             (eq? lhs-type 'str))
@@ -1455,7 +1727,7 @@
           "Y-fallback"))))
 
   (define (get-unary-behavior-name op type)
-    (if (eq? type 'default)
+    (if (or (eq? type 'default) (not (memq type types-with-specialized-behaviors)))
       ;; use the full semantics
       (string->symbol
           (string-append "py-" (symbol->string op) "-fallback:normal"))
@@ -1469,7 +1741,7 @@
           "X-fallback"))))
 
   (define (get-unary-truthiness-behavior-name op type)
-    (if (eq? type 'default)
+    (if (or (eq? type 'default) (not (memq type types-with-specialized-behaviors)))
       ;; use the full semantics
       (string->symbol
           (string-append "py-" (symbol->string op) "-fallback"))
@@ -1483,10 +1755,10 @@
           "X-fallback"))))
 
   (define (make-binary-behaviors-list op)
-    (let lhs-loop ((lhs-types types-with-specialized-behaviors))
+    (let lhs-loop ((lhs-types indices-info))
       (if (null? lhs-types)
         '()
-        (let rhs-loop ((rhs-types types-with-specialized-behaviors))
+        (let rhs-loop ((rhs-types indices-info))
           (if (null? rhs-types)
             (lhs-loop (cdr lhs-types))
             (cons
@@ -1494,7 +1766,7 @@
               (rhs-loop (cdr rhs-types))))))))
 
   (define (make-unary-behaviors-list op)
-    (let loop ((types types-with-specialized-behaviors))
+    (let loop ((types indices-info))
       (if (null? types)
         '()
         (cons
@@ -1502,7 +1774,7 @@
           (loop (cdr types))))))
 
   (define (make-unary-truthiness-behaviors-list op)
-    (let loop ((types types-with-specialized-behaviors))
+    (let loop ((types indices-info))
       (if (null? types)
         '()
         (cons
@@ -1580,17 +1852,63 @@
         ,@tables-init-code
         ,@behavior-call-fallbacks)))
 
+(define-macro (py-for-each-listX iterable body)
+  (let (($iterable (gensym 'iterable)))
+  `(let ((,$iterable ,iterable))
+    (let loop ((i 0))
+      (if (fx< i (PyObjectList-len ,$iterable))
+        (begin
+          (,body (vector-ref (PyObjectList-vector ,$iterable) i))
+          (loop (fx+ i 1))))))))
+
+(define-macro (py-for-each-tupleX iterable body)
+  (let (($iterable (gensym 'iterable))
+        ($vec (gensym 'vector))
+        ($len (gensym 'len)))
+  `(let* ((,$iterable ,iterable)
+          (,$vec (PyObjectTuple-value ,$iterable))
+          (,$len (vector-length ,$vec)))
+    (let loop ((i 0))
+      (if (fx< i ,$len)
+        (begin
+          (,body (vector-ref ,$vec i))
+          (loop (fx+ i 1))))))))
+
+(define-macro ($init-iteration-behavior-dispatch-vector indices-info)
+  (define behavior-tables-size (+ 1 (apply max (map cadr indices-info))))
+
+  `(begin
+    (define py-next-behaviors-table
+      (make-vector ,behavior-tables-size py-next-fallback))
+
+    (vector-set!
+      py-next-behaviors-table
+      (get-behavior-type-index list_iterator)
+      (lambda (it)
+        (list-iterator-next it #f)))
+
+    (vector-set!
+      py-next-behaviors-table
+      (get-behavior-type-index tuple_iterator)
+      (lambda (it)
+        (tuple-iterator-next it #f)))
+
+    (vector-set!
+      py-next-behaviors-table
+      (get-behavior-type-index generator)
+      (lambda (obj)
+        (with-exception-catcher
+          (lambda (e)
+            (if (py-isinstance? e py-builtin-StopIteration)
+              #f
+              (py-throw e)))
+          (lambda () (py-generator-next obj)))))))
+
 (define-macro (get-behavior-index lhs-index rhs-index)
    `(with-class-indices-info $get-behavior-index ,lhs-index ,rhs-index))
 
 (define-macro ($get-behavior-index indices-info lhs-index rhs-index)
-  (define indices
-    (let loop ((info indices-info))
-      (cond
-        ((null? info) '())
-        ((caddar info) ;has-specialized-behavior
-          (cons (cadar info) (loop (cdr info))))
-        (else (loop (cdr info))))))
+  (define indices (map cadr indices-info))
 
   (define indices-length (length indices))
 
@@ -2090,157 +2408,172 @@
       (else
         (py-descriptor-get-fallback $attr $instance $owner)))))
 
-(define-macro (py-for-each-maybe-range-call:iter $iter-callee $start $stop $step . args-names)
-  `(if (and (eq? ,$iter-callee py-builtin-range)
-           (fixnum? ,$start)
-           (fixnum? ,$stop)
-           (fixnum? ,$step)
-           (not (fx= ,$step 0))
-           (cond-expand
-             (gambit
-               (|##fx+?| ,$stop ,$step))
-             (bigloo
-               (fixnum? (+ ,$stop ,$step)))))
-    ,$start
-    (py-iter (py-call ,$iter-callee ,@args-names))))
+(define-macro (py-iter obj)
+  `(py-iter-fallback ,obj))
 
-(define-macro (py-for-each-maybe-range:next $state $stop $step)
-  `(if (fixnum? ,$state)
-    (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
-            (and (fx> ,$step 0) (fx< ,$state ,$stop)))
-      ,$state
-      #f)
-    (py-next ,$state)))
+(define-macro (py-next obj)
+  (let* (($obj (gensym 'obj)))
+    `(let* ((,$obj ,obj))
+      ((vector-ref py-next-behaviors-table (py-obj-class-index ,$obj)) ,$obj))))
 
-(define-macro (py-for-each-maybe-range-call element iter-callee body . args)
-  (let* (($state (gensym 'state))
-        ($start (gensym 'start))
-        ($stop (gensym 'stop))
-        ($step (gensym 'step))
-        ($iter-callee (gensym 'range???))
-        ($iterator (gensym 'iterator))
-        (loop-sym (gensym 'loop))
-        (args-names (map (lambda (a) (gensym 'arg)) args))
-        (range-args
-          (case (length args)
-            ((1)
-              `((,$start 0)
-                (,$stop ,(car args-names))
-                (,$step 1)))
-            ((2)
-              `((,$start ,(car args-names))
-                (,$stop ,(cadr args-names))
-                (,$step 1)))
-            ((3)
-              `((,$start ,(car args-names))
-                (,$stop ,(cadr args-names))
-                (,$step ,(caddr args-names))))
-            (else
-              #f))))
-    `(py-if-specialized-sint-representation
-      ,(if range-args
-        `(let* (,@(map (lambda (a v) `(,a ,v)) args-names args)
+(define-macro (py-for-each-range-call $element iter-callee body . args)
+  (let* (($iterator (gensym 'iterator))
+         ($start (gensym 'start))
+         ($stop (gensym 'stop))
+         ($step (gensym 'step))
+         ($iter-callee (gensym 'range???))
+         ($init-loop (gensym 'init-loop))
+         (args-names (map (lambda (a) (gensym 'arg)) args))
+         (range-args
+           (case (length args)
+             ((1)
+               `((,$start 0)
+                 (,$stop ,(car args-names))
+                 (,$step 1)))
+             ((2)
+               `((,$start ,(car args-names))
+                 (,$stop ,(cadr args-names))
+                 (,$step 1)))
+             ((3)
+               `((,$start ,(car args-names))
+                 (,$stop ,(cadr args-names))
+                 (,$step ,(caddr args-names))))
+             (else
+               #f))))
+      (if range-args
+        `(let* ((,$iter-callee ,iter-callee)
+               ,@(map (lambda (a v) `(,a ,v)) args-names args)
                ,@range-args
-               (,$iter-callee ,iter-callee)
-               (,$state (py-for-each-maybe-range-call:iter ,$iter-callee ,$start ,$stop ,$step ,@args-names)))
-          (let ,loop-sym ((,$state ,$state))
-            (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
-              (if ,element
-                (begin
-                  ,body
-                  (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
-        `(py-for-each ,element (py-call ,iter-callee ,@args) ,body))
-      (py-for-each ,element (py-call ,iter-callee ,@args) ,body))))
+               (,$init-loop
+                 (lambda (,$element ,$iterator)
+                   (let loop ((,$element ,$element))
+                     (if ,$element
+                       (begin ,body (loop (py-for-next ,$element ,$iterator))))))))
+          (if (and (eq? ,$iter-callee py-builtin-range)
+                   (fixnum? ,$start)
+                   (fixnum? ,$stop)
+                   (fixnum? ,$step)
+                   (not (fx= ,$step 0))
+                   (cond-expand
+                     (gambit
+                       (|##fx+?| ,$stop ,$step))
+                     (bigloo
+                       (fixnum? (+ ,$stop ,$step)))))
+              (,$init-loop ,$start (cons ,$stop ,$step))
+              (py-for-iter (py-call ,$iter-callee ,@args) ,$init-loop)))
+        `(py-for-each ,$element (py-call ,iter-callee ,@args) body))))
 
-(define-macro (py-for-each-maybe-range:iter $iterable $start $stop $step)
-  `(if (and (fixnum? ,$start)
-            (fixnum? ,$stop)
-            (fixnum? ,$step)
-            (not (fx= ,$step 0))
-            (cond-expand
-              (gambit
-                (|##fx+?| ,$stop ,$step))
-              (bigloo
-                (fixnum? (+ ,$stop ,$step)))))
-    ,$start
-    (py-iter ,$iterable)))
-
-(define-macro (py-for-each-maybe-range element iterable body)
-  (let* (($it-cls (gensym 'iterator-cls))
-        ($state (gensym 'state))
-        ($start (gensym 'start))
-        ($stop (gensym 'stop))
-        ($step (gensym 'step))
-        ($iterable (gensym 'range-obj???))
+(define-macro (py-for-each-cps element iterable body loop forelse)
+  (let (($body (gensym 'for-body))
+        ($forelse (gensym 'for-else))
         ($iterator (gensym 'iterator))
-        (loop-sym (gensym 'loop)))
-    `(py-if-specialized-sint-representation
-      (let* ((,$iterable ,iterable)
-            (,$it-cls (py-obj-cls ,$iterable))
-            (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
-            (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
-            (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
-            (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
-        (let ,loop-sym ((,$state ,$state))
-          (let ((,element (py-for-each-maybe-range:next ,$state ,$stop ,$step)))
-            (if ,element
-              (begin
-                ,body
-                (,loop-sym (if (fixnum? ,$state) (fx+ ,$state ,$step) ,$state)))))))
-      (py-for-each ,element ,iterable ,body))))
+        ($index (gensym 'cls-index))
+        ($behavior-next (gensym 'behavior-next)))
+    `(letrec ((,$iterator (py-iter ,iterable))
+              (,$index (py-obj-class-index ,$iterator))
+              (,$behavior-next (vector-ref py-next-behaviors-table ,$index)))
+      (let ,loop ()
+        (let ((,element (,$behavior-next ,$iterator)))
+          (if ,element
+            ,body
+            ,forelse))))))
 
-(define-macro (py-for-each-maybe-range-cps:next $state $stop $step)
-  (let (($next (gensym 'next-state)))
-    `(if (fixnum? ,$state)
-      (if (or (and (fx< ,$step 0) (fx> ,$state ,$stop))
-              (and (fx> ,$step 0) (fx< ,$state ,$stop)))
-        (let ((,$next ,$state)) (set! ,$state (fx+ ,$next ,$step)) ,$next)
-        #f)
-      (py-next ,$state))))
-
-(define-macro (py-for-each-maybe-range-cps element iterable body loop forelse)
-  (let* (($it-cls (gensym 'iterator-cls))
-        ($state (gensym 'state))
+;; semantics which creates a (non-python) specialized iterator for for-loops
+(define-macro (py-for-iter iterable init-loop)
+  (let (($init-loop (gensym 'init-loop))
+        ($iterable (gensym 'iterable))
+        ($iterator (gensym 'iterator))
+        ($cls-index (gensym 'cls-index))
         ($start (gensym 'start))
         ($stop (gensym 'stop))
         ($step (gensym 'step))
-        ($iterable (gensym 'range-obj???))
-        ($iterator (gensym 'iterator)))
-    `(py-if-specialized-sint-representation
-      (let* ((,$iterable ,iterable)
-            (,$it-cls (py-obj-cls ,$iterable))
-            (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
-            (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
-            (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
-            (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
-        (let ,loop ()
-          (let ((,element (py-for-each-maybe-range-cps:next ,$state ,$stop ,$step)))
-            (if ,element
-              ,body
-              ,forelse))))
-      (py-for-each ,element ,iterable ,body cps: #t loop: loop forelse: forelse))))
+        ($vec (gensym 'vec))
+        ($len (gensym 'len)))
+    `(let* ((,$init-loop ,init-loop)
+            (,$iterable ,iterable)
+            (,$cls-index (py-obj-class-index ,$iterable)))
+      (cond
+        ((fx= ,$cls-index (get-behavior-type-index list))
+          (let ((,$vec (PyObjectList-vector ,$iterable))
+                (,$len (PyObjectList-len ,$iterable)))
+            (,$init-loop
+              (if (fx> ,$len 0) (vector-ref ,$vec 0) #f)
+              (cons ,$iterable 1))))
+        ((fx= ,$cls-index (get-behavior-type-index tuple))
+          (let ((,$vec (PyObjectTuple-value ,$iterable)))
+            (,$init-loop
+              (if (fx> (vector-length ,$vec) 0) (vector-ref ,$vec 0) #f)
+              (vector ,$vec 1))))
+        ((fx= ,$cls-index (get-behavior-type-index range))
+          (let ((,$start (PyObjectRange-start ,$iterable))
+                (,$stop (PyObjectRange-stop ,$iterable))
+                (,$step (PyObjectRange-step ,$iterable)))
+            ;; NOTE: only range for-loop on fixnums are inlined
+            (if (and (fixnum? ,$start)
+                     (fixnum? ,$stop)
+                     (fixnum? ,$step)
+                     (not (fx= ,$step 0))
+                    (cond-expand
+                      (gambit
+                        (|##fx+?| ,$stop ,$step))
+                      (bigloo
+                        (fixnum? (+ ,$stop ,$step)))))
+                 (,$init-loop
+                   (and (or (and (fx> ,$step 0) (fx< ,$start ,$stop))
+                            (and (fx< ,$step 0) (fx> ,$start ,$stop)))
+                        ,$start)
+                   (cons ,$stop ,$step))
+                 (,$init-loop (py-next ,$iterator) ,$iterator))))
+        (else
+          (let ((,$iterator (py-iter ,iterable)))
+            (,$init-loop (py-next ,$iterator) ,$iterator)))))))
 
-(define-macro (py-for-each element iterable body . rest)
-   (let ((cps #f)
-	 (loop (gensym 'loop))
-	 (forelse #f))
-      (when (pair? rest)
-	 (set! cps (car rest))
-	 (set! rest (cdr rest)))
-      (when (pair? rest)
-	 (set! loop (car rest))
-	 (set! rest (cdr rest)))
-      (when (pair? rest)
-	 (set! forelse (car rest)))
-      (let ((iterator-sym (gensym 'it)))
-	 `(let ((,iterator-sym (py-iter ,iterable)))
-	     (let ,loop ()
-		  (let ((,element (py-next ,iterator-sym)))
-		     (if ,element
-			 (begin
-			    ,body
-			    ,@(if cps '() (list `(,loop))))
-			 ,@(if forelse (list forelse) '()))))))))
+;; semantics which gets next values from a (non-python) specialized iterator for for-loops
+(define-macro (py-for-next last-element iterator)
+  (let (($iterator (gensym 'iterator))
+        ($element (gensym 'last-element))
+        ($step (gensym 'step))
+        ($lst-or-stop (gensym 'lst-or-stop))
+        ($vec (gensym 'vec))
+        ($index (gensym 'index))
+        ($tmp (gensym 'tmp)))
+    `(let ((,$iterator ,iterator)
+           (,$element ,last-element))
+      (cond
+        ((pair? ,$iterator)
+          (let ((,$lst-or-stop (car ,$iterator)))
+            (if (fixnum? ,$lst-or-stop)
+              ;; case range on fixnum
+              (let* ((,$step (cdr ,$iterator))
+                     (,$tmp (fx+ ,$element ,$step)))
+                (and (or (and (fx> ,$step 0) (fx< ,$tmp ,$lst-or-stop))
+                         (and (fx< ,$step 0) (fx> ,$tmp ,$lst-or-stop)))
+                     ,$tmp))
+              ;; case list
+              (let ((,$index (cdr ,$iterator)))
+                (if (fx< ,$index (PyObjectList-len ,$lst-or-stop))
+                    (let ((,$tmp (vector-ref (PyObjectList-vector (car ,$iterator)) ,$index)))
+                      (set-cdr! ,$iterator (fx+ ,$index 1))
+                      ,$tmp)
+                    #f)))))
+        ;; case vector
+        ((vector? ,$iterator)
+          (let ((,$vec (vector-ref ,$iterator 0))
+                (,$index (vector-ref ,$iterator 1)))
+            (if (fx< ,$index (vector-length ,$vec))
+                (let ((,$tmp (vector-ref ,$vec ,$index)))
+                  (vector-set! ,$iterator 1 (fx+ ,$index 1))
+                  ,$tmp)
+                #f)))
+        ;; case PyObject iterator
+        (else
+          (py-next ,$iterator))))))
 
-(define-macro (py-for-each-cps element iterable body)
-  #f)
+(define-macro (py-for-each $element iterable body)
+  (let (($iterator (gensym 'iterator)))
+    `(py-for-iter
+      ,iterable
+      (lambda (,$element ,$iterator)
+        (let loop ((,$element ,$element))
+          (if ,$element
+            (begin ,body (loop (py-for-next ,$element ,$iterator)))))))))

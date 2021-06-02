@@ -288,6 +288,7 @@
 	        (generator (PycReturnYield-generator this))
           (val (scheme (PycReturnYield-val this) conf))
           (sent-sym (my-gensym 'sent))
+          (exc-info (my-gensym 'exc-info))
           (exc-sym (my-gensym 'exc))
           (exc-val-sym (my-gensym 'val))
           (exc-tb-sym (my-gensym 'tb)))
@@ -295,12 +296,15 @@
       `(py-generator-yield
         %current-generator
         ,val
-        (lambda (,sent-sym ,exc-sym ,exc-val-sym ,exc-tb-sym)
+        (lambda (,sent-sym ,exc-info)
           (if ,sent-sym
             (,(scheme kont conf) ,sent-sym)
-            (if ,exc-val-sym
-              (py-throw-with-values ,exc-sym ,exc-val-sym)
-              (py-throw ,exc-sym))))))))
+            (let ((,exc-sym (vector-ref ,exc-info 0))
+                  (,exc-val-sym (vector-ref ,exc-info 1))
+                  (,exc-tb-sym (vector-ref ,exc-info 2)))
+              (if ,exc-val-sym
+                (py-throw-with-values ,exc-sym ,exc-val-sym)
+                (py-throw ,exc-sym)))))))))
 
 (define-walk-method (scheme this::PycStmtExpr conf)
    (scheme (PycStmtExpr-expr this) conf))
@@ -398,7 +402,7 @@
     (let* ((target (my-gensym '%target))
            (iterable (scheme (PycFor-iter this) conf))
            (body (scheme-for-body-with-assig this target)))
-      `(py-for-each-maybe-range
+      `(py-for-each
         ,target
         ,iterable
         ,body)))
@@ -414,7 +418,7 @@
               (iter-args (PycCall-args iter))
               (iter-args-len (length iter-args)))
           (if (and (>= iter-args-len 1) (<= iter-args-len 3))
-            `(py-for-each-maybe-range-call
+            `(py-for-each-range-call
               ,target
               ,(scheme iter-callee conf)
               ,(scheme-for-body-with-assig this target)
@@ -454,7 +458,7 @@
                  conf)))
   (epairify
     this
-    `(py-for-each-maybe-range-cps
+    `(py-for-each-cps
       ,target
       ,(scheme (PycFor-iter this) conf)
       ,body
@@ -1122,6 +1126,7 @@
   (define (generator this exp)
     (if (PycFun-generator this)
       (let ((sent-sym (my-gensym 'sent))
+            (exc-info (my-gensym 'exc-info))
             (exc-sym (my-gensym 'exc))
             (exc-val-sym (my-gensym 'val))
             (exc-tb-sym (my-gensym 'tb)))
@@ -1129,7 +1134,7 @@
         (epairify this
           `(letrec* ((%current-generator
                       (py-make-generator
-                        (lambda (,sent-sym ,exc-sym ,exc-val-sym ,exc-tb-sym)
+                        (lambda (,sent-sym ,exc-info)
                           (cond
                             ((eq? ,sent-sym py-None)
                               ,exp)
@@ -1138,7 +1143,12 @@
                                 py-builtin-TypeError
                                 "can't send non-None value to a just-started generator"))
                             (else
-                              (py-throw (py-call ,exc-sym ,exc-val-sym))))))))
+                              (let ((,exc-sym (vector-ref ,exc-info 0))
+                                    (,exc-val-sym (vector-ref ,exc-info 1))
+                                    (,exc-tb-sym (vector-ref ,exc-info 2)))
+                                (if ,exc-val-sym
+                                  (py-throw-with-values ,exc-sym ,exc-val-sym)
+                                  (py-throw ,exc-sym)))))))))
             %current-generator)))
         exp))
 

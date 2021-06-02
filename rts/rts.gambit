@@ -284,9 +284,9 @@
     (set! list.sort
       (procedure->py-function
         (lambda (self key reversed)
-          (PyObjectList-value-set!
+          (PyObjectList-vector-set!
             self
-            (PyObjectList-value
+            (PyObjectList-vector
               ((PyObjectFunction-procedure py-builtin-sorted)
                self key reversed)))
           py-None)
