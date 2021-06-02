@@ -2396,7 +2396,12 @@
   (lambda (value exc-info)
     (if value
       (py-throw py-builtin-StopIteration))
-      (py-throw-with-values exc value)))
+      (let ((exc (vector-ref exc-info 0))
+            (exc-value (vector-ref exc-info 1))
+            (exc-tb (vector-ref exc-info 2)))
+        (if exc-value
+          (py-throw-with-values exc exc-value)
+          (py-throw exc)))))
 
 (define (py-generator-close self)
   (cond
@@ -2913,10 +2918,11 @@
           (let ((iterable-type (py-type iterable)))
            (cond
              ((eq? iterable-type py-tuple-class)
+              (let ((vec (PyObjectTuple-value iterable)))
                (py-list-subtype-from-scheme
                  cls
-                 (vector-copy (PyObjectTuple-value iterable))
-                 (vector-length vec)))
+                 (py-make-list-from-vec vec)
+                 (vector-length vec))))
              ((eq? iterable-type py-list-class)
                (py-list-subtype-from-scheme
                  cls

@@ -286,6 +286,7 @@
            py-float-hclass-of-instances
            py-str-hclass-of-instances
            py-tuple-hclass-of-instances
+           py-list-hclass-of-instances
            py-method-hclass-of-instances
 
            py-range-hclass-of-instances
@@ -310,8 +311,6 @@
            (getattribute-from-obj-mro-fallback ::obj ::obj)
 
            (py-make-module name package #!optional (path #f))
-           (py-make-list . elements)
-           (py-make-list-vec vec)
 
            ;; (py-getitem ::PyObject ::obj ::obj)
            ;; (py-delitem ::PyObject ::obj ::obj)
@@ -334,7 +333,6 @@
            (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
            (py-call-hashed-kwargs obj args *args-lst kwargs-table)
 
-           (py-iter ::obj)
            (py-call-wrong-arity arity nargs nargs-string)
            (pack-extra-args arity args)
            (py-ternary-unpack it nleft nright)
@@ -361,6 +359,7 @@
            py-object-class
            py-type-class
            py-tuple-class
+           py-list-class
            py-str-class
            py-int-class
            py-bool-class
@@ -401,8 +400,6 @@
 
            (class PyGenerator::PyObject %next)
            (py-make-generator ::procedure)
-           (py-generator-yield ::PyObjectGenerator ::obj ::procedure)
-           (py-next ::obj)
 
            (class PCache
               (hclass (default (class-nil HClass)))
@@ -866,10 +863,10 @@
 ;*---------------------------------------------------------------------*/
 (define (bootstrap-builtins)
    (let ((builtins-mod (native-builtin-__import__ "builtins")))
-      
+
       ;; builtin functions
       (set! py-builtin-sorted &py-builtin-sorted)
-      
+
       ;; Exceptions
       (set! py-builtin-ArithmeticError &py-builtin-ArithmeticError)
       (set! py-builtin-AssertionError &py-builtin-AssertionError)
@@ -946,28 +943,28 @@
       (set! py-builtin-classmethod &py-builtin-classmethod)
       (set! py-builtin-staticmethod &py-builtin-staticmethod)
       (set! py-method-class &py-builtin-method)
-      
+
       ;; Reuse sorted procedure for list.sort
       (set! list.sort
 	 (procedure->py-function
 	    (lambda (self key reversed)
-	       (PyObjectList-value-set!
-		  self
-		  (PyObjectList-value
-		     ((PyObjectFunction-procedure py-builtin-sorted)
-		      self key reversed)))
+        (PyObjectList-vector-set!
+          self
+          (PyObjectList-vector
+            ((PyObjectFunction-procedure py-builtin-sorted)
+             self key reversed)))
 	       py-None)
-	    
+
 	    ;;TODO: change default arguments to kwonlyargs
 	    (make-signature
 	       args: (self key reversed)
 	       defaults: (vector py-None py-False))))
       (py-own-attr-set! py-list-class (& "sort") list.sort)
-      
+
       ;; make constants
       (PyObject-class-set! py-True py-builtin-bool)
       (PyObject-class-set! py-False py-builtin-bool)
-      
+
       ;; expand builtins.py with scheme-defined builtins
       (global-own-attr-put-no-cache! builtins-mod (& "None") py-None)
       (global-own-attr-put-no-cache! builtins-mod (& "NotImplemented") py-NotImplemented)
@@ -1038,7 +1035,7 @@
       (global-own-attr-put-no-cache! builtins-mod (& "vars") py-builtin-vars)
       (global-own-attr-put-no-cache! builtins-mod (& "zip") py-builtin-zip)
       (global-own-attr-put-no-cache! builtins-mod (& "__import__") py-builtin-__import__)
-      
+
       builtins-mod))
 
 ;*---------------------------------------------------------------------*/

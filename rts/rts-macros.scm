@@ -970,11 +970,8 @@
            (fxquotient $len 3)))))
 
 (define-macro (py-make-list . elements)
-  (define (list-get-inner-len len)
-    (+ 4 (+ len (quotient len 8)))) ;; must mirror list-get-inner-len macro
-
   (let* ((len (length elements))
-         (inner-len (list-get-inner-len len))
+         (inner-len (+ 4 (+ len (quotient len 8)))) ;; must mirror list-get-inner-len macro
          (empty-len (- inner-len len)))
     `(py-list-from-scheme
       (vector ,@elements ,@(make-list empty-len #f))
