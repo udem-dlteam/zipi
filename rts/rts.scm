@@ -2813,29 +2813,14 @@
     list-iterator-iter
     (make-signature posonlyargs: (self))))
 
-;; By setting index to #f, the iterator always raises StopIteration
-(define (stop-list-iterator iterator)
-  (PyObjectListIterator-index-set! iterator #f)
-  (py-throw py-builtin-StopIteration))
-
-(define (list-iterator-next self)
+(define (list-iterator-next-procedure self)
   (if (eq? (py-type self) py-list-iterator-class)
-    (let ((index (PyObjectListIterator-index self)))
-      (if index
-        (let* ((lst (PyObjectListIterator-list self))
-               (vec (PyObjectList-vector lst))
-               (len (PyObjectList-len lst)))
-          (if (< index len)
-            (let ((item (vector-ref vec index)))
-              (PyObjectListIterator-index-set! self (+ index 1))
-              item)
-            (stop-list-iterator self)))
-          (stop-list-iterator self)))
+    (list-iterator-next self)
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 7)")))
 
 (define list_iterator.__next__
   (procedure->py-function
-    list-iterator-next
+    list-iterator-next-procedure
     (make-signature posonlyargs: (self))))
 
 (define py-list-iterator-class
@@ -2856,21 +2841,14 @@
     tuple-iterator-iter
     (make-signature posonlyargs: (self))))
 
-(define (tuple-iterator-next self)
+(define (tuple-iterator-next-procedure self)
   (if (eq? (py-type self) py-tuple-iterator-class)
-    (let* ((index (PyObjectTupleIterator-index self))
-           (vec (PyObjectTupleIterator-vec self)))
-      (if (< index (vector-length vec))
-        (let ((item (vector-ref vec index)))
-          (begin
-            (PyObjectTupleIterator-index-set! self (+ index 1))
-            item))
-        (py-throw py-builtin-StopIteration)))
+    (tuple-iterator-next self)
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 9)")))
 
 (define py-tuple-iterator-next
   (procedure->py-function
-    tuple-iterator-next
+    tuple-iterator-next-procedure
     (make-signature posonlyargs: (self))))
 
 (define py-tuple-iterator-class

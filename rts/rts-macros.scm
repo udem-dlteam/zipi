@@ -1158,6 +1158,42 @@
 (define-macro (py-ge-listX-listY list1 list2)
   `(py-CMP?-listX-listY ,list1 ,list2 py-gt >=))
 
+(define-macro (stop-list-iterator iterator raise)
+  `(begin
+    (PyObjectListIterator-index-set! ,iterator #f)
+    ,(if raise `(py-throw py-builtin-StopIteration) #f)))
+
+(define-macro (list-iterator-next self #!key (raise #t))
+  (let (($self (gensym 'self)))
+    `(let* ((,$self ,self)
+            (index (PyObjectListIterator-index ,$self)))
+      (if index
+        (let* ((lst (PyObjectListIterator-list ,$self))
+               (vec (PyObjectList-vector lst))
+               (len (PyObjectList-len lst)))
+          (if (< index len)
+            (let ((item (vector-ref vec index)))
+              (PyObjectListIterator-index-set! ,$self (+ index 1))
+              item)
+            (stop-list-iterator ,$self ,raise)))
+          (stop-list-iterator ,$self ,raise)))))
+
+;; operations on tuples
+
+(define-macro (tuple-iterator-next self #!key (raise #t))
+  (let (($self (gensym 'self)))
+    `(let* ((,$self ,self)
+            (index (PyObjectTupleIterator-index ,$self))
+                   (vec (PyObjectTupleIterator-vec ,$self)))
+              (if (< index (vector-length vec))
+                (let ((item (vector-ref vec index)))
+                  (begin
+                    (PyObjectTupleIterator-index-set! ,$self (+ index 1))
+                    item))
+                ,(if raise
+                   `(py-throw py-builtin-StopIteration)
+                   #f)))))
+
 ;; operations on generators
 
 (define-macro (py-generator-yield gen val kont)
@@ -1836,6 +1872,18 @@
 
     (vector-set!
       py-next-behaviors-table
+      (get-behavior-type-index list_iterator)
+      (lambda (it)
+        (list-iterator-next it raise: #f)))
+
+    (vector-set!
+      py-next-behaviors-table
+      (get-behavior-type-index tuple_iterator)
+      (lambda (it)
+        (tuple-iterator-next it raise: #f)))
+
+    (vector-set!
+      py-next-behaviors-table
       (get-behavior-type-index generator)
       (lambda (obj)
         (with-exception-catcher
@@ -2419,6 +2467,7 @@
             ,body
             ,forelse))))))
 
+;; semantics which creates a (non-python) specialized iterator for for-loops
 (define-macro (py-for-iter iterable init-loop)
   (let (($init-loop (gensym 'init-loop))
         ($iterable (gensym 'iterable))
@@ -2468,6 +2517,7 @@
           (let ((,$iterator (py-iter ,iterable)))
             (,$init-loop (py-next ,$iterator) ,$iterator)))))))
 
+;; semantics which gets next values from a (non-python) specialized iterator for for-loops
 (define-macro (py-for-next last-element iterator)
   (let (($iterator (gensym 'iterator))
         ($element (gensym 'last-element))
