@@ -1163,7 +1163,7 @@
     (PyObjectListIterator-index-set! ,iterator #f)
     ,(if raise `(py-throw py-builtin-StopIteration) #f)))
 
-(define-macro (list-iterator-next self #!key (raise #t))
+(define-macro (list-iterator-next self raise)
   (let (($self (gensym 'self)))
     `(let* ((,$self ,self)
             (index (PyObjectListIterator-index ,$self)))
@@ -1180,7 +1180,7 @@
 
 ;; operations on tuples
 
-(define-macro (tuple-iterator-next self #!key (raise #t))
+(define-macro (tuple-iterator-next self raise)
   (let (($self (gensym 'self)))
     `(let* ((,$self ,self)
             (index (PyObjectTupleIterator-index ,$self))
@@ -1888,13 +1888,13 @@
       py-next-behaviors-table
       (get-behavior-type-index list_iterator)
       (lambda (it)
-        (list-iterator-next it raise: #f)))
+        (list-iterator-next it #f)))
 
     (vector-set!
       py-next-behaviors-table
       (get-behavior-type-index tuple_iterator)
       (lambda (it)
-        (tuple-iterator-next it raise: #f)))
+        (tuple-iterator-next it #f)))
 
     (vector-set!
       py-next-behaviors-table

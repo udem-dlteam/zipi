@@ -2803,7 +2803,7 @@
 
 (define (list-iterator-next-procedure self)
   (if (eq? (py-type self) py-list-iterator-class)
-    (list-iterator-next self)
+    (list-iterator-next self #t) ;; #t second argument indicates to raise StopIteration at end of iterator
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 7)")))
 
 (define list_iterator.__next__
@@ -2831,7 +2831,7 @@
 
 (define (tuple-iterator-next-procedure self)
   (if (eq? (py-type self) py-tuple-iterator-class)
-    (tuple-iterator-next self)
+    (tuple-iterator-next self #t) ;; second argument indicates to raise StopIteration at end of iterator
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 9)")))
 
 (define py-tuple-iterator-next
