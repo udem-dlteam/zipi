@@ -971,7 +971,7 @@
 
 (define-macro (py-make-list . elements)
   (define (list-get-inner-len len)
-    (fx+ 4 (fx+ len (fxquotient len 8)))) ;; must mirror list-get-inner-len macro
+    (+ 4 (+ len (quotient len 8)))) ;; must mirror list-get-inner-len macro
 
   (let* ((len (length elements))
          (inner-len (list-get-inner-len len))
