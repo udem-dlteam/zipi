@@ -306,21 +306,6 @@
 ;; these are typically attributes for magic methods (ex: __add__, __next__, etc.)
 ;; These indices are stored in the string representative of the attribute
 ;; Here we loop over the list of such attributes and populate their magic-index field
-(define-macro (fill-representatives-magic-index)
-  `(with-list-of-magic-attrs $fill-representatives-magic-index))
-
-(define-macro ($fill-representatives-magic-index list-of-magic-attrs)
-  `(begin
-    ,@(let loop ((list-of-magic-attrs list-of-magic-attrs) (i 0))
-      (if (null? list-of-magic-attrs)
-        '()
-        (cons
-          `(PyObjectStrRep-magic-index-set!
-            (& ,(car list-of-magic-attrs))
-            ,i)
-          (loop (cdr list-of-magic-attrs) (+ i 1)))))))
-
-(fill-representatives-magic-index)
 
 (define list-of-magic-attrs (get-list-of-magic-attrs))
 
@@ -2591,6 +2576,9 @@
 
     ;; init all object (& ...) to a py-str object
     (init-registered-constants)
+
+    ;; set the magic-index (for attribute fast access on types) on magic attributes (__add__, __next__, etc.)
+    (fill-representatives-magic-index)
 
     ;; Fill in object class
     (PyObject-class-set! object-class type-class)
