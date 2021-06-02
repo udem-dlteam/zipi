@@ -2490,7 +2490,6 @@
         ($start (gensym 'start))
         ($stop (gensym 'stop))
         ($step (gensym 'step))
-<<<<<<< HEAD
         ($vec (gensym 'vec))
         ($len (gensym 'len)))
     `(let* ((,$init-loop ,init-loop)
@@ -2531,45 +2530,6 @@
         (else
           (let ((,$iterator (py-iter ,iterable)))
             (,$init-loop (py-next ,$iterator) ,$iterator)))))))
-=======
-        ($iterable (gensym 'range-obj???))
-        ($iterator (gensym 'iterator)))
-    `(py-if-specialized-sint-representation
-      (let* ((,$iterable ,iterable)
-            (,$it-cls (py-obj-cls ,$iterable))
-            (,$start (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-start ,$iterable)))
-            (,$stop (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-stop ,$iterable)))
-            (,$step (and (eq? ,$it-cls py-builtin-range) (PyObjectRange-step ,$iterable)))
-            (,$state (py-for-each-maybe-range:iter ,$iterable ,$start ,$stop ,$step)))
-        (let ,loop ()
-          (let ((,element (py-for-each-maybe-range-cps:next ,$state ,$stop ,$step)))
-            (if ,element
-              ,body
-              ,forelse))))
-      (py-for-each ,element ,iterable ,body cps: #t loop: loop forelse: forelse))))
-
-(define-macro (py-for-each element iterable body . rest)
-   (let ((cps #f)
-	 (loop (gensym 'loop))
-	 (forelse #f))
-      (when (pair? rest)
-	 (set! cps (car rest))
-	 (set! rest (cdr rest)))
-      (when (pair? rest)
-	 (set! loop (car rest))
-	 (set! rest (cdr rest)))
-      (when (pair? rest)
-	 (set! forelse (car rest)))
-      (let ((iterator-sym (gensym 'it)))
-	 `(let ((,iterator-sym (py-iter ,iterable)))
-	     (let ,loop ()
-		  (let ((,element (py-next ,iterator-sym)))
-		     (if ,element
-			 (begin
-			    ,body
-			    ,@(if cps '() (list `(,loop))))
-			 ,@(if forelse (list forelse) '()))))))))
->>>>>>> 0e9aa6d68ad7eca3d9668638ba94f65151a782bf
 
 ;; semantics which gets next values from a (non-python) specialized iterator for for-loops
 (define-macro (py-for-next last-element iterator)
