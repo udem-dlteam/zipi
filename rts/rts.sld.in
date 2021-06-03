@@ -60,8 +60,13 @@
     py-isinstance?
     py-issubclass?
     py-throw
+    py-throw-unsafe
     py-throw-with-values
     py-throw-exception-with-message
+
+    py-try-except
+    py-try-except-else
+    $py-try-except
 
     py-make-global
     py-make-module

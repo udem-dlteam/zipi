@@ -187,10 +187,10 @@ def getattribute(obj, attr):
     __getattribute__ = class_getattr(obj, "__getattribute__")
     try:
         return __getattribute__(obj, attr)
-    except AttributeError:
+    except AttributeError as e:
         __getattr__ = class_getattr(obj, "__getattr__")
         if __getattr__ is absent:
-            raise
+            raise e
         else:
             return __getattr__(obj, attr)
     # getattribute:end-body

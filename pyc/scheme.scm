@@ -483,13 +483,10 @@
           ((PycUninit? optional-vars)
             `(let ((,ctx-sym ,(scheme context-expr conf)))
                (py-enter ,ctx-sym)
-               (with-handler
-                (lambda (%exn)
-                  (if (PyObject? %exn)
-                    (py-exit ,ctx-sym %exn)
-                    (raise %exn)))
-                ,(in-contexts (cdr items) body))
-                (py-exit ,ctx-sym py-None)))
+               (py-try-except-else
+                 (lambda (%exn) (py-exit ,ctx-sym %exn))
+                 (lambda () ,(in-contexts (cdr items) body))
+                 (lambda (%__unused) (py-exit ,ctx-sym py-None)))))
           ((PycRefUnresolved? optional-vars)
             `(let ((,ctx-sym ,(scheme context-expr conf)))
                (global-put!
@@ -499,37 +496,25 @@
                  ,(scheme-cache
                    (PycRefUnresolved-cache optional-vars)
                    optional-vars))
-               (with-handler
-                (lambda (%exn)
-                  (if (PyObject? %exn)
-                    ;; it is the responsability of py-exit to re-raise the exc or not
-                    (py-exit ,ctx-sym %exn)
-                    (raise %exn)))
-                ,(in-contexts (cdr items) body))
-                (py-exit ,ctx-sym py-None)))
+               (py-try-except-else
+                 (lambda (%exn) (py-exit ,ctx-sym %exn))
+                 (lambda () ,(in-contexts (cdr items) body))
+                 (lambda (%__unused) (py-exit ,ctx-sym py-None)))))
           ((PycRef? optional-vars)
             (let ((var (PycRef-decl optional-vars)))
               (if (eq? (PycVar-scope var) 'global)
                 `(let ((,ctx-sym ,(scheme context-expr conf)))
                    ,(scheme-assig-global optional-vars `(py-enter ,ctx-sym) conf)
-                   (with-handler
-                    (lambda (%exn)
-                      (if (PyObject? %exn)
-                        ;; it is the responsability of py-exit to re-raise the exc or not
-                        (py-exit ,ctx-sym %exn)
-                        (raise %exn)))
-                    ,(in-contexts (cdr items) body))
-                    (py-exit ,ctx-sym py-None))
+                   (py-try-except-else
+                     (lambda (%exn) (py-exit ,ctx-sym %exn))
+                     (lambda () ,(in-contexts (cdr items) body))
+                     (lambda (%__unused) (py-exit ,ctx-sym py-None))))
                 `(let ((,ctx-sym ,(scheme context-expr conf)))
                    (set! ,(scheme-var-name var conf) (py-enter ,ctx-sym))
-                   (with-handler
-                    (lambda (%exn)
-                      (if (PyObject? %exn)
-                        ;; it is the responsability of py-exit to re-raise the exc or not
-                        (py-exit ,ctx-sym %exn)
-                        (raise %exn)))
-                    ,(in-contexts (cdr items) body))
-                    (py-exit ,ctx-sym py-None)))))
+                   (py-try-except-else
+                     (lambda (%exn) (py-exit ,ctx-sym %exn))
+                     (lambda () ,(in-contexts (cdr items) body))
+                     (lambda (%__unused) (py-exit ,ctx-sym py-None)))))))
           (else
             (error "scheme::PycWith" "only supports assignation to variable" optional-vars))))))
   (in-contexts (PycWith-items this) (PycWith-body this)))
@@ -537,32 +522,31 @@
 (define-walk-method (scheme this::PycTry conf)
   (define (scheme-handlers handlers handlers-exc-sym conf)
     (if (null? handlers)
-      `(raise ,handlers-exc-sym)
+      `(py-throw-unsafe ,handlers-exc-sym)
       (let* ((handler (car handlers))
              (handled-type (PycHandler-type handler)))
         (if (isa? handled-type PycUninit)
           (scheme (PycHandler-body handler) conf)
           `(if (py-isinstance?
-                  ,(config-get conf current-exc:)
+                  ,handlers-exc-sym
                   ,(scheme (PycHandler-type handler) conf))
             ,(scheme (PycHandler-body handler) conf)
             ,(scheme-handlers (cdr handlers) handlers-exc-sym conf))))))
 
   (define (scheme-try-except body handlers conf)
-    (let* ((handlers-exc-sym (scheme-var-name (PycTry-exc-var this) conf))
-          (conf-with-exc (cons* current-exc: handlers-exc-sym conf)))
-      `(with-exception-catcher
+    (let* ((handlers-exc-sym (scheme-var-name (PycTry-exc-var this) conf)))
+      `(py-try-except
         (lambda (,handlers-exc-sym)
-          (set! %current-raised-exception ,handlers-exc-sym)
-          ,(scheme-handlers handlers handlers-exc-sym conf-with-exc))
+          ,(scheme-handlers handlers handlers-exc-sym conf))
         (lambda () ,(scheme body conf)))))
 
   (define (scheme-try-except-else body handlers orelse conf)
     (let ((handlers-exc-sym (scheme-var-name (PycTry-exc-var this) conf)))
-      `(begin
-          ,(scheme-try-except body handlers conf)
-          (if (not %current-raised-exception) ;; TODO: this does not quite work for re-raise, implement a system-wide current-exception
-            ,(scheme orelse conf)))))
+      `(py-try-except-else
+        (lambda (,handlers-exc-sym)
+          ,(scheme-handlers handlers handlers-exc-sym conf))
+        (lambda () ,(scheme body conf))
+        (lambda (%__unused) ,(scheme orelse conf)))))
 
   (define (scheme-try-except-else-finally body handlers orelse finally conf)
     `(dynamic-wind
@@ -575,14 +559,13 @@
          (handlers-exc-sym (scheme-var-name (PycTry-exc-var this) conf))
          (orelse (PycTry-else this))
          (finally (PycTry-finally this)))
-    `(let ((%current-raised-exception #f))
-      ,(cond
-        ((not (isa? finally PycPass))
-          (scheme-try-except-else-finally body handlers orelse finally conf))
-        ((not (isa? orelse PycPass))
-          (scheme-try-except-else body handlers orelse conf))
-        (else
-          (scheme-try-except body handlers conf))))))
+    (cond
+      ((not (isa? finally PycPass))
+        (scheme-try-except-else-finally body handlers orelse finally conf))
+      ((not (isa? orelse PycPass))
+        (scheme-try-except-else body handlers orelse conf))
+      (else
+        (scheme-try-except body handlers conf)))))
 
 (define-walk-method (scheme this::PycHandlerCPS conf)
   (let* ((handled-type (PycHandler-type this)))
@@ -597,8 +580,10 @@
 (define-walk-method (scheme this::PycRaise conf)
   (let ((exc (PycRaise-exc this)))
     (if (PycUninit? exc)
-      (epairify this
-        `(py-throw ,(config-get conf current-exc:)))
+      `(py-throw-exception-with-message
+          py-builtin-NotImplementedError
+            "raise with no expression (reraise) at line "
+            ,(number->string (car (PycNode-loc this))))
       (epairify this
         `(py-throw ,(scheme exc conf))))))
 

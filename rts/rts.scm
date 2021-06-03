@@ -1102,31 +1102,27 @@
 
 (define (py-throw-with-values exc . values)
   (cond ((not (PyObject? exc))
-          (if (or (fixnum? exc) (flonum? exc))
-            (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")
-            (raise exc))) ;; this is a scheme exception
+          (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
           (if (null? values)
-            (raise exc)
+            (py-throw-unsafe exc)
             (py-throw-exception-with-message
               py-builtin-TypeError
               "instance exception may not have a separate value")))
         ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
-         (raise (py-call-generic exc values)))
+         (py-throw-unsafe (py-call-generic exc values)))
         (else
-         (raise (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
+         (py-throw-unsafe (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
 
 (define (py-throw exc)
   (cond ((not (PyObject? exc))
-          (if (or (fixnum? exc) (flonum? exc))
-            (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")
-            (raise exc))) ;; this is a scheme exception
+          (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
-         (raise exc))
+         (py-throw-unsafe exc))
         ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
-         (raise (py-call exc)))
+         (py-throw-unsafe (py-call exc)))
         (else
-         (raise (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))))
+         (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))))
 
 ;; =============================================================================
 ;; Exception thrower helpers
@@ -1585,13 +1581,12 @@
        (py-throw-not-an-iterator obj)
        (if (eq? default py-absent)
          (py-call __next__ obj)
-         (with-handler
+         (py-try-except
            (lambda (exc)
-             (if (and (PyObject? exc)
-                      (py-isinstance? exc py-builtin-StopIteration))
+             (if (py-isinstance? exc py-builtin-StopIteration)
                default
-               (raise exc)))
-           (py-call __next__ obj))))))
+               (py-throw-unsafe exc)))
+           (lambda () (py-call __next__ obj)))))))
 
 (define (iterator->list it)
  (let loop ((acc '()))
@@ -1671,12 +1666,12 @@
  (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
     (if (eq? next py-absent)
       (py-throw-exception-with-message py-builtin-TypeError "object is not an iterator")
-      (with-handler
+      (py-try-except
          (lambda (e)
-           (if (and (PyObject? e) (py-isinstance? e py-builtin-StopIteration))
-                  #f
-                  (raise e)))
-         (py-call next iterator)))))
+           (if (py-isinstance? e py-builtin-StopIteration)
+               #f
+               (py-throw-unsafe e)))
+         (lambda () (py-call next iterator))))))
 
 ;; =============
 ;; CALL PROTOCOL
@@ -2412,7 +2407,7 @@
     ((not (PyObjectGenerator-is-active self))
       py-None)
     (else
-      (with-exception-catcher
+      (py-try-except
         (lambda (e)
           (if (or (py-isinstance? e py-builtin-StopIteration)
                   (py-isinstance? e py-builtin-GeneratorExit))
@@ -5717,13 +5712,10 @@
 
   (let ((sys.modules (sys.modules-get)))
     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
-    (with-exception-catcher
+    (py-try-except
      (lambda (e)
-      (if (PyObject? e)
-          (begin
-            (print-exception e (current-error-port))
-            (exit 1))
-          (raise e)))
+       (print-exception e (current-error-port))
+       (exit 1))
      (lambda ()
 
        (if profile-flag
@@ -6473,13 +6465,12 @@
    (lambda (object name default)
      (if (py-subtype-of-str? name)
          (if (not (eq? default py-absent))
-             (with-handler
+             (py-try-except
               (lambda (exc)
-                (if (and (PyObject? exc)
-                         (py-isinstance? exc py-builtin-AttributeError))
+                (if (py-isinstance? exc py-builtin-AttributeError)
                     default
-                    (raise exc)))
-              (py-getattribute object name))
+                    (py-throw-unsafe exc)))
+              (lambda () (py-getattribute object name)))
              (py-getattribute object name))
          (py-throw-exception-with-message
           py-builtin-TypeError

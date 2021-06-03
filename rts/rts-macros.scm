@@ -1897,7 +1897,7 @@
       py-next-behaviors-table
       (get-behavior-type-index generator)
       (lambda (obj)
-        (with-exception-catcher
+        (py-try-except
           (lambda (e)
             (if (py-isinstance? e py-builtin-StopIteration)
               #f
