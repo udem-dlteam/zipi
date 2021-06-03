@@ -22,7 +22,6 @@
 
     call-host
 
-    with-handler
     bind-exit
 
     py-absent

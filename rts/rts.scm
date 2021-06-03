@@ -5517,7 +5517,7 @@
   (define (wind path todo)
     (let* ((dir (path-strip-trailing-directory-separator
                   (path-directory path)))
-           (fi (with-exception-catcher
+           (fi (with-exception-handler
                  (lambda (exc) #f)
                  (lambda () (file-info dir)))))
       (if fi
