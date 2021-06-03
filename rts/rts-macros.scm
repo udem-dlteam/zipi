@@ -1895,14 +1895,28 @@
 
     (vector-set!
       py-next-behaviors-table
+      (get-behavior-type-index range_iterator)
+      (lambda (it)
+        (let ((start (py-int-to-scheme (PyObjectRangeIterator-start it)))
+              (stop (py-int-to-scheme (PyObjectRangeIterator-stop it)))
+              (step (py-int-to-scheme (PyObjectRangeIterator-step it))))
+          (if (or (and (> step 0) (< start stop))
+                  (and (< step 0) (> start stop)))
+            (begin
+              (PyObjectRangeIterator-start-set! it (py-int-from-scheme (+ start step)))
+              start)
+            #f))))
+
+    (vector-set!
+      py-next-behaviors-table
       (get-behavior-type-index generator)
-      (lambda (obj)
-        (with-exception-catcher
+      (lambda (gen)
+        (py-try-except
           (lambda (e)
             (if (py-isinstance? e py-builtin-StopIteration)
               #f
-              (py-throw e)))
-          (lambda () (py-generator-next obj)))))))
+              (py-throw-unsafe e)))
+          (lambda () (py-generator-next gen)))))))
 
 (define-macro (get-behavior-index lhs-index rhs-index)
    `(with-class-indices-info $get-behavior-index ,lhs-index ,rhs-index))
@@ -2469,7 +2483,7 @@
         ($iterator (gensym 'iterator))
         ($index (gensym 'cls-index))
         ($behavior-next (gensym 'behavior-next)))
-    `(letrec ((,$iterator (py-iter ,iterable))
+    `(let* ((,$iterator (py-iter ,iterable))
               (,$index (py-obj-class-index ,$iterator))
               (,$behavior-next (vector-ref py-next-behaviors-table ,$index)))
       (let ,loop ()
@@ -2523,7 +2537,17 @@
                             (and (fx< ,$step 0) (fx> ,$start ,$stop)))
                         ,$start)
                    (cons ,$stop ,$step))
-                 (,$init-loop (py-next ,$iterator) ,$iterator))))
+                   (let ((,$iterator (py-iter ,iterable)))
+                     (,$init-loop (py-next ,$iterator) ,$iterator)))))
+        ((fx= ,$cls-index (get-behavior-type-index generator))
+          (,$init-loop
+            (py-try-except
+              (lambda (e)
+                (if (py-isinstance? e py-builtin-StopIteration)
+                  #f
+                  (py-throw-unsafe e)))
+              (lambda () (py-generator-next ,$iterable)))
+            ,$iterable))
         (else
           (let ((,$iterator (py-iter ,iterable)))
             (,$init-loop (py-next ,$iterator) ,$iterator)))))))
@@ -2565,6 +2589,13 @@
                   (vector-set! ,$iterator 1 (fx+ ,$index 1))
                   ,$tmp)
                 #f)))
+        ((PyObjectGenerator? ,$iterator)
+          (py-try-except
+            (lambda (e)
+              (if (py-isinstance? e py-builtin-StopIteration)
+                #f
+                (py-throw-unsafe e)))
+            (lambda () (py-generator-next ,$iterator))))
         ;; case PyObject iterator
         (else
           (py-next ,$iterator))))))

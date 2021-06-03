@@ -6,12 +6,6 @@
 
 (declare (standard-bindings) (extended-bindings) (not safe) (block))
 
-(define-macro (with-handler handler . body)
-  `(##with-exception-catcher
-      ,handler
-      (lambda ()
-        ,@body)))
-
 (define-macro (bind-exit exit . body)
   `(##continuation-capture
     (lambda ($cont)
@@ -115,8 +109,8 @@
   (debug-get obj 2 0 2 4 2 1))
 
 (define (debug-catch thunk)
-  (with-exception-catcher
-    (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
+  (py-try-except
+    (lambda (e)(print-exception e))
     thunk))
 
 (define (read-string port) ;; TODO: change name so it doesn't clash with predefined one
@@ -192,6 +186,38 @@
       source
       " > "
       target)))
+
+;; homebrewed exception handling
+(define $py-try-except
+  (let ()
+    (declare (not inline))
+    (lambda (thunk)
+      (##first-argument (thunk)))))
+
+(define-macro (py-try-except-else handler body orelse)
+  (let (($result-or-exception (gensym 'result-or-exception)))
+    `(let ((,$result-or-exception ($py-try-except (lambda () (,body)))))
+      (if (and (pair? ,$result-or-exception)
+               (eq? (car ,$result-or-exception) '%py-thrown-exception))
+       (,handler (cdr ,$result-or-exception))
+       (,orelse ,$result-or-exception)))))
+
+(define-macro (py-try-except handler body)
+  `(py-try-except-else ,handler ,body (lambda (x) x)))
+
+;; throw an exception without checking it is an instance of BaseException
+(define-macro (py-throw-unsafe exc)
+  (let (($exc (gensym 'exc)))
+    `(let ((,$exc ,exc))
+      (##continuation-capture
+       (lambda (cont)
+         (let loop ((cont cont))
+           (cond ((##not cont)
+                  (error "uncaught Python exception" ,$exc))
+                 ((##eq? (##continuation-creator cont) $py-try-except)
+                  (##continuation-return cont (cons '%py-thrown-exception ,$exc)))
+                 (else
+                  (loop (##continuation-next cont))))))))))
 
 ;; builtin bootstrap
 

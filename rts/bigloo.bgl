@@ -91,8 +91,6 @@
 	   (inline table->list table)
 	   (inline table-length table)
 
-	   (macro with-exception-catcher)
-
 	   (module-not-found-exception? e)
 
 	   (shell-command ::bstring #!optional capture)
@@ -390,15 +388,6 @@
 
 (define-inline (table-length table)
   #f)
-
-
-;*---------------------------------------------------------------------*/
-;*    with-exception-catcher ...                                       */
-;*---------------------------------------------------------------------*/
-(define-macro (with-exception-catcher handler body)
-   (match-case body
-      ((lambda () . ?body) `(with-handler ,handler ,@body))
-      (else `(with-handler ,handler (,body)))))
 
 ;*---------------------------------------------------------------------*/
 ;*    module-not-found-exception? ...                                  */

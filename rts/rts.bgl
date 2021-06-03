@@ -1107,3 +1107,31 @@
 
 (define-macro (AttributeCache-type-mro-hit! cache type-hclass attr owner)
   `(AttributeCache-set! ,cache #f #f #f ,type-hclass -1 ,attr ,owner (quote 'self)))
+
+
+;; homebrewed "Ask Permission not Forgiveness" exception handling
+;; TODO: not implemented in APNF for bigloo
+
+(define-macro (py-try-except-else handler body orelse)
+  (let (($exception-was-raised (gensym 'exception-was-raised))
+        ($raised-exception (gensym 'raised-exception))
+        ($result (gensym 'result)))
+  `(let ((,$exception-was-raised #f))
+    (let ((,$result
+          (with-exception-handler
+            (lambda (,$raised-exception)
+              (set! ,$exception-was-raised #t)
+              (,handler ,$raised-exception))
+            ,body)))
+    (if (not ,$exception-was-raised)
+        (,orelse ,$result)
+        ,$result)))))
+
+(define-macro (py-try-except handler body)
+  `(with-exception-handler
+    ,handler
+    ,body))
+
+;; throw an exception without checking it is an instance of BaseException
+(define-macro (py-throw-unsafe exc)
+  `(raise ,exc))
