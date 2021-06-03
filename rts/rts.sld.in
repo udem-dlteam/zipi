@@ -563,9 +563,13 @@
     py-generator-yield
     py-make-generator
     py-generator-send
+    py-generator-next
 
+    PyObjectGenerator?
     PyObjectGenerator-continuation-set!
     PyObjectGenerator-is-running-set!
+    PyObjectGenerator-continuation
+    PyObjectGenerator-is-running
 
     py-enter
     py-exit
