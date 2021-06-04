@@ -283,6 +283,13 @@
 	  (epairify this
 	     `(,return-sym ,(scheme (PycReturn-val this) conf))))))
 
+(define-walk-method (scheme this::PycGeneratorReturn conf)
+  (let ((val (PycReturn-val this)))
+    (epairify this
+      (if (isa? val PycUninit)
+        `(py-throw py-builtin-StopIteration)
+        `(py-throw-with-values py-builtin-StopIteration ,(scheme val conf))))))
+
 (define-walk-method (scheme this::PycReturnYield conf)
    (let* ((kont (PycReturnYield-kont this))
 	        (generator (PycReturnYield-generator this))
@@ -291,7 +298,9 @@
           (exc-info (my-gensym 'exc-info))
           (exc-sym (my-gensym 'exc))
           (exc-val-sym (my-gensym 'val))
-          (exc-tb-sym (my-gensym 'tb)))
+          (exc-tb-sym (my-gensym 'tb))
+          (body-conf
+            (cons* generator-sent: sent-sym generator-exception: exc-info conf)))
     (epairify this
       `(py-generator-yield
         %current-generator

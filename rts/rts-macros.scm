@@ -1193,23 +1193,37 @@
 
 ;; operations on generators
 
+;; PyObjectGenerator-continuation can be three things:
+;; 1) a procedure which represent the continuation
+;; 2) #t meaning the generator is active, but already runnning
+;; 3) #f meaning the generator is closed
+
 (define-macro (py-generator-yield gen val kont)
   (let (($gen (gensym 'gen)))
     `(let ((,$gen ,gen))
       (PyObjectGenerator-continuation-set! ,$gen ,kont)
-      (PyObjectGenerator-is-running-set! ,$gen #f)
       ,val)))
 
-(define-macro (py-generator-next self)
-  `(let (($self ,self))
-    (if (PyObjectGenerator-is-running $self)
-      (py-throw-exception-with-message
-        py-builtin-ValueError
-        "generator is already executing")
-      (let ((cont (PyObjectGenerator-continuation $self)))
-        (PyObjectGenerator-is-running-set! $self #t)
-        (PyObjectGenerator-continuation-set! $self #f)
-        (cont py-None #f)))))
+(define-macro (py-generator-next self . tail)
+  `(let* (($self ,self)
+         ($value ,(cond
+                    ((null? tail) 'py-None)
+                    ((null? (cdr tail)) (car tail))
+                    (else (error "py-generator-next" "wrong number of arguments" (length tail)))))
+         (cont (PyObjectGenerator-continuation $self)))
+    (cond
+      ((procedure? cont) ;; active and ready
+        (PyObjectGenerator-continuation-set! $self #t)
+        (cont $value #f))
+      (cont ;; active, but running
+        (py-throw-exception-with-message
+          py-builtin-ValueError
+          "generator is already executing"))
+      (else ;; closed
+        (py-throw py-builtin-StopIteration)))))
+
+(define-macro (py-generator-end gen)
+  `(PyObjectGenerator-continuation-set! ,gen #f))
 
 ;; all zipi PyObjectType have reserved slots for the following magic methods
 ;; see: ;; https://docs.python.org/3/reference/datamodel.html

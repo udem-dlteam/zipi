@@ -13,19 +13,19 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __pyc_ast
-   
+
    (export
       (abstract-class PycNode
 	 (loc::pair read-only (info '("notraverse")))
 	 (%info (default #f) (info '("nojson" "notraverse")))
 	 (cps (default #f)))
-      
+
       ;; A syntactical node that indicates an unimplemented feature
       ;; used to raise py-builtin-NotImplementedError at run-time
       ;; instead of raising a Scheme error at compile time
       (class PycUnimplemented::PycNode
 	 msg::string)
-      
+
       ;; module
       (class PycModule::PycNode
 	 (special-init (default #f))
@@ -35,7 +35,7 @@
 	 (globals::pair-nil (default '()))
 	 (global-defs::pair-nil (default '()))
 	 (caches::pair-nil (default '())))
-      
+
       ;; misc
       (class PycVar::PycNode
 	 id::symbol
@@ -53,78 +53,80 @@
 	 (is-builtin (default #f))
 	 (simple-scoping-top-block (info '("jsonref" "notraverse")) (default #f))
 	 (cache (default #f)))
-      
+
       ;; statements
       (class PycStmt::PycNode)
-      
+
       (class PycSeq::PycStmt
 	 (nodes::pair-nil (info '("ast"))))
-      
+
       (class PycBlock::PycStmt
 	 ;; equivalent to a Scheme let*
 	 decls::pair-nil
 	 body::PycStmt)
-      
+
       (class PycReturn::PycStmt
 	 val::PycExpr
 	 (tail::bool (default #t)))
-      
+
+   (class PycGeneratorReturn::PycReturn)
+
       (class PycReturnYield::PycStmt
 	 (val::PycExpr (info '("ast")))
 	 (kont::PycKont (info '("ast")))
 	 (generator::bool read-only (default #f)))
-      
+
       (class PycDelete::PycStmt
 	 expr::PycExpr)
-      
+
       (class PycAssig::PycStmt
 	 lhs::PycExpr
 	 rhs::PycExpr)
-      
+
       (class PycAugAssig::PycAssig
 	 op::symbol
 	 (cache (default #f)))
-      
+
       (class PycIf::PycStmt
 	 (test::PycExpr (info '("ast")))
 	 (then::PycStmt (info '("ast")))
 	 (else::PycStmt (info '("ast"))))
-      
+
       (class PycWithItem::PycStmt
 	 (context-expr::PycExpr (info '("ast")))
 	 (optional-vars::PycExpr (info '("ast"))))
-      
+
       (class PycWith::PycStmt
 	 (items::PycWithItem (info '("ast")))
 	 (body::PycStmt (info '("ast"))))
-      
+
       (class PycLoop::PycStmt
 	 (body::PycStmt (info '("ast")))
 	 (else::PycStmt (info '("ast")))
 	 (need-break::bool (default #t))
 	 (need-continue::bool (default #t)))
-      
+
       (class PycFor::PycLoop
 	 (target::PycExpr (info '("ast")))
 	 (iter::PycExpr (info '("ast")))
 	 (cachei (default #f))
 	 (cachen (default #f)))
-      
+
       (class PycCPSFor::PycFor
 	 loop-kont-var::PycVar
 	 else-kont-var::PycVar)
-      
+
       (class PycWhile::PycLoop
 	 (test::PycExpr (info '("ast"))))
-      
+
       (class PycCPSWhile::PycWhile
 	 loop-kont-var::PycVar
 	 else-kont-var::PycVar)
-      
+
       (class PycRaise::PycStmt
 	 (exc::PycExpr (info '("ast")))
 	 (cause::PycExpr (info '("ast"))))
-      
+
       (class PycTry::PycStmt
 	 (body::PycStmt (info '("ast")))
 	 handlers::pair-nil
@@ -132,93 +134,93 @@
 	 (finally::PycStmt (info '("ast")))
 	 (exc-var::PycVar (info '("ast")))
 	 (tail::bool (default #t)))
-      
+
       (class PycHandler::PycNode
 	 (exc-var::PycVar (info '("ast")))
 	 (type::PycExpr (info '("ast")))
 	 (body::PycStmt (info '("ast"))))
-      
+
       (class PycHandlerCPS::PycHandler
 	 next-handler::PycNode)
-      
+
       (class PycBreak::PycStmt)
       (class PycContinue::PycStmt)
       (class PycPass::PycStmt)
-      
+
       (class PycStmtExpr::PycStmt
 	 expr::PycExpr)
-      
+
       (class PycSymbols::PycStmt
 	 (scope::symbol read-only)
 	 (names::pair-nil read-only))
-      
+
       ;; expressions
       (class PycExpr::PycNode
 	 (type::symbol (default 'unknown)))
-      
+
       ;; starred expressions
       (class PycStarredExpr::PycExpr
 	 expr::PycExpr)
-      
+
       (class PycPragma::PycExpr
 	 (lang::symbol (default 'scheme))
 	 expr)
-      
+
       (class PycRef::PycExpr
 	 (decl::PycVar (info '("jsonref" "notraverse")))
 	 ctx::symbol
 	 (cache (default #f))
 	 (can-direct-access::bool (default #f)))
-      
+
       (class PycRefUnresolved::PycExpr
 	 id::symbol
 	 ctx::symbol
 	 (cache (default #f)))
-      
+
       (class PycAccess::PycExpr
 	 obj::PycExpr
 	 (field::obj read-only)
 	 (usage (default #f))
 	 (cache (default #f)))
-      
+
       (class PycSubscript::PycExpr
 	 obj::PycExpr
 	 index::PycExpr
 	 (cache (default #f)))
-      
+
       (class PycSlice::PycExpr
 	 obj::PycExpr
 	 lower::PycExpr
 	 upper::PycExpr
 	 step::PycExpr)
-      
+
       (class PycIfExp::PycExpr
 	 (test::PycExpr (info '("ast")))
 	 (body::PycExpr (info '("ast")))
 	 (orelse::PycExpr (info '("ast"))))
-      
+
       (class PycAssert::PycStmt
 	 (test::PycExpr (info '("ast")))
 	 (msg::PycExpr (info '("ast"))))
-      
+
       (abstract-class PycLiteral::PycExpr)
-      
+
       (final-class PycUninit::PycExpr)
-      
+
       (class PycLiteralValue::PycLiteral
 	 val)
-      
+
       (final-class PycBool::PycLiteralValue)
       (final-class PycNone::PycLiteralValue)
       (final-class PycNumber::PycLiteralValue)
       (final-class PycString::PycLiteralValue)
-      
+
       (final-class PycUnary::PycExpr
 	 op::symbol
 	 expr::PycExpr
 	 (type-hint (default #f))
 	 (cache (default #f)))
-      
+
       (final-class PycBinary::PycExpr
 	 op::symbol
 	 lhs::PycExpr
@@ -226,17 +228,17 @@
 	 (lhs-type-hint (default #f))
 	 (rhs-type-hint (default #f))
 	 (cache (default #f)))
-      
+
       (final-class PycChainCmp::PycExpr
 	 ops::pair-nil
 	 lhs::PycExpr
 	 rest::pair-nil)
-      
+
       (final-class PycBoolOp::PycExpr
 	 op::symbol
 	 args::pair-nil
 	 (cache (default #f)))
-      
+
       (class PycFun::PycExpr
 	 args::pair-nil
 	 posonlyargs::pair-nil
@@ -260,11 +262,11 @@
 	 (is-private (default #f))
 	 (&proc::obj (default #f))
 	 (&proc-init::obj (default #f)))
-      
+
       (final-class PycSemantics::PycFun
 	 (inline::bool (default #f))
 	 (inline-as-is::bool (default #f)))
-      
+
       (final-class PycClass::PycExpr
 	 (name::bstring read-only)
 	 (module::bstring read-only)
@@ -275,54 +277,54 @@
 	 (super-key::symbol (default '_))
 	 (is-builtin::bool (default #f))
 	 (is-private::bool (default #f)))
-      
+
       (final-class PycYield::PycExpr
 	 (val::PycExpr (info '("ast")))
 	 (generator::bool read-only (default #f)))
-      
+
       (final-class PycKont::PycExpr
 	 params::pair-nil
 	 (body::PycNode (info '("ast"))))
-      
+
       (final-class PycCallKont::PycExpr
 	 kont::PycExpr
 	 (args (default '())))
-      
+
       (final-class PycCall::PycExpr
 	 fun::PycExpr
 	 args::pair-nil
 	 (keywords-values::pair-nil (default '()))
 	 (keywords-names::pair-nil (default '()))
 	 (can-be-super::bool (default #t)))
-      
+
       (abstract-class PycCollection::PycExpr
 	 elts::pair-nil)
-      
+
       (final-class PycList::PycCollection)
-      
+
       (final-class PycTuple::PycCollection)
-      
+
       (final-class PycDict::PycCollection
 	 keys::pair-nil)
-      
+
       (final-class PycSet::PycCollection)
-      
+
       (final-class PycImport::PycExpr
 	 (path::bstring read-only)
 	 (from-list::pair-nil)
 	 (depth::int read-only))
-      
+
       (class PycIntrinsics::PycExpr
 	 id::symbol)
-      
+
       (final-class PycStatic::PycIntrinsics
 	 value::symbol)
-      
+
       (final-class PycStaticSexp::PycIntrinsics
 	 value::pair-nil)
-      
+
       (genkey)
-      
+
       (generic walk0 n::PycNode p::procedure)
       (generic walk1 n::PycNode p::procedure a0)
       (generic walk2 n::PycNode p::procedure a0 a1)

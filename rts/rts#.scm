@@ -201,9 +201,7 @@
   id: PyObjectGenerator-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
   macros:
-  continuation
-  is-running
-  is-active)
+  continuation)
 
 (define-type-of-PyObject PyObjectList
   id: PyObjectList-C6486EB6-1522-42BA-A082-B6563F943CDF

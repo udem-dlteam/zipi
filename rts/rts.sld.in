@@ -564,12 +564,11 @@
     py-make-generator
     py-generator-send
     py-generator-next
+    py-generator-end
 
     PyObjectGenerator?
     PyObjectGenerator-continuation-set!
-    PyObjectGenerator-is-running-set!
     PyObjectGenerator-continuation
-    PyObjectGenerator-is-running
 
     py-enter
     py-exit
