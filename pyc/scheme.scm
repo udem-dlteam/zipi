@@ -304,9 +304,7 @@
           (exc-info (my-gensym 'exc-info))
           (exc-sym (my-gensym 'exc))
           (exc-val-sym (my-gensym 'val))
-          (exc-tb-sym (my-gensym 'tb))
-          (body-conf
-            (cons* generator-sent: sent-sym generator-exception: exc-info conf)))
+          (exc-tb-sym (my-gensym 'tb)))
     (epairify this
       `(py-generator-yield
         %current-generator
