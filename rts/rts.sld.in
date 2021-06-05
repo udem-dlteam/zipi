@@ -564,6 +564,7 @@
     py-make-generator
     py-generator-send
     py-generator-next
+    py-generator-next-avoid-StopIteration
     py-generator-end
 
     PyObjectGenerator?

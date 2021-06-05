@@ -1204,18 +1204,29 @@
       (PyObjectGenerator-continuation-set! ,$gen ,kont)
       ,val)))
 
-(define-macro (py-generator-next self . tail)
+(define-macro (py-generator-next self #!optional (value 'py-None))
   `(let* (($self ,self)
-         ($value ,(cond
-                    ((null? tail) 'py-None)
-                    ((null? (cdr tail)) (car tail))
-                    (else (error "py-generator-next" "wrong number of arguments" (length tail)))))
+         ($value ,value)
          (cont (PyObjectGenerator-continuation $self)))
     (cond
       ((procedure? cont) ;; active and ready
         (PyObjectGenerator-continuation-set! $self #t)
         (cont $value #f))
-      (cont ;; active, but running
+      (cont ;; active, but running (can be something else than #t, by example '%avoid-StopIteration)
+        (py-throw-exception-with-message
+          py-builtin-ValueError
+          "generator is already executing"))
+      (else ;; closed
+        (py-throw py-builtin-StopIteration)))))
+
+(define-macro (py-generator-next-avoid-StopIteration self)
+  `(let* (($self ,self)
+         (cont (PyObjectGenerator-continuation $self)))
+    (cond
+      ((procedure? cont) ;; active and ready
+        (PyObjectGenerator-continuation-set! $self '%avoid-StopIteration)
+        (cont py-None #f))
+      (cont ;; active, but running (can be something else than #t, by example '%avoid-StopIteration)
         (py-throw-exception-with-message
           py-builtin-ValueError
           "generator is already executing"))
@@ -2531,6 +2542,7 @@
           (let ((,$vec (PyObjectTuple-value ,$iterable)))
             (,$init-loop
               (if (fx> (vector-length ,$vec) 0) (vector-ref ,$vec 0) #f)
+              ;; vector of length 2 = tuple
               (vector ,$vec 1))))
         ((fx= ,$cls-index (get-behavior-type-index range))
           (let ((,$start (PyObjectRange-start ,$iterable))
@@ -2560,7 +2572,8 @@
                 (if (py-isinstance? e py-builtin-StopIteration)
                   #f
                   (py-throw-unsafe e)))
-              (lambda () (py-generator-next ,$iterable)))
+              (lambda () (py-generator-next-avoid-StopIteration ,$iterable)))
+            ;; vector of length 3 = generator (the last slot serves no purpose)
             ,$iterable))
         (else
           (let ((,$iterator (py-iter ,iterable)))
@@ -2594,8 +2607,8 @@
                       (set-cdr! ,$iterator (fx+ ,$index 1))
                       ,$tmp)
                     #f)))))
-        ;; case vector
         ((vector? ,$iterator)
+          ;; case tuple
           (let ((,$vec (vector-ref ,$iterator 0))
                 (,$index (vector-ref ,$iterator 1)))
             (if (fx< ,$index (vector-length ,$vec))
@@ -2609,7 +2622,8 @@
               (if (py-isinstance? e py-builtin-StopIteration)
                 #f
                 (py-throw-unsafe e)))
-            (lambda () (py-generator-next ,$iterator))))
+            (lambda ()
+             (py-generator-next-avoid-StopIteration ,$iterator))))
         ;; case PyObject iterator
         (else
           (py-next ,$iterator))))))

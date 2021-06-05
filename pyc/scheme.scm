@@ -284,11 +284,17 @@
 	     `(,return-sym ,(scheme (PycReturn-val this) conf))))))
 
 (define-walk-method (scheme this::PycGeneratorReturn conf)
-  (let ((val (PycReturn-val this)))
+  (let ((val (PycReturn-val this))
+        ($result (my-gensym 'return-value)))
     (epairify this
       (if (isa? val PycUninit)
-        `(py-throw py-builtin-StopIteration)
-        `(py-throw-with-values py-builtin-StopIteration ,(scheme val conf))))))
+        `(if (eq? (PyObjectGenerator-continuation %current-generator) '%avoid-StopIteration)
+             (begin (py-generator-end %current-generator) #f)
+             (py-throw py-builtin-StopIteration))
+        `(let ((,$result ,(scheme val conf)))
+          (if (eq? (PyObjectGenerator-continuation %current-generator) '%avoid-StopIteration)
+            (begin (py-generator-end %current-generator) #f)
+            (py-throw-with-values py-builtin-StopIteration ,$result)))))))
 
 (define-walk-method (scheme this::PycReturnYield conf)
    (let* ((kont (PycReturnYield-kont this))
