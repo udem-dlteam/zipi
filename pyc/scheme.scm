@@ -312,12 +312,7 @@
         (lambda (,sent-sym ,exc-info)
           (if ,sent-sym
             (,(scheme kont conf) ,sent-sym)
-            (let ((,exc-sym (vector-ref ,exc-info 0))
-                  (,exc-val-sym (vector-ref ,exc-info 1))
-                  (,exc-tb-sym (vector-ref ,exc-info 2)))
-              (if ,exc-val-sym
-                (py-throw-with-values ,exc-sym ,exc-val-sym)
-                (py-throw ,exc-sym)))))))))
+            (py-throw-from-generator-exception-info ,exc-info)))))))
 
 (define-walk-method (scheme this::PycStmtExpr conf)
    (scheme (PycStmtExpr-expr this) conf))
@@ -1141,12 +1136,7 @@
                                 py-builtin-TypeError
                                 "can't send non-None value to a just-started generator"))
                             (else
-                              (let ((,exc-sym (vector-ref ,exc-info 0))
-                                    (,exc-val-sym (vector-ref ,exc-info 1))
-                                    (,exc-tb-sym (vector-ref ,exc-info 2)))
-                                (if ,exc-val-sym
-                                  (py-throw-with-values ,exc-sym ,exc-val-sym)
-                                  (py-throw ,exc-sym)))))))))
+                              (py-throw-from-generator-exception-info ,exc-info)))))))
             %current-generator)))
         exp))
 

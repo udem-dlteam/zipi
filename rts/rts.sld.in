@@ -566,6 +566,7 @@
     py-generator-next
     py-generator-next-avoid-StopIteration
     py-generator-end
+    py-throw-from-generator-exception-info
 
     PyObjectGenerator?
     PyObjectGenerator-continuation-set!

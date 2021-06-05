@@ -2381,6 +2381,15 @@
       posonlyargs: (self type value traceback)
       defaults: '#(#f #f))))
 
+(define (py-throw-from-generator-exception-info exc-info)
+  (let ((exc (vector-ref exc-info 0))
+        (exc-val (vector-ref exc-info 1))
+        (exc-tb (vector-ref exc-info 2)))
+    (if exc-val
+      (py-throw-with-values exc exc-val)
+      (py-throw exc))))
+
+
 (define (py-generator-close self)
   (let ((cont (PyObjectGenerator-continuation self)))
     (cond

@@ -502,6 +502,7 @@
 
 	   (py-tuple-from-scheme elements)
 	   (py-throw-super-no-arguments-error)
+     (py-throw-from-generator-exception-info exc-info)
 
 	   py-classmethod-hclass-of-instances
 	   py-staticmethod-hclass-of-instances
