@@ -1204,9 +1204,12 @@
       (PyObjectGenerator-continuation-set! ,$gen ,kont)
       ,val)))
 
-(define-macro (py-generator-next self #!optional (value 'py-None))
+(define-macro (py-generator-next self . rest)
   `(let* (($self ,self)
-         ($value ,value)
+         ($value ,(case (length rest)
+                   ((0) 'py-None)
+                   ((1) (car rest))
+                   (else (error "py-generator-next" "takes at most 2 arguments not " (length rest)))))
          (cont (PyObjectGenerator-continuation $self)))
     (cond
       ((procedure? cont) ;; active and ready
