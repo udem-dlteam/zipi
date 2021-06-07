@@ -135,14 +135,12 @@
     (cps-stmt* (PycSeq-nodes this) k kbreak kcontinue kraise)))
 
 (define-walk-method (cps-stmt this::PycReturn k kbreak kcontinue kraise)
-  ;; TODO: return the value
-  (let ((loc (PycNode-loc this)))
-    (if kraise
-      (error "cps-stmt" "NotImplemented: return inside a try" this)
-      (new-PycRaise
-        loc
-        (new-PycPragma loc 'py-builtin-StopIteration)
-        (new-PycUninit loc)))))
+  (if kraise
+    (error "cps-stmt" "NotImplemented: return inside a try" this)
+    (new-PycGeneratorReturn
+      (PycNode-loc this)
+      (PycReturn-val this)
+      tail: (PycReturn-tail this))))
 
 (define-walk-method (cps-stmt this::PycStmtExpr k kbreak kcontinue kraise)
   (if (need-cps? this)

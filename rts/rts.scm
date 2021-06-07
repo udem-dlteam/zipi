@@ -2349,21 +2349,12 @@
     py-generator-hclass-of-instances
     '#()
     py-generator-class
-    proc
-    #f
-    #t))
+    proc))
 
 ;; TODO add checks that methods are called with correct types
 
 (define (py-generator-send self value)
-  (if (PyObjectGenerator-is-running self)
-    (py-throw-exception-with-message
-      py-builtin-ValueError
-      "generator is already executing")
-    (let ((cont (PyObjectGenerator-continuation self)))
-      (PyObjectGenerator-is-running-set! self #t)
-      (PyObjectGenerator-continuation-set! self #f)
-      (cont value #f))))
+  (py-generator-next self value))
 
 (define generator.send
   (procedure->py-function
@@ -2371,14 +2362,17 @@
     (make-signature posonlyargs: (self value))))
 
 (define (py-generator-throw self type value traceback)
-  (if (PyObjectGenerator-is-running self)
-    (py-throw-exception-with-message
-      py-builtin-ValueError
-      "generator is already executing")
-    (let ((cont (PyObjectGenerator-continuation self)))
-      (PyObjectGenerator-is-running-set! self #t)
-      (PyObjectGenerator-continuation-set! self #f)
-      (cont #f (vector type value traceback)))))
+  (let ((cont (PyObjectGenerator-continuation self)))
+    (cond
+      ((procedure? cont) ;; active and ready
+        (PyObjectGenerator-continuation-set! self #t)
+        (cont #f (vector type value traceback)))
+      (cont ;; active, but running
+        (py-throw-exception-with-message
+          py-builtin-ValueError
+          "generator is already executing"))
+      (else ;; closed
+        (py-throw-with-values type value)))))
 
 (define generator.throw
   (procedure->py-function
@@ -2387,42 +2381,37 @@
       posonlyargs: (self type value traceback)
       defaults: '#(#f #f))))
 
-(define closed-generator-continuation
-  (lambda (value exc-info)
-    (if value
-      (py-throw py-builtin-StopIteration))
-      (let ((exc (vector-ref exc-info 0))
-            (exc-value (vector-ref exc-info 1))
-            (exc-tb (vector-ref exc-info 2)))
-        (if exc-value
-          (py-throw-with-values exc exc-value)
-          (py-throw exc)))))
+(define (py-throw-from-generator-exception-info exc-info)
+  (let ((exc (vector-ref exc-info 0))
+        (exc-val (vector-ref exc-info 1))
+        (exc-tb (vector-ref exc-info 2)))
+    (if exc-val
+      (py-throw-with-values exc exc-val)
+      (py-throw exc))))
+
 
 (define (py-generator-close self)
-  (cond
-    ((PyObjectGenerator-is-running self)
-      (py-throw-exception-with-message
-        py-builtin-ValueError
-        "generator is already executing"))
-    ((not (PyObjectGenerator-is-active self))
-      py-None)
-    (else
-      (py-try-except
-        (lambda (e)
-          (if (or (py-isinstance? e py-builtin-StopIteration)
-                  (py-isinstance? e py-builtin-GeneratorExit))
-            (begin
-              (PyObjectGenerator-is-active-set! self #f)
-              (PyObjectGenerator-is-running-set! self #f)
-              (PyObjectGenerator-continuation-set! self closed-generator-continuation)
-              py-None)
-            (py-throw e)))
-        (lambda ()
-          (let ((cont (PyObjectGenerator-continuation self)))
-            (PyObjectGenerator-is-running-set! self #t)
-            (PyObjectGenerator-continuation-set! self #f)
+  (let ((cont (PyObjectGenerator-continuation self)))
+    (cond
+      ((procedure? cont) ;; active and ready
+        (py-try-except
+          (lambda (e)
+            (if (or (py-isinstance? e py-builtin-StopIteration)
+                    (py-isinstance? e py-builtin-GeneratorExit))
+              (begin
+                (py-generator-end self)
+                py-None)
+              (py-throw e)))
+          (lambda ()
+            (PyObjectGenerator-continuation-set! self #t)
             (cont #f (vector py-builtin-GeneratorExit #f #f))
-            (py-throw-exception-with-message py-builtin-RuntimeError "generator ignored GeneratorExit")))))))
+            (py-throw-exception-with-message py-builtin-RuntimeError "generator ignored GeneratorExit"))))
+      (cont ;; active, but running
+        (py-throw-exception-with-message
+          py-builtin-ValueError
+          "generator is already executing"))
+      (else ;; closed
+        py-None))))
 
 (define generator.close
   (procedure->py-function

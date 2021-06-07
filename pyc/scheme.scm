@@ -283,6 +283,19 @@
 	  (epairify this
 	     `(,return-sym ,(scheme (PycReturn-val this) conf))))))
 
+(define-walk-method (scheme this::PycGeneratorReturn conf)
+  (let ((val (PycReturn-val this))
+        ($result (my-gensym 'return-value)))
+    (epairify this
+      (if (isa? val PycUninit)
+        `(if (eq? (PyObjectGenerator-continuation %current-generator) '%avoid-StopIteration)
+             (begin (py-generator-end %current-generator) #f)
+             (py-throw py-builtin-StopIteration))
+        `(let ((,$result ,(scheme val conf)))
+          (if (eq? (PyObjectGenerator-continuation %current-generator) '%avoid-StopIteration)
+            (begin (py-generator-end %current-generator) #f)
+            (py-throw-with-values py-builtin-StopIteration ,$result)))))))
+
 (define-walk-method (scheme this::PycReturnYield conf)
    (let* ((kont (PycReturnYield-kont this))
 	        (generator (PycReturnYield-generator this))
@@ -299,12 +312,7 @@
         (lambda (,sent-sym ,exc-info)
           (if ,sent-sym
             (,(scheme kont conf) ,sent-sym)
-            (let ((,exc-sym (vector-ref ,exc-info 0))
-                  (,exc-val-sym (vector-ref ,exc-info 1))
-                  (,exc-tb-sym (vector-ref ,exc-info 2)))
-              (if ,exc-val-sym
-                (py-throw-with-values ,exc-sym ,exc-val-sym)
-                (py-throw ,exc-sym)))))))))
+            (py-throw-from-generator-exception-info ,exc-info)))))))
 
 (define-walk-method (scheme this::PycStmtExpr conf)
    (scheme (PycStmtExpr-expr this) conf))
@@ -1128,12 +1136,7 @@
                                 py-builtin-TypeError
                                 "can't send non-None value to a just-started generator"))
                             (else
-                              (let ((,exc-sym (vector-ref ,exc-info 0))
-                                    (,exc-val-sym (vector-ref ,exc-info 1))
-                                    (,exc-tb-sym (vector-ref ,exc-info 2)))
-                                (if ,exc-val-sym
-                                  (py-throw-with-values ,exc-sym ,exc-val-sym)
-                                  (py-throw ,exc-sym)))))))))
+                              (py-throw-from-generator-exception-info ,exc-info)))))))
             %current-generator)))
         exp))
 

@@ -27,6 +27,10 @@
 (define-inline (new-PycReturn loc val #!key (%info #f) (cps #f) (tail #t))
    (make-PycReturn loc %info cps val tail))
 
+;; (new-PycGeneratorReturn loc val #!key (%info #f) (cps #f) (tail #t))
+(define-inline (new-PycGeneratorReturn loc val #!key (%info #f) (cps #f) (tail #t))
+   (make-PycGeneratorReturn loc %info cps val tail))
+
 ;; (new-PycReturnYield loc val kont #!key (%info #f) (cps #f) (generator #f))
 (define-inline (new-PycReturnYield loc val kont #!key (%info #f) (cps #f) (generator #f))
    (make-PycReturnYield loc %info cps val kont generator))

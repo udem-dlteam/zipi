@@ -1193,23 +1193,51 @@
 
 ;; operations on generators
 
+;; PyObjectGenerator-continuation can be three things:
+;; 1) a procedure which represent the continuation
+;; 2) #t meaning the generator is active, but already runnning
+;; 3) #f meaning the generator is closed
+
 (define-macro (py-generator-yield gen val kont)
   (let (($gen (gensym 'gen)))
     `(let ((,$gen ,gen))
       (PyObjectGenerator-continuation-set! ,$gen ,kont)
-      (PyObjectGenerator-is-running-set! ,$gen #f)
       ,val)))
 
-(define-macro (py-generator-next self)
-  `(let (($self ,self))
-    (if (PyObjectGenerator-is-running $self)
-      (py-throw-exception-with-message
-        py-builtin-ValueError
-        "generator is already executing")
-      (let ((cont (PyObjectGenerator-continuation $self)))
-        (PyObjectGenerator-is-running-set! $self #t)
-        (PyObjectGenerator-continuation-set! $self #f)
-        (cont py-None #f)))))
+(define-macro (py-generator-next self . rest)
+  `(let* (($self ,self)
+         ($value ,(case (length rest)
+                   ((0) 'py-None)
+                   ((1) (car rest))
+                   (else (error "py-generator-next" "takes at most 2 arguments not " (length rest)))))
+         (cont (PyObjectGenerator-continuation $self)))
+    (cond
+      ((procedure? cont) ;; active and ready
+        (PyObjectGenerator-continuation-set! $self #t)
+        (cont $value #f))
+      (cont ;; active, but running (can be something else than #t, by example '%avoid-StopIteration)
+        (py-throw-exception-with-message
+          py-builtin-ValueError
+          "generator is already executing"))
+      (else ;; closed
+        (py-throw py-builtin-StopIteration)))))
+
+(define-macro (py-generator-next-avoid-StopIteration self)
+  `(let* (($self ,self)
+         (cont (PyObjectGenerator-continuation $self)))
+    (cond
+      ((procedure? cont) ;; active and ready
+        (PyObjectGenerator-continuation-set! $self '%avoid-StopIteration)
+        (cont py-None #f))
+      (cont ;; active, but running (can be something else than #t, by example '%avoid-StopIteration)
+        (py-throw-exception-with-message
+          py-builtin-ValueError
+          "generator is already executing"))
+      (else ;; closed
+        (py-throw py-builtin-StopIteration)))))
+
+(define-macro (py-generator-end gen)
+  `(PyObjectGenerator-continuation-set! ,gen #f))
 
 ;; all zipi PyObjectType have reserved slots for the following magic methods
 ;; see: ;; https://docs.python.org/3/reference/datamodel.html
@@ -2517,6 +2545,7 @@
           (let ((,$vec (PyObjectTuple-value ,$iterable)))
             (,$init-loop
               (if (fx> (vector-length ,$vec) 0) (vector-ref ,$vec 0) #f)
+              ;; vector of length 2 = tuple
               (vector ,$vec 1))))
         ((fx= ,$cls-index (get-behavior-type-index range))
           (let ((,$start (PyObjectRange-start ,$iterable))
@@ -2546,7 +2575,8 @@
                 (if (py-isinstance? e py-builtin-StopIteration)
                   #f
                   (py-throw-unsafe e)))
-              (lambda () (py-generator-next ,$iterable)))
+              (lambda () (py-generator-next-avoid-StopIteration ,$iterable)))
+            ;; vector of length 3 = generator (the last slot serves no purpose)
             ,$iterable))
         (else
           (let ((,$iterator (py-iter ,iterable)))
@@ -2580,8 +2610,8 @@
                       (set-cdr! ,$iterator (fx+ ,$index 1))
                       ,$tmp)
                     #f)))))
-        ;; case vector
         ((vector? ,$iterator)
+          ;; case tuple
           (let ((,$vec (vector-ref ,$iterator 0))
                 (,$index (vector-ref ,$iterator 1)))
             (if (fx< ,$index (vector-length ,$vec))
@@ -2595,7 +2625,8 @@
               (if (py-isinstance? e py-builtin-StopIteration)
                 #f
                 (py-throw-unsafe e)))
-            (lambda () (py-generator-next ,$iterator))))
+            (lambda ()
+             (py-generator-next-avoid-StopIteration ,$iterator))))
         ;; case PyObject iterator
         (else
           (py-next ,$iterator))))))
