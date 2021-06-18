@@ -140,8 +140,8 @@
     py-abs
     py-hash
 
-    py-len
-    py-maybe-len
+    py-length
+    py-maybe-length
     py-to-int
     py-maybe-to-int
     py-to-float

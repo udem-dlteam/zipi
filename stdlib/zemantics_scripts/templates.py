@@ -139,25 +139,29 @@ def big_index(obj):
     # big_index:end-body
 
 @define_semantics
-def maybe_len(obj):
-    # len:start-body
+def maybe_length(obj):
+    # length:start-body
     __len__ = class_getattr(obj, "__len__")
     if __len__ is absent:
         return absent
     else:
         len_result = __len__(obj)
-        return index(len_result)
-    # len:end-body
+        index_result = index(len_result)
+        if index_result < 0:
+            raise ValueError("__len__() should return >= 0")
+        else:
+            return index_result
+    # length:end-body
 
 @define_semantics
-def len(obj):
-    # len:start-body
-    result = maybe_len(obj)
+def length(obj):
+    # length:start-body
+    result = maybe_length(obj)
     if result is absent:
         raise TypeError("object of type" + type(obj).__name__ + "has no len()")
     else:
         return result
-    # len:end-body
+    # length:end-body
 
 @define_semantics
 def truth(obj):
@@ -170,7 +174,7 @@ def truth(obj):
         else:
             raise TypeError("__bool__ should return bool, returned '" + type(obj).__name__ + "'")
     else:
-        len_result = maybe_len(obj)
+        len_result = maybe_length(obj)
         if len_result is not absent:
             return len_result != 0
         else:

@@ -15,6 +15,7 @@ import templates
 # Default value if not --int-maxsize argument is passed
 INT_MAXSIZE = sys.maxsize
 
+
 # ======================================================================================================================
 #   Helpers
 # ======================================================================================================================
@@ -329,7 +330,6 @@ intrinsics_inverses = {
     **{v: k for k, v in intrinsics_inverses.items()}
 }
 
-
 py_to_host_number_table = {
     "int": "py_int_to_host",
     "sint": "py_sint_to_host",
@@ -397,8 +397,8 @@ class AstConvertOpsToHost(ast.NodeTransformer):
             host_comparison = ast.Compare(
                 ast.Call(
                     ast.Name(left_intrinsics, ast.Load()), [left], []),
-                    node.ops,
-                    [ast.Call(ast.Name(i, ast.Load()), [c], []) for i, c in zip(comparators_intrinsics, comparators)])
+                node.ops,
+                [ast.Call(ast.Name(i, ast.Load()), [c], []) for i, c in zip(comparators_intrinsics, comparators)])
             return ast.Call(
                 ast.Name("py_bool_from_host_bool", ast.Load()),
                 [host_comparison],
@@ -409,6 +409,16 @@ class AstConvertOpsToHost(ast.NodeTransformer):
 class AstNameCounter(ast.NodeVisitor, Counter):
     def visit_Name(self, node):
         self[node.id, type(node.ctx).__name__] += 1
+
+
+def is_chained_calls(node, names):
+    if names:
+        if isinstance(node, ast.Call) and isinstance(func:=node.func, ast.Name) and func.id == names[0]:
+            if len(node.args) == 1:
+                return is_chained_calls(node.args[0], names[1:])
+        return False
+    else:
+        return True
 
 
 # ======================================================================================================================
@@ -917,6 +927,14 @@ def partial_eval_compare(cmp, ctx):
             res = partial_eval_eq(left, right, ctx)
         elif isinstance(op, ast.NotEq):
             res = partial_eval_ne(left, right, ctx)
+        elif isinstance(op, ast.Lt):
+            res = partial_eval_lt(left, right, ctx)
+        elif isinstance(op, ast.LtE):
+            res = partial_eval_le(left, right, ctx)
+        elif isinstance(op, ast.Gt):
+            res = partial_eval_gt(left, right, ctx)
+        elif isinstance(op, ast.GtE):
+            res = partial_eval_ge(left, right, ctx)
         else:
             res = None
 
@@ -924,6 +942,73 @@ def partial_eval_compare(cmp, ctx):
             return ast.Compare(left, [op], [right])
         else:
             return res
+
+
+def resolve_expression_sign(expr, ctx):
+    if isinstance(expr, ast.Name):
+        var = ctx.get(expr.id)
+
+        if is_chained_calls(var.value, ["py_int_from_host", "py_str_len_to_host"]):
+            return 1, False
+    return None, None
+
+
+# We implemented limited mechanism to detect whether a value is positive or negative
+# This is mainly aimed at resolving the sign of int values coming from length of a sequence
+def partial_eval_lt(left, right, ctx):
+    if isinstance(right, ast.Constant) and right.value == 0:
+        sign, strict = resolve_expression_sign(left, ctx)
+
+        if sign is not None:
+            if sign == -1:
+                if strict:
+                    return ast.Constant(True)
+            else:  # 0 or 1
+                return ast.Constant(False)
+
+    return None
+
+
+def partial_eval_le(left, right, ctx):
+    if isinstance(right, ast.Constant) and right.value == 0:
+        sign, strict = resolve_expression_sign(left, ctx)
+
+        if sign is not None:
+            if sign == -1 or sign == 0:
+                return ast.Constant(True)
+
+            elif strict: # > 0
+                return ast.Constant(False)
+
+    return None
+
+
+def partial_eval_gt(left, right, ctx):
+    if isinstance(right, ast.Constant) and right.value == 0:
+        sign, strict = resolve_expression_sign(left, ctx)
+
+        if sign is not None:
+            if sign == 1:
+                if strict:
+                    return ast.Constant(True)
+            else:  # 0 or -1
+                return ast.Constant(False)
+
+    return None
+
+
+def partial_eval_ge(left, right, ctx):
+    if isinstance(right, ast.Constant) and right.value == 0:
+        sign, strict = resolve_expression_sign(left, ctx)
+
+        if sign is not None:
+            if sign == 1 or sign == 0:
+                return ast.Constant(True)
+
+            elif strict: # > 0
+                return ast.Constant(False)
+
+    return None
 
 
 def partial_eval_is_not(left, right, ctx):
@@ -1146,9 +1231,11 @@ def partial_eval_class_getattr_call(args, ctx):
     else:
         raise NotImplementedError("partial_eval_class_getattr_call: first argument must have been resolved to a name")
 
+
 def partial_eval_alloc_call(args, keywords, ctx):
-    # TODO: paortial eval of keywords
+    # TODO: partial eval of keywords
     return ast.Call(ast.Name("alloc", ast.Load()), args, keywords)
+
 
 def convert_expr_to_return_host_bool(expr):
     if isinstance(expr, ast.Call):
@@ -1288,6 +1375,7 @@ def main_behaviors(semantics_file, builtins_file):
 def get_type_alias(type_name):
     return "int" if type_name in int_specialized_types else type_name
 
+
 function = type(lambda: None)
 
 instances = [1, 1.0, True, "foo", lambda: None]
@@ -1295,12 +1383,14 @@ types = [get_type_name(i) for i in instances]
 int_specialized_types = ['sint', 'bint']
 types += int_specialized_types
 
+
 class Any:
     def __eq__(self, o):
         return True
 
     def __ne__(self, o):
         return False
+
 
 # Replace 'int' by 'sint' and 'bint'
 types_without_int = [t for t in types if t != 'int']
@@ -1334,7 +1424,6 @@ if __name__ == '__main__':
     behaviors_parser.add_argument('semantics_file')
     behaviors_parser.add_argument('builtins_file')
     behaviors_parser.add_argument('--int-maxsize', dest='int_maxsize', type=int, default=INT_MAXSIZE)
-
 
     args = parser.parse_args()
 

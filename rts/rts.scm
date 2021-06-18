@@ -6742,7 +6742,7 @@
 
 (define py-builtin-len
   (procedure->py-function
-    (lambda (o) (py-len o))
+    (lambda (o) (py-length o))
     (make-signature posonlyargs: (obj))))
 
 ;;-------------------- class list([iterable])

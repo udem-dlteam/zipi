@@ -2334,11 +2334,11 @@
 (define-macro (py-maybe-big-index obj)
   `(py-maybe-big-index-fallback ,obj))
 
-(define-macro (py-len obj)
-  `(py-len-fallback ,obj))
+(define-macro (py-length obj)
+  `(py-length-fallback ,obj))
 
-(define-macro (py-maybe-len obj)
-  `(py-maybe-len-fallback ,obj))
+(define-macro (py-maybe-gth obj)
+  `(py-maybe-length-fallback ,obj))
 
 (define-macro (py-getattribute obj attr . opts)
    (let ((cache (if (null? opts) #f (car opts)))
