@@ -573,7 +573,7 @@ int_division_method_template = \
     def __{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if other != 0:
+                if py_int_to_host(other) != py_int_to_host(0):
                     return {box_method}(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -588,7 +588,7 @@ int_reflected_division_method_template = \
     def __r{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if self != 0:
+                if py_int_to_host(self) != py_int_to_host(0):
                     return {box_method}(py_int_to_host(other) {op} py_int_to_host(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -603,7 +603,7 @@ int_inplace_division_method_template = \
     def __i{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if other != 0:
+                if py_int_to_host(other) != py_int_to_host(0):
                     return {box_method}(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -847,12 +847,12 @@ float_division_method_template = \
     def __{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                if other != 0.0:
+                if py_float_to_host(other) != py_float_to_host(0.0):
                     return py_float_from_host(py_float_to_host(self) {op} py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             elif isinstance(other, int):
-                if other != 0:
+                if py_int_to_host(other) != py_int_to_host(0):
                     return py_float_from_host(py_float_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -867,12 +867,12 @@ float_reflected_division_method_template = \
     def __r{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                if self != 0.0:
+                if py_float_to_host(self) != py_float_to_host(0.0):
                     return py_float_from_host(py_float_to_host(other) {op} py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
             elif isinstance(other, int):
-                if self != 0.0:
+                if py_float_to_host(self) != py_float_to_host(0.0):
                     return py_float_from_host(py_int_to_host(other) {op} py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -887,12 +887,12 @@ float_inplace_division_method_template = \
     def __i{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                if other != 0.0:
+                if py_float_to_host(other) != py_float_to_host(0.0):
                     return py_float_from_host(py_float_to_host(self) {op} py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             elif isinstance(other, int):
-                if other != 0:
+                if py_int_to_host(other) != py_int_to_host(0):
                     return py_float_from_host(py_float_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")

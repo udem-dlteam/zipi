@@ -318,6 +318,11 @@
    (scheme (PycStmtExpr-expr this) conf))
 
 (define (pyc-test this conf)
+  (define (py-test? e)
+    (if (and (pair? e) (eq? (car e) 'py-test-from-scheme))
+      e
+      `(py-test ,e)))
+
    (epairify this
      (if (eq? (PycExpr-type this) 'Ubool)
       (scheme this conf)
@@ -330,7 +335,7 @@
             (case unop
               ((not)
                 `(not ,(pyc-test expr this)))
-              (else `(py-test ,(scheme this conf))))))
+              (else (py-test? (scheme this conf))))))
         ((isa? this PycBoolOp)
           (let ((op (PycBoolOp-op this))
                 (args (PycBoolOp-args this)))
@@ -361,7 +366,7 @@
                             (,res-symbol (py-test (,(symbol-append 'py- (car ops)) ,left ,chain-symbol))))
                       (and ,res-symbol
                           ,(loop chain-symbol (cdr rights) (cdr ops))))))))))
-	      (else `(py-test ,(scheme this conf)))))))
+	      (else (py-test? (scheme this conf)))))))
 
 (define-walk-method (scheme this::PycWhile conf)
 
