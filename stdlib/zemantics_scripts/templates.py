@@ -528,7 +528,7 @@ int_shift_method_template = \
     def __{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if other >= 0:
+                if py_int_to_host(other) >= py_int_to_host(0):
                     return py_int_from_host(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
@@ -543,7 +543,7 @@ int_reflected_shift_method_template = \
     def __r{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if self >= 0:
+                if py_int_to_host(self) >= py_int_to_host(0):
                     return py_int_from_host(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
@@ -558,7 +558,7 @@ int_inplace_shift_method_template = \
     def __i{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if other >= 0:
+                if py_int_to_host(other) >= py_int_to_host(0):
                     return py_int_from_host(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
