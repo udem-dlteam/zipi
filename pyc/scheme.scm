@@ -334,7 +334,7 @@
                 (expr (PycUnary-expr this)))
             (case unop
               ((not)
-                `(not ,(pyc-test expr this)))
+                `(not ,(pyc-test expr conf)))
               (else (py-test? (scheme this conf))))))
         ((isa? this PycBoolOp)
           (let ((op (PycBoolOp-op this))
