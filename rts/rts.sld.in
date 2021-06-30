@@ -22,7 +22,6 @@
 
     call-host
 
-    with-handler
     bind-exit
 
     py-absent
@@ -60,8 +59,13 @@
     py-isinstance?
     py-issubclass?
     py-throw
+    py-throw-unsafe
     py-throw-with-values
     py-throw-exception-with-message
+
+    py-try-except
+    py-try-except-else
+    $py-try-except
 
     py-make-global
     py-make-module
@@ -136,8 +140,8 @@
     py-abs
     py-hash
 
-    py-len
-    py-maybe-len
+    py-length
+    py-maybe-length
     py-to-int
     py-maybe-to-int
     py-to-float
@@ -158,7 +162,6 @@
     py-truth
 
     py-not
-    py-next
     py-import
     py-import-relative
 
@@ -388,6 +391,14 @@
     py-test-le-behaviors-table
     py-test-lt-behaviors-table
 
+    PyObjectTuple-value
+    PyObjectList-len
+    PyObjectList-vector
+    py-for-iter
+    py-for-next
+
+    py-next-behaviors-table
+
     py-descriptor-get-behaviors-table
     py-descriptor-get-behavior-call-fallback
 
@@ -452,12 +463,20 @@
     py-concat-strX-strY
     py-mul-UstrX-UintY
 
+    py-list-class
+    py-make-list
+    py-list-from-scheme
+    py-make-list-from-elems
+    py-make-list-from-vec
+    make-PyObjectList
+    PyObjectType-hclass-of-instances
+    list-get-inner-len
+    list-get-shrink-threshold
+
     py-slice-from-scheme
     py-bytearray-from-scheme
     py-set-from-scheme
     py-tuple-from-scheme
-    py-make-list
-    py-make-list-vec
     py-make-dict
     py-make-set
     py-make-tuple
@@ -529,15 +548,13 @@
     $get-behavior-type-index
 
     py-for-each
-    py-for-each-maybe-range-call
-    py-for-each-maybe-range:next
-    py-for-each-maybe-range-call:iter
-    py-for-each-maybe-range:iter
-    py-for-each-maybe-range
-    py-for-each-maybe-range-cps:next
-    py-for-each-maybe-range-cps
+    py-for-each-cps
+    py-for-each-range-call
     py-obj->iterator
     py-iter
+    py-iter-fallback
+    py-next
+    py-next-fallback
     iterator-next
     iterator->list
     py-ternary-unpack
@@ -546,6 +563,14 @@
     py-generator-yield
     py-make-generator
     py-generator-send
+    py-generator-next
+    py-generator-next-avoid-StopIteration
+    py-generator-end
+    py-throw-from-generator-exception-info
+
+    PyObjectGenerator?
+    PyObjectGenerator-continuation-set!
+    PyObjectGenerator-continuation
 
     py-enter
     py-exit

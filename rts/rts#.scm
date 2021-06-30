@@ -201,16 +201,15 @@
   id: PyObjectGenerator-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
   macros:
-  continuation
-  is-running
-  is-active)
+  continuation)
 
 (define-type-of-PyObject PyObjectList
   id: PyObjectList-C6486EB6-1522-42BA-A082-B6563F943CDF
   copier: #f
   macros: ;; this will inline the operations on this type
   ;; attrs
-  value)
+  vector
+  len)
 
 (define-type-of-PyObject PyObjectListIterator
   id: PyObjectListIterator-C6486EB6-1522-42BA-A082-B6563F943CDF

@@ -141,7 +141,14 @@
           (map (lambda (a)
                  (sexp a tail scope conf))
                (list-ref args 6))
-          (compile-stmt* loc body #t 'local conf)
+          (let* ((body-node (compile-stmt* loc body #f 'local conf))
+                 (stmts (PycSeq-nodes body-node)))
+            (PycSeq-nodes-set!
+              body-node
+              (append
+                stmts
+                (list (new-PycReturn loc (new-PycNone loc #f))))) ;; implicit return
+            body-node)
           decorators: (map
                         (lambda (d) (sexp d #f scope conf)) decorator_list)
           name: id

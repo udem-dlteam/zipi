@@ -6,12 +6,6 @@
 
 (declare (standard-bindings) (extended-bindings) (not safe) (block))
 
-(define-macro (with-handler handler . body)
-  `(##with-exception-catcher
-      ,handler
-      (lambda ()
-        ,@body)))
-
 (define-macro (bind-exit exit . body)
   `(##continuation-capture
     (lambda ($cont)
@@ -115,8 +109,8 @@
   (debug-get obj 2 0 2 4 2 1))
 
 (define (debug-catch thunk)
-  (with-exception-catcher
-    (lambda (e) (if (PyObject? e) (print-exception e) (raise e)))
+  (py-try-except
+    (lambda (e)(print-exception e))
     thunk))
 
 (define (read-string port) ;; TODO: change name so it doesn't clash with predefined one
@@ -192,6 +186,48 @@
       source
       " > "
       target)))
+
+;; homebrewed exception handling
+
+;; WARNING exception are returned inside a pair
+;; using py-try-except to return a pair will fail
+(define-macro (py-try-except-else handler body orelse)
+  `(let* ((##py-try-except-body
+             (let ()
+               (declare (not inline))
+               (lambda ()
+                 (declare (inline))
+                 (,body))))
+            (##py-try-except-marker
+             (##first-argument #f))
+            (##exception-or-result
+             (let ()
+               (declare (environment-map))
+               (##first-argument
+                 (##py-try-except-body)
+                 ##py-try-except-marker))))
+     (if (pair? ##exception-or-result)
+       (,handler (car ##exception-or-result))
+       (,orelse ##exception-or-result))))
+
+(define-macro (py-try-except handler body)
+  `(py-try-except-else ,handler ,body (lambda (x) x)))
+
+;; throw an exception without checking it is an instance of BaseException
+(define (py-throw-unsafe exn)
+  (##continuation-capture
+   (lambda (cont)
+     (let loop ((cont cont))
+       (if (not cont)
+           (error "uncaught Python exception" exn)
+           (if (if (##interp-continuation? cont)
+                   (let ((x (##cte-lookup
+                             (##vector-ref (##interp-continuation-code cont) 2)
+                             '##py-try-except-marker)))
+                     (##eq? (##vector-ref x 0) 'not-found))
+                   (not (pair? (##continuation-locals cont '##py-try-except-marker))))
+               (loop (##continuation-next! cont))
+               (##continuation-return cont (cons exn '()))))))))
 
 ;; builtin bootstrap
 
@@ -284,9 +320,9 @@
     (set! list.sort
       (procedure->py-function
         (lambda (self key reversed)
-          (PyObjectList-value-set!
+          (PyObjectList-vector-set!
             self
-            (PyObjectList-value
+            (PyObjectList-vector
               ((PyObjectFunction-procedure py-builtin-sorted)
                self key reversed)))
           py-None)

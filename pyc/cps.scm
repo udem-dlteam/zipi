@@ -12,7 +12,8 @@
   (if (PycFun-generator this)
     (PycFun-body-set!
       this
-      (cps-stmt (cps-fun! (PycFun-body this)) 'not-a-continuation-placeholder #f #f #f)))
+      (cps-stmt (cps-fun! (PycFun-body this)) #f #f #f #f))
+    (PycFun-body-set! this (cps-fun! (PycFun-body this))))
   this)
 
 ;; does an expression need cps
@@ -87,7 +88,7 @@
 (define (new-kont-ref loc var ctx)
   (new-PycRef loc var ctx can-direct-access: #t))
 
-(define (new-PycCallKont-as-stmt loc k #!key (args '()))
+(define (new-PycCallKont-as-stmt loc k args)
   (new-PycStmtExpr
     loc
     (new-PycCallKont loc k args: args)))
@@ -134,14 +135,12 @@
     (cps-stmt* (PycSeq-nodes this) k kbreak kcontinue kraise)))
 
 (define-walk-method (cps-stmt this::PycReturn k kbreak kcontinue kraise)
-  ;; TODO: return the value
-  (let ((loc (PycNode-loc this)))
-    (if kraise
-      (error "cps-stmt" "NotImplemented: return inside a try" this)
-      (new-PycRaise
-        loc
-        (new-PycPragma loc 'py-builtin-StopIteration)
-        (new-PycUninit loc)))))
+  (if kraise
+    (error "cps-stmt" "NotImplemented: return inside a try" this)
+    (new-PycGeneratorReturn
+      (PycNode-loc this)
+      (PycReturn-val this)
+      tail: (PycReturn-tail this))))
 
 (define-walk-method (cps-stmt this::PycStmtExpr k kbreak kcontinue kraise)
   (if (need-cps? this)
@@ -226,7 +225,7 @@
               (new-PycCPSFor
                 loc
                 (cps-stmt body cps-loop-kont-load kont-load cps-loop-kont-load kraise)
-                (new-PycCallKont-as-stmt (PycNode-loc forelse) else-kont-load)
+                (new-PycCallKont-as-stmt (PycNode-loc forelse) else-kont-load '())
                 target
                 kiter-load
                 cps-loop-kont-var
@@ -278,7 +277,7 @@
                     (new-PycIf
                       loc
                       ktest-load
-                      (new-PycCallKont-as-stmt loc body-kont-load)
+                      (new-PycCallKont-as-stmt loc body-kont-load '())
                       (cps-stmt whileelse kont-load kbreak kcontinue kraise)))
                   kraise)))
             ;; body
@@ -297,14 +296,14 @@
                 loc
                 '()
                 (cps-stmt whileelse kont-load kbreak kcontinue kraise))))
-          (new-PycCallKont-as-stmt loc loop-kont-load)))
+          (new-PycCallKont-as-stmt loc loop-kont-load '())))
       this)))
 
 (define-walk-method (cps-stmt this::PycBreak k kbreak kcontinue kraise)
-  (new-PycCallKont-as-stmt (PycNode-loc this) kbreak))
+  (new-PycCallKont-as-stmt (PycNode-loc this) kbreak '()))
 
 (define-walk-method (cps-stmt this::PycContinue k kbreak kcontinue kraise)
-  (new-PycCallKont-as-stmt (PycNode-loc this) kcontinue))
+  (new-PycCallKont-as-stmt (PycNode-loc this) kcontinue '()))
 
 (define-walk-method (cps-stmt this::PycAssig k kbreak kcontinue kraise)
   (if (need-cps? this)
@@ -518,7 +517,7 @@
       (list param)
       (new-PycTry
         loc
-        (new-PycCallKont-as-stmt loc k args: (list param-load))
+        (new-PycCallKont-as-stmt loc k (list param-load))
         (list
           (new-PycHandler
             loc
@@ -527,7 +526,7 @@
             (new-PycCallKont-as-stmt
               loc
               kraise
-              args: (list exc-load))))
+              (list exc-load))))
         (new-PycPass loc)
         (new-PycPass loc)
         exc-var))

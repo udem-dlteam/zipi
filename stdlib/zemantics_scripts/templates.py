@@ -139,25 +139,29 @@ def big_index(obj):
     # big_index:end-body
 
 @define_semantics
-def maybe_len(obj):
-    # len:start-body
+def maybe_length(obj):
+    # length:start-body
     __len__ = class_getattr(obj, "__len__")
     if __len__ is absent:
         return absent
     else:
         len_result = __len__(obj)
-        return index(len_result)
-    # len:end-body
+        index_result = index(len_result)
+        if index_result < 0:
+            raise ValueError("__len__() should return >= 0")
+        else:
+            return index_result
+    # length:end-body
 
 @define_semantics
-def len(obj):
-    # len:start-body
-    result = maybe_len(obj)
+def length(obj):
+    # length:start-body
+    result = maybe_length(obj)
     if result is absent:
         raise TypeError("object of type" + type(obj).__name__ + "has no len()")
     else:
         return result
-    # len:end-body
+    # length:end-body
 
 @define_semantics
 def truth(obj):
@@ -170,7 +174,7 @@ def truth(obj):
         else:
             raise TypeError("__bool__ should return bool, returned '" + type(obj).__name__ + "'")
     else:
-        len_result = maybe_len(obj)
+        len_result = maybe_length(obj)
         if len_result is not absent:
             return len_result != 0
         else:
@@ -187,10 +191,10 @@ def getattribute(obj, attr):
     __getattribute__ = class_getattr(obj, "__getattribute__")
     try:
         return __getattribute__(obj, attr)
-    except AttributeError:
+    except AttributeError as e:
         __getattr__ = class_getattr(obj, "__getattr__")
         if __getattr__ is absent:
-            raise
+            raise e
         else:
             return __getattr__(obj, attr)
     # getattribute:end-body
@@ -524,7 +528,7 @@ int_shift_method_template = \
     def __{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if other >= 0:
+                if py_int_to_host(other) >= py_int_to_host(0):
                     return py_int_from_host(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
@@ -539,7 +543,7 @@ int_reflected_shift_method_template = \
     def __r{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if self >= 0:
+                if py_int_to_host(self) >= py_int_to_host(0):
                     return py_int_from_host(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
@@ -554,7 +558,7 @@ int_inplace_shift_method_template = \
     def __i{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if other >= 0:
+                if py_int_to_host(other) >= py_int_to_host(0):
                     return py_int_from_host(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ValueError("negative shift count")
@@ -569,7 +573,7 @@ int_division_method_template = \
     def __{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if other != 0:
+                if py_int_to_host(other) != py_int_to_host(0):
                     return {box_method}(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -584,7 +588,7 @@ int_reflected_division_method_template = \
     def __r{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if self != 0:
+                if py_int_to_host(self) != py_int_to_host(0):
                     return {box_method}(py_int_to_host(other) {op} py_int_to_host(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -599,7 +603,7 @@ int_inplace_division_method_template = \
     def __i{method_name}__(self, other):
         if isinstance(self, int):
             if isinstance(other, int):
-                if other != 0:
+                if py_int_to_host(other) != py_int_to_host(0):
                     return {box_method}(py_int_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -843,12 +847,12 @@ float_division_method_template = \
     def __{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                if other != 0.0:
+                if py_float_to_host(other) != py_float_to_host(0.0):
                     return py_float_from_host(py_float_to_host(self) {op} py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             elif isinstance(other, int):
-                if other != 0:
+                if py_int_to_host(other) != py_int_to_host(0):
                     return py_float_from_host(py_float_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -863,12 +867,12 @@ float_reflected_division_method_template = \
     def __r{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                if self != 0.0:
+                if py_float_to_host(self) != py_float_to_host(0.0):
                     return py_float_from_host(py_float_to_host(other) {op} py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
             elif isinstance(other, int):
-                if self != 0.0:
+                if py_float_to_host(self) != py_float_to_host(0.0):
                     return py_float_from_host(py_int_to_host(other) {op} py_float_to_host(self))
                 else:
                     raise ZeroDivisionError("{error_message}")
@@ -883,12 +887,12 @@ float_inplace_division_method_template = \
     def __i{method_name}__(self, other):
         if isinstance(self, float):
             if isinstance(other, float):
-                if other != 0.0:
+                if py_float_to_host(other) != py_float_to_host(0.0):
                     return py_float_from_host(py_float_to_host(self) {op} py_float_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")
             elif isinstance(other, int):
-                if other != 0:
+                if py_int_to_host(other) != py_int_to_host(0):
                     return py_float_from_host(py_float_to_host(self) {op} py_int_to_host(other))
                 else:
                     raise ZeroDivisionError("{error_message}")

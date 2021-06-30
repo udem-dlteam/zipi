@@ -6,7 +6,7 @@ CSVLINE = "+!CSVLINE!+,"
 
 def compute_ratio(left, right):
     try:
-        return round(float(left) / float(right), 1)
+        return float(left) / float(right)
     except ValueError:
         return float('nan')
 
@@ -20,7 +20,7 @@ def compute_ratios(results1, results2):
     ratios = {}
 
     for k in result_table1:
-        ratios[k] = compute_ratio(result_table1[k], result_table2[k])
+        ratios[k] = f"{compute_ratio(result_table1[k], result_table2[k]):.2g}"
 
     return ratios
 
