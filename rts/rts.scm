@@ -5524,13 +5524,14 @@
   (wind path '()))
 
 
-(define (compile-to-cache path path-info)
+(define (compile-to-cache path path-info path-in-cache)
   (let* ((path-cache
            (string-append
              (cache-location-get)
-             (path-strip-extension path)
              "/"
-             (path-strip-extension (path-strip-directory path))
+             path-in-cache
+             "/"
+             (path-strip-directory path-in-cache)
              ".sld"))
          (path-cache-info (file-info path-cache #t #f)))
 
@@ -5571,12 +5572,12 @@
         (bigloo
          #f)))
 
-  (let ((mod-init
+  (let* ((path-in-cache (mangle-cache-path (substring path 1 (string-length path)))) ;; remove trailing /
+         (mod-init
           (and
-            (compile-to-cache path path-info)
+            (compile-to-cache path path-info path-in-cache)
             ;; TODO : for windows user, the path is not formated with a / before
-            (load-module-and-get-init
-              (substring path 1 (string-length (path-strip-extension path)))))))
+            (load-module-and-get-init path-in-cache))))
     (if mod-init
         (mod-init py-__name__ py-__package__ py-module.__path__)
         #f)))
