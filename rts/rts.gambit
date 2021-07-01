@@ -160,22 +160,6 @@
                      #f))))))
         #f)))
 
-;; mangle path of sld modules in cache to be valid scheme module names
-(define (mangle-cache-path path)
-  (define (string-split str c)
-    (let loop ((chars (string->list str))
-               (word '())
-               (acc '()))
-      (cond
-        ((null? chars)
-          (reverse (cons (list->string (reverse word)) acc)))
-        ((char=? (car chars) c)
-          (loop (cdr chars) '() (cons (list->string (reverse word)) acc)))
-        (else
-          (loop (cdr chars) (cons (car chars) word) acc)))))
-
-  (append-strings (map ##string->c-id (string-split path #\/)) "/"))
-
 (define (compile-source source target)
 
   (define root-dir

@@ -34,7 +34,7 @@
   (py-throw
    (py-call
     exc
-    (py-str-from-scheme (apply string-append msgs)))))
+    (py-str-from-scheme (append-strings msgs)))))
 
 (define-macro (make-builtin-HClass names transitions)
   `(make-still-copy (make-HClass ,names ,transitions)))
@@ -2296,7 +2296,7 @@
     (if (not quote-style)
         (set! quote-style #\'))
     (let ((content
-           (apply string-append
+           (append-strings
                   (map (lambda (c)
                          (if (char=? c quote-style)
                              (string #\\ quote-style)
@@ -5560,6 +5560,25 @@
               #t) ;; compilation "successful" (file already compiled)
             (compile))
         (compile)))) ;; compiled file does not exist (must compile)
+
+;; mangle path of modules in cache to be valid scheme module names
+(define (mangle-cache-path path)
+  (define (char-in-range? c lo hi)
+    (and (char>=? c lo) (char<=? c hi)))
+
+  (define (char-map c)
+    (cond
+      ((or (char-in-range? c #\a #\z)
+           (char-in-range? c #\A #\Z)
+           (char-in-range? c #\0 #\9)
+           (char=? c #\/))
+        (string c))
+      ((char=? c #\_)
+        "__")
+      (else
+        (string-append "_" (number->string (char->integer c))))))
+
+  (append-strings (map char-map (string->list path))))
 
 ;; py-module.__path__ can be #f in the case of non-package importation
 (define (compile-and-get-mod path path-info py-__name__ py-__package__ py-module.__path__)
