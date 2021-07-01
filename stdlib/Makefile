@@ -11,7 +11,7 @@ do: build
 #*    Semantics generation                                             */
 #*---------------------------------------------------------------------*/
 update-semPy:
-	cd semPy; $(MAKE) clean; $(MAKE) PYTHON3=$(PYTHON)
+	cd semPy; $(MAKE) clean; $(MAKE) PYTHON3=$(BUILDPYTHON)
 
 builtins.py: update-semPy
 	cp semPy/out/builtins.py builtins.py
