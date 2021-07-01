@@ -18,6 +18,7 @@ except AttributeError:
 # Default value if not --int-maxsize argument is passed
 INT_MAXSIZE = sys.maxsize
 
+
 # ======================================================================================================================
 #   AST traversal
 # ======================================================================================================================
@@ -63,6 +64,7 @@ class ClassRegister(AstRegister):
     def visit_ClassDef(self, node):
         self[node.name] = MethodRegister(node, self)
         self[node.name]['__mro__'] = (node.name,) + tuple(t.id for t in node.bases)
+        self[node.name]['__name__'] = ast.Constant(node.name)
 
     def get_by_qualname(self, qualname):
         cls_name, method_name = qualname.split('.')
@@ -200,7 +202,7 @@ class AstNameCounter(ast.NodeVisitor, Counter):
 
 def is_chained_calls(node, names):
     if names:
-        if isinstance(node, ast.Call) and isinstance(func:=node.func, ast.Name) and func.id == names[0]:
+        if isinstance(node, ast.Call) and isinstance(func := node.func, ast.Name) and func.id == names[0]:
             if len(node.args) == 1:
                 return is_chained_calls(node.args[0], names[1:])
         return False
@@ -280,7 +282,7 @@ _unknown = Unknown()
 
 
 class VarContext:
-    def __init__(self, type=_unknown, value=_unknown):
+    def __init__(self, type=_unknown, value=_unknown, __type=type):
         self._type = type
         self.value = value
 
@@ -291,6 +293,8 @@ class VarContext:
                 self._type = 'NotImplementedType'
             elif value.value in {int, bool, float, str}:
                 self._type = "type"
+        elif isinstance(value, ast.Constant) and type is _unknown:
+            self._type = partial_eval_resolve_type(value, {})
 
     @property
     def type(self):
@@ -557,6 +561,8 @@ def partial_eval_stmt(stmt, ctx):
 def partial_eval_expr(expr, ctx):
     if isinstance(expr, ast.Call):
         return partial_eval_call(expr, ctx)
+    elif isinstance(expr, ast.Name):
+        return partial_eval_inline_name(expr, ctx)
     elif isinstance(expr, ast.Compare):
         return partial_eval_compare(expr, ctx)
     elif isinstance(expr, ast.BoolOp):
@@ -642,6 +648,14 @@ def partial_eval_bool_op(expr, ctx):
         return evaluated_values[0]
     else:
         return ast.BoolOp(op, evaluated_values)
+
+
+def partial_eval_inline_name(name, ctx):
+    # Inline only constants
+    var = ctx.get(name.id)
+    value = var and var.value
+    # Only inline proper Python constants, not semantics static values
+    return value if type(value) is ast.Constant else name
 
 
 def partial_eval_call(call, ctx):
@@ -764,7 +778,7 @@ def partial_eval_le(left, right, ctx):
             if sign == -1 or sign == 0:
                 return ast.Constant(True)
 
-            elif strict: # > 0
+            elif strict:  # > 0
                 return ast.Constant(False)
 
     return None
@@ -792,7 +806,7 @@ def partial_eval_ge(left, right, ctx):
             if sign == 1 or sign == 0:
                 return ast.Constant(True)
 
-            elif strict: # > 0
+            elif strict:  # > 0
                 return ast.Constant(False)
 
     return None
@@ -910,8 +924,11 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
 
             else:
                 raise NameError(f"partial_eval_static_function_call: could not resolve name '{instance_name}'")
+        elif isinstance(instance, ast.Constant):
+            instance_actual_type = partial_eval_resolve_type(instance, ctx)
+            return ast.Name(instance_actual_type, ast.Load())
         else:
-            raise NotImplementedError(f"partial_eval_static_function_call: could not type of '{instance}'")
+            raise NotImplementedError(f"partial_eval_static_function_call: could not resolve type of '{instance}'")
 
     elif func_name in ctx:
         return partial_eval_local_function_call(ctx[func_name], args, ctx)
@@ -927,12 +944,14 @@ def partial_eval_resolved_function_call(fn_ast, args, ctx):
         call_ctx = ctx.from_closure(fn_ast.closure) if isinstance(fn_ast, ClosureDef) else ctx.new()
 
         for fn_arg, arg in zip(fn_args, args):
+            arg_name = fn_arg.arg
+
             if isinstance(arg, ast.Name):
-                arg_name = fn_arg.arg
-                arg_value = ctx[arg.id]
                 for ast_ctx in ["Load", "Store", "Del"]:
                     name_table[(arg_name, ast_ctx)] = ast.Name(arg.id, ast_ctx)
-                call_ctx[arg_name] = arg_value
+                call_ctx[arg_name] = ctx[arg.id]
+            elif isinstance(arg, ast.Constant):
+                call_ctx[arg_name] = VarContext(value=arg)
             else:
                 raise NotImplementedError("partial_eval_local_function_call: non-name argument")
 
@@ -1148,6 +1167,7 @@ def build_semantics(semantics_file, builtins_file):
             raise
 
     return result
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")

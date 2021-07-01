@@ -17,16 +17,13 @@ def add(x, y):
     def reflected():
         magic_method = class_getattr(y, "__radd__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("+", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("+", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for +: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -47,16 +44,13 @@ def bitand(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rand__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("&", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("&", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for &: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -77,16 +71,13 @@ def bitor(x, y):
     def reflected():
         magic_method = class_getattr(y, "__ror__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("|", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("|", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for |: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -107,16 +98,13 @@ def floordiv(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rfloordiv__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("//", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("//", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for //: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -137,16 +125,13 @@ def lshift(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rlshift__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("<<", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("<<", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for <<: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -167,16 +152,13 @@ def matmul(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rmatmul__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("@", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("@", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for @: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -197,16 +179,13 @@ def mod(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rmod__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("%", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("%", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for %: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -227,16 +206,13 @@ def mul(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rmul__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("*", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("*", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for *: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -257,16 +233,13 @@ def pow(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rpow__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("**", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("**", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for **: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -287,16 +260,13 @@ def rshift(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rrshift__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError(">>", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError(">>", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for >>: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -317,16 +287,13 @@ def sub(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rsub__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("-", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("-", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for -: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -347,16 +314,13 @@ def truediv(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rtruediv__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("/", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("/", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for /: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -377,16 +341,13 @@ def xor(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rxor__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("^", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("^", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for ^: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -418,16 +379,13 @@ def iadd(x, y):
     def reflected():
         magic_method = class_getattr(y, "__radd__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("+=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("+=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for +=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -459,16 +417,13 @@ def ibitand(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rand__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("&=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("&=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for &=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -500,16 +455,13 @@ def ibitor(x, y):
     def reflected():
         magic_method = class_getattr(y, "__ror__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("|=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("|=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for |=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -541,16 +493,13 @@ def ifloordiv(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rfloordiv__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("//=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("//=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for //=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -582,16 +531,13 @@ def ilshift(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rlshift__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("<<=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("<<=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for <<=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -623,16 +569,13 @@ def imatmul(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rmatmul__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("@=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("@=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for @=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -664,16 +607,13 @@ def imod(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rmod__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("%=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("%=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for %=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -705,16 +645,13 @@ def imul(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rmul__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("*=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("*=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for *=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -746,16 +683,13 @@ def ipow(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rpow__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("**=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("**=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for **=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -787,16 +721,13 @@ def irshift(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rrshift__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError(">>=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError(">>=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for >>=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -828,16 +759,13 @@ def isub(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rsub__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("-=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("-=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for -=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -869,16 +797,13 @@ def itruediv(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rtruediv__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("/=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("/=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for /=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -910,16 +835,13 @@ def ixor(x, y):
     def reflected():
         magic_method = class_getattr(y, "__rxor__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("^=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("^=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for ^=: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()
 
@@ -929,12 +851,9 @@ def pos(x):
     def normal():
         magic_method = class_getattr(x, "__pos__")
         if magic_method is absent:
-            return err()
+            return raise_unary_TypeError("+", x)
         else:
             return magic_method(x)
-
-    def err():
-        raise TypeError("bad operand type for unary +: '" + type(x).__name__ + "'")
 
     return normal()
 
@@ -944,12 +863,9 @@ def neg(x):
     def normal():
         magic_method = class_getattr(x, "__neg__")
         if magic_method is absent:
-            return err()
+            return raise_unary_TypeError("-", x)
         else:
             return magic_method(x)
-
-    def err():
-        raise TypeError("bad operand type for unary -: '" + type(x).__name__ + "'")
 
     return normal()
 
@@ -959,12 +875,9 @@ def invert(x):
     def normal():
         magic_method = class_getattr(x, "__invert__")
         if magic_method is absent:
-            return err()
+            return raise_unary_TypeError("~", x)
         else:
             return magic_method(x)
-
-    def err():
-        raise TypeError("bad operand type for unary ~: '" + type(x).__name__ + "'")
 
     return normal()
 
@@ -985,16 +898,13 @@ def ge(x, y):
     def reflected():
         magic_method = class_getattr(y, "__le__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError(">=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError(">=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("'>=' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -1015,16 +925,13 @@ def gt(x, y):
     def reflected():
         magic_method = class_getattr(y, "__lt__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError(">", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError(">", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("'>' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -1045,16 +952,13 @@ def le(x, y):
     def reflected():
         magic_method = class_getattr(y, "__ge__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("<=", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("<=", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("'<=' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -1075,16 +979,13 @@ def lt(x, y):
     def reflected():
         magic_method = class_getattr(y, "__gt__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("<", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("<", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("'<' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()
 
@@ -1147,6 +1048,24 @@ def ne(x, y):
         return x is not y
 
     return normal()
+
+@define_semantics
+def raise_binary_TypeError(op, x, y):
+    raise TypeError("'"
+                    + op
+                    + "' not supported between instances of '"
+                    + class_getattr(x, "__name__")
+                    + "' and '"
+                    + class_getattr(y, "__name__")
+                    + "'")
+
+@define_semantics
+def raise_unary_TypeError(op, x):
+    raise TypeError("bad operand type for unary"
+                    + op
+                    + ":' "
+                    + class_getattr(x, "__name__")
+                    + "'")
 
 @define_semantics
 def maybe_trunc(obj):

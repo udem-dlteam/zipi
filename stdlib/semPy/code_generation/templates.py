@@ -10,6 +10,24 @@ semantics_template = \
 {arithmetic}
 
 @define_semantics
+def raise_binary_TypeError(op, x, y):
+    raise TypeError("'"
+                    + op
+                    + "' not supported between instances of '"
+                    + class_getattr(x, "__name__")
+                    + "' and '"
+                    + class_getattr(y, "__name__")
+                    + "'")
+
+@define_semantics
+def raise_unary_TypeError(op, x):
+    raise TypeError("bad operand type for unary"
+                    + op
+                    + ":' "
+                    + class_getattr(x, "__name__")
+                    + "'")
+
+@define_semantics
 def maybe_trunc(obj):
     __trunc__ = class_getattr(obj, "__trunc__")
     if __trunc__ is absent:
@@ -251,16 +269,13 @@ def {op}(x, y):
     def reflected():
         magic_method = class_getattr(y, "__r{magic_method}__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("{symbol}", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("{symbol}", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for {symbol}: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()"""
 
@@ -308,16 +323,13 @@ def i{op}(x, y):
     def reflected():
         magic_method = class_getattr(y, "__r{magic_method}__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("{symbol}", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("{symbol}", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("unsupported operand type(s) for {symbol}: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return inplace()"""
 
@@ -343,12 +355,9 @@ def {op}(x):
     def normal():
         magic_method = class_getattr(x, "__{magic_method}__")
         if magic_method is absent:
-            return err()
+            return raise_unary_TypeError("{symbol}", x)
         else:
             return magic_method(x)
-
-    def err():
-        raise TypeError("bad operand type for unary {symbol}: '" + type(x).__name__ + "'")
 
     return normal()"""
 
@@ -376,16 +385,13 @@ def {op}(x, y):
     def reflected():
         magic_method = class_getattr(y, "__{reflected_magic_method}__")
         if magic_method is absent:
-            return err()
+            return raise_binary_TypeError("{symbol}", x, y)
         else:
             result = magic_method(y, x)
             if result is NotImplemented:
-                return err()
+                return raise_binary_TypeError("{symbol}", x, y)
             else:
                 return result
-
-    def err():
-        raise TypeError("'{symbol}' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
     return normal()"""
 
