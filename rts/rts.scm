@@ -5576,7 +5576,7 @@
       ((char=? c #\_)
         "__")
       (else
-        (string-append "_" (number->string (char->integer c))))))
+        (string-append "_" (number->string (char->integer c) 16)))))
 
   (append-strings (map char-map (string->list path))))
 
