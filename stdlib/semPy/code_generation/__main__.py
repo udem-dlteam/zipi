@@ -1,6 +1,6 @@
-import argparse
+import argparse, sys
 
-import templates
+from . import templates
 
 
 def init_number_class(*, class_template, method_info, shift_method_info, division_method_info, comparison_method_info,
@@ -43,7 +43,7 @@ def init_str_class():
     return templates.class_str_template.format(methods=methods)
 
 
-def main_init(path):
+def generate_builtins():
     int_class = init_number_class(class_template=templates.class_int_template,
                                   method_info=templates.int_method_info,
                                   shift_method_info=templates.int_shift_method_info,
@@ -104,22 +104,51 @@ def main_init(path):
 
     builtins = templates.builtins_template.format(definitions=definitions)
 
-    with open(path, 'w') as f:
-        f.write(builtins)
+    return builtins
 
+def generate_semantics():
+    arithmetic = [templates.arithmetic_template.format(**info) for info in templates.arithmetic_info.values()]
+    inplace_arithmetic = [templates.inplace_arithmetic_template.format(**info) for info in
+                          templates.inplace_arithmetic_info.values()]
+    unary_arithmetic = [templates.unary_arithmetic_template.format(**info) for info in
+                        templates.unary_arithmetic_info.values()]
+    comparison = [templates.comparison_template.format(**info) for info in templates.comparison_info.values()]
+    equality = [templates.equality_template.format(**info) for info in templates.equality_info.values()]
+
+    arithmetic_semantics = '\n\n'.join(arithmetic + inplace_arithmetic + unary_arithmetic + comparison + equality)
+
+    semantics = templates.semantics_template.format(arithmetic=arithmetic_semantics)
+
+    return semantics
 
 if __name__ == '__main__':
+    generators = {
+        "builtins": generate_builtins,
+        "semantics": generate_semantics
+    }
+
+    # Argument parsing
     parser = argparse.ArgumentParser(description="Manage Python builtins file")
+
     subparser = parser.add_subparsers(dest='command', required=True)
 
-    # init command
-    init_parser = subparser.add_parser('init', description="Initialize a semantics file from templates")
-    init_parser.add_argument('path')
+    # builtins command
+    builtins_parser = subparser.add_parser('builtins', description="Initialize a builtins.py file from templates")
+    builtins_parser.add_argument('-path', default=None)
+
+    # semantics command
+    semantics_parser = subparser.add_parser('semantics', description="Initialize a semantics.py file from templates")
+    semantics_parser.add_argument('-path', default=None)
 
     args = parser.parse_args()
-
     command = args.command
+    path = args.path
 
-    if command == 'init':
-        path = args.path
-        main_init(path)
+    # Generate and output code
+    generate = generators[command]
+
+    if path:
+        with open(path, 'w') as f:
+            f.write(generate())
+    else:
+        print(generate())
