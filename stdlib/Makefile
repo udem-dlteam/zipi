@@ -1,4 +1,4 @@
-.PHONY: do bigloo gambit install
+.PHONY: do bigloo gambit install update-semPy
 
 do: build
 
@@ -10,22 +10,22 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    Semantics generation                                             */
 #*---------------------------------------------------------------------*/
-builtins.py:
-	cd  zemantics_scripts; \
-	$(BUILDPYTHON) builtins_manager.py init ../builtins.py
+update-semPy:
+	cd semPy; $(MAKE) clean; $(MAKE) PYTHON3=$(PYTHON)
 
-zemantics.py:
-	cd  zemantics_scripts; \
-	$(BUILDPYTHON) semantics_manager.py init ../zemantics.py
+builtins.py: update-semPy
+	cp semPy/out/builtins.py builtins.py
 
-behaviors.py: builtins.py zemantics.py
-	cd  zemantics_scripts; \
-	$(BUILDPYTHON) decision_tree.py behaviors ../zemantics.py ../builtins.py > ../behaviors.py
+zemantics.py: update-semPy
+	cp semPy/out/semantics.py zemantics.py
+
+behaviors.py: update-semPy
+	cp semPy/out/behaviors.py behaviors.py
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
 #*---------------------------------------------------------------------*/
-build: behaviors.py $(ZIPISYSTEMS:%=do.%)
+build: builtins.py zemantics.py behaviors.py $(ZIPISYSTEMS:%=do.%)
 install: $(ZIPISYSTEMS:%=install.%)
 	rm -rf $(ZIPISTDLIBDIR)/libs
 	cp -r $(BUILDSTDLIBDIR)/libs $(ZIPISTDLIBDIR)/libs

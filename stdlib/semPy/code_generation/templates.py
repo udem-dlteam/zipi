@@ -1,15 +1,16 @@
+# This file contains template for generating semantics and builtin classes
+
 # ======================================================================================================================
 #   semantics templates
 # ======================================================================================================================
 
 semantics_template = \
-    """from __compiler_intrinsics__ import define_semantics, use_static_builtins, use_simple_scoping, class_getattr, py_bool_to_host_bool, absent
+    """from __compiler_intrinsics__ import define_semantics, class_getattr, py_bool_to_host_bool, absent
 
 {arithmetic}
 
 @define_semantics
 def maybe_trunc(obj):
-    # maybe_trunc:start-body
     __trunc__ = class_getattr(obj, "__trunc__")
     if __trunc__ is absent:
         return absent
@@ -20,21 +21,17 @@ def maybe_trunc(obj):
             return result
         else:
             raise TypeError("__trunc__ returned non-int type: '" + type(obj).__name__ + "'")
-    # maybe_trunc:end-body
 
 @define_semantics
 def trunc(obj):
-    # trunc:start-body
     result = maybe_trunc(obj)
     if result is absent:
         raise TypeError("type '" + type(obj).__name__ + "' doesn't define __trunc__ method")
     else:
         return result
-    # trunc:end-body
 
 @define_semantics
 def maybe_to_int(obj):
-    # maybe_to_int:start-body
     __int__ = class_getattr(obj, "__int__")
     if __int__ is absent:
         return absent
@@ -45,21 +42,17 @@ def maybe_to_int(obj):
             return result
         else:
             raise TypeError("__int__ returned non-int type: '" + type(obj).__name__ + "'")
-    # maybe_to_int:end-body
 
 @define_semantics
 def to_int(obj):
-    # to_int:start-body
     result = maybe_to_int(obj)
     if result is absent:
         raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
     else:
         return result
-    # to_int:end-body
 
 @define_semantics
 def maybe_to_float(obj):
-    # maybe_to_float:start-body
     __float__ = class_getattr(obj, "__float__")
     if __float__ is absent:
         return absent
@@ -70,21 +63,17 @@ def maybe_to_float(obj):
             return result
         else:
             raise TypeError("__float__ returned non-float type: '" + type(obj).__name__ + "'")
-    # maybe_to_float:end-body
 
 @define_semantics
 def to_float(obj):
-    # to_float:start-body
     result = maybe_to_float(obj)
     if result is absent:
         raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as a float")
     else:
         return result
-    # to_float:end-body
 
 @define_semantics
 def maybe_index(obj):
-    # maybe_index:start-body
     __index__ = class_getattr(obj, "__index__")
     if __index__ is absent:
         return absent
@@ -99,21 +88,17 @@ def maybe_index(obj):
             raise OverflowError("cannot fit 'int' into an index-sized integer")
         else:
             raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
-    # maybe_index:end-body
 
 @define_semantics
 def index(obj):
-    # index:start-body
     result = maybe_index(obj)
     if result is absent:
         raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
     else:
         return result
-    # index:end-body
 
 @define_semantics
 def maybe_big_index(obj):
-    # maybe_big_index:start-body
     __index__ = class_getattr(obj, "__index__")
     if __index__ is absent:
         return absent
@@ -126,21 +111,17 @@ def maybe_big_index(obj):
             return result
         else:
             raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
-    # maybe_big_index:end-body
 
 @define_semantics
 def big_index(obj):
-    # big_index:start-body
     result = maybe_big_index(obj)
     if result is absent:
         raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
     else:
         return result
-    # big_index:end-body
 
 @define_semantics
 def maybe_length(obj):
-    # length:start-body
     __len__ = class_getattr(obj, "__len__")
     if __len__ is absent:
         return absent
@@ -151,21 +132,17 @@ def maybe_length(obj):
             raise ValueError("__len__() should return >= 0")
         else:
             return index_result
-    # length:end-body
 
 @define_semantics
 def length(obj):
-    # length:start-body
     result = maybe_length(obj)
     if result is absent:
         raise TypeError("object of type" + type(obj).__name__ + "has no len()")
     else:
         return result
-    # length:end-body
 
 @define_semantics
 def truth(obj):
-    # truth:start-body
     __bool__ = class_getattr(obj, "__bool__")
     if __bool__ is not absent:
         result = __bool__(obj)
@@ -179,7 +156,6 @@ def truth(obj):
             return len_result != 0
         else:
             return True
-    # truth:end-body
 
 @define_semantics
 def test(obj):
@@ -187,7 +163,6 @@ def test(obj):
 
 @define_semantics
 def getattribute(obj, attr):
-    # getattribute:start-body
     __getattribute__ = class_getattr(obj, "__getattribute__")
     try:
         return __getattribute__(obj, attr)
@@ -197,58 +172,46 @@ def getattribute(obj, attr):
             raise e
         else:
             return __getattr__(obj, attr)
-    # getattribute:end-body
 
 @define_semantics
 def setattribute(obj, attr, val):
-    # setattribute:start-body
     __setattr__ = class_getattr(obj, "__setattr__")
     return __setattr__(obj, attr, val)
-    # setattribute:end-body
 
 @define_semantics
 def getitem(obj, index):
-    # getitem:start-body
     __getitem__ = class_getattr(obj, "__getitem__")
     if __getitem__ is absent:
         raise TypeError("object is not subscriptable")
     else:
         return __getitem__(obj, index)
-    # getitem:end-body
 
 @define_semantics
 def setitem(obj, index, value):
-    # setitem:start-body
     __setitem__ = class_getattr(obj, "__setitem__")
     if __setitem__ is absent:
         raise TypeError("object does not support item assignment")
     else:
         return __setitem__(obj, index, value)
-    # setitem:end-body
 
 @define_semantics
 def delitem(obj, index):
-    # delitem:start-body
     __delitem__ = class_getattr(obj, "__delitem__")
     if __delitem__ is absent:
         raise TypeError("object does not support item deletion")
     else:
         return __delitem__(obj, index)
-    # delitem:end-body
 
 @define_semantics
 def enter(obj):
-    # enter:start-body
     __enter__ = class_getattr(obj, "__enter__")
     if __enter__ is absent:
         raise AttributeError("__enter__")
     else:
         return __enter__(obj)
-    # enter:end-body
 
 @define_semantics
 def exit(obj, exc):
-    # exit:start-body
     __exit__ = class_getattr(obj, "__exit__")
     if __exit__ is absent:
         raise AttributeError("__exit__")
@@ -261,17 +224,14 @@ def exit(obj, exc):
             return
         else:
             raise exc
-    # exit:end-body
 
 @define_semantics
 def descriptor_get(attr, instance, owner):
-    # descriptor_get:start-body
     __get__ = class_getattr(attr, "__get__")
     if __get__ is absent:
         return attr
     else:
-        return __get__(attr, instance, owner)
-    # descriptor_get:end-body"""
+        return __get__(attr, instance, owner)"""
 
 arithmetic_template = \
     """# Auto-generated
@@ -302,9 +262,7 @@ def {op}(x, y):
     def err():
         raise TypeError("unsupported operand type(s) for {symbol}: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
-    # {op}:start-body
-    return normal()
-    # {op}:end-body"""
+    return normal()"""
 
 arithmetic_info = {'add': {"op": "add", "magic_method": "add", "symbol": "+"},
                    'bitand': {"op": "bitand", "magic_method": "and", "symbol": "&"},
@@ -361,9 +319,7 @@ def i{op}(x, y):
     def err():
         raise TypeError("unsupported operand type(s) for {symbol}: '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
-    # i{op}:start-body
-    return inplace()
-    # i{op}:end-body"""
+    return inplace()"""
 
 inplace_arithmetic_info = {'iadd': {"op": "add", "magic_method": "add", "symbol": "+="},
                            'ibitand': {"op": "bitand", "magic_method": "and", "symbol": "&="},
@@ -394,9 +350,7 @@ def {op}(x):
     def err():
         raise TypeError("bad operand type for unary {symbol}: '" + type(x).__name__ + "'")
 
-    # {op}:start-body
-    return normal()
-    # {op}:end-body"""
+    return normal()"""
 
 unary_arithmetic_info = {
     "pos": {"op": "pos", "magic_method": "pos", "symbol": "+"},
@@ -433,9 +387,7 @@ def {op}(x, y):
     def err():
         raise TypeError("'{symbol}' not supported between instances of '" + type(x).__name__ + "' and '" + type(y).__name__ + "'")
 
-    # {op}:start-body
-    return normal()
-    # {op}:end-body"""
+    return normal()"""
 
 comparison_info = {
     "ge": {"op": "ge", "magic_method": "ge", "reflected_magic_method": "le", "symbol": ">="},
@@ -473,9 +425,7 @@ def {op}(x, y):
     def default():
         return x {default_symbol} y
 
-    # {op}:start-body
-    return normal()
-    # {op}:end-body"""
+    return normal()"""
 
 equality_info = {
     "eq": {"op": "eq", "magic_method": "eq", "reflected_magic_method": "eq", "default_symbol": "is"},

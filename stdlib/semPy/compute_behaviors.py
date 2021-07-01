@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
-import argparse, ast, copy, inspect, itertools, logging, operator, sys
+import ast, argparse, copy, itertools, logging, operator, sys
 from collections import Counter
-from functools import wraps
-from pprint import pprint
-from types import ModuleType
 
-import templates
+from utils import *
+
+try:
+    ast.unparse
+except AttributeError:
+    logging.error("Behavior generation requires Python >=3.9")
+    raise
 
 # ======================================================================================================================
 #   Parameters
@@ -14,222 +17,6 @@ import templates
 
 # Default value if not --int-maxsize argument is passed
 INT_MAXSIZE = sys.maxsize
-
-
-# ======================================================================================================================
-#   Helpers
-# ======================================================================================================================
-
-def get_type_name(obj):
-    return type(obj).__name__
-
-
-def get_current_semantics_context(semantics_register):
-    for frame in inspect.stack():
-        function_name = frame.function
-        if function_name in semantics_register:
-            function = frame.frame.f_globals[function_name]
-            signature = inspect.signature(function).parameters
-            args = tuple(frame.frame.f_locals[name] for name in signature.keys())
-            return function_name, args
-    return None, None
-
-
-# ======================================================================================================================
-#   Semantics Instructions
-# ======================================================================================================================
-
-class Behavior:
-    pass
-
-
-class Procedure(Behavior):
-    def __init__(self, semantics, method, semantics_args, method_args):
-        self.semantics = semantics
-        self.method = method
-        self.semantics_args = semantics_args
-        self.method_args = method_args
-
-    def __repr__(self):
-        method_qualname = self.method.__qualname__
-        method_owner = method_qualname.split('.')[0]
-        method_name_id = method_qualname.split(".")[1].replace('_', '')
-
-        args_info = [get_type_name(a) + id_ for a, id_ in zip(self.semantics_args, 'XYZW')]
-        args_types = '-'.join(args_info)
-        return f"procedure:py-{method_owner}-{method_name_id}-{args_types}"
-
-    @property
-    def is_reflected_magic_method(self):
-        # TODO: slightly hacky, but does the job for now
-        method_args = self.method_args
-        semantics_args = self.semantics_args
-
-        # reflected method call are detected by the reversal of arguments
-        # we must use 'is' because == is True for 1 and 1.0
-        # it is okay to use 'is' because arguments come from the 'instances' global list
-        # this may not work under other implementations than cPython
-        return all(x is y for x, y in zip(method_args, reversed(semantics_args))) \
-               and not any(x is y for x, y in zip(method_args, semantics_args))
-
-    @property
-    def is_comparison(self):
-        return self.semantics in ("eq", "ne", "ge", "gt", "le", "lt")
-
-
-class Error(Behavior):
-    def __init__(self, exc):
-        self.exc_type = type(exc)
-        self.exc_args = exc.args
-
-    def __repr__(self):
-        return f"error:{self.exc_type(self.exc_args)}"
-
-    @property
-    def error_message(self):
-        return str(self.exc_type(*self.exc_args))
-
-
-# ======================================================================================================================
-#   __compiler_intrinsics__ module
-# ======================================================================================================================
-
-def make_compiler_intrinsics_module():
-    # Registers for this module
-    semantics_register = {}
-    decision_tree = {}
-
-    def register_semantics(name, f):
-        semantics_register[name] = f
-        return f
-
-    # Module attributes
-    absent = object()
-
-    def use_static_builtins(f):
-        return f
-
-    def use_simple_scoping(f):
-        return f
-
-    def define_semantics(f):
-        # TODO: in some cases the semantics has a default behavior (ex: eq) undetected by the mock class_getattr
-        # TODO: to fix we could decorate all sub-semantics to register their call in case no magic_method succeeded
-        # TODO: this will be necessary once we generate behaviors for other types than numbers
-
-        if f.__name__ in target_semantics:
-            return register_semantics(f.__name__, f)
-        else:
-            return f
-
-    def get_own_attr(obj, name):
-        return obj.__dict__.get(name, None)
-
-    def class_getattr(instance, name):
-        cls = type(instance)
-
-        for super_cls in cls.mro():
-            attr = get_own_attr(super_cls, name)
-
-            if attr is not None:
-
-                @wraps(attr)
-                def wrapped_method(*args):
-                    """
-                    Wrapper that registers behaviour of the recovered method
-                    """
-
-                    # Gather positional information: in which semantics is this method being called?
-                    current_semantics, semantics_args = get_current_semantics_context(semantics_register)
-
-                    # For which types is it being called?
-                    decision_tree_branch = decision_tree.setdefault(current_semantics, {})
-                    for argument in semantics_args[:-1]:
-                        decision_tree_branch = decision_tree_branch.setdefault(get_type_name(argument), {})
-
-                    last_type_name = get_type_name(semantics_args[-1])
-
-                    res = attr(*args)
-
-                    if res is not NotImplemented:
-                        decision_tree_branch[last_type_name] = Procedure(current_semantics, attr, semantics_args, args)
-
-                    return res
-
-                return wrapped_method
-
-        return absent
-
-    # Create module
-    _all = ["define_semantics", "use_static_builtins", "use_simple_scoping", "class_getattr", "absent"]
-    _doc = "A mock version of __compiler_intrinsics__ which registers cPython method calls"
-
-    module = ModuleType("__compiler_intrinsics__")
-
-    module.__all__ = _all
-    module.__doc__ = _doc
-
-    for name in _all:
-        setattr(module, name, locals()[name])
-
-    return module, semantics_register, decision_tree
-
-
-# ======================================================================================================================
-#   decision tree
-# ======================================================================================================================
-
-def copy_type_behavior(decision_branch, source_type, target_type):
-    if isinstance(decision_branch, dict):
-        for type_name, behavior in decision_branch.items():
-            copy_type_behavior(behavior, source_type, target_type)
-
-        source_sub_branch = decision_branch[source_type]
-        decision_branch[target_type] = source_sub_branch
-
-
-def extend_decision_tree_with_specialized_types(decision_tree):
-    for semantics, behaviors in decision_tree.items():
-        for int_special in int_specialized_types:
-            copy_type_behavior(behaviors, 'int', int_special)
-
-
-def build_decision_tree(filename):
-    compiler_intrinsics_module, semantics_register, decision_tree = make_compiler_intrinsics_module()
-
-    with open(filename, 'r') as f:
-        content = f.read()
-        sys.modules["__compiler_intrinsics__"] = compiler_intrinsics_module
-
-        exec(content, {})
-
-    for name, semantics in semantics_register.items():
-        signature = inspect.signature(semantics).parameters
-
-        for left in instances:
-
-            if len(signature) == 1:
-                try:
-                    semantics(left)
-                except TypeError as e:
-                    decision_tree.setdefault(name, {})[get_type_name(left)] = Error(e)
-            elif len(signature) == 2:
-                for right in instances:
-                    try:
-                        semantics(left, right)
-                    except TypeError as e:
-                        decision_tree.setdefault(name, {}).setdefault(get_type_name(left), {})[
-                            get_type_name(right)] = Error(e)
-            else:
-                raise NotImplementedError(f"cannot handle semantics with {len(signature)} arguments")
-
-    extend_decision_tree_with_specialized_types(decision_tree)
-    return decision_tree
-
-
-def main_tree(filename):
-    pprint(build_decision_tree(filename))
-
 
 # ======================================================================================================================
 #   AST traversal
@@ -1284,21 +1071,13 @@ def make_ast_simple_arguments(*args_names, annotations=()):
                          [], None, [])
 
 
-def iter_behavior_subtree_type_combinations(tree):
-    for tp, subtree in tree.items():
-        if isinstance(subtree, Behavior):
-            yield [tp]
-        else:
-            yield from ([tp, *comb] for comb in iter_behavior_subtree_type_combinations(subtree))
-
-
 def get_subtree_nested_item(tree, chain):
     for x in chain:
         tree = tree[x]
     return tree
 
 
-def main_behaviors(semantics_file, builtins_file):
+def build_semantics(semantics_file, builtins_file):
     with open(builtins_file, 'r') as f:
         builtins_ast = ast.parse(f.read())
 
@@ -1356,81 +1135,38 @@ def main_behaviors(semantics_file, builtins_file):
     for type_ in types_without_int:
         register_behavior("descriptor_get", semantics_register["descriptor_get"], type_, _unknown, _unknown)
 
-    print(f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n")
+    result = ""
+
+    result += f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n\n"
 
     for b in behaviors:
         try:
             ast.fix_missing_locations(b)
-            print(f"{ast.unparse(b)}\n")
+            result += f"{ast.unparse(b)}\n\n"
         except Exception:
             logging.warning(f"ast.unparse failed to generate source for: {b.name}")
             raise
 
-
-# ======================================================================================================================
-#   main
-# ======================================================================================================================
-
-
-def get_type_alias(type_name):
-    return "int" if type_name in int_specialized_types else type_name
-
-
-function = type(lambda: None)
-
-instances = [1, 1.0, True, "foo", lambda: None]
-types = [get_type_name(i) for i in instances]
-int_specialized_types = ['sint', 'bint']
-types += int_specialized_types
-
-
-class Any:
-    def __eq__(self, o):
-        return True
-
-    def __ne__(self, o):
-        return False
-
-
-# Replace 'int' by 'sint' and 'bint'
-types_without_int = [t for t in types if t != 'int']
-
-# Semantics which should be converted to behaviors
-target_semantics = [*templates.arithmetic_info,
-                    *templates.inplace_arithmetic_info,
-                    *templates.comparison_info,
-                    *templates.equality_info,
-                    *templates.unary_arithmetic_info,
-                    "truth",
-                    "test",
-                    "descriptor_get"]
-
-# Specific semantics cases to skip
-# Those are cases too complex for partial evaluation and which would yield no significant improvements
-binary_skip = [("mod", "str", Any()),
-               ("imod", "str", Any())]
+    return result
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")
-
-    subparser = parser.add_subparsers(dest='command', required=True)
-
-    # tree command
-    tree_parser = subparser.add_parser('tree', description="Generate the decision tree only")
-    tree_parser.add_argument('semantics_file')
-
-    # behaviors command
-    behaviors_parser = subparser.add_parser('behaviors', description="Generate the behaviors")
-    behaviors_parser.add_argument('semantics_file')
-    behaviors_parser.add_argument('builtins_file')
-    behaviors_parser.add_argument('--int-maxsize', dest='int_maxsize', type=int, default=INT_MAXSIZE)
+    parser.add_argument('semantics')
+    parser.add_argument('builtins')
+    parser.add_argument('-path', default=None)
+    parser.add_argument('--int-maxsize', dest='int_maxsize', type=int, default=-1)
 
     args = parser.parse_args()
+    semantics_file = args.semantics
+    builtins_file = args.builtins
+    path = args.path
+    int_maxsize = args.int_maxsize
 
-    command = args.command
+    if int_maxsize != -1:
+        INT_MAXSIZE = int_maxsize
 
-    if command == 'tree':
-        main_tree(args.semantics_file)
-    elif command == 'behaviors':
-        INT_MAXSIZE = args.int_maxsize
-        main_behaviors(args.semantics_file, args.builtins_file)
+    if path:
+        with open(path, 'w') as f:
+            f.write(build_semantics(semantics_file, builtins_file))
+    else:
+        print(build_semantics(semantics_file, builtins_file))
