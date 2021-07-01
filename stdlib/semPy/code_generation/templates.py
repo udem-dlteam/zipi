@@ -627,7 +627,7 @@ class int:
 
     def __bool__(self):
         if isinstance(self, int):
-            return self != 0
+            return 0 != self
         else:
             raise TypeError("descriptor '__bool__' requires a 'int' object but received a '" + type(self).__name__ + "'")
 
@@ -1107,7 +1107,7 @@ class float:
 
     def __bool__(self):
         if isinstance(self, float):
-            return self != 0.0
+            return 0.0 != self
         else:
             raise TypeError("descriptor '__bool__' requires a 'float' object but received a '" + type(self).__name__ + "'")
 {methods}"""

@@ -5894,7 +5894,7 @@ def py_invert_bintX(x: bint):
 
 @define_behavior
 def py_truth_floatX(obj: float):
-    return py_bool_from_host_bool(py_float_to_host(obj) != py_float_to_host(0.0))
+    return py_bool_from_host_bool(py_float_to_host(0.0) != py_float_to_host(obj))
 
 @define_behavior
 def py_truth_boolX(obj: bool):
@@ -5910,7 +5910,7 @@ def py_truth_functionX(obj: function):
 
 @define_behavior
 def py_truth_sintX(obj: sint):
-    return py_bool_from_host_bool(py_sint_to_host(obj) != py_sint_to_host(0))
+    return py_bool_from_host_bool(py_sint_to_host(0) != py_sint_to_host(obj))
 
 @define_behavior
 def py_truth_bintX(obj: bint):
@@ -5918,7 +5918,7 @@ def py_truth_bintX(obj: bint):
 
 @define_behavior
 def py_test_floatX(obj: float):
-    return py_float_to_host(obj) != py_float_to_host(0.0)
+    return py_float_to_host(0.0) != py_float_to_host(obj)
 
 @define_behavior
 def py_test_boolX(obj: bool):
@@ -5934,7 +5934,7 @@ def py_test_functionX(obj: function):
 
 @define_behavior
 def py_test_sintX(obj: sint):
-    return py_sint_to_host(obj) != py_sint_to_host(0)
+    return py_sint_to_host(0) != py_sint_to_host(obj)
 
 @define_behavior
 def py_test_bintX(obj: bint):
