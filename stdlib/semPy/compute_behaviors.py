@@ -109,14 +109,16 @@ class AstNameInliner(ast.NodeTransformer):
 
 
 intrinsics_inverses = {
-    "py_int_from_host": "py_int_to_host",
-    "py_float_from_host": "py_float_to_host",
-    "py_bool_to_host_bool": "py_bool_from_host_bool"
+    ("py_int_from_host", "py_sint_to_host"),
+    ("py_int_from_host", "py_bint_to_host"),
+    ("py_int_from_host", "py_int_to_host"),
+    ("py_float_from_host", "py_float_to_host"),
+    ("py_bool_to_host_bool", "py_bool_from_host_bool")
 }
 
 intrinsics_inverses = {
-    **intrinsics_inverses,
-    **{v: k for k, v in intrinsics_inverses.items()}
+    *intrinsics_inverses,
+    *map(reversed, intrinsics_inverses)
 }
 
 py_to_host_number_table = {
@@ -133,7 +135,7 @@ def get_py_to_host_number_intrinsics(type_):
 
 def intrinsics_are_inverse(left_func, right_func):
     try:
-        return intrinsics_inverses[left_func] == right_func
+        return (left_func, right_func) in intrinsics_inverses
     except KeyError:
         return False
 
