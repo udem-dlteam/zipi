@@ -54,7 +54,7 @@
                 (err))))))
    (define-syntax enter-rts
      (lambda (form-src)
-       (define disable-trace? #f)
+       (define disable-trace? #t)
        (let ((form (|##source-strip| form-src)))
          (cond ((not (and (pair? (cdr form)) (null? (cddr form))))
                 `(syntax-error "invalid enter-rts"))
