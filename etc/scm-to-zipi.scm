@@ -31,7 +31,7 @@
             (cond
               ((not (pair? e))
                 (loop))
-              ((memq (car e) '(define define-macro))
+              ((memq (car e) '(define define-macro define-rts))
                 (if (pair? (cadr e))
                   (cons (caadr e) (loop))
                   (cons (cadr e) (loop))))

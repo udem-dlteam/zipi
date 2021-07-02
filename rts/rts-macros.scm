@@ -1,3 +1,74 @@
+;; macro to implement rts procedure profiling
+(cond-expand
+  (gambit
+   (define-syntax define-rts
+     (lambda (form-src)
+       (define (sourcify x)
+         (if (or (|##source?| x) (not (|##source?| form-src)))
+             x
+             (|##sourcify-aux1| x form-src)))
+       (define (err)
+         (sourcify `(syntax-error "invalid define-rts")))
+       (define (instrument? name)
+         (let* ((co
+                 (|##global-var-ref|
+                  (|##make-global-var| '|##compilation-options|)))
+                (comp-opts
+                 (if (|##unbound?| co) '() co)))
+           (assq 'debug comp-opts)))
+       (define (instrument-body name body)
+         (if (instrument? name)
+             (list (sourcify (list (sourcify 'enter-rts)
+                                   (sourcify name)))
+                   (sourcify (cons (sourcify '|##let|)
+                                   (cons (sourcify '())
+                                         body))))
+             body))
+       (let ((form (|##source-strip| form-src)))
+         (cond ((not (and (pair? (cdr form)) (pair? (cddr form))))
+                (err))
+               ((and (symbol? (|##source-strip| (cadr form)))
+                     (null? (cdddr form)))
+                (let* ((val-src (caddr form))
+                       (val (|##source-strip| val-src)))
+                  (if (and (pair? val)
+                           (memq (|##source-strip| (car val))
+                                 '(lambda |##lambda|)))
+                      (list (sourcify 'define)
+                            (sourcify (cadr form))
+                            (sourcify (cons (sourcify (car val))
+                                            (cons (sourcify (cadr val))
+                                                  (instrument-body
+                                                   (cadr form)
+                                                   (cddr val))))))
+                      (list (sourcify 'define)
+                            (sourcify (cadr form))
+                            (sourcify val)))))
+               ((pair? (|##source-strip| (cadr form)))
+                (cons (sourcify 'define)
+                      (cons (sourcify (cadr form))
+                            (instrument-body
+                             (car (|##source-strip| (cadr form)))
+                             (cddr form)))))
+               (else
+                (err))))))
+   (define-syntax enter-rts
+     (lambda (form-src)
+       (define disable-trace? #f)
+       (let ((form (|##source-strip| form-src)))
+         (cond ((not (and (pair? (cdr form)) (null? (cddr form))))
+                `(syntax-error "invalid enter-rts"))
+               (disable-trace?
+                `(|##begin|))
+               (else
+                `(|##println|
+                  port: |##stderr-port|
+                  "=== entering "
+                  ',(|##source-strip| (cadr form)))))))))
+  (else
+   (define-macro (define-rts pattern . body)
+     `(define ,pattern ,@body))))
+
 ;; inline c code
 
 (define-macro (inline-c-code code)
@@ -1822,19 +1893,19 @@
       (string-append "py-" (symbol->string op) "-behavior-call-with-rhs-index-fallback")))
 
   (define (get-binary-behavior-call-fallback op)
-    `(define (,(get-behavior-call-fallback-name op) lhs rhs)
+    `(define-rts (,(get-behavior-call-fallback-name op) lhs rhs)
         ($py-binary-behavior-call ,op lhs rhs)))
 
   (define (get-behavior-call-with-lhs-index-fallback op)
-    `(define (,(get-behavior-call-with-lhs-index-fallback-name op) lhs-index lhs rhs)
+    `(define-rts (,(get-behavior-call-with-lhs-index-fallback-name op) lhs-index lhs rhs)
         ($py-binary-behavior-call-with-lhs-index ,op lhs-index lhs rhs)))
 
   (define (get-behavior-call-with-rhs-index-fallback op)
-    `(define (,(get-behavior-call-with-rhs-index-fallback-name op) lhs rhs-index rhs)
+    `(define-rts (,(get-behavior-call-with-rhs-index-fallback-name op) lhs rhs-index rhs)
         ($py-binary-behavior-call-with-rhs-index ,op lhs rhs-index rhs)))
 
   (define (get-unary-behavior-call-fallback op)
-    `(define (,(get-behavior-call-fallback-name op) x)
+    `(define-rts (,(get-behavior-call-fallback-name op) x)
         ($py-unary-behavior-call ,op x)))
 
   (define (make-init-table-code ops behaviors-list-maker)
@@ -1844,7 +1915,7 @@
             (behaviors-table-name (get-behaviors-table-name op))
             (behaviors (behaviors-list-maker op)))
         (cons
-          `(define ,behaviors-table-name (vector ,@behaviors))
+          `(define-rts ,behaviors-table-name (vector ,@behaviors))
           (make-init-table-code (cdr ops) behaviors-list-maker)))))
 
   (let ((tables-init-code
@@ -1906,7 +1977,7 @@
   (define behavior-tables-size (+ 1 (apply max (map cadr indices-info))))
 
   `(begin
-    (define py-next-behaviors-table
+    (define-rts py-next-behaviors-table
       (make-vector ,behavior-tables-size py-next-fallback))
 
     (vector-set!
