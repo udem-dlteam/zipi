@@ -147,6 +147,25 @@
                 (loop (+ i 1)))))
         (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $signature)))))
 
+;; executions points in the type.__call__ method
+(define-macro (type-call-from-instance self instance args-w/-instance) ;;args should contain instance
+  `(let* (($self ,self)
+          ($instance ,instance)
+          ($args-w/-instance ,args-w/-instance))
+    (if (eq? (py-obj-cls $instance) $self)
+      (let ((__init__ (getattribute-from-cls-mro $self (& "__init__"))))
+        (py-call-generic __init__ $args-w/-instance)
+        $instance)
+      $instance)))
+
+(define-macro (type-call-from-new-method self args __new__)
+  `(let* (($self ,self)
+         ($args ,args)
+         ($__new__ ,__new__)
+         (args-w/-instance (cons $self $args))
+         (instance (py-call-generic $__new__ args-w/-instance)))
+      (type-call-from-instance $self instance args-w/-instance)))
+
 ;; Macros to enable/disable various implementation strategies.
 
 (define-macro (py-if-specialized-sint-representation yes no) yes)
