@@ -30,7 +30,7 @@
 (declare-standard-bindings-extended-bindings-not-safe)
 
 ;; General exception thrower helper
-(define (py-throw-exception-with-message exc . msgs)
+(define-rts (py-throw-exception-with-message exc . msgs)
   (py-throw
    (py-call
     exc
@@ -56,7 +56,7 @@
         (vector-set! nvec len $el)
         nvec)))
 
-(define (find-next name op lst)
+(define-rts (find-next name op lst)
    (let loop ((lst lst))
       (if (null? lst)
 	  '()
@@ -106,22 +106,22 @@
     (else
       (py-getattribute-cached/miss ,obj-sym ,name-sym ,cache-sym))))
 
-(define (py-getattribute-cached-fallback obj hclass name cache)
+(define-rts (py-getattribute-cached-fallback obj hclass name cache)
   (py-getattribute-cached-fallback-body obj hclass name cache #t #t #t #t))
 
-(define (py-getattribute-cached-fallback/no-object obj hclass name cache)
+(define-rts (py-getattribute-cached-fallback/no-object obj hclass name cache)
   (py-getattribute-cached-fallback-body obj hclass name cache #f #t #t #t))
 
-(define (py-getattribute-cached-fallback/no-mro obj hclass name cache)
+(define-rts (py-getattribute-cached-fallback/no-mro obj hclass name cache)
   (py-getattribute-cached-fallback-body obj hclass name cache #t #f #t #t))
 
-(define (py-getattribute-cached-fallback/no-type obj hclass name cache)
+(define-rts (py-getattribute-cached-fallback/no-type obj hclass name cache)
   (py-getattribute-cached-fallback-body obj hclass name cache #t #t #f #t))
 
-(define (py-getattribute-cached-fallback/no-module obj hclass name cache)
+(define-rts (py-getattribute-cached-fallback/no-module obj hclass name cache)
   (py-getattribute-cached-fallback-body obj hclass name cache #t #t #t #f))
 
-(define (py-getattribute-cached-modular-fallback obj hclass name cache
+(define-rts (py-getattribute-cached-modular-fallback obj hclass name cache
                                                  include-object include-mro include-type include-module)
   (cond
     ((and include-object
@@ -139,7 +139,7 @@
     (else
       (py-getattribute-cached/miss obj name cache))))
 
-(define (py-getattribute-cached/miss obj name cache)
+(define-rts (py-getattribute-cached/miss obj name cache)
   (define (getattribute-from-getattr attribute-error)
     (getattribute-from-cls-mro-with-owner-2cont
       (py-obj-cls obj)
@@ -172,21 +172,21 @@
       (else
         (py-getattribute-fallback obj name)))))
 
-(define (py-own-attr-index obj attr)
+(define-rts (py-own-attr-index obj attr)
   (py-own-attr-index-2cont
    obj
    attr
    (lambda (i) i)
    (lambda () -1)))
 
-(define (py-own-attr-ref obj attr)
+(define-rts (py-own-attr-ref obj attr)
  (py-own-attr-ref-2cont
   obj
   attr
   (lambda (val) val)
   (lambda () py-absent)))
 
-(define (py-own-attr-set! obj attr val)
+(define-rts (py-own-attr-set! obj attr val)
   ;; TODO: fix case when obj is not represented with a PyObject
   ;; TODO: use py-own-attr-index-2cont
   (declare-fixnum)
@@ -212,14 +212,14 @@
 ;;----------------------------------------------------------------------------
 
 
-(define debug-verbosity 0)
+(define-rts debug-verbosity 0)
 
-(define (possible-error verbosity . msg)
+(define-rts (possible-error verbosity . msg)
   (if (>= debug-verbosity verbosity)
       (display (string-append "*** WARNING --- " (append-strings msg) "\n")
                (current-error-port))))
 
-(define (fatal-error . msg)
+(define-rts (fatal-error . msg)
   (display (string-append "*** FATAL ERROR --- " (append-strings msg) "\n")
            (current-error-port))
   (exit 1))
@@ -237,7 +237,7 @@
 ;;  py-absent
 ;; =============================================================================
 
-(define py-absent '%py-absent)
+(define-rts py-absent '%py-absent)
 
 ;; =============================================================================
 ;;  HIDDEN CLASSES
@@ -247,7 +247,7 @@
   `(begin
     ,@(map
       (lambda (name)
-        `(define ,name
+        `(define-rts ,name
           (make-builtin-HClass
             '#()
             '())))
@@ -283,14 +283,14 @@
 
 ;; object allocation
 
-(define (py-obj-alloc cls)
+(define-rts (py-obj-alloc cls)
   (let ((hclass-of-instances (PyObjectType-hclass-of-instances cls)))
     (make-PyObject
       hclass-of-instances
       (make-vector (vector-length (HClass-names hclass-of-instances)) py-absent)
       cls)))
 
-(define (py-module-alloc cls hclass-of-instances)
+(define-rts (py-module-alloc cls hclass-of-instances)
   (let ((self
          (make-PyObjectModule
           py-module-hclass-of-instances
@@ -307,13 +307,13 @@
 ;; These indices are stored in the string representative of the attribute
 ;; Here we loop over the list of such attributes and populate their magic-index field
 
-(define list-of-magic-attrs (get-list-of-magic-attrs))
+(define-rts list-of-magic-attrs (get-list-of-magic-attrs))
 
-(define magic-attrs-length (length list-of-magic-attrs))
+(define-rts magic-attrs-length (length list-of-magic-attrs))
 
 ;; type allocation
 
-(define (py-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
+(define-rts (py-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
   (make-PyObjectType
     (make-HClass '#() '()) ;; each type has its own hclass for attribute caching purpose
     '#()
@@ -326,21 +326,21 @@
     can-have-getter
     (make-vector magic-attrs-length #f)))
 
-(define (py-builtin-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
+(define-rts (py-builtin-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
   (let ((cls
           (make-still-copy
             (py-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance))))
     (PyObjectType-is-builtin-set! cls #t)
     cls))
 
-(define (py-dict-alloc ordered-table)
+(define-rts (py-dict-alloc ordered-table)
   (make-PyObjectDict
     py-dict-hclass-of-instances
     '#()
     py-dict-class
     ordered-table))
 
-(define (py-dict-keyiterator-alloc first iterator-token)
+(define-rts (py-dict-keyiterator-alloc first iterator-token)
   (make-PyObjectDictItemsIterator
     py-dict-keyiterator-hclass-of-instances
     '#()
@@ -348,7 +348,7 @@
     first
     iterator-token))
 
-(define (py-dict-valueiterator-alloc first iterator-token)
+(define-rts (py-dict-valueiterator-alloc first iterator-token)
   (make-PyObjectDictItemsIterator
     py-dict-valueiterator-hclass-of-instances
     '#()
@@ -356,7 +356,7 @@
     first
     iterator-token))
 
-(define (py-list-iterator-alloc index lst)
+(define-rts (py-list-iterator-alloc index lst)
   (make-PyObjectListIterator
     py-list-iterator-hclass-of-instances
     '#()
@@ -364,7 +364,7 @@
     index
     lst))
 
-(define (py-tuple-iterator-alloc index vec)
+(define-rts (py-tuple-iterator-alloc index vec)
   (make-PyObjectTupleIterator
     py-tuple-iterator-hclass-of-instances
     '#()
@@ -372,7 +372,7 @@
     index
     vec))
 
-(define (py-bytearray-iterator-alloc index bytearray)
+(define-rts (py-bytearray-iterator-alloc index bytearray)
   (make-PyObjectBytearrayIterator
     py-bytearray-iterator-hclass-of-instances
     '#()
@@ -380,7 +380,7 @@
     index
     bytearray))
 
-(define (py-TextIOWrapper-alloc port mode encoding)
+(define-rts (py-TextIOWrapper-alloc port mode encoding)
   (make-PyObjectTextIOWrapper
     py-TextIOWrapper-hclass-of-instances
     '#()
@@ -390,7 +390,7 @@
     encoding))
 
 ;; ----------------------------------------------------------------------------
-(define (append-lists list-of-lists)
+(define-rts (append-lists list-of-lists)
   (let outer-loop ((lists-tail list-of-lists) (outer-acc '()))
     (if (null? lists-tail)
       (reverse! outer-acc)
@@ -461,7 +461,7 @@
            (PyObject-%elements-set! $obj $elements-new))
          (py-global-elements-set! $elements $offset $val))))
 
-(define (global-get global name cache)
+(define-rts (global-get global name cache)
   (if (eq? (PyObject-hclass global) ;; TODO: should py-obj-hclass be used instead?
            (PCache-hclass cache))
       (let ((val (PyObject-global-elements-ref global (PCache-index cache))))
@@ -469,7 +469,7 @@
             (global-get-from-builtins name cache)))
       (global-get/miss global name cache)))
 
-(define (global-get/miss global name cache)
+(define-rts (global-get/miss global name cache)
   (let ((i (py-own-attr-index global name)))
     (if (< i 0)
         ;; as per Python 3.8 (maybe 3.7?) builtins module is no longer recovered
@@ -482,7 +482,7 @@
             (or val
                 (global-get-from-builtins name cache)))))))
 
-(define (global-own-attr-ref-no-cache global name)
+(define-rts (global-own-attr-ref-no-cache global name)
   (py-own-attr-index-2cont
     global
     name
@@ -490,7 +490,7 @@
     (lambda () #f)))
 
 ;; TODO: use a cache for builtins and one for global access
-(define (global-get-from-builtins name cache)
+(define-rts (global-get-from-builtins name cache)
   (define (throw-NameError)
     (py-throw-exception-with-message
      py-builtin-NameError
@@ -510,13 +510,13 @@
                 (or val
                     (throw-NameError))))))))
 
-(define (global-put! global name val cache)
+(define-rts (global-put! global name val cache)
   (if (eq? (PyObject-hclass global)
            (PCache-hclass cache))
       (PyObject-global-elements-set! global (PCache-index cache) val)
       (global-put!/miss global name val cache)))
 
-(define (global-put!/miss obj name val cache)
+(define-rts (global-put!/miss obj name val cache)
   (let* ((index (py-own-attr-index obj name))
          (hclass (PyObject-hclass obj)))
     (if (>= index 0)
@@ -531,7 +531,7 @@
           (PCache-set! cache nhclass index)
           (PyObject-global-elements-set! obj index val)))))
 
-(define (global-own-attr-put-no-cache! global name val)
+(define-rts (global-own-attr-put-no-cache! global name val)
   (let* ((index (py-own-attr-index global name))
          (hclass (PyObject-hclass global)))
     (if (>= index 0)
@@ -543,7 +543,7 @@
           (PyObject-hclass-set! global nhclass)
           (PyObject-global-elements-set! global index val)))))
 
-(define (global-register! obj name getter setter)
+(define-rts (global-register! obj name getter setter)
   (let* ((index (py-own-attr-index obj name))
          (hclass (PyObject-hclass obj)))
     (if (>= index 0)
@@ -568,14 +568,14 @@
 ;; which we keep in the functions-awaiting-bootstap list. Once py-function-class
 ;; is created, we can recover these functions and add their type.
 
-(define functions-awaiting-bootstap '())
+(define-rts functions-awaiting-bootstap '())
 
 ;; signature: '#(args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
 ;; takes in a signature and returns an arity.
 ;; positive arity: a function takes a fixed number of positional arguments
 ;; negative arity: functions takes x arguments, last argument is a *args
 ;; #f arity: unknown arity due to defaults value
-(define (signature->arity signature)
+(define-rts (signature->arity signature)
   (let ((args (vector-ref signature 0))
         (posonlyargs (vector-ref signature 1))
         (vararg (vector-ref signature 2))
@@ -593,7 +593,7 @@
         (+ (vector-length args) (vector-length posonlyargs)))
       #f)))
 
-(define (prebootstrap-procedure->py-function procedure signature)
+(define-rts (prebootstrap-procedure->py-function procedure signature)
   (let ((py-function
           (py-make-PyObjectFunction
             py-function-hclass-of-instances
@@ -607,7 +607,7 @@
       (cons py-function functions-awaiting-bootstap))
     py-function))
 
-(define (postbootstrap-procedure->py-function procedure signature)
+(define-rts (postbootstrap-procedure->py-function procedure signature)
   (py-make-PyObjectFunction
     py-function-hclass-of-instances
     '#()
@@ -616,9 +616,9 @@
     (signature->arity signature)
     signature))
 
-(define procedure->py-function prebootstrap-procedure->py-function)
+(define-rts procedure->py-function prebootstrap-procedure->py-function)
 
-(define (bootstrap-functions)
+(define-rts (bootstrap-functions)
   (set! procedure->py-function postbootstrap-procedure->py-function)
   (let loop ((functions functions-awaiting-bootstap))
     (if (not (null? functions))
@@ -626,12 +626,12 @@
         (PyObject-class-set! (car functions) py-function-class)
         (loop (cdr functions))))))
 
-(define (pack-extra-args arity args)
+(define-rts (pack-extra-args arity args)
   (if (= arity -1)
     (cons (py-tuple-from-scheme (list->vector args)) '())
     (cons (car args) (pack-extra-args (+ arity 1) (cdr args)))))
 
-(define (py-call-wrong-arity arity nargs nargs-string)
+(define-rts (py-call-wrong-arity arity nargs nargs-string)
   (if (fx< arity 0)
     (py-throw-exception-with-message
        py-builtin-TypeError
@@ -654,7 +654,7 @@
         (number->string (fx- arity nargs))
         " required positional argument"))))
 
-(define (py-call0-fallback fun)
+(define-rts (py-call0-fallback fun)
   (let ((fun-type (py-obj-cls fun)))
     (if (eq? fun-type py-function-class)
       (let ((arity (PyObjectFunction-arity fun)))
@@ -667,7 +667,7 @@
             (py-call-wrong-arity arity 0 "0"))))
       (py-call-generic fun '()))))
 
-(define (py-callX-fallback min-neg-arity fun . args)
+(define-rts (py-callX-fallback min-neg-arity fun . args)
   (let ((fun-type (py-obj-cls fun)))
     (if (eq? fun-type py-function-class)
       (let ((arity (PyObjectFunction-arity fun)))
@@ -683,11 +683,11 @@
             (py-call-wrong-arity arity (length args) (number->string (length args))))))
       (py-call-generic fun args))))
 
-(define (py-call-generic/*args obj args *args-lst)
+(define-rts (py-call-generic/*args obj args *args-lst)
   (let ((unpacked-args (iterables*->list *args-lst)))
     (py-call-generic obj (append args unpacked-args))))
 
-(define (py-call-generic obj args)
+(define-rts (py-call-generic obj args)
   (let ((obj-type (py-type obj)))
     (cond
       ((eq? obj-type py-function-class)
@@ -705,7 +705,7 @@
             (py-throw-not-callable obj)
             (py-call-generic __call__ (cons obj args))))))))
 
-(define (align-args-with-signature caller-args signature)
+(define-rts (align-args-with-signature caller-args signature)
   (let ((args (vector-ref signature 0))
         (posonlyargs (vector-ref signature 1))
         (vararg (vector-ref signature 2))
@@ -773,7 +773,7 @@
                 (number->string caller-args-len)
                 " were given"))))))))
 
-(define (py-call-hashed-kwargs obj args *args-lst kwargs-table)
+(define-rts (py-call-hashed-kwargs obj args *args-lst kwargs-table)
   (let ((obj-type (py-type obj)))
     (cond
       ((eq? obj-type py-function-class)
@@ -791,7 +791,7 @@
             (py-throw-not-callable obj)
             (py-call-hashed-kwargs __call__ (cons obj args) *args-lst kwargs-table)))))))
 
-(define (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
+(define-rts (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
   (define (make-kwargs-ordered-table kwargs **kwargs-lst)
     (py-ordered-table-from-scheme (append-lists (cons kwargs (map unpack-kwargs **kwargs-lst)))))
 
@@ -813,7 +813,7 @@
             (py-throw-not-callable obj)
             (py-call-generic-kwargs __call__ (cons obj args) *args-lst kwargs **kwargs-lst)))))))
 
-(define (unpack-kwargs obj)
+(define-rts (unpack-kwargs obj)
   (let* ((keys-method (py-getattribute obj (& "keys")))
          (mapping-keys (py-call keys-method))
          (keys-iterator (py-iter mapping-keys)))
@@ -829,9 +829,9 @@
               py-builtin-TypeError
               "keywords must be strings"))))))
 
-(define kwargs-already-seen '%kwargs-already-seen)
+(define-rts kwargs-already-seen '%kwargs-already-seen)
 
-(define (kwargs-table-pop! table key)
+(define-rts (kwargs-table-pop! table key)
   ;; NOTE: key will always either be from a signature or a call-table
   ;; key will always have been hashed at compile time
   (let* ((index-table (vector-ref table 0))
@@ -857,19 +857,19 @@
         value)
       #f)))
 
-(define (zip-vectors vec1 vec2)
+(define-rts (zip-vectors vec1 vec2)
   (map
     cons
     (vector->list vec1)
     (vector->list vec2)))
 
-(define (ncdr lst n)
+(define-rts (ncdr lst n)
   (if (= n 0)
     lst
     (ncdr (cdr lst) (- n 1))))
 
 (define-macro (define-signature-aligner name get-values get-values-or-default get-unused-kwargs)
-  `(define (,name pos-caller-args caller-kwargs-table *args-lst signature)
+  `(define-rts (,name pos-caller-args caller-kwargs-table *args-lst signature)
       (let* ((args (vector-ref signature 0))
             (posonlyargs (vector-ref signature 1))
             (vararg (vector-ref signature 2))
@@ -983,7 +983,7 @@
               caller-kwargs
               caller-kwarg))))))
 
-(define (align-with-signature-hashed-kwargs:get-values args kwargs-table)
+(define-rts (align-with-signature-hashed-kwargs:get-values args kwargs-table)
   (if (null? args)
     '()
     (let* ((name (car args))
@@ -994,7 +994,7 @@
           py-builtin-TypeError
           "pending exception message (code 23)")))))
 
-(define (align-with-signature-hashed-kwargs:get-values-or-default args-defaults kwargs-table)
+(define-rts (align-with-signature-hashed-kwargs:get-values-or-default args-defaults kwargs-table)
   (if (null? args-defaults)
     '()
     (let* ((name (caar args-defaults))
@@ -1010,7 +1010,7 @@
         (else
           (cons (cdr value) (align-with-signature-hashed-kwargs:get-values (map car (cdr args-defaults)) kwargs-table)))))))
 
-(define (align-with-signature-hashed-kwargs:get-unused-kwargs kwargs-table kwarg)
+(define-rts (align-with-signature-hashed-kwargs:get-unused-kwargs kwargs-table kwarg)
   (let* ((len (vector-length kwargs-table))
         (unused-kwargs
           (let loop ((i 1))
@@ -1037,7 +1037,7 @@
   align-with-signature-hashed-kwargs:get-values-or-default
   align-with-signature-hashed-kwargs:get-unused-kwargs)
 
-(define (align-with-signature-kwargs-ordered-table:get-values args ordered-table)
+(define-rts (align-with-signature-kwargs-ordered-table:get-values args ordered-table)
   (if (null? args)
     '()
     (let* ((name (car args))
@@ -1048,7 +1048,7 @@
           py-builtin-TypeError
           "pending exception message (code 30)")))))
 
-(define (align-with-signature-kwargs-ordered-table:get-values-or-default args-defaults ordered-table)
+(define-rts (align-with-signature-kwargs-ordered-table:get-values-or-default args-defaults ordered-table)
   (if (null? args-defaults)
     '()
     (let* ((name (caar args-defaults))
@@ -1064,7 +1064,7 @@
         (else
           (cons value (align-with-signature-kwargs-ordered-table:get-values (map car (cdr args-defaults)) ordered-table)))))))
 
-(define (align-with-signature-kwargs-ordered-table:get-unused-kwargs unused-kwargs kwarg)
+(define-rts (align-with-signature-kwargs-ordered-table:get-unused-kwargs unused-kwargs kwarg)
   (if kwarg
     (list (py-dict-alloc unused-kwargs))
     (if (= (ordered-table-length unused-kwargs) 0)
@@ -1082,7 +1082,7 @@
   align-with-signature-kwargs-ordered-table:get-values-or-default
   align-with-signature-kwargs-ordered-table:get-unused-kwargs)
 
-(define (py-is-in-mro? target mro)
+(define-rts (py-is-in-mro? target mro)
   (declare-fixnum)
   (let loop ((i 0))
      (and (< i (vector-length mro))
@@ -1090,17 +1090,17 @@
 	     (or (eq? cls target)
 		 (loop (+ i 1)))))))
 
-(define (py-isinstance? obj cls)
+(define-rts (py-isinstance? obj cls)
   (let ((mro (py-obj-mro obj)))
     (py-is-in-mro? cls mro)))
 
-(define (py-issubclass? cls parent)
+(define-rts (py-issubclass? cls parent)
   (if (py-isinstance? cls py-type-class)
     (let ((mro (PyObjectType-mro cls)))
       (py-is-in-mro? parent mro))
     #f))
 
-(define (py-throw-with-values exc . values)
+(define-rts (py-throw-with-values exc . values)
   (cond ((not (PyObject? exc))
           (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
@@ -1114,7 +1114,7 @@
         (else
          (py-throw-unsafe (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
 
-(define (py-throw exc)
+(define-rts (py-throw exc)
   (cond ((not (PyObject? exc))
           (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))
         ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
@@ -1127,7 +1127,7 @@
 ;; =============================================================================
 ;; Exception thrower helpers
 ;; =============================================================================
-(define (throw-unsupported-unary-operand x operator)
+(define-rts (throw-unsupported-unary-operand x operator)
   (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__"))))
     (py-throw
       (py-call
@@ -1140,7 +1140,7 @@
             (py-str-to-scheme x-type-name)
             "'"))))))
 
-(define (throw-unhashable x)
+(define-rts (throw-unhashable x)
   (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__"))))
     (py-throw
       (py-call
@@ -1151,7 +1151,7 @@
             (py-str-to-scheme x-type-name)
             "'"))))))
 
-(define (py-throw-not-an-integer obj)
+(define-rts (py-throw-not-an-integer obj)
   (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
@@ -1161,7 +1161,7 @@
             given-type
             "' object cannot be interpreted as an integer"))))))
 
-(define (py-throw-has-no-len obj)
+(define-rts (py-throw-has-no-len obj)
   (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
@@ -1171,7 +1171,7 @@
             given-type
             "' has no len()"))))))
 
-(define (py-throw-index-out-of-range type)
+(define-rts (py-throw-index-out-of-range type)
   (py-throw
     (py-call py-builtin-IndexError
       (py-str-from-scheme
@@ -1179,7 +1179,7 @@
           type
           " index out of range")))))
 
-(define (py-throw-action-out-of-range type action)
+(define-rts (py-throw-action-out-of-range type action)
   (py-throw
     (py-call py-builtin-IndexError
       (py-str-from-scheme
@@ -1189,12 +1189,12 @@
           action
           " out of range")))))
 
-(define (py-throw-pop-from-empty-list)
+(define-rts (py-throw-pop-from-empty-list)
   (py-throw
     (py-call py-builtin-IndexError
       (py-str-from-scheme "pop from empty list"))))
 
-(define (py-throw-wrong-index-type type expected-description item)
+(define-rts (py-throw-wrong-index-type type expected-description item)
   (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type item) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
@@ -1206,12 +1206,12 @@
             ", not "
             given-type))))))
 
-(define (py-throw-can-only-assign-iterable)
+(define-rts (py-throw-can-only-assign-iterable)
   (py-throw
     (py-call py-builtin-TypeError
       (&& "can only assign an iterable"))))
 
-(define (py-throw-extended-slice-wrong-len actual-len expected-len)
+(define-rts (py-throw-extended-slice-wrong-len actual-len expected-len)
   (py-throw
     (py-call py-builtin-ValueError
       (py-str-from-scheme
@@ -1221,7 +1221,7 @@
           " to extended slice of size "
           (number->string expected-len))))))
 
-(define (throw-not-iterable obj)
+(define-rts (throw-not-iterable obj)
   (let ((obj-type-name (py-own-attr-ref (py-type obj) (& "__name__"))))
     (py-throw (py-call
                 py-builtin-TypeError
@@ -1231,21 +1231,21 @@
                     (py-str-to-scheme obj-type-name)
                     "' is not iterable"))))))
 
-(define (py-throw-not-an-iterator obj)
+(define-rts (py-throw-not-an-iterator obj)
   (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
           (string-append "'" given-type "' object is not an iterator"))))))
 
-(define (py-throw-not-callable obj)
+(define-rts (py-throw-not-callable obj)
   (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type obj) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
         (py-str-from-scheme
           (string-append "'" given-type "' object is not callable"))))))
 
-(define (py-throw-required-type method-name required-type arg)
+(define-rts (py-throw-required-type method-name required-type arg)
   (let ((given-type (py-str-to-scheme (py-own-attr-ref (py-type arg) (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
@@ -1259,7 +1259,7 @@
               given-type
               "'"))))))
 
-(define (py-throw-not-a-subtype fun-name wrong-type type-name)
+(define-rts (py-throw-not-a-subtype fun-name wrong-type type-name)
   (let ((wrong-type-name (py-str-to-scheme (py-own-attr-ref wrong-type (& "__name__")))))
     (py-throw
       (py-call py-builtin-TypeError
@@ -1267,7 +1267,7 @@
           (string-append
               fun-name "(" wrong-type-name "): " wrong-type-name " is not a subtype of " type-name))))))
 
-(define (py-throw-not-a-type-object fun-name obj)
+(define-rts (py-throw-not-a-type-object fun-name obj)
   (let* ((instance-type (py-type obj))
          (instance-type-name (py-str-to-scheme (py-own-attr-ref instance-type (& "__name__")))))
     (py-throw
@@ -1281,13 +1281,13 @@
 ;;    cls.__new__(X): X is not a type object ([type of X])
 ;; if X is a type, but not a subtype of cls, the error message is:
 ;;   cls.__new__([X.__name__]): [X.__name__] is not a subtype of cls
-(define (py-throw-wrong-new-argument cls-name arg)
+(define-rts (py-throw-wrong-new-argument cls-name arg)
   (let ((fun-name (string-append cls-name ".__new__")))
     (if (py-isinstance? arg py-type-class)
       (py-throw-not-a-subtype fun-name arg cls-name)
       (py-throw-not-a-type-object fun-name arg))))
 
-(define (throw-returned-wrong-type fun-name obj qualifier)
+(define-rts (throw-returned-wrong-type fun-name obj qualifier)
   (let* ((type (py-type obj))
          (type-name (py-own-attr-ref type (& "__name__"))))
     (py-throw
@@ -1299,12 +1299,12 @@
 
 ;; -----------------------------------------------------------------------------
 
-(define attribute-caches '())
+(define-rts attribute-caches '())
 
-(define (reset-mro-caches!)
+(define-rts (reset-mro-caches!)
   (for-each (lambda (cache) (AttributeCache-mro-reset! cache)) attribute-caches))
 
-(define (py-make-caches kinds)
+(define-rts (py-make-caches kinds)
   (define (make-cache kind)
     (case kind
       ((global) (make-init-PCache))
@@ -1322,7 +1322,7 @@
 ;;  OPERATORS PROTOCOLS
 ;; =============================================================================
 
-(define (throw-unsupported-operand x y operator)
+(define-rts (throw-unsupported-operand x y operator)
   (let ((x-type-name (py-own-attr-ref (py-type x) (& "__name__")))
         (y-type-name (py-own-attr-ref (py-type y) (& "__name__"))))
     (py-throw
@@ -1339,14 +1339,14 @@
             "'"))))))
 
 ;; special case of x in y when y is an iterator
-(define (py-in-iterator item iterator)
+(define-rts (py-in-iterator item iterator)
   (let ((next-item (py-next iterator)))
     (cond
       ((not next-item) py-False)
       ((py-eq item next-item) py-True)
       (else (py-in-iterator item iterator)))))
 
-(define (py-in item container) ;; x in y
+(define-rts (py-in item container) ;; x in y
   (let ((__contains__ (getattribute-from-obj-mro container (& "__contains__"))))
     (if (eq? __contains__ py-absent)
       (let ((iterator (py-obj->iterator container)))
@@ -1355,20 +1355,20 @@
           (throw-not-iterable container)))
       (if (py-test (py-call __contains__ container item)) py-True py-False))))
 
-(define (py-notin item container) ;; x not in y
+(define-rts (py-notin item container) ;; x not in y
   (if (py-test (py-in item container))
     py-False
     py-True))
 
 ;; meant to be called as the builtin abs(), not an operator but follows
 ;; the same logic
-(define (py-abs x)
+(define-rts (py-abs x)
   (let ((__abs__ (getattribute-from-obj-mro x (& "__abs__"))))
     (if (eq? __abs__ py-absent)
         (throw-unsupported-unary-operand x "abs()")
         (py-call __abs__ x))))
 
-(define (py-hash x)
+(define-rts (py-hash x)
   (let ((__hash__ (getattribute-from-obj-mro x (& "__hash__"))))
     (if (eq? __hash__ py-absent)
         (throw-unhashable x)
@@ -1381,7 +1381,7 @@
                "__hash__ method should return an integer"))))))
 
 
-(define (py-dir x)
+(define-rts (py-dir x)
   (if (eq? x py-absent)
       (py-throw-exception-with-message
         py-builtin-NotImplementedError
@@ -1398,59 +1398,59 @@
 
    ;; fallbacks for int/int operations
 
-   (define (pyneg-UintX-fallback x)
+   (define-rts (pyneg-UintX-fallback x)
      (py-int-from-scheme (|##negate| x)))
 
-   (define (pyinvert-UintX-fallback x)
+   (define-rts (pyinvert-UintX-fallback x)
      (py-int-from-scheme (|##bitwise-not| x)))
 
-   (define (pyadd-UintX-UintY-fallback x y)
+   (define-rts (pyadd-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##+2| x y)))
 
-   (define (pysub-UintX-UintY-fallback x y)
+   (define-rts (pysub-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##-2| x y)))
 
-   (define (pymul-UintX-UintY-fallback x y)
+   (define-rts (pymul-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##*2| x y)))
 
-   (define (py&-UintX-UintY-fallback x y)
+   (define-rts (py&-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##bitwise-and| x y)))
 
-   (define (py+b-UintX-UintY-fallback x y)
+   (define-rts (py+b-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##bitwise-ior| x y)))
 
-   (define (py^-UintX-UintY-fallback x y)
+   (define-rts (py^-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##bitwise-xor| x y)))
 
-   (define (py>>-UintX-UintY-fallback x y)
+   (define-rts (py>>-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##arithmetic-shift| x (|##negate| y))))
 
-   (define (py<<-UintX-UintY-fallback x y)
+   (define-rts (py<<-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##arithmetic-shift| x y)))
 
-   (define (py//-UintX-UintY-fallback x y)
+   (define-rts (py//-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##quotient| x y)))
 
-   (define (py%-UintX-UintY-fallback x y)
+   (define-rts (py%-UintX-UintY-fallback x y)
      (py-int-from-scheme (|##modulo| x y)))
 ))
 
-(define (int-repr self)
+(define-rts (int-repr self)
   (if (py-subtype-of-int? self)
       (py-str-from-scheme (number->string (py-subtype-of-int-to-scheme self)))
       (py-throw-required-type "__repr__" "int" self)))
 
-(define int.__repr__
+(define-rts int.__repr__
   (procedure->py-function
     int-repr
     (make-signature posonlyargs: (self))))
 
-(define (int-hash self)
+(define-rts (int-hash self)
   (if (py-subtype-of-int? self)
       (py-int-from-scheme (truncate-hash (py-subtype-of-int-to-scheme self)))
       (py-throw-required-type "__hash__" "int" self)))
 
-(define int.__hash__
+(define-rts int.__hash__
   (procedure->py-function
     int-hash
     (make-signature posonlyargs: (self))))
@@ -1465,14 +1465,14 @@
 ;;   Does so by looking through the classes of the MRO
 ;;   returns the first occurence of the attribute
 ;;   found on an element of the MRO
-(define (getattribute-from-cls-mro-fallback cls name)
+(define-rts (getattribute-from-cls-mro-fallback cls name)
   (getattribute-from-cls-mro cls name))
 
 ;; Recover an attribute from the class of 'obj'
-(define (getattribute-from-obj-mro-fallback obj name)
+(define-rts (getattribute-from-obj-mro-fallback obj name)
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
-(define (object-getattribute obj name #!optional (raise? #t) (cache #f))
+(define-rts (object-getattribute obj name #!optional (raise? #t) (cache #f))
   (define (getattribute-from-mro #!optional (index-hit-on-object-hclass #f))
     (getattribute-from-obj-mro-with-index/owner-2cont
       obj
@@ -1509,12 +1509,12 @@
           val)))
     getattribute-from-mro))
 
-(define object.__getattribute__
+(define-rts object.__getattribute__
   (procedure->py-function
     object-getattribute
     (make-signature posonlyargs: (obj name))))
 
-(define (object-setattr obj name val)
+(define-rts (object-setattr obj name val)
   ;; TODO: add check that obj does not has it own setattr method
   (if (py-subtype-of-str? name)
     (begin
@@ -1524,13 +1524,13 @@
      py-builtin-TypeError
      "attribute name must be string")))
 
-(define object.__setattr__
+(define-rts object.__setattr__
   (procedure->py-function
     object-setattr
     (make-signature posonlyargs: (obj name val))))
 
 ;; Implements type.__getattribute__
-(define (type-getattribute obj name #!optional (raise? #t) (cache #f))
+(define-rts (type-getattribute obj name #!optional (raise? #t) (cache #f))
   (if (py-isinstance? obj py-type-class)
     (getattribute-from-cls-mro-with-owner-2cont
       obj
@@ -1550,12 +1550,12 @@
     (py-throw-required-type "__getattribute__" "type" obj)))
 
 ;; The Python object type.__getattribute__
-(define type.__getattribute__
+(define-rts type.__getattribute__
   (procedure->py-function
     type-getattribute
     (make-signature posonlyargs: (obj name))))
 
-(define (object-has obj attr)
+(define-rts (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
 
 ;; =============================================================================
@@ -1564,18 +1564,18 @@
 
 ;; TODO: implement the sequence protocole where object are iterable if they
 ;; have a __getitem__ method starting from index 0
-(define (py-obj->iterator obj)
+(define-rts (py-obj->iterator obj)
  (let ((__iter__ (getattribute-from-obj-mro obj (& "__iter__"))))
    (if (eq? __iter__ py-absent)
      #f
      (py-call __iter__ obj))))
 
 ;; Wraps py-obj->iterator to raise a TypeError when the object is not iterable
-(define (py-iter-fallback obj)
+(define-rts (py-iter-fallback obj)
  (or (py-obj->iterator obj)
      (throw-not-iterable obj)))
 
-(define (iterator-next obj default)
+(define-rts (iterator-next obj default)
    (let ((__next__ (getattribute-from-obj-mro obj (& "__next__"))))
      (if (eq? __next__ py-absent)
        (py-throw-not-an-iterator obj)
@@ -1588,17 +1588,17 @@
                (py-throw-unsafe exc)))
            (lambda () (py-call __next__ obj)))))))
 
-(define (iterator->list it)
+(define-rts (iterator->list it)
  (let loop ((acc '()))
    (let ((nxt (iterator-next it #f)))
      (if nxt
        (loop (cons nxt acc))
        (reverse! acc)))))
 
-(define (py-unpack it)
+(define-rts (py-unpack it)
  (iterator->list (py-iter it)))
 
-(define (py-ternary-unpack it nleft nright)
+(define-rts (py-ternary-unpack it nleft nright)
  ;; return a 3-vector (left-elements list right-elements)
  ;;  left-elements is a vector containing the nleft elements
  ;;  list is a Python list containing the middle elements
@@ -1638,7 +1638,7 @@
 
        (fill-left 0 elts)))))
 
-(define (iterables*->list lst)
+(define-rts (iterables*->list lst)
  (let outer-loop ((iterators lst) (outer-acc '()))
    (if (null? iterators)
      (reverse! outer-acc)
@@ -1649,7 +1649,7 @@
              (inner-loop (cons nxt inner-acc))
              (outer-loop (cdr iterators) inner-acc))))))))
 
-(define (py-for-each-fallback iterable body)
+(define-rts (py-for-each-fallback iterable body)
   (let ((iterator (py-iter iterable)))
     (let loop ()
       (let ((element (py-next iterator)))
@@ -1662,7 +1662,7 @@
 ;;  NEXT PROTOCOL
 ;; =============================================================================
 
-(define (py-next-fallback iterator)
+(define-rts (py-next-fallback iterator)
  (let ((next (getattribute-from-obj-mro iterator (& "__next__"))))
     (if (eq? next py-absent)
       (py-throw-exception-with-message py-builtin-TypeError "object is not an iterator")
@@ -1679,13 +1679,13 @@
 
 ;; slow way to call function through function.__call__
 ;; interfaces between manual __call__ and py-call
-(define (function-call self args)
+(define-rts (function-call self args)
   (if (eq? (py-type self) py-function-class)
     (let ((args-list (vector->list (PyObjectTuple-value args))))
       (py-call-generic self args-list))
     (py-throw-required-type "__call__" "method" self)))
 
-(define function.__call__
+(define-rts function.__call__
   (procedure->py-function
     function-call
     (make-signature
@@ -1693,7 +1693,7 @@
       vararg: args)))
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
-(define (type-call self args)
+(define-rts (type-call self args)
   (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
         (args-list (vector->list (PyObjectTuple-value args))))
     (let ((instance (py-call-generic __new__ (cons self args-list))))
@@ -1703,14 +1703,14 @@
             instance)
         instance))))
 
-(define type.__call__
+(define-rts type.__call__
   (procedure->py-function
     type-call
     (make-signature
       posonlyargs: (self)
       vararg: args)))
 
-(define (type-setattr self name val)
+(define-rts (type-setattr self name val)
   ;; TODO: add check that obj does not has it own setattr method
   (if (py-isinstance? self py-builtin-type)
     (if (py-subtype-of-str? name)
@@ -1724,14 +1724,14 @@
      py-builtin-TypeError
      "descriptor '__setattr__' requires a 'type' object")))
 
-(define type.__setattr__
+(define-rts type.__setattr__
   (procedure->py-function
     object-setattr
     (make-signature posonlyargs: (self name val))))
 
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
-(define (type-new metacls cls args)
+(define-rts (type-new metacls cls args)
   (let* ((args-list (vector->list (PyObjectTuple-value args)))
         (args-length (length args-list)))
     (cond
@@ -1744,14 +1744,14 @@
           py-builtin-TypeError
           (&& "type() takes 1 or 3 arguments")))))))
 
-(define type.__new__
+(define-rts type.__new__
   (procedure->py-function
     type-new
     (make-signature
       posonlyargs: (metacls cls)
       vararg: args)))
 
-(define (tuple-new cls iterable)
+(define-rts (tuple-new cls iterable)
   (if (or (eq? cls py-tuple-class) (py-issubclass? cls py-tuple-class))
       (if (eq? iterable py-absent)
           (py-tuple-subtype-from-scheme '#() cls)
@@ -1772,7 +1772,7 @@
                  (py-tuple-subtype-from-scheme (vector-copy content) cls))))))
       (py-throw-wrong-new-argument "tuple" cls)))
 
-(define tuple.__new__
+(define-rts tuple.__new__
   (procedure->py-function
     tuple-new
     (make-signature posonlyargs: (cls iterable) defaults: (vector py-absent))))
@@ -1781,14 +1781,14 @@
 ;; TODO: raise TypeError when cannot create, ex: list_iterator.__new__()
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
 ;; TODO: that's really a lot of todos...
-(define (object-new cls args)
+(define-rts (object-new cls args)
   (if (py-isinstance? cls py-type-class)
     (py-obj-alloc cls)
     (py-throw
       (py-call py-builtin-TypeError
         (&& "object.__new__(X): X is not a type object")))))
 
-(define object.__new__
+(define-rts object.__new__
   (procedure->py-function
     object-new
     (make-signature
@@ -1797,7 +1797,7 @@
 
 ;; object.__init__ exists but does nothing
 ;; its purpose is that super().__init__ does not raise and AttributeError
-(define object.__init__
+(define-rts object.__init__
   (procedure->py-function
     (lambda (self args) py-None)
     (make-signature
@@ -1809,7 +1809,7 @@
 ;;  str and repr protocols
 ;; =============================================================================
 
-(define (py-str-from-string len string)
+(define-rts (py-str-from-string len string)
   (make-PyObjectStr
    py-str-hclass-of-instances
    '#()
@@ -1818,7 +1818,7 @@
    string
    #f))
 
-(define (py-subtype-of-str-from-string len string str-subclass)
+(define-rts (py-subtype-of-str-from-string len string str-subclass)
   (make-PyObjectStr
    py-str-hclass-of-instances
    '#()
@@ -1827,7 +1827,7 @@
    string
    #f))
 
-(define (py-str-from-concat len str1 str2)
+(define-rts (py-str-from-concat len str1 str2)
   (make-PyObjectStr
    py-str-hclass-of-instances
    '#()
@@ -1836,7 +1836,7 @@
    str1
    str2))
 
-(define (py-str-representative-from-string len string hash)
+(define-rts (py-str-representative-from-string len string hash)
   (let ((result
           (make-still-copy
              (make-PyObjectStrRep
@@ -1851,15 +1851,15 @@
     (PyObjectStr-part2-or-rep-set! result result) ;; own representative
     result))
 
-(define (py-str-from-scheme-fallback string)
+(define-rts (py-str-from-scheme-fallback string)
   (let ((len (string-length string)))
     (py-str-from-string len string)))
 
-(define (py-subtype-of-str-from-scheme-fallback string str-subclass)
+(define-rts (py-subtype-of-str-from-scheme-fallback string str-subclass)
   (let ((len (string-length string)))
     (py-subtype-of-str-from-string len string str-subclass)))
 
-(define (py-str-to-scheme-fallback str)
+(define-rts (py-str-to-scheme-fallback str)
   (let ((part1-or-string (PyObjectStr-part1-or-string str)))
     (if (string? part1-or-string)
         part1-or-string
@@ -1870,10 +1870,10 @@
 
           result))))
 
-(define (py-subtype-of-str-to-scheme-fallback str)
+(define-rts (py-subtype-of-str-to-scheme-fallback str)
   (py-str-to-scheme-fallback str))
 
-(define (py-str-representative-fallback str)
+(define-rts (py-str-representative-fallback str)
   (let ((part1-or-string (PyObjectStr-part1-or-string str)))
     (if (string? part1-or-string)
         (or (PyObjectStr-part2-or-rep str)
@@ -1889,7 +1889,7 @@
               (PyObjectStr-part2-or-rep-set! str part2-or-rep)
               part2-or-rep))))
 
-(define (py-str-concatenation-to-scheme str)
+(define-rts (py-str-concatenation-to-scheme str)
   (let* ((len (py-str-len-to-scheme str))
          (result (make-string len)))
 
@@ -1920,7 +1920,7 @@
 
     result))
 
-(define (py-str-representative-from-scheme string)
+(define-rts (py-str-representative-from-scheme string)
   (or (table-ref str-representatives-htable string #f)
       (let* ((hash (hash-FNV1a string))
              (len (string-length string))
@@ -1928,9 +1928,9 @@
         (table-set! str-representatives-htable string str)
         str)))
 
-(define str-representatives-htable (get-registered-constants-table))
+(define-rts str-representatives-htable (get-registered-constants-table))
 
-(define (py-concat-strX-strY str1 str2)
+(define-rts (py-concat-strX-strY str1 str2)
 
   (define optimize-small? #t) ;; optimize concatenation of small strings?
   (define small 8) ;; maximal length of a "small" string
@@ -1990,7 +1990,7 @@
             str1
             str2)))))
 
-(define (string-join-vector separator vec)
+(define-rts (string-join-vector separator vec)
   (let* ((separator-len (string-length separator))
         (vec-len (vector-length vec))
         (last-index (- vec-len 1))
@@ -2025,10 +2025,10 @@
           (loop (+ vec-pos 1) out-pos))
         out))))
 
-(define (integer->hex-string x)
+(define-rts (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define (str-new cls value)
+(define-rts (str-new cls value)
   (cond
     ((eq? cls py-str-class)
      (if (eq? value py-absent)
@@ -2053,47 +2053,47 @@
     (else
       (py-throw-wrong-new-argument "str" cls))))
 
-(define str.__new__
+(define-rts str.__new__
   (procedure->py-function
     str-new
     (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
 
-(define (str-hash-value str)
+(define-rts (str-hash-value str)
   (PyObjectStrRep-hash (py-str-representative str)))
 
-(define (str-hash self)
+(define-rts (str-hash self)
   (if (py-subtype-of-str? self)
       (py-int-from-scheme (str-hash-value self))
       (py-throw-required-type "__hash__" "str" self)))
 
-(define str.__hash__
+(define-rts str.__hash__
   (procedure->py-function
     str-hash
     (make-signature posonlyargs: (self))))
 
-(define (str-str self)
+(define-rts (str-str self)
   (if (py-subtype-of-str? self)
       self
       (py-throw-required-type "__str__" "str" self)))
 
-(define str.__str__
+(define-rts str.__str__
   (procedure->py-function
     str-str
     (make-signature posonlyargs: (self))))
 
-(define (str-repr self)
+(define-rts (str-repr self)
   (if (py-subtype-of-str? self)
       (let* ((string (py-subtype-of-str-to-scheme self))
              (string-repr (py-str-repr-scheme string)))
         (py-str-from-scheme string-repr))
       (py-throw-required-type "__repr__" "str" self)))
 
-(define str.__repr__
+(define-rts str.__repr__
   (procedure->py-function
     str-repr
     (make-signature posonlyargs: (self))))
 
-(define (str-getitem self index)
+(define-rts (str-getitem self index)
   (if (py-subtype-of-str? self)
     (cond
       ((py-subtype-of-int? index)
@@ -2121,22 +2121,22 @@
       (else (py-throw-wrong-index-type "str" "integers or slices" index)))
     (py-throw-not-a-type-object "str.__getitem__" self)))
 
-(define str.__getitem__
+(define-rts str.__getitem__
   (procedure->py-function
     str-getitem
     (make-signature posonlyargs: (self index))))
 
-(define (str-lower self)
+(define-rts (str-lower self)
   (if (py-subtype-of-str? self)
       (py-str-from-scheme (string-downcase (py-subtype-of-str-to-scheme self)))
       (py-throw-required-type "lower" "str" self)))
 
-(define str.lower
+(define-rts str.lower
   (procedure->py-function
     str-lower
     (make-signature posonlyargs: (self))))
 
-(define (add-obj-hclass-to-hashtable! table obj)
+(define-rts (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
         (names-len (vector-length names))
         (obj-elements-len (vector-length (PyObject-%elements obj))))
@@ -2147,7 +2147,7 @@
               (table-set! table (vector-ref names i) val))
             (loop (+ i 1)))))))
 
-(define (add-global-hclass-to-hashtable! table obj)
+(define-rts (add-global-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
         (names-len (vector-length names))
         (obj-elements-len (vector-length (PyObject-%elements obj))))
@@ -2159,30 +2159,30 @@
             (loop (+ i 1)))))))
 
 ;; WARNING values of left-most objects in the list will be overwritten in hashtable
-(define (obj*-hclass->hashtable . objs)
+(define-rts (obj*-hclass->hashtable . objs)
   (let* ((table (make-table test: eq?)))
     (for-each
       (lambda (o) (add-obj-hclass-to-hashtable! table o))
       objs)
     table))
 
-(define (global*-hclass->hashtable . glo)
+(define-rts (global*-hclass->hashtable . glo)
   (let* ((table (make-table test: eq?)))
     (for-each
       (lambda (o) (add-global-hclass-to-hashtable! table o))
       glo)
     table))
 
-(define (py-get-list-of-obj*-str-attr . objs)
+(define-rts (py-get-list-of-obj*-str-attr . objs)
   (let ((table (apply obj*-hclass->hashtable objs)))
     (map car (table->list table))))
 
-(define (py-get-list-of-global*-str-attr . objs)
+(define-rts (py-get-list-of-global*-str-attr . objs)
   (let ((table (apply global*-hclass->hashtable objs)))
     (map car (table->list table))))
 
 ;; TODO need some type checks in those dir methods
-(define (object-dir self)
+(define-rts (object-dir self)
   (py-make-list-from-elems
     (if (PyObject? self)
       (py-get-list-of-obj*-str-attr
@@ -2192,53 +2192,53 @@
       (py-get-list-of-obj*-str-attr
         (py-obj-cls self)))))
 
-(define object.__dir__
+(define-rts object.__dir__
   (procedure->py-function
     object-dir
     (make-signature posonlyargs: (self))))
 
-(define (type-dir self)
+(define-rts (type-dir self)
   (py-make-list-from-elems
     (py-get-list-of-obj*-str-attr
       self
       (py-obj-cls self))))
 
-(define type.__dir__
+(define-rts type.__dir__
   (procedure->py-function
     type-dir
     (make-signature posonlyargs: (self))))
 
-(define (type-repr self)
+(define-rts (type-repr self)
   (let* ((self-name (py-str-to-scheme (py-own-attr-ref self (& "__name__"))))
          (result (string-append "<class '" self-name "'>")))
     (py-str-from-scheme result)))
 
-(define type.__repr__
+(define-rts type.__repr__
   (procedure->py-function
     type-repr
     (make-signature posonlyargs: (self))))
 
-(define (object-repr self)
+(define-rts (object-repr self)
   (let* ((self-type (py-type self))
          (self-type-name (py-str-to-scheme (py-own-attr-ref self-type (& "__name__"))))
          (addr (integer->hex-string (object->serial-number self)))
          (result (string-append "<" self-type-name " object #" addr ">")))
     (py-str-from-scheme result)))
 
-(define object.__repr__
+(define-rts object.__repr__
   (procedure->py-function
     object-repr
     (make-signature posonlyargs: (self))))
 
-(define (object-str self)
+(define-rts (object-str self)
   (py-repr self))
 
-(define object.__str__
+(define-rts object.__str__
   (procedure->py-function
     object-str
     (make-signature posonlyargs: (self))))
 
-(define (float->string-with-padded-zeros value)
+(define-rts (float->string-with-padded-zeros value)
   (let ((s (number->string value)))
     (cond ((char=? (string-ref s 0) #\.)
            (string-append "0" s))
@@ -2250,7 +2250,7 @@
           (else
            s))))
 
-(define (float-repr self)
+(define-rts (float-repr self)
   (if (py-subtype-of-float? self)
     (let ((value (py-subtype-of-float-to-scheme self)))
       (cond
@@ -2262,29 +2262,29 @@
           (py-str-from-scheme (float->string-with-padded-zeros value)))))
     (py-throw-required-type "__repr__" "float" self)))
 
-(define float.__repr__
+(define-rts float.__repr__
   (procedure->py-function
    float-repr
    (make-signature posonlyargs: (self))))
 
-(define (py-display obj port)
+(define-rts (py-display obj port)
   (display (py-str-to-scheme (py-str obj)) port))
 
-(define (py-str obj)
+(define-rts (py-str obj)
   (let* ((__str__ (getattribute-from-obj-mro obj (& "__str__")))
          (str-instance (py-call __str__ obj)))
     (if (py-subtype-of-str? str-instance)
         str-instance
         (throw-returned-wrong-type "__str__" obj "non-string"))))
 
-(define (py-repr obj)
+(define-rts (py-repr obj)
   (let* ((__repr__ (getattribute-from-obj-mro obj (& "__repr__")))
          (repr (py-call __repr__ obj)))
     (if (py-subtype-of-str? repr)
         repr
         (throw-returned-wrong-type "__repr__" obj "non-string"))))
 
-(define (py-str-repr-scheme str)
+(define-rts (py-str-repr-scheme str)
   (let* ((quote-style #f)
          (chars (string->list str)))
     (for-each (lambda (c)
@@ -2325,7 +2325,7 @@
            (string quote-style)))
       (string-append quotes content quotes))))
 
-(define (py-chr i)
+(define-rts (py-chr i)
   (if (py-subtype-of-int? i)
       (let ((value (py-subtype-of-int-to-scheme i)))
         (py-str-from-scheme (string (integer->char value))))
@@ -2344,7 +2344,7 @@
 ;;  Generators
 ;; =============================================================================
 
-(define (py-make-generator proc)
+(define-rts (py-make-generator proc)
   (make-PyObjectGenerator
     py-generator-hclass-of-instances
     '#()
@@ -2353,15 +2353,15 @@
 
 ;; TODO add checks that methods are called with correct types
 
-(define (py-generator-send self value)
+(define-rts (py-generator-send self value)
   (py-generator-next self value))
 
-(define generator.send
+(define-rts generator.send
   (procedure->py-function
     py-generator-send
     (make-signature posonlyargs: (self value))))
 
-(define (py-generator-throw self type value traceback)
+(define-rts (py-generator-throw self type value traceback)
   (let ((cont (PyObjectGenerator-continuation self)))
     (cond
       ((procedure? cont) ;; active and ready
@@ -2374,14 +2374,14 @@
       (else ;; closed
         (py-throw-with-values type value)))))
 
-(define generator.throw
+(define-rts generator.throw
   (procedure->py-function
     py-generator-throw
     (make-signature
       posonlyargs: (self type value traceback)
       defaults: '#(#f #f))))
 
-(define (py-throw-from-generator-exception-info exc-info)
+(define-rts (py-throw-from-generator-exception-info exc-info)
   (let ((exc (vector-ref exc-info 0))
         (exc-val (vector-ref exc-info 1))
         (exc-tb (vector-ref exc-info 2)))
@@ -2390,7 +2390,7 @@
       (py-throw exc))))
 
 
-(define (py-generator-close self)
+(define-rts (py-generator-close self)
   (let ((cont (PyObjectGenerator-continuation self)))
     (cond
       ((procedure? cont) ;; active and ready
@@ -2413,31 +2413,31 @@
       (else ;; closed
         py-None))))
 
-(define generator.close
+(define-rts generator.close
   (procedure->py-function
     py-generator-close
     (make-signature
       posonlyargs: (self))))
 
-(define (py-generator-next-fallback self)
+(define-rts (py-generator-next-fallback self)
   (py-generator-next self))
 
-(define generator.__next__
+(define-rts generator.__next__
   (procedure->py-function
     py-generator-next-fallback
     (make-signature posonlyargs: (self))))
 
-(define generator.__iter__
+(define-rts generator.__iter__
   (procedure->py-function
     (lambda (self) self)
     (make-signature posonlyargs: (self))))
 
-(define (py-generator-new cls)
+(define-rts (py-generator-new cls)
   (py-throw-exception-with-message
     py-builtin-TypeError
     "cannot create 'generator' instances"))
 
-(define generator.__new__
+(define-rts generator.__new__
   (procedure->py-function
     py-generator-new
     (make-signature posonlyargs: (cls))))
@@ -2447,36 +2447,36 @@
 ;; =============================================================================
 
 ;; core types (must be created in 1st bootstrap phase)
-(define py-object-class #f)
-(define py-type-class   #f)
-(define py-str-class    #f)
-(define py-tuple-class  #f)
-(define py-int-class #f)
-(define py-bool-class #f)
-(define py-float-class #f)
+(define-rts py-object-class #f)
+(define-rts py-type-class   #f)
+(define-rts py-str-class    #f)
+(define-rts py-tuple-class  #f)
+(define-rts py-int-class #f)
+(define-rts py-bool-class #f)
+(define-rts py-float-class #f)
 
-(define py-bytearray-class #f)
-(define py-complex-class #f)
-(define py-slice-class  #f)
-(define py-method-class #f)
-(define py-function-class #f)
-(define py-list-class   #f)
-(define py-dict-class   #f)
-(define py-set-class    #f)
-(define py-module-class #f)
-(define py-generator-class #f)
+(define-rts py-bytearray-class #f)
+(define-rts py-complex-class #f)
+(define-rts py-slice-class  #f)
+(define-rts py-method-class #f)
+(define-rts py-function-class #f)
+(define-rts py-list-class   #f)
+(define-rts py-dict-class   #f)
+(define-rts py-set-class    #f)
+(define-rts py-module-class #f)
+(define-rts py-generator-class #f)
 
 ;;;----------------------------------------------------------------------------
 
-(define (py-int-from-scheme-fallback value)
+(define-rts (py-int-from-scheme-fallback value)
   (py-if-specialized-sint-representation
    (if (fixnum? value) value (py-bint-from-scheme value))
    (alloc-new-PyObjectInt-from-scheme value)))
 
-(define (py-bint-from-scheme-fallback value)
+(define-rts (py-bint-from-scheme-fallback value)
   (alloc-new-PyObjectInt-from-scheme value))
 
-(define (py-subtype-of-int-from-scheme value int-subclass)
+(define-rts (py-subtype-of-int-from-scheme value int-subclass)
   ;; int-subclass is known to not be int-class
   (make-PyObjectInt
     (PyObjectType-hclass-of-instances int-subclass)
@@ -2484,7 +2484,7 @@
     int-subclass
     value))
 
-(define (py-float-from-scheme-fallback value)
+(define-rts (py-float-from-scheme-fallback value)
   (py-if-specialized-float-representation
    value
    (make-PyObjectFloat
@@ -2493,7 +2493,7 @@
     py-builtin-float
     value)))
 
-(define (py-subtype-of-float-from-scheme value float-subclass)
+(define-rts (py-subtype-of-float-from-scheme value float-subclass)
   ;; float-subclass is known to not be float-class
   (make-PyObjectFloat
     (PyObjectType-hclass-of-instances float-subclass)
@@ -2501,19 +2501,19 @@
     float-subclass
     value))
 
-(define (py-set-from-scheme elems)
+(define-rts (py-set-from-scheme elems)
   (py-throw-exception-with-message
     py-builtin-NameError
     "py-set-from-scheme not implemented"))
 
-(define (py-bytearray-from-scheme len-vec-pair)
+(define-rts (py-bytearray-from-scheme len-vec-pair)
   (make-PyObjectBytearray
     py-bytearray-hclass-of-instances
     '#()
     py-bytearray-class
     len-vec-pair))
 
-(define (py-bytearray-subtype-from-scheme len-vec-pair bytearray-subtype)
+(define-rts (py-bytearray-subtype-from-scheme len-vec-pair bytearray-subtype)
   (make-PyObjectBytearray
     (PyObjectType-hclass-of-instances bytearray-subtype)
     '#()
@@ -2523,7 +2523,7 @@
 ;; Bootstraps type and object
 ;; Create barebone object, type, str and tuple classes
 ;; These will need to be filled in later
-(define (bootstrap-type-hierarchy-phase1)
+(define-rts (bootstrap-type-hierarchy-phase1)
   (let* ((type-class
           (py-builtin-type-alloc
             #f ;; cls
@@ -2623,7 +2623,7 @@
 ;; adds top-level behavior tables
 (init-behavior-dispatch-vector)
 
-(define (py-compute-mro cls)
+(define-rts (py-compute-mro cls)
 
   (define seen '())
 
@@ -2642,7 +2642,7 @@
 
   (list->vector (add-class cls '())))
 
-(define (py-class-parse-attributes attrs)
+(define-rts (py-class-parse-attributes attrs)
   (let loop ((lst attrs)
              (rev-attr-names '())
              (rev-attr-values '()))
@@ -2660,7 +2660,7 @@
       (cons (reverse rev-attr-names) (reverse rev-attr-values)))))
 
 
-(define (py-make-class-from-type-allocator class-index can-have-getter name module bases type-allocator attrs)
+(define-rts (py-make-class-from-type-allocator class-index can-have-getter name module bases type-allocator attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
             (if (null? bases)
@@ -2687,17 +2687,17 @@
     (let ((parsed-attrs (py-class-parse-attributes attrs)))
       (make-cls (car parsed-attrs) (cdr parsed-attrs))))
 
-(define (py-make-class name module bases . attrs)
+(define-rts (py-make-class name module bases . attrs)
   (py-make-class-from-type-allocator (get-behavior-type-index default) #t name module bases py-type-alloc attrs))
 
-(define (py-make-builtin-class-with-class-info class-index can-have-getter name module bases hclass-of-instances . attrs)
+(define-rts (py-make-builtin-class-with-class-info class-index can-have-getter name module bases hclass-of-instances . attrs)
   (let ((cls
           (py-make-class-from-type-allocator
             class-index can-have-getter name module bases py-builtin-type-alloc attrs)))
     (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
     cls))
 
-(define (py-extend-builtin-core-class cls . attrs)
+(define-rts (py-extend-builtin-core-class cls . attrs)
   (define (extend-cls attr-names attr-values)
     (let loop ((attr-names attr-names) (attr-values attr-values))
       (if (pair? attr-names)
@@ -2713,19 +2713,19 @@
 ;; ================
 
 
-(define (module-dir self)
+(define-rts (module-dir self)
   (if (py-isinstance? self py-module-class)
     (py-make-list-from-elems
         (py-get-list-of-global*-str-attr self))
     (throw-returned-wrong-type "__dir__" self "not a module")))
 
-(define module.__dir__
+(define-rts module.__dir__
   (procedure->py-function
     module-dir
     (make-signature posonlyargs: (self))))
 
 
-(define (module-getattribute obj name #!optional (raise? #t) (cache #f))
+(define-rts (module-getattribute obj name #!optional (raise? #t) (cache #f))
   (define (getattribute-from-mro #!optional (index-of-hit-on-module #f))
     (getattribute-from-obj-mro-with-owner-2cont
       obj
@@ -2756,13 +2756,13 @@
        "attribute name must be string"))
     (throw-returned-wrong-type "__getattribute__" obj "not a module")))
 
-(define module.__getattribute__
+(define-rts module.__getattribute__
   (procedure->py-function
     module-getattribute
     (make-signature posonlyargs: (self name))))
 
 
-(define (module-setattr self name val)
+(define-rts (module-setattr self name val)
   (if (py-isinstance? self py-module-class)
       (if (py-isinstance? name py-builtin-str)
         (begin
@@ -2773,34 +2773,34 @@
          "attribute name must be string"))
       (throw-returned-wrong-type "__setattr__" self "not a module")))
 
-(define module.__setattr__
+(define-rts module.__setattr__
   (procedure->py-function
     module-setattr
     (make-signature posonlyargs: (self name val))))
 
 ;; list iterator
 
-(define (list-iterator-iter self)
+(define-rts (list-iterator-iter self)
   (if (eq? (py-type self) py-list-iterator-class)
     self
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 6)")))
 
-(define list_iterator.__iter__
+(define-rts list_iterator.__iter__
   (procedure->py-function
     list-iterator-iter
     (make-signature posonlyargs: (self))))
 
-(define (list-iterator-next-procedure self)
+(define-rts (list-iterator-next-procedure self)
   (if (eq? (py-type self) py-list-iterator-class)
     (list-iterator-next self #t) ;; #t second argument indicates to raise StopIteration at end of iterator
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 7)")))
 
-(define list_iterator.__next__
+(define-rts list_iterator.__next__
   (procedure->py-function
     list-iterator-next-procedure
     (make-signature posonlyargs: (self))))
 
-(define py-list-iterator-class
+(define-rts py-list-iterator-class
   (py-make-builtin-class
     (&& "list_iterator")
     (&& "builtins")
@@ -2808,27 +2808,27 @@
       (& "__iter__") list_iterator.__iter__
       (& "__next__") list_iterator.__next__))
 
-(define (tuple-iterator-iter self)
+(define-rts (tuple-iterator-iter self)
   (if (eq? (py-type self) py-tuple-iterator-class)
     self
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 8)")))
 
-(define py-tuple-iterator-iter
+(define-rts py-tuple-iterator-iter
   (procedure->py-function
     tuple-iterator-iter
     (make-signature posonlyargs: (self))))
 
-(define (tuple-iterator-next-procedure self)
+(define-rts (tuple-iterator-next-procedure self)
   (if (eq? (py-type self) py-tuple-iterator-class)
     (tuple-iterator-next self #t) ;; second argument indicates to raise StopIteration at end of iterator
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 9)")))
 
-(define py-tuple-iterator-next
+(define-rts py-tuple-iterator-next
   (procedure->py-function
     tuple-iterator-next-procedure
     (make-signature posonlyargs: (self))))
 
-(define py-tuple-iterator-class
+(define-rts py-tuple-iterator-class
   (py-make-builtin-class
     (&& "tuple_iterator")
     (&& "builtins")
@@ -2836,21 +2836,21 @@
       (& "__iter__") py-tuple-iterator-iter
       (& "__next__") py-tuple-iterator-next))
 
-(define (stop-bytearray-iterator iterator)
+(define-rts (stop-bytearray-iterator iterator)
   (PyObjectBytearrayIterator-index-set! iterator #f)
   (py-throw py-builtin-StopIteration))
 
-(define (bytearray-iterator-iter self)
+(define-rts (bytearray-iterator-iter self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
     self
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 10)")))
 
-(define py-bytearray-iterator.__iter__
+(define-rts py-bytearray-iterator.__iter__
   (procedure->py-function
     bytearray-iterator-iter
     (make-signature posonlyargs: (self))))
 
-(define (bytearray-iterator-next self)
+(define-rts (bytearray-iterator-next self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
     (let* ((index (PyObjectBytearrayIterator-index self))
            (vec (PyObjectBytearrayIterator-bytearray self)))
@@ -2863,12 +2863,12 @@
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 11)")))
 
 
-(define py-bytearray-iterator.__next__
+(define-rts py-bytearray-iterator.__next__
   (procedure->py-function
     bytearray-iterator-next
     (make-signature posonlyargs: (self))))
 
-(define py-bytearray-iterator-class
+(define-rts py-bytearray-iterator-class
   (py-make-builtin-class
     (&& "bytearray_iterator")
     (&& "builtins")
@@ -2882,10 +2882,10 @@
 ;; These classes are used for lists and bytearrays
 ;; list class
 
-(define (index-in-length-range index len)
+(define-rts (index-in-length-range index len)
   (and (< index len) (>= index (- len))))
 
-(define (py-index-in-subvector item vec start stop)
+(define-rts (py-index-in-subvector item vec start stop)
   (let loop ((i start))
     (cond
       ((>= i stop)
@@ -2895,7 +2895,7 @@
       (else
         (loop (+ i 1))))))
 
-(define (list-new cls iterable)
+(define-rts (list-new cls iterable)
   (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
       (if (eq? iterable py-absent)
           (py-list-subtype-from-scheme cls '#() 0)
@@ -2921,24 +2921,24 @@
                    (vector-length content)))))))
       (py-throw-wrong-new-argument "list" cls)))
 
-(define list.__new__
+(define-rts list.__new__
   (procedure->py-function
     list-new
     (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
 
-(define (list-iter self)
+(define-rts (list-iter self)
   (if (py-isinstance? self py-list-class)
     (py-list-iterator-alloc 0 self)
     (py-throw-not-a-type-object "list.__iter__" self)))
 
-(define list.__iter__
+(define-rts list.__iter__
   (procedure->py-function
     list-iter
     (make-signature posonlyargs: (self))))
 
 ;; TODO: use list real length instead of vector-length
 ;; otherwise this will crash once list is an actual dynamic array
-(define (list-contains self item)
+(define-rts (list-contains self item)
   (if (py-isinstance? self py-list-class)
     (let* ((len (PyObjectList-len self))
            (vec (PyObjectList-vector self)))
@@ -2950,13 +2950,13 @@
           py-False)))
     (py-throw-not-a-type-object "list.__contains__" self)))
 
-(define list.__contains__
+(define-rts list.__contains__
   (procedure->py-function
     list-contains
     (make-signature posonlyargs: (self item))))
 
 ;; TODO: print cyclic structures
-(define (list-repr self)
+(define-rts (list-repr self)
   (if (py-isinstance? self py-list-class)
     (let* ((len (PyObjectList-len self))
            (vec (PyObjectList-vector self))
@@ -2971,41 +2971,41 @@
           "]")))
     (py-throw-not-a-type-object "list.__repr__" self)))
 
-(define list.__repr__
+(define-rts list.__repr__
   (procedure->py-function
     list-repr
     (make-signature posonlyargs: (self))))
 
-(define (list-add self other)
+(define-rts (list-add self other)
   (if (py-isinstance? self py-list-class)
     (if (py-isinstance? other py-list-class)
       (py-add-listX-listY-inline self other)
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__add__" self)))
 
-(define list.__add__
+(define-rts list.__add__
   (procedure->py-function
     list-add
     (make-signature posonlyargs: (self other))))
 
-(define (list-mul self n)
+(define-rts (list-mul self n)
   (if (py-isinstance? self py-list-class)
     (if (py-subtype-of-int? n)
       (py-mul-listX-UintY self (py-subtype-of-int-to-scheme n))
       py-NotImplemented)
     (py-throw-not-a-type-object "list.__mul__" self)))
 
-(define list.__mul__
+(define-rts list.__mul__
   (procedure->py-function
     list-mul
     (make-signature posonlyargs: (self n))))
 
-(define list.__rmul__
+(define-rts list.__rmul__
   (procedure->py-function
     list-mul
     (make-signature posonlyargs: (self n))))
 
-(define (list-imul self n)
+(define-rts (list-imul self n)
   (if (py-isinstance? self py-list-class)
       (if (py-subtype-of-int? n)
         (let ((res (py-mul-listX-UintY self (py-subtype-of-int-to-scheme n))))
@@ -3015,31 +3015,31 @@
         py-NotImplemented)
       (py-throw-not-a-type-object "list.__mul__" self)))
 
-(define list.__imul__
+(define-rts list.__imul__
   (procedure->py-function
     list-imul
     (make-signature posonlyargs: (self n))))
 
-(define (list-len self)
+(define-rts (list-len self)
   (if (py-isinstance? self py-list-class)
     (py-int-from-scheme (PyObjectList-len self))
     (py-throw-not-a-type-object "list.__len__" self)))
 
-(define list.__len__
+(define-rts list.__len__
   (procedure->py-function
     list-len
     (make-signature posonlyargs: (self))))
 
 (define-macro (define-list-binary-comparator name py-name py-compare)
   `(begin
-    (define (,name self other)
+    (define-rts (,name self other)
       (if (py-isinstance? self py-list-class)
         (if (py-isinstance? other py-list-class)
           (,py-compare self other)
           py-NotImplemented)
         (py-throw-not-a-type-object ,(symbol->string py-name) self)))
 
-    (define ,py-name
+    (define-rts ,py-name
       (procedure->py-function
         ,name
         (make-signature posonlyargs: (self other))))))
@@ -3057,7 +3057,7 @@
 (define-list-binary-comparator list-ge list.__ge__ py-ge-listX-listY)
 
 ;; NOTE: follows requirements of slice.indices(len)
-(define (py-slice-indices slice len)
+(define-rts (py-slice-indices slice len)
   (let* ((py-start (PyObjectSlice-start slice))
          (py-stop (PyObjectSlice-stop slice))
          (py-step (PyObjectSlice-step slice))
@@ -3099,7 +3099,7 @@
         (vector first last step))
       (vector 0 0 step))))
 
-(define (list-getitem self item)
+(define-rts (list-getitem self item)
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-subtype-of-int? item)
@@ -3109,12 +3109,12 @@
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
     (py-throw-not-a-type-object "list.__getitem__" self)))
 
-(define list.__getitem__
+(define-rts list.__getitem__
   (procedure->py-function
     list-getitem
     (make-signature posonlyargs: (self item))))
 
-(define (list-set-simple-slice! lst start stop vec len)
+(define-rts (list-set-simple-slice! lst start stop vec len)
   (let* ((self-vec (PyObjectList-vector lst))
          (slice-len (- stop start))
          (len-diff (- slice-len len)))
@@ -3131,7 +3131,7 @@
             (vector-set! self-vec target (vector-ref vec source))
             (loop (+ source 1) (+ target 1)))))))
 
-(define (list-set-extended-slice! lst start stop step vec len)
+(define-rts (list-set-extended-slice! lst start stop step vec len)
   (let ((self-vec (PyObjectList-vector lst))
          (slice-len (max 0 (ceiling (/ (- stop start) step)))))
     (if (= len slice-len)
@@ -3142,7 +3142,7 @@
             (loop (+ source 1) (+ target step)))))
       (py-throw-extended-slice-wrong-len len slice-len))))
 
-(define (list-set-slice self slice value)
+(define-rts (list-set-slice self slice value)
   (let* ((self-len (PyObjectList-len self))
         (indices (py-slice-indices slice self-len))
         (start (vector-ref indices 0))
@@ -3172,7 +3172,7 @@
                 (list-set-extended-slice! self start stop step value-vec value-len)))
             (py-throw-can-only-assign-iterable)))))))
 
-(define (list-setitem self item value)
+(define-rts (list-setitem self item value)
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-subtype-of-int? item)
@@ -3188,12 +3188,12 @@
     (py-throw-not-a-type-object "list.__setitem__" self))
   py-None)
 
-(define list.__setitem__
+(define-rts list.__setitem__
   (procedure->py-function
     list-setitem
     (make-signature posonlyargs: (self item value))))
 
-(define (list-shrink! list)
+(define-rts (list-shrink! list)
   (let* ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list))
         (new-inner-len (list-get-inner-len len))
@@ -3201,10 +3201,10 @@
     (PyObjectList-vector-set! list new-vector)
     new-vector))
 
-(define (list-grow! list)
+(define-rts (list-grow! list)
   (list-grow-by! list 1))
 
-(define (list-grow-by! list amount)
+(define-rts (list-grow-by! list amount)
   (let* ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list))
         (new-inner-len (list-get-inner-len (+ len amount)))
@@ -3214,7 +3214,7 @@
       new-vector)
     new-vector))
 
-(define (list-shift-left! lst index)
+(define-rts (list-shift-left! lst index)
   (let ((len (PyObjectList-len lst))
         (vec (PyObjectList-vector lst)))
     (let loop ((i index))
@@ -3227,7 +3227,7 @@
     (if (< len (list-get-shrink-threshold (vector-length vec)))
       (list-shrink! lst))))
 
-(define (list-shift-left-by! lst index amount)
+(define-rts (list-shift-left-by! lst index amount)
   (if (> amount 0)
     (let ((len (PyObjectList-len lst))
           (vec (PyObjectList-vector lst)))
@@ -3244,7 +3244,7 @@
 
 ;; NOTE: shift-right does not insert #f at index
 ;;       it is assumed shift is done with intent to write at index
-(define (list-shift-right! list index)
+(define-rts (list-shift-right! list index)
   (let ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list)))
     (if (= len (vector-length vec))
@@ -3256,7 +3256,7 @@
           (loop (- i 1)))))
     (PyObjectList-len-set! list (+ len 1))))
 
-(define (list-shift-right-by! lst index amount)
+(define-rts (list-shift-right-by! lst index amount)
   (if (> amount 0)
     (let ((len (PyObjectList-len lst))
           (vec (PyObjectList-vector lst)))
@@ -3269,7 +3269,7 @@
             (loop (- i 1)))))
       (PyObjectList-len-set! lst (+ len amount)))))
 
-(define (list-pop-last! lst)
+(define-rts (list-pop-last! lst)
   (let* ((len (PyObjectList-len lst))
         (vec (PyObjectList-vector lst))
         (last-index (- len 1))
@@ -3280,7 +3280,7 @@
       (list-shrink! lst))
       last))
 
-(define (list-del-extended-slice! lst start stop step)
+(define-rts (list-del-extended-slice! lst start stop step)
   (let* ((len (PyObjectList-len lst))
         (vec (PyObjectList-vector lst))
         (slice-len (max 0 (ceiling (/ (- stop start) step))))
@@ -3301,7 +3301,7 @@
         ;; shift-left handles shrink
         (list-shift-left-by! lst read-index slice-len)))))
 
-(define (list-delitem self item)
+(define-rts (list-delitem self item)
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-subtype-of-int? item)
@@ -3324,12 +3324,12 @@
     (py-throw-not-a-type-object "list.__delitem__" self))
   py-None)
 
-(define list.__delitem__
+(define-rts list.__delitem__
   (procedure->py-function
     list-delitem
     (make-signature posonlyargs: (self item))))
 
-(define (list-pop self index)
+(define-rts (list-pop self index)
   (if (py-isinstance? self py-list-class)
     (cond
       ((eq? index py-absent)
@@ -3352,12 +3352,12 @@
       (else (py-throw-wrong-index-type "list" "integers" index)))
     (py-throw-not-a-type-object "list.pop" self)))
 
-(define list.pop
+(define-rts list.pop
   (procedure->py-function
     list-pop
     (make-signature posonlyargs: (self index) defaults: (vector py-absent))))
 
-(define (list-append self value)
+(define-rts (list-append self value)
   (if (py-isinstance? self py-list-class)
     (let* ((len (PyObjectList-len self))
            (vec
@@ -3370,12 +3370,12 @@
     (py-throw-not-a-type-object "list.append" self))
   py-None)
 
-(define list.append
+(define-rts list.append
   (procedure->py-function
     list-append
     (make-signature posonlyargs: (self value))))
 
-(define (list-clear self)
+(define-rts (list-clear self)
   (if (py-isinstance? self py-list-class)
     (begin
       (PyObjectList-vector-set! self (make-vector (list-get-inner-len 0) #f))
@@ -3383,23 +3383,23 @@
     (py-throw-not-a-type-object "list.clear" self))
   py-None)
 
-(define list.clear
+(define-rts list.clear
   (procedure->py-function
     list-clear
     (make-signature posonlyargs: (self))))
 
 ;; Could not call list-copy due to collision with Scheme list-copy
-(define (list-copy-procedure self)
+(define-rts (list-copy-procedure self)
   (if (py-isinstance? self py-list-class)
     (py-list-from-scheme (vector-copy (PyObjectList-vector self)) (PyObjectList-len self))
     (py-throw-not-a-type-object "list.copy" self)))
 
-(define list.copy
+(define-rts list.copy
   (procedure->py-function
     list-copy-procedure
     (make-signature posonlyargs: (self))))
 
-(define (list-count self item)
+(define-rts (list-count self item)
   (if (py-isinstance? self py-list-class)
     (let* ((len (PyObjectList-len self))
            (vec (PyObjectList-vector self)))
@@ -3413,12 +3413,12 @@
             (loop (+ i 1) count)))))
     (py-throw-not-a-type-object "list.count" self)))
 
-(define list.count
+(define-rts list.count
   (procedure->py-function
     list-count
     (make-signature posonlyargs: (self item))))
 
-(define (list-index self item start stop)
+(define-rts (list-index self item start stop)
   (if (py-isinstance? self py-list-class)
     (let* ((len (PyObjectList-len self))
            (vec (PyObjectList-vector self))
@@ -3449,12 +3449,12 @@
               (&& "list.index(x): x not in list"))))))
     (py-throw-not-a-type-object "list.index" self)))
 
-(define list.index
+(define-rts list.index
   (procedure->py-function
     list-index
     (make-signature posonlyargs: (self item start stop) defaults: '#(#f #f))))
 
-(define (list-insert self index value)
+(define-rts (list-insert self index value)
   (if (py-isinstance? self py-list-class)
     (if (py-subtype-of-int? index)
       (let* ((len (PyObjectList-len self))
@@ -3469,12 +3469,12 @@
     (py-throw-not-a-type-object "list.insert" self))
   py-None)
 
-(define list.insert
+(define-rts list.insert
   (procedure->py-function
     list-insert
     (make-signature posonlyargs: (self index value))))
 
-(define (list-extend-with-vector-head! lst source-vec stop)
+(define-rts (list-extend-with-vector-head! lst source-vec stop)
   (let* ((len (PyObjectList-len lst))
          (vec
            (let ((vec (PyObjectList-vector lst)))
@@ -3488,7 +3488,7 @@
           (loop (+ i 1) (+ j 1)))))
     (PyObjectList-len-set! lst (+ len stop))))
 
-(define (list-extend-with-iterable! lst iterable)
+(define-rts (list-extend-with-iterable! lst iterable)
   (let ((iterable-type (py-type iterable)))
     (cond
       ((eq? iterable-type py-tuple-class)
@@ -3512,29 +3512,29 @@
             content
             (vector-length content)))))))
 
-(define (list-extend self iterable)
+(define-rts (list-extend self iterable)
   (if (py-isinstance? self py-list-class)
     (list-extend-with-iterable! self iterable)
     (py-throw-not-a-type-object "list.extend" self))
   py-None)
 
-(define list.extend
+(define-rts list.extend
   (procedure->py-function
     list-extend
     (make-signature posonlyargs: (self iterable))))
 
-(define (list-iadd self other)
+(define-rts (list-iadd self other)
   (if (py-isinstance? self py-list-class)
     (list-extend-with-iterable! self other)
     (py-throw-not-a-type-object "list.__iadd__" self))
   self)
 
-(define list.__iadd__
+(define-rts list.__iadd__
   (procedure->py-function
     list-iadd
     (make-signature posonlyargs: (self other))))
 
-(define (list-remove self item)
+(define-rts (list-remove self item)
   (if (py-isinstance? self py-list-class)
     (let* ((len (PyObjectList-len self))
            (vec (PyObjectList-vector self)))
@@ -3548,12 +3548,12 @@
     (py-throw-not-a-type-object "list.remove" self))
   py-None)
 
-(define list.remove
+(define-rts list.remove
   (procedure->py-function
     list-remove
     (make-signature posonlyargs: (self item))))
 
-(define (list-reverse self)
+(define-rts (list-reverse self)
     (if (py-isinstance? self py-list-class)
       (let ((len (PyObjectList-len self))
             (vec (PyObjectList-vector self)))
@@ -3567,26 +3567,26 @@
       (py-throw-not-a-type-object "list.reverse" self))
     py-None)
 
-(define list.reverse
+(define-rts list.reverse
   (procedure->py-function
     list-reverse
     (make-signature posonlyargs: (self))))
 
-(define list.sort #f)
+(define-rts list.sort #f)
 
 ;; tuple class
 
-(define (tuple-iter self)
+(define-rts (tuple-iter self)
   (if (py-isinstance? self py-tuple-class)
     (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
     (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 12)")))
 
-(define tuple.__iter__
+(define-rts tuple.__iter__
   (procedure->py-function
     tuple-iter
     (make-signature posonlyargs: (self))))
 
-(define (tuple-contains self item)
+(define-rts (tuple-contains self item)
   (if (py-isinstance? self py-tuple-class)
     (let* ((vec (PyObjectTuple-value self))
            (vec-len (vector-length vec)))
@@ -3598,12 +3598,12 @@
           py-False)))
     (py-throw-not-a-type-object "tuple.__contains__" self)))
 
-(define tuple.__contains__
+(define-rts tuple.__contains__
   (procedure->py-function
     tuple-contains
     (make-signature posonlyargs: (self item))))
 
-(define (tuple-add self other)
+(define-rts (tuple-add self other)
   (if (py-isinstance? self py-tuple-class)
     (if (py-isinstance? other py-tuple-class)
       (let ((v1 (PyObjectTuple-value self))
@@ -3612,12 +3612,12 @@
       py-NotImplemented)
     (py-throw-not-a-type-object "tuple.__add__" self)))
 
-(define tuple.__add__
+(define-rts tuple.__add__
   (procedure->py-function
     tuple-add
     (make-signature posonlyargs: (self other))))
 
-(define (vector*n v n)
+(define-rts (vector*n v n)
   (let* ((v-len (vector-length v))
          (target-len (* n v-len))
          (out (make-vector target-len)))
@@ -3631,7 +3631,7 @@
             (loop (+ target-pos v-len))))
         out))))
 
-(define (tuple-mul self n)
+(define-rts (tuple-mul self n)
   (if (py-isinstance? self py-tuple-class)
     (if (py-subtype-of-int? n)
       (let ((v (PyObjectTuple-value self))
@@ -3640,17 +3640,17 @@
       py-NotImplemented)
     (py-throw-not-a-type-object "tuple.__mul__" self)))
 
-(define tuple.__mul__
+(define-rts tuple.__mul__
   (procedure->py-function
     tuple-mul
     (make-signature posonlyargs: (self n))))
 
-(define tuple.__rmul__
+(define-rts tuple.__rmul__
   (procedure->py-function
     tuple-mul
     (make-signature posonlyargs: (self n))))
 
-(define (vector-py-eq? v1 v2)
+(define-rts (vector-py-eq? v1 v2)
   (let ((v1-len (vector-length v1))
         (v2-len (vector-length v2)))
     (if (= v1-len v2-len)
@@ -3664,11 +3664,11 @@
           #t))
       #f)))
 
-(define (vector-py-ne? v1 v2)
+(define-rts (vector-py-ne? v1 v2)
   (not (vector-py-eq? v1 v2)))
 
 (define-macro (define-vector-comparator name py-strict-op scheme-op)
-  `(define (,name v1 v2)
+  `(define-rts (,name v1 v2)
     (let* ((v1-len (vector-length v1))
           (v2-len (vector-length v2))
           (min-len (min v1-len v2-len)))
@@ -3693,7 +3693,7 @@
 
 (define-macro (define-tuple-binary-comparator name py-name vector-comparator)
   `(begin
-    (define (,name self other)
+    (define-rts (,name self other)
       (if (py-isinstance? self py-tuple-class)
         (if (py-isinstance? other py-tuple-class)
           (let ((v1 (PyObjectTuple-value self))
@@ -3704,7 +3704,7 @@
           py-NotImplemented)
         (py-throw-not-a-type-object ,(symbol->string py-name) self)))
 
-    (define ,py-name
+    (define-rts ,py-name
       (procedure->py-function
         ,name
         (make-signature posonlyargs: (self other))))))
@@ -3722,7 +3722,7 @@
 (define-tuple-binary-comparator tuple-ge tuple.__ge__ vector-py-ge?)
 
 ;; TODO: print cyclic structures
-(define (tuple-repr self)
+(define-rts (tuple-repr self)
   (if (py-isinstance? self py-tuple-class)
     (let* ((vec (PyObjectTuple-value self))
            (content-strs (vector-map py-repr vec))
@@ -3736,23 +3736,23 @@
           (if (= (vector-length vec) 1) ",)" ")"))))
     (py-throw-not-a-type-object "tuple.__repr__" self)))
 
-(define tuple.__repr__
+(define-rts tuple.__repr__
   (procedure->py-function
     tuple-repr
     (make-signature posonlyargs: (self))))
 
-(define (tuple-len self)
+(define-rts (tuple-len self)
   (if (py-isinstance? self py-tuple-class)
     (let* ((vec (PyObjectTuple-value self)))
       (py-int-from-scheme (vector-length vec)))
     (py-throw-not-a-type-object "tuple.__len__" self)))
 
-(define tuple.__len__
+(define-rts tuple.__len__
   (procedure->py-function
     tuple-len
     (make-signature posonlyargs: (self))))
 
-(define (vector-slice vec start stop step)
+(define-rts (vector-slice vec start stop step)
   (let* ((len (max 0 (ceiling (/ (- stop start) step))))
         (out (make-vector len #f)))
     (let loop ((source start) (target 0))
@@ -3762,7 +3762,7 @@
           (loop (+ source step) (+ target 1)))))
     out))
 
-(define (vector-py-slice vec slice)
+(define-rts (vector-py-slice vec slice)
   (let* ((len (vector-length vec))
         (slice-indices (py-slice-indices slice len)))
     (vector-slice
@@ -3771,7 +3771,7 @@
       (vector-ref slice-indices 1)
       (vector-ref slice-indices 2))))
 
-(define (tuple-getitem self item)
+(define-rts (tuple-getitem self item)
   (if (py-isinstance? self py-tuple-class)
     (cond
       ((py-subtype-of-int? item)
@@ -3789,12 +3789,12 @@
       (py-throw-wrong-index-type "tuple" "integers or slices" item))
     (py-throw-not-a-type-object "tuple.__getitem__" self)))
 
-(define tuple.__getitem__
+(define-rts tuple.__getitem__
   (procedure->py-function
     tuple-getitem
     (make-signature posonlyargs: (self item))))
 
-(define (tuple-count self item)
+(define-rts (tuple-count self item)
   (if (py-isinstance? self py-tuple-class)
     (let* ((vec (PyObjectTuple-value self))
            (vec-len (vector-length vec)))
@@ -3808,12 +3808,12 @@
             (loop (+ i 1) count)))))
     (py-throw-not-a-type-object "tuple.count" self)))
 
-(define tuple.count
+(define-rts tuple.count
   (procedure->py-function
     tuple-count
     (make-signature posonlyargs: (self item))))
 
-(define (tuple-index self item start stop)
+(define-rts (tuple-index self item start stop)
   (if (py-isinstance? self py-tuple-class)
     (let* ((vec (PyObjectTuple-value self))
            (len (vector-length vec))
@@ -3844,7 +3844,7 @@
               (&& "tuple.index(x): x not in tuple"))))))
     (py-throw-not-a-type-object "tuple.index" self)))
 
-(define tuple.index
+(define-rts tuple.index
   (procedure->py-function
     tuple-index
     (make-signature
@@ -3853,7 +3853,7 @@
 
 ;; slices
 
-(define (py-slice-from-scheme start stop step)
+(define-rts (py-slice-from-scheme start stop step)
   (make-PyObjectSlice
     py-slice-hclass-of-instances
     '#()
@@ -3862,7 +3862,7 @@
     stop
     step))
 
-(define (slice-new cls arg1 arg2 arg3)
+(define-rts (slice-new cls arg1 arg2 arg3)
   (if (or (eq? cls py-slice-class) (py-issubclass? cls py-slice-class))
     (cond
       ((eq? arg2 py-absent)
@@ -3873,14 +3873,14 @@
         (py-slice-from-scheme arg1 arg2 arg3)))
     (py-throw-wrong-new-argument "list" cls)))
 
-(define slice.__new__
+(define-rts slice.__new__
   (procedure->py-function
     slice-new
     (make-signature
       posonlyargs: (cls arg1 arg2 arg3)
       defaults: (vector py-absent py-absent))))
 
-(define (slice-indices self len)
+(define-rts (slice-indices self len)
     (if (py-isinstance? self py-slice-class)
       (if (py-subtype-of-int? len)
         (let ((len-i (py-subtype-of-int-to-scheme len)))
@@ -3891,7 +3891,7 @@
         (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 13)")) ;; TODO: add error message
       (py-throw-not-a-type-object "slice.indices" self)))
 
-(define slice.indices
+(define-rts slice.indices
   (procedure->py-function
     slice-indices
     (make-signature posonlyargs: (self len))))
@@ -3906,7 +3906,7 @@
   `(cons ,len ,vector))
 
 (define-macro (define-concat-dynamic-vector name vref vset vmake vempty-list)
-`(define (,name container1 container2)
+`(define-rts (,name container1 container2)
   (let* ((len1 (car container1))
         (v1 (cdr container1))
         (len2 (car container2))
@@ -3930,7 +3930,7 @@
 
 
 (define-macro (define-*n-dynamic-vector name vref vset vmake vempty-list)
-  `(define (,name c n)
+  `(define-rts (,name c n)
   (let* ((len (car c))
          (vec (cdr c))
          (total-len (fx* len n))
@@ -3950,7 +3950,7 @@
 
 
 (define-macro (define-slice-dynamic-vector name vref vset vmake vlist-empty)
-  `(define (,name vec start stop step)
+  `(define-rts (,name vec start stop step)
   (let* ((len (max 0 (ceiling (/ (- stop start) step))))
         (inner-len (list-get-inner-len len))
         (out (,vmake inner-len ,vlist-empty)))
@@ -3965,7 +3965,7 @@
 
 
 (define-macro (define-py-slice-dynamic-vector name vref vdynamic-slice)
-  `(define (,name dvec slice)
+  `(define-rts (,name dvec slice)
   (let* ((len (car dvec))
         (vec (cdr dvec))
         (slice-indices (py-slice-indices slice len)))
@@ -3983,7 +3983,7 @@
 
 ;; slices of the form lst[1:4]
 (define-macro (define-set-simple-slice-dynamic-vector name vshift-right-by vshift-left-by vset vref)
-  `(define (,name dvec start stop vec len)
+  `(define-rts (,name dvec start stop vec len)
     (let* ((self-vec (cdr dvec))
            (slice-len (- stop start))
            (len-diff (- slice-len len)))
@@ -4006,7 +4006,7 @@
 
 ;;slices of the form lst[1:6:2] (i.e. with a step)
 (define-macro (define-set-extended-dynamic-vector name vref vset)
-  `(define (,name dvec start stop step vec len)
+  `(define-rts (,name dvec start stop step vec len)
   (let ((self-vec (cdr dvec))
         (slice-len (max 0 (ceiling (/ (- stop start) step)))))
     (if (= len slice-len)
@@ -4022,7 +4022,7 @@
 
 
 (define-macro (define-shrink-dynamic-vector name vsubvec)
-  `(define (,name dvec)
+  `(define-rts (,name dvec)
     (let* ((len (car dvec))
            (vec (cdr dvec))
            (new-inner-len (list-get-inner-len len)))
@@ -4031,7 +4031,7 @@
 (define-shrink-dynamic-vector dynamic-u8vector-shrink! subu8vector)
 
 (define-macro (define-grow-dynamic-vector name vset vmake vlist-empty vappend)
-  `(define (,name dvec)
+  `(define-rts (,name dvec)
   (let* ((len (car dvec))
         (vec (cdr dvec))
         (new-inner-len (list-get-inner-len len)))
@@ -4042,7 +4042,7 @@
 (define-grow-dynamic-vector dynamic-u8vector-grow! u8vector-set! make-u8vector 0 u8vector-append)
 
 (define-macro (define-grow-by-dynamic-vector name vmake vlist-empty vappend )
-  `(define (,name dvec amount)
+  `(define-rts (,name dvec amount)
     (let* ((len (car dvec))
            (vec (cdr dvec))
            (new-inner-len (list-get-inner-len (+ len amount))))
@@ -4053,7 +4053,7 @@
 (define-grow-by-dynamic-vector dynamic-u8vector-grow-by! make-u8vector 0 u8vector-append)
 
 (define-macro (define-shift-left-by-dynamic-vector name vshrink-by vset vempty-list vref vlength)
-  `(define (,name dvec index amount)
+  `(define-rts (,name dvec index amount)
     (if (> amount 0)
         (let ((len (car dvec))
               (vec (cdr dvec)))
@@ -4072,7 +4072,7 @@
 (define-shift-left-by-dynamic-vector dynamic-u8vector-shift-left-by! dynamic-u8vector-shrink! u8vector-set! 0 u8vector-ref u8vector-length)
 
 (define-macro (define-shift-right-by-dynamic-vector name vgrow-by vset vref vlength)
-  `(define (,name dvec index amount)
+  `(define-rts (,name dvec index amount)
     (if (> amount 0)
         (let ((len (car dvec))
               (vec (cdr dvec)))
@@ -4093,10 +4093,10 @@
 ;; bytearray operations
 ;; =========================
 
-(define (py-int-in-byte-range? value)
+(define-rts (py-int-in-byte-range? value)
   (and (<= 0 value) (>= 255 value)))
 
-(define (vector-in-byte-range? vec)
+(define-rts (vector-in-byte-range? vec)
   (let loop ((i 0))
     (if (< i (vector-length vec))
         (let ((item (vector-ref vec i)))
@@ -4107,9 +4107,9 @@
               #f))
         #t)))
 
-(define u8-empty-vector (make-u8vector 0 0))
+(define-rts u8-empty-vector (make-u8vector 0 0))
 
-(define (bytearray-new cls arg1 arg2 agr3)
+(define-rts (bytearray-new cls arg1 arg2 agr3)
   (if (py-issubclass? cls py-bytearray-class)
     (cond
        ((eq? arg1 py-absent)
@@ -4133,7 +4133,7 @@
     (py-throw-wrong-new-argument "bytearray" cls)))
 
 
-(define bytearray.__new__
+(define-rts bytearray.__new__
   (procedure->py-function
     bytearray-new
     (make-signature
@@ -4141,7 +4141,7 @@
       defaults: (vector py-absent py-absent py-absent))))
 
 
-(define (bytearray-getitem self item)
+(define-rts (bytearray-getitem self item)
   (if (py-isinstance? self py-bytearray-class)
       (cond
         ((py-subtype-of-int? item)
@@ -4158,13 +4158,13 @@
       (else (py-throw-wrong-index-type "bytearray" "integers or slices" item)))
     (py-throw-not-a-type-object "bytearray.__getitem__" self)))
 
-(define bytearray.__getitem__
+(define-rts bytearray.__getitem__
   (procedure->py-function
     bytearray-getitem
     (make-signature posonlyargs:
       (self item))))
 
-(define (bytearray-set-slice self slice value)
+(define-rts (bytearray-set-slice self slice value)
   (let* ((dvec (PyObjectBytearray-value self))
         (self-len (car dvec))
         (indices (py-slice-indices slice self-len))
@@ -4201,7 +4201,7 @@
             (py-throw-can-only-assign-iterable)))))))
 
 
-(define (bytearray-setitem self key value)
+(define-rts (bytearray-setitem self key value)
   (if (py-isinstance? self py-bytearray-class)
       (cond
        ((py-subtype-of-int? key)
@@ -4223,13 +4223,13 @@
          (py-throw-wrong-index-type "bytearray" "integers or slice" key)))
       (py-throw-not-a-type-object "bytearray.__getitem__" self)))
 
-(define bytearray.__setitem__
+(define-rts bytearray.__setitem__
   (procedure->py-function
     bytearray-setitem
       (make-signature posonlyargs:
         (self key value))))
 
-(define (bytearray-append self elem)
+(define-rts (bytearray-append self elem)
   (cond
     ((not (py-isinstance? self py-bytearray-class))
       (py-throw-not-a-type-object "bytearray.append" self))
@@ -4247,13 +4247,13 @@
               (u8vector-set! (cdr bytearray) (car bytearray) elem-int)
               (set-car! bytearray (+ 1 (car bytearray)))))))))
 
-(define bytearray.append
+(define-rts bytearray.append
   (procedure->py-function
     bytearray-append
     (make-signature posonlyargs:
       (self value))))
 
-(define (bytearray-add self other)
+(define-rts (bytearray-add self other)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? other py-bytearray-class)
           (let ((c1 (PyObjectBytearray-value self))
@@ -4262,12 +4262,12 @@
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__add__" self)))
 
-(define bytearray.__add__
+(define-rts bytearray.__add__
   (procedure->py-function
    bytearray-add
    (make-signature posonlyargs: (self other))))
 
-(define (dynamic-u8vector-extend dvec-target dvec-source)
+(define-rts (dynamic-u8vector-extend dvec-target dvec-source)
   (let* ((target (cdr dvec-target))
         (target-length (car dvec-target))
         (target-inner-length (car dvec-target))
@@ -4287,7 +4287,7 @@
         (set-cdr! dvec-target (cdr new-dvec))))))
 
 
-(define (bytearray-iadd self other)
+(define-rts (bytearray-iadd self other)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-isinstance? other py-bytearray-class)
           (let ((c1 (PyObjectBytearray-value self))
@@ -4297,12 +4297,12 @@
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__iadd__" self)))
 
-(define bytearray.__iadd__
+(define-rts bytearray.__iadd__
   (procedure->py-function
    bytearray-iadd
    (make-signature posonlyargs: (self other))))
 
-(define (bytearray-repr self)
+(define-rts (bytearray-repr self)
   (define (u8->char-repr x)
     (string-append "\\x" (substring (number->string (+ x 256) 16) 1 3)))
 
@@ -4322,12 +4322,12 @@
           "')")))
     (py-throw-not-a-type-object "bytearray.__repr__" self)))
 
-(define bytearray.__repr__
+(define-rts bytearray.__repr__
   (procedure->py-function
    bytearray-repr
    (make-signature posonlyargs: (self))))
 
-(define (bytearray-mul self n)
+(define-rts (bytearray-mul self n)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-subtype-of-int? n)
           (let ((c (PyObjectBytearray-value self))
@@ -4336,17 +4336,17 @@
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__mul__" self)))
 
-(define bytearray.__mul__
+(define-rts bytearray.__mul__
   (procedure->py-function
    bytearray-mul
    (make-signature posonlyargs: (self other))))
 
-(define bytearray.__rmul__
+(define-rts bytearray.__rmul__
   (procedure->py-function
    bytearray-mul
    (make-signature posonlyargs: (self n))))
 
-(define (bytearray-imul self n)
+(define-rts (bytearray-imul self n)
   (if (py-isinstance? self py-bytearray-class)
       (if (py-subtype-of-int? n)
           (let ((c (PyObjectBytearray-value self))
@@ -4356,26 +4356,26 @@
           py-NotImplemented)
       (py-throw-not-a-type-object "bytearray.__mul__" self)))
 
-(define bytearray.__imul__
+(define-rts bytearray.__imul__
   (procedure->py-function
    bytearray-imul
    (make-signature posonlyargs: (self n))))
 
-(define (bytearray-len self)
+(define-rts (bytearray-len self)
   (if (py-isinstance? self py-bytearray-class)
       (py-int-from-scheme
        (car
         (PyObjectBytearray-value self)))
       (py-throw-not-a-type-object "bytearray.__len__" self)))
 
-(define bytearray.__len__
+(define-rts bytearray.__len__
   (procedure->py-function
    bytearray-len
    (make-signature posonlyargs: (self))))
 
 (define-macro (define-search-function endfunction name func-name)
   `(begin
-     (define (,name self item start stop)
+     (define-rts (,name self item start stop)
        (cond
         ((not (py-isinstance? self py-bytearray-class))
          ((py-throw-not-a-type-object ,(symbol->string func-name) self)))
@@ -4396,7 +4396,7 @@
                  (,endfunction (cdr bytearray) item-int start-int stop-int))
                (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
                )))))
-     (define ,func-name
+     (define-rts ,func-name
        (procedure->py-function
         ,name
         (make-signature posonlyargs: (self item start stop) defaults: (vector py-absent py-absent))))))
@@ -4470,7 +4470,7 @@
 
 (define-macro (dynamic-u8vector-comparator-eq op-int eq? inverse-output name func-name)
   `(begin
-     (define  (,func-name self other)
+     (define-rts  (,func-name self other)
        (if (py-isinstance? self py-bytearray-class)
            (if (py-isinstance? other py-bytearray-class)
                (let* ((c1 (PyObjectBytearray-value self))
@@ -4488,7 +4488,7 @@
                      ,(if inverse-output `py-False `py-True)))
                py-NotImplemented)
            (py-throw-not-a-type-object ,name self)))
-     (define ,(string->symbol (string-append "bytearray." name))
+     (define-rts ,(string->symbol (string-append "bytearray." name))
        (procedure->py-function
         ,func-name
         (make-signature posonlyargs: (self other))))))
@@ -4503,12 +4503,12 @@
 (dynamic-u8vector-comparator-eq 0 #f #f "__ne__" bytearray-ne)
 
 
-(define (bytearray-iter self)
+(define-rts (bytearray-iter self)
   (if (py-isinstance? self py-bytearray-class)
       (py-bytearray-iterator-alloc 0 (PyObjectBytearray-value self))
       (py-throw-not-a-type-object "bytearray.__iter__" self)))
 
-(define bytearray.__iter__
+(define-rts bytearray.__iter__
   (procedure->py-function
    bytearray-iter
    (make-signature posonlyargs: (self))))
@@ -4520,7 +4520,7 @@
 ;; define a doubly-linked-list type for order-preservation
 (define-type doubly-linked-list-node value next prev)
 
-(define (doubly-linked-list-node-remove! node ordered-table)
+(define-rts (doubly-linked-list-node-remove! node ordered-table)
   (let ((prev (doubly-linked-list-node-prev node))
         (next (doubly-linked-list-node-next node))
         (first (ordered-table-first ordered-table))
@@ -4540,24 +4540,24 @@
     (doubly-linked-list-node-prev-set! node #f)))
 
 (define-type dict-cell hash key value)
-(define empty-table-cell (cons 'empty-table-cell '()))
+(define-rts empty-table-cell (cons 'empty-table-cell '()))
 
-(define table-growth-factor 2)
-(define table-full-ratio (/ 2 3))
+(define-rts table-growth-factor 2)
+(define-rts table-full-ratio (/ 2 3))
 
-(define (get-table-inner-len len)
+(define-rts (get-table-inner-len len)
   (fxarithmetic-shift
     1
     (integer-length (inexact->exact (ceiling (/ len table-full-ratio))))))
 
 (define-type ordered-table table length first last iterator-token)
 
-(define (ordered-table-first-key ot)
+(define-rts (ordered-table-first-key ot)
   (dict-cell-key
     (doubly-linked-list-node-value
       (ordered-table-first ot))))
 
-(define (ordered-table->list ordered-table)
+(define-rts (ordered-table->list ordered-table)
   (let ((first (ordered-table-first ordered-table)))
     (let loop ((node first) (acc '()))
       (if node
@@ -4569,7 +4569,7 @@
               acc)))
         (reverse acc)))))
 
-(define (ordered-table-append! ordered-table node)
+(define-rts (ordered-table-append! ordered-table node)
   (let ((first (ordered-table-first ordered-table)))
     (if first
       (let ((last (ordered-table-last ordered-table)))
@@ -4580,7 +4580,7 @@
         (ordered-table-first-set! ordered-table node)
         (ordered-table-last-set! ordered-table node)))))
 
-(define (make-empty-ordered-table length-hint)
+(define-rts (make-empty-ordered-table length-hint)
   (make-ordered-table
     (make-vector (get-table-inner-len length-hint) empty-table-cell)
     0
@@ -4588,22 +4588,22 @@
     #f
     (box #t)))
 
-(define (ordered-table-drop-token! ordered-table)
+(define-rts (ordered-table-drop-token! ordered-table)
   ;; signal to any iterator that there was a change to the table which
   ;; prevents further iteration
   (set-box! (ordered-table-iterator-token ordered-table) #f)
   ;; drop old token and create a new one
   (ordered-table-iterator-token-set! ordered-table (box #t)))
 
-(define (cell-next i size)
+(define-rts (cell-next i size)
   ;; we use bitwise-and because size is always a power of 2
   (bitwise-and (+ (* 5 i) 1) (- size 1)))
 
-(define (hash->cell hash size)
+(define-rts (hash->cell hash size)
   ;; use and because size is always a power of 2
   (bitwise-and hash (- size 1)))
 
-(define (ordered-table-get-cell ordered-table key)
+(define-rts (ordered-table-get-cell ordered-table key)
   (let* ((hash (py-subtype-of-int-to-scheme (py-hash key)))
         (table (ordered-table-table ordered-table))
         (size (vector-length table)))
@@ -4618,7 +4618,7 @@
               cell
               (loop (cell-next i size)))))))))
 
-(define (table-bucket-indices table size i)
+(define-rts (table-bucket-indices table size i)
   (let loop ((i i))
     (if (eq? (vector-ref table i) empty-table-cell)
       '()
@@ -4629,7 +4629,7 @@
           size
           (cell-next i size))))))
 
-(define (table-reinsert-node! table node)
+(define-rts (table-reinsert-node! table node)
   (let* ((cell (doubly-linked-list-node-value node))
         (hash (dict-cell-hash cell))
         (size (vector-length table)))
@@ -4640,7 +4640,7 @@
           (vector-set! table i node)
           (loop (cell-next i size)))))))
 
-(define (table-bucket-reinsert table indices)
+(define-rts (table-bucket-reinsert table indices)
   (let ((nodes-to-reinsert
           (let loop ((indices indices))
             (if (null? indices)
@@ -4656,7 +4656,7 @@
           (table-reinsert-node! table node)
           (reinsertion-loop (cdr nodes-to-reinsert)))))))
 
-(define (ordered-table-remove-key! ordered-table key)
+(define-rts (ordered-table-remove-key! ordered-table key)
   (let* ((hash (py-subtype-of-int-to-scheme (py-hash key)))
         (table (ordered-table-table ordered-table))
         (size (vector-length table)))
@@ -4679,7 +4679,7 @@
                 #t)
               (loop (cell-next i size)))))))))
 
-(define (table-vector-set! ordered-table vec size hash key value)
+(define-rts (table-vector-set! ordered-table vec size hash key value)
   (let ((content-size (ordered-table-length ordered-table)))
     ;; loop to find the corresponding cell
     (let loop ((i (hash->cell hash size)))
@@ -4703,7 +4703,7 @@
               ;; case where there is a collision
               (loop (cell-next i size)))))))))
 
-(define (ordered-table-grow! ordered-table)
+(define-rts (ordered-table-grow! ordered-table)
   (let* ((table (ordered-table-table ordered-table))
         (content-size (ordered-table-length ordered-table))
         (size (vector-length table))
@@ -4724,7 +4724,7 @@
             (table-vector-set! ordered-table new-table new-size cell-hash cell-key cell-value)
             (loop (doubly-linked-list-node-next node))))))))
 
-(define (ordered-table-set-cell! ordered-table key value)
+(define-rts (ordered-table-set-cell! ordered-table key value)
   (let* ((hash (py-subtype-of-int-to-scheme (py-hash key)))
         (table (ordered-table-table ordered-table))
         (content-size (ordered-table-length ordered-table))
@@ -4737,7 +4737,7 @@
         (set! size (vector-length table))))
     (table-vector-set! ordered-table table size hash key value)))
 
-(define (ordered-table-get ordered-table key default)
+(define-rts (ordered-table-get ordered-table key default)
   (let* ((cell (ordered-table-get-cell ordered-table key)))
     (if (eq? cell empty-table-cell)
       (if (eq? default py-absent)
@@ -4745,7 +4745,7 @@
         default)
       (dict-cell-value cell))))
 
-(define (ordered-table-pop! ordered-table key default)
+(define-rts (ordered-table-pop! ordered-table key default)
   (let* ((hash (py-subtype-of-int-to-scheme (py-hash key)))
         (table (ordered-table-table ordered-table))
         (size (vector-length table)))
@@ -4768,13 +4768,13 @@
                 (dict-cell-value cell))
               (loop (cell-next i size)))))))))
 
-(define (py-make-empty-dict)
+(define-rts (py-make-empty-dict)
   (py-dict-alloc (make-empty-ordered-table 0)))
 
-(define (py-dict-from-scheme key-value-pairs)
+(define-rts (py-dict-from-scheme key-value-pairs)
   (py-dict-alloc (py-ordered-table-from-scheme key-value-pairs)))
 
-(define (py-ordered-table-from-scheme key-value-pairs)
+(define-rts (py-ordered-table-from-scheme key-value-pairs)
   (let* ((ordered-table (make-empty-ordered-table (length key-value-pairs)))
          (table-vector (ordered-table-table ordered-table)))
     (let loop ((key-value-pairs key-value-pairs))
@@ -4793,41 +4793,41 @@
             value)
           (loop (cdr key-value-pairs)))))))
 
-(define (dict-setitem self key value)
+(define-rts (dict-setitem self key value)
   (if (py-isinstance? self py-dict-class)
     (let ((ordered-table (PyObjectDict-value self)))
       (ordered-table-set-cell! ordered-table key value))
     (py-throw-not-a-type-object "dict.__setitem__" self))
   py-None)
 
-(define dict.__setitem__
+(define-rts dict.__setitem__
   (procedure->py-function
    dict-setitem
     (make-signature posonlyargs: (self key value))))
 
-(define (dict-get self key default)
+(define-rts (dict-get self key default)
   (if (py-isinstance? self py-dict-class)
     (let ((ordered-table (PyObjectDict-value self)))
       (ordered-table-get ordered-table key (if (eq? default py-absent) py-None default)))
     (py-throw-not-a-type-object "dict.get" self)))
 
-(define dict.get
+(define-rts dict.get
   (procedure->py-function
     dict-get
     (make-signature posonlyargs: (self key default) defaults: (vector py-absent))))
 
-(define (dict-getitem self key)
+(define-rts (dict-getitem self key)
   (if (py-isinstance? self py-dict-class)
     (let ((ordered-table (PyObjectDict-value self)))
       (ordered-table-get ordered-table key py-absent))
     (py-throw-not-a-type-object "dict.__getitem__" self)))
 
-(define dict.__getitem__
+(define-rts dict.__getitem__
   (procedure->py-function
     dict-getitem
     (make-signature posonlyargs: (self key))))
 
-(define (dict-delitem self key)
+(define-rts (dict-delitem self key)
   (if (py-isinstance? self py-dict-class)
     (let* ((ordered-table (PyObjectDict-value self))
            (res (ordered-table-remove-key! ordered-table key)))
@@ -4836,51 +4836,51 @@
         py-None))
     (py-throw-not-a-type-object "dict.__delitem__" self)))
 
-(define dict.__delitem__
+(define-rts dict.__delitem__
   (procedure->py-function
     dict-delitem
     (make-signature posonlyargs: (self key))))
 
-(define (dict-len self)
+(define-rts (dict-len self)
   (if (py-isinstance? self py-dict-class)
     (let* ((ordered-table (PyObjectDict-value self))
            (len (ordered-table-length ordered-table)))
       (py-int-from-scheme len))
     (py-throw-not-a-type-object "dict.__len__" self)))
 
-(define dict.__len__
+(define-rts dict.__len__
   (procedure->py-function
     dict-len
     (make-signature posonlyargs: (self))))
 
-(define (dict-iter self)
+(define-rts (dict-iter self)
   (if (py-isinstance? self py-dict-class)
     (dict->dict-keyiterator self)
     (py-throw-not-a-type-object "dict.__len__" self)))
 
-(define dict.__iter__
+(define-rts dict.__iter__
   (procedure->py-function
     dict-iter
     (make-signature posonlyargs: (self))))
 
 ;; TODO: incorrect implementation, should return a dict_keys object
-(define (dict-keys self)
+(define-rts (dict-keys self)
   (if (py-isinstance? self py-dict-class)
     (dict->dict-keyiterator self)
     (py-throw-not-a-type-object "dict.keys" self)))
 
-(define dict.keys
+(define-rts dict.keys
   (procedure->py-function
     dict-keys
     (make-signature posonlyargs: (self))))
 
 ;; TODO: incorrect implementation, should return a dict_values object
-(define (dict-values self)
+(define-rts (dict-values self)
   (if (py-isinstance? self py-dict-class)
     (dict->dict-valueiterator self)
     (py-throw-not-a-type-object "dict.values" self)))
 
-(define dict.values
+(define-rts dict.values
   (procedure->py-function
     dict-values
     (make-signature posonlyargs: (self))))
@@ -4890,23 +4890,23 @@
 ;; =============================================================================
 
 ;; key iterator
-(define (dict->dict-keyiterator d)
+(define-rts (dict->dict-keyiterator d)
   (let* ((ordered-table (PyObjectDict-value d))
         (first (ordered-table-first ordered-table))
         (token (ordered-table-iterator-token ordered-table)))
     (py-dict-keyiterator-alloc first token)))
 
-(define (dict-keyiterator-iter self)
+(define-rts (dict-keyiterator-iter self)
   (if (py-isinstance? self py-dict-keyiterator-class)
     self
     (py-throw-not-a-type-object "dict_keyiterator.__iter__" self)))
 
-(define dict_keyiterator.__iter__
+(define-rts dict_keyiterator.__iter__
   (procedure->py-function
     dict-keyiterator-iter
     (make-signature posonlyargs: (self))))
 
-(define (dict-keyiterator-next self)
+(define-rts (dict-keyiterator-next self)
   (if (py-isinstance? self py-dict-keyiterator-class)
     (let ((node (PyObjectDictItemsIterator-node self))
           (token (PyObjectDictItemsIterator-iterator-token self)))
@@ -4925,12 +4925,12 @@
             key))))
     (py-throw-not-a-type-object "dict_keyiterator.__next__" self)))
 
-(define dict_keyiterator.__next__
+(define-rts dict_keyiterator.__next__
   (procedure->py-function
     dict-keyiterator-next
     (make-signature posonlyargs: (self))))
 
-(define py-dict-keyiterator-class
+(define-rts py-dict-keyiterator-class
   (py-make-builtin-class
     (&& "dict_keyiterator")
     (&& "builtins")
@@ -4939,23 +4939,23 @@
       (& "__next__") dict_keyiterator.__next__))
 
 ;; value iterator
-(define (dict->dict-valueiterator d)
+(define-rts (dict->dict-valueiterator d)
   (let* ((ordered-table (PyObjectDict-value d))
         (first (ordered-table-first ordered-table))
         (token (ordered-table-iterator-token ordered-table)))
     (py-dict-valueiterator-alloc first token)))
 
-(define (dict-valueiterator-iter self)
+(define-rts (dict-valueiterator-iter self)
   (if (py-isinstance? self py-dict-valueiterator-class)
     self
     (py-throw-not-a-type-object "dict_valueiterator.__iter__" self)))
 
-(define dict_valueiterator.__iter__
+(define-rts dict_valueiterator.__iter__
   (procedure->py-function
     dict-valueiterator-iter
     (make-signature posonlyargs: (self))))
 
-(define (dict-valueiterator-next self)
+(define-rts (dict-valueiterator-next self)
   (if (py-isinstance? self py-dict-valueiterator-class)
     (let ((node (PyObjectDictItemsIterator-node self))
           (token (PyObjectDictItemsIterator-iterator-token self)))
@@ -4974,12 +4974,12 @@
             value))))
     (py-throw-not-a-type-object "dict_valueiterator.__next__" self)))
 
-(define dict_valueiterator.__next__
+(define-rts dict_valueiterator.__next__
   (procedure->py-function
     dict-valueiterator-next
     (make-signature posonlyargs: (self))))
 
-(define py-dict-valueiterator-class
+(define-rts py-dict-valueiterator-class
   (py-make-builtin-class
     (&& "dict_valueiterator")
     (&& "builtins")
@@ -4989,7 +4989,7 @@
 
 ;; -----------------------------------------------------------------------------
 
-(define (bootstrap-type-hierarchy-phase2)
+(define-rts (bootstrap-type-hierarchy-phase2)
   ;; create number core types
   (let* ((int-class
             (py-builtin-type-alloc
@@ -5196,8 +5196,8 @@
 
 (bootstrap-type-hierarchy-phase2)
 
-(define py-True (py-subtype-of-int-from-scheme 1 py-bool-class))
-(define py-False (py-subtype-of-int-from-scheme 0 py-bool-class))
+(define-rts py-True (py-subtype-of-int-from-scheme 1 py-bool-class))
+(define-rts py-False (py-subtype-of-int-from-scheme 0 py-bool-class))
 
 (bootstrap-functions)
 
@@ -5206,17 +5206,17 @@
 ;; =============================================================================
 ;; TODO: some content of this section should be moved to the io module
 
-(define (TextIOWrapper-enter self)
+(define-rts (TextIOWrapper-enter self)
   (if (py-isinstance? self py-TextIOWrapper-class)
     self
     (py-throw-not-a-type-object "TextIOWrapper.__enter__" self)))
 
-(define TextIOWrapper.__enter__
+(define-rts TextIOWrapper.__enter__
   (procedure->py-function
     TextIOWrapper-enter
     (make-signature posonlyargs: (self))))
 
-(define (TextIOWrapper-close-port! self)
+(define-rts (TextIOWrapper-close-port! self)
   (let ((port (PyObjectTextIOWrapper-port self)))
     ;; Some ports may stay open even after close-port, by dereferencing
     ;; the port we make sure its ressources are freed by the gc
@@ -5227,29 +5227,29 @@
         (close-port port)
         (PyObjectTextIOWrapper-port-set! self #f)))))
 
-(define (TextIOWrapper-exit self exc-type exc exc-traceback)
+(define-rts (TextIOWrapper-exit self exc-type exc exc-traceback)
   (if (py-isinstance? self py-TextIOWrapper-class)
     (TextIOWrapper-close-port! self)
     (py-throw-not-a-type-object "TextIOWrapper.__exit__" self))
   py-None)
 
-(define TextIOWrapper.__exit__
+(define-rts TextIOWrapper.__exit__
   (procedure->py-function
     TextIOWrapper-exit
     (make-signature posonlyargs: (self exc_type exc_value traceback))))
 
-(define (TextIOWrapper-close self)
+(define-rts (TextIOWrapper-close self)
   (if (py-isinstance? self py-TextIOWrapper-class)
     (TextIOWrapper-close-port! self)
     (py-throw-not-a-type-object "TextIOWrapper.close" self))
   py-None)
 
-(define TextIOWrapper.close
+(define-rts TextIOWrapper.close
   (procedure->py-function
     TextIOWrapper-close
     (make-signature posonlyargs: (self))))
 
-(define (TextIOWrapper-read self)
+(define-rts (TextIOWrapper-read self)
   (if (py-isinstance? self py-TextIOWrapper-class)
     (let ((port (PyObjectTextIOWrapper-port self)))
       (if port
@@ -5259,12 +5259,12 @@
           "I/O operation on closed file.")))
     (py-throw-not-a-type-object "TextIOWrapper.read" self)))
 
-(define TextIOWrapper.read
+(define-rts TextIOWrapper.read
   (procedure->py-function
     TextIOWrapper-read
     (make-signature posonlyargs: (self))))
 
-(define py-TextIOWrapper-class
+(define-rts py-TextIOWrapper-class
   (py-make-builtin-class
     (&& "TextIOWrapper")
     (&& "_io")
@@ -5276,7 +5276,7 @@
       (& "read") TextIOWrapper.read))
 
 ;; TODO: arguments other than file are currentl ignored
-(define (py-open file mode buffering encoding errors newline closefd opener)
+(define-rts (py-open file mode buffering encoding errors newline closefd opener)
   (cond ((py-subtype-of-str? file)
          (let ((filename (py-subtype-of-str-to-scheme file)))
            (let ((file-port (open-file filename)))
@@ -5297,7 +5297,7 @@
 
 ;; NotImplemented object
 
-(define (NotImplementedType-new cls)
+(define-rts (NotImplementedType-new cls)
   (if (eq? cls py-NotImplementedType-class)
     py-NotImplemented
     (py-throw
@@ -5306,12 +5306,12 @@
         ;; TODO: Incorrect error message
         (&& "not a subtype of NotImplementedType")))))
 
-(define NotImplementedType.__new__
+(define-rts NotImplementedType.__new__
   (procedure->py-function
     NotImplementedType-new
     (make-signature posonlyargs: (cls))))
 
-(define (NotImplementedType-repr self)
+(define-rts (NotImplementedType-repr self)
   (if (eq? self py-NotImplemented)
     (&& "NotImplemented")
     (py-throw
@@ -5320,12 +5320,12 @@
         ;; TODO: Incorrect error message
         (&& "descriptor '__repr__' requires a 'NotImplementedType' object")))))
 
-(define NotImplementedType.__repr__
+(define-rts NotImplementedType.__repr__
   (procedure->py-function
     NotImplementedType-repr
     (make-signature posonlyargs: (self))))
 
-(define py-NotImplementedType-class
+(define-rts py-NotImplementedType-class
   (py-make-builtin-class
     (&& "NotImplementedType")
     (&& "builtins")
@@ -5333,11 +5333,11 @@
       (& "__new__") NotImplementedType.__new__
       (& "__repr__") NotImplementedType.__repr__))
 
-(define py-NotImplemented (py-obj-alloc py-NotImplementedType-class))
+(define-rts py-NotImplemented (py-obj-alloc py-NotImplementedType-class))
 
 ;; None object
 
-(define (NoneType-new cls)
+(define-rts (NoneType-new cls)
   (if (eq? cls py-NoneType-class)
     py-None
     (py-throw
@@ -5346,12 +5346,12 @@
         ;; TODO: Incorrect error message
         (&& "not a subtype of NoneType")))))
 
-(define NoneType.__new__
+(define-rts NoneType.__new__
   (procedure->py-function
     NoneType-new
     (make-signature posonlyargs: (cls))))
 
-(define (NoneType-repr self)
+(define-rts (NoneType-repr self)
   (if (eq? self py-None)
     (&& "None")
     (py-throw
@@ -5360,12 +5360,12 @@
         ;; TODO: Incorrect error message
         (&& "descriptor '__repr__' requires a 'NoneType' object")))))
 
-(define NoneType.__repr__
+(define-rts NoneType.__repr__
   (procedure->py-function
     NoneType-repr
     (make-signature posonlyargs: (self))))
 
-(define (NoneType-bool self)
+(define-rts (NoneType-bool self)
   (if (eq? self py-None)
     py-False
     (py-throw
@@ -5374,12 +5374,12 @@
         ;; TODO: Incorrect error message
         (&& "descriptor '__repr__' requires a 'NoneType' object")))))
 
-(define NoneType.__bool__
+(define-rts NoneType.__bool__
   (procedure->py-function
     NoneType-bool
     (make-signature posonlyargs: (self))))
 
-(define py-NoneType-class
+(define-rts py-NoneType-class
   (py-make-builtin-class
     (&& "NoneType")
     (&& "builtins")
@@ -5388,43 +5388,43 @@
       (& "__repr__") NoneType.__repr__
       (& "__bool__") NoneType.__bool__))
 
-(define py-None (py-obj-alloc py-NoneType-class))
+(define-rts py-None (py-obj-alloc py-NoneType-class))
 
 ;;;----------------------------------------------------------------------------
 
-(define (py-make-set elements)
+(define-rts (py-make-set elements)
   (py-set-from-scheme elements))
 
-(define (py-make-tuple . elements)
+(define-rts (py-make-tuple . elements)
   (py-tuple-from-scheme (list->vector elements)))
 
-(define (py-tuple-from-scheme elements)
+(define-rts (py-tuple-from-scheme elements)
   (make-PyObjectTuple
     py-tuple-hclass-of-instances
     '#()
     py-tuple-class
     elements))
 
-(define (py-tuple-subtype-from-scheme elements cls)
+(define-rts (py-tuple-subtype-from-scheme elements cls)
   (make-PyObjectTuple
     (PyObjectType-hclass-of-instances cls)
     '#()
     cls
     elements))
 
-(define py-make-dict py-dict-from-scheme)
+(define-rts py-make-dict py-dict-from-scheme)
 
-(define (py-type obj)
+(define-rts (py-type obj)
   (py-obj-cls obj))
 
 ;; ----------------------
 ;; builtins initialization
 ;; ---------------------
 
-(define (py-make-global)
+(define-rts (py-make-global)
   (py-module-alloc py-module-class py-module-hclass-of-instances))
 
-(define (py-make-module name package #!optional (path #f))
+(define-rts (py-make-module name package #!optional (path #f))
   (let ((mod (py-make-global))
         (modules (sys.modules-get)))
    (global-own-attr-put-no-cache! mod (& "__name__") name)
@@ -5437,7 +5437,7 @@
 ;; IMPORT SYSTEM
 ;; ===========================================
 
-(define zipi-stdlib-dir (let ((default-dir
+(define-rts zipi-stdlib-dir (let ((default-dir
                                 (list (path-expand (path-expand "libs" "stdlib") (path-expand "~~zipiroot"))
                                       (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
                               (env-dir
@@ -5450,11 +5450,11 @@
                                 env-dir)))
 
 ;; note here that we assume that the list is at least of size 1 and contains as first argument the filename
-(define (command-line-argv-set! list-with-file-name)
+(define-rts (command-line-argv-set! list-with-file-name)
   (global-own-attr-put-no-cache! sys-mod (& "argv")
        (py-make-list-from-elems (map py-str-from-scheme-fallback list-with-file-name))))
 
-(define (py-make-sys-mod)
+(define-rts (py-make-sys-mod)
   (let ((mod (py-make-global)))
    (global-own-attr-put-no-cache! mod (& "__name__") (&& "_sys"))
    (global-own-attr-put-no-cache! mod (& "modules")
@@ -5467,41 +5467,41 @@
     (py-tuple-from-scheme (list->vector (map py-str-from-scheme-fallback (list "_sys" "_time" "builtins" "itertools" "math" "random" "sys" "time")))))
    mod))
 
-(define sys-mod (py-make-sys-mod))
+(define-rts sys-mod (py-make-sys-mod))
 
-(define (sys.modules-get)
+(define-rts (sys.modules-get)
   (global-own-attr-ref-no-cache sys-mod (& "modules")))
 
-(define (sys.path-get)
+(define-rts (sys.path-get)
   (global-own-attr-ref-no-cache sys-mod (& "path")))
 
 ;; == CACHE SYSTEM ==
 
 ;; WARNING : dont change this location without knowing what you do because (delete-zipi-cache) in run-zipi recursively deletes this directory
-(define zipicache #f)
+(define-rts zipicache #f)
 
-(define (cache-location-set! path)
+(define-rts (cache-location-set! path)
   (set! zipicache path))
 
-(define (cache-location-get) zipicache)
+(define-rts (cache-location-get) zipicache)
 
-(define compile-flag #f)
-(define (compile-flag-set! value)
+(define-rts compile-flag #f)
+(define-rts (compile-flag-set! value)
   (set! compile-flag value))
 
-(define debug-flag #f)
-(define (debug-flag-set! value)
+(define-rts debug-flag #f)
+(define-rts (debug-flag-set! value)
   (set! debug-flag value))
 
-(define profile-flag #f)
-(define (profile-flag-set! value)
+(define-rts profile-flag #f)
+(define-rts (profile-flag-set! value)
   (set! profile-flag value))
 
-(define expansion-flag #f)
-(define (expansion-flag-set! value)
+(define-rts expansion-flag #f)
+(define-rts (expansion-flag-set! value)
   (set! expansion-flag value))
 
-(define (ensure-parent-dir-exists path)
+(define-rts (ensure-parent-dir-exists path)
 
   (define (wind path todo)
     (let* ((dir (path-strip-trailing-directory-separator
@@ -5524,7 +5524,7 @@
   (wind path '()))
 
 
-(define (compile-to-cache path path-info path-in-cache)
+(define-rts (compile-to-cache path path-info path-in-cache)
   (let* ((path-cache
            (string-append
              (cache-location-get)
@@ -5562,7 +5562,7 @@
         (compile)))) ;; compiled file does not exist (must compile)
 
 ;; mangle path of modules in cache to be valid scheme module names
-(define (mangle-cache-path path)
+(define-rts (mangle-cache-path path)
   (define (char-in-range? c lo hi)
     (and (char>=? c lo) (char<=? c hi)))
 
@@ -5581,7 +5581,7 @@
   (append-strings (map char-map (string->list path))))
 
 ;; py-module.__path__ can be #f in the case of non-package importation
-(define (compile-and-get-mod path path-info py-__name__ py-__package__ py-module.__path__)
+(define-rts (compile-and-get-mod path path-info py-__name__ py-__package__ py-module.__path__)
 
   ;; useful for debugging
   (if expansion-flag
@@ -5601,7 +5601,7 @@
         (mod-init py-__name__ py-__package__ py-module.__path__)
         #f)))
 
-(define (import-with-zipi-cache path py-__name__ py-__package__)
+(define-rts (import-with-zipi-cache path py-__name__ py-__package__)
   (let* ((path-package (path-expand "__init__.py" path))
          (path-package-info (file-info path-package #t #f)))
     (if path-package-info
@@ -5612,7 +5612,7 @@
               (compile-and-get-mod path-mod path-mod-info py-__name__ py-__package__ #f)
               #f)))))
 
-(define (import-from-sys.path sys.path __name__ py-__name__ py-__package__)
+(define-rts (import-from-sys.path sys.path __name__ py-__name__ py-__package__)
   (or (dict-get (sys.modules-get) py-__name__ #f)
       (let ((sys.path-iter (py-iter sys.path)))
         (let loop ((value sys.path-iter))
@@ -5627,7 +5627,7 @@
                            (loop sys.path-iter)))
                      (loop sys.path-iter))))))))
 
-(define (default-builtin-__import__ __name__)
+(define-rts (default-builtin-__import__ __name__)
    (let ((name-split (string-split __name__ #\.)))
     (let loop ((sys.path (sys.path-get))
                (name-split name-split)
@@ -5660,19 +5660,19 @@
              py-builtin-ModuleNotFoundError
              "No module named '" __name__ "'"))))))
 
-(define (builtin-__import__ __name__)
+(define-rts (builtin-__import__ __name__)
    (or (native-builtin-__import__ __name__)
        (default-builtin-__import__ __name__)))
 
-(define (string-join separator list length)
+(define-rts (string-join separator list length)
   (string-join-recur separator (cdr list) (- length 1) (car list)))
 
-(define (string-join-recur separator list length string)
+(define-rts (string-join-recur separator list length string)
   (if (or (<= length 0) (pair? list))
       string
       (string-join-recur separator (cdr list) (- length 1) (string-append string separator (car list)))))
 
-(define (py-path-join path1 path2)
+(define-rts (py-path-join path1 path2)
   (if (string=? path1 "")
       path2
       (if (string=? path2 "")
@@ -5680,7 +5680,7 @@
           (string-append path1 "." path2))))
 
 ;; asuming depth > 0 and path can be ""
-(define (py-import-relative selfmod path from-list depth)
+(define-rts (py-import-relative selfmod path from-list depth)
   (let* ((__package__ (global-own-attr-ref-no-cache selfmod (& "__package__")))
          (levels (string-split (if (or (not __package__)
                                        (py-test-is __package__ py-None))
@@ -5695,7 +5695,7 @@
                                                  path)))
           (py-import parent-module-name from-list)))))
 
-(define (py-import path from-list)
+(define-rts (py-import path from-list)
   (let ((mod (builtin-__import__ path))
         (py-path (py-str-from-scheme-fallback path)))
     (for-each
@@ -5715,7 +5715,7 @@
       from-list)
     mod))
 
-(define (run-as-main path zipicache)
+(define-rts (run-as-main path zipicache)
   (cache-location-set! zipicache)
   (module-search-order-add! (cache-location-get))
 
@@ -5735,55 +5735,55 @@
        (if profile-flag
            (statprof-end path))))))
 
-(define py-import-root (current-directory))
+(define-rts py-import-root (current-directory))
 
 ;; MODULES
 
 ;; time
 
-(define time.clock_getres
+(define-rts time.clock_getres
   (procedure->py-function
     (lambda (clk_id)
       (py-float-from-scheme 1e-6))
     (make-signature posonlyargs: (clk_id))))
 
-(define time.clock_gettime
+(define-rts time.clock_gettime
   (procedure->py-function
     (lambda (clk_id)
       (py-float-from-scheme (time->seconds (current-time))))
     (make-signature posonlyargs: (clk_id))))
 
-(define time.monotonic
+(define-rts time.monotonic
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
     (make-signature)))
 
-(define time.perf_counter
+(define-rts time.perf_counter
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
     (make-signature)))
 
-(define time.process_time
+(define-rts time.process_time
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
     (make-signature)))
 
-(define time.time
+(define-rts time.time
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
     (make-signature)))
 
-(define time.thread_time
+(define-rts time.thread_time
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
     (make-signature)))
 
-(define time.sleep
+(define-rts time.sleep
   (procedure->py-function
     (lambda (secs)
       (let ((s (py-float-to-scheme secs)))
@@ -5793,7 +5793,7 @@
         py-None))
     (make-signature posonlyargs: (secs))))
 
-(define (make-time-mod)
+(define-rts (make-time-mod)
   (let ((mod (py-make-module (& "_time") (& "") #f)))
     (global-own-attr-put-no-cache! mod (& "clock_getres") time.clock_getres)
     (global-own-attr-put-no-cache! mod (& "clock_gettime") time.clock_gettime)
@@ -5808,17 +5808,17 @@
 
 ;; statprof
 
-(define statprof.begin
+(define-rts statprof.begin
   (procedure->py-function
     statprof-begin
     (make-signature)))
 
-(define statprof.end
+(define-rts statprof.end
   (procedure->py-function
     statprof-end
     (make-signature posonlyargs: (file))))
 
-(define (make-statprof-mod)
+(define-rts (make-statprof-mod)
   (let ((mod (py-make-module (&& "statprof") (& "") #f)))
    (global-own-attr-put-no-cache! mod (& "begin") statprof.begin)
    (global-own-attr-put-no-cache! mod (& "end") statprof.end)))
@@ -5836,7 +5836,7 @@
 ;; number, its magnitude is returned. If x defines __abs__(), abs(x)
 ;; returns x.__abs__().
 
-(define py-builtin-abs
+(define-rts py-builtin-abs
   (procedure->py-function
     py-abs
     (make-signature posonlyargs: (x))))
@@ -5852,7 +5852,7 @@
 ;;             return False
 ;;     return True
 
-(define py-builtin-all
+(define-rts py-builtin-all
   (procedure->py-function
     (lambda (iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "all not implemented"))
@@ -5869,7 +5869,7 @@
 ;;             return True
 ;;     return False
 
-(define py-builtin-any
+(define-rts py-builtin-any
   (procedure->py-function
     (lambda (iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "any not implemented"))
@@ -5882,7 +5882,7 @@
 ;; repr() using \x, \u or \U escapes. This generates a string similar to
 ;; that returned by repr() in Python 2.
 
-(define py-builtin-ascii
+(define-rts py-builtin-ascii
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "ascii not implemented"))
@@ -5909,7 +5909,7 @@
 ;;
 ;; See also format() for more information.
 
-(define py-builtin-bin
+(define-rts py-builtin-bin
   (procedure->py-function
     (lambda (x)
       (py-throw-exception-with-message py-builtin-NotImplementedError "bin not implemented"))
@@ -5926,7 +5926,7 @@
 ;;
 ;; Changed in version 3.7: x is now a positional-only parameter.
 
-(define py-builtin-bool #f)
+(define-rts py-builtin-bool #f)
 
 ;;-------------------- breakpoint(*args, **kws)
 
@@ -5941,7 +5941,7 @@
 ;;
 ;; New in version 3.7.
 
-(define py-builtin-breakpoint
+(define-rts py-builtin-breakpoint
   (procedure->py-function
     (lambda (args kwargs)
       (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
@@ -5973,7 +5973,7 @@
 ;; See also Binary Sequence Types — bytes, bytearray, memoryview and
 ;; Bytearray Objects.
 
-(define py-builtin-bytearray py-bytearray-class)
+(define-rts py-builtin-bytearray py-bytearray-class)
 ;;-------------------- class bytes([source[, encoding[, errors]]])
 
 ;; Return a new “bytes” object, which is an immutable sequence of
@@ -5989,7 +5989,7 @@
 ;; See also Binary Sequence Types — bytes, bytearray, memoryview, Bytes
 ;; Objects, and Bytes and Bytearray Operations.
 
-(define py-builtin-bytes
+(define-rts py-builtin-bytes
   (procedure->py-function
     (lambda (source encoding errors)
       (py-throw-exception-with-message py-builtin-NotImplementedError "bytes not implemented"))
@@ -6008,7 +6008,7 @@
 ;; New in version 3.2: This function was first removed in Python 3.0 and
 ;; then brought back in Python 3.2.
 
-(define py-builtin-callable
+(define-rts py-builtin-callable
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "callable not implemented"))
@@ -6023,7 +6023,7 @@
 ;; The valid range for the argument is from 0 through 1,114,111 (0x10FFFF
 ;; in base 16). ValueError will be raised if i is outside that range.
 
-(define py-builtin-chr
+(define-rts py-builtin-chr
   (procedure->py-function
     py-chr
     (make-signature posonlyargs: (i))))
@@ -6053,7 +6053,7 @@
 ;;
 ;; For more information on class methods, see The standard type hierarchy.
 
-(define py-builtin-classmethod #f)
+(define-rts py-builtin-classmethod #f)
 
 ;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
 
@@ -6126,7 +6126,7 @@
 ;; in flags to enable support for top-level await, async for, and async
 ;; with.
 
-(define py-builtin-compile
+(define-rts py-builtin-compile
   (procedure->py-function
     (lambda (source filename mode flags dont_inherit optimize)
       (py-throw-exception-with-message py-builtin-NotImplementedError "compile not implemented"))
@@ -6165,7 +6165,7 @@
 ;; Changed in version 3.8: Falls back to __index__() if __complex__() and
 ;; __float__() are not defined.
 
-(define py-builtin-complex py-complex-class)
+(define-rts py-builtin-complex py-complex-class)
 
 ;;-------------------- delattr(object, name)
 
@@ -6175,7 +6175,7 @@
 ;; object allows it. For example, delattr(x, 'foobar') is equivalent to
 ;; del x.foobar.
 
-(define py-builtin-delattr
+(define-rts py-builtin-delattr
   (procedure->py-function
     (lambda (object name)
       (py-throw-exception-with-message py-builtin-NotImplementedError "delattr not implemented"))
@@ -6191,7 +6191,7 @@
 ;; For other containers see the built-in list, set, and tuple classes, as
 ;; well as the collections module.
 
-(define py-builtin-dict py-dict-class)
+(define-rts py-builtin-dict py-dict-class)
 
 ;;-------------------- dir([object])
 
@@ -6244,7 +6244,7 @@
 ;; example, metaclass attributes are not in the result list when the
 ;; argument is a class.
 
-(define py-builtin-dir
+(define-rts py-builtin-dir
   (procedure->py-function
     py-dir
     (make-signature posonlyargs: (object) defaults: (vector py-absent))))
@@ -6260,7 +6260,7 @@
 ;; b + a % b is very close to a, if a % b is non-zero it has the same
 ;; sign as b, and 0 <= abs(a % b) < abs(b).
 
-(define py-builtin-divmod
+(define-rts py-builtin-divmod
   (procedure->py-function
     (lambda (a b)
       (py-throw-exception-with-message py-builtin-NotImplementedError "divmod not implemented"))
@@ -6287,7 +6287,7 @@
 ;;         yield n, elem
 ;;         n += 1
 
-(define py-builtin-enumerate
+(define-rts py-builtin-enumerate
   (procedure->py-function
     (lambda (iterable start)
       (py-throw-exception-with-message py-builtin-NotImplementedError "enumerate not implemented"))
@@ -6334,7 +6334,7 @@
 ;; Raises an auditing event exec with the code object as the
 ;; argument. Code compilation events may also be raised.
 
-(define py-builtin-eval
+(define-rts py-builtin-eval
   (procedure->py-function
     (lambda (expression globals locals)
       (py-throw-exception-with-message py-builtin-NotImplementedError "eval not implemented"))
@@ -6382,7 +6382,7 @@
 ;; attempted. Pass an explicit locals dictionary if you need to see
 ;; effects of the code on locals after function exec() returns.
 
-(define py-builtin-exec
+(define-rts py-builtin-exec
   (procedure->py-function
     (lambda (expression globals locals)
       (py-throw-exception-with-message py-builtin-NotImplementedError "exec not implemented"))
@@ -6406,7 +6406,7 @@
 ;; See itertools.filterfalse() for the complementary function that
 ;; returns elements of iterable for which function returns false.
 
-(define py-builtin-filter
+(define-rts py-builtin-filter
   (procedure->py-function
     (lambda (function iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "filter not implemented"))
@@ -6469,7 +6469,7 @@
 ;; Changed in version 3.8: Falls back to __index__() if __float__() is
 ;; not defined.
 
-(define py-builtin-float #f)
+(define-rts py-builtin-float #f)
 
 ;;-------------------- format(value[, format_spec])
 
@@ -6492,7 +6492,7 @@
 ;; Changed in version 3.4: object().__format__(format_spec) raises
 ;; TypeError if format_spec is not an empty string.
 
-(define py-builtin-format
+(define-rts py-builtin-format
   (procedure->py-function
     (lambda (value format_spec)
       (py-throw-exception-with-message py-builtin-NotImplementedError "format not implemented"))
@@ -6507,7 +6507,7 @@
 ;; For other containers see the built-in set, list, tuple, and dict
 ;; classes, as well as the collections module.
 
-(define py-builtin-frozenset
+(define-rts py-builtin-frozenset
   (procedure->py-function
     (lambda (iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "frozenset not implemented"))
@@ -6522,7 +6522,7 @@
 ;; exist, default is returned if provided, otherwise AttributeError is
 ;; raised.
 
-(define py-builtin-getattr
+(define-rts py-builtin-getattr
   (procedure->py-function
    (lambda (object name default)
      (if (py-subtype-of-str? name)
@@ -6548,7 +6548,7 @@
 ;; method, this is the module where it is defined, not the module from
 ;; which it is called).
 
-(define py-builtin-globals
+(define-rts py-builtin-globals
   (procedure->py-function
     (lambda ()
       (py-throw-exception-with-message py-builtin-NotImplementedError "globals not implemented"))
@@ -6562,7 +6562,7 @@
 ;; whether it raises an AttributeError or not.)
 
 ;; TODO: full behaviour catches AttributeError to detect no attribute
-(define py-builtin-hasattr
+(define-rts py-builtin-hasattr
   (procedure->py-function
     (lambda (object name)
       (py-throw-exception-with-message py-builtin-NotImplementedError "hasattr not implemented"))
@@ -6580,7 +6580,7 @@
 ;; truncates the return value based on the bit width of the host
 ;; machine. See __hash__() for details.
 
-(define py-builtin-hash
+(define-rts py-builtin-hash
   (procedure->py-function
     py-hash
     (make-signature posonlyargs: (object))))
@@ -6606,7 +6606,7 @@
 ;; reported signatures for callables are now more comprehensive and
 ;; consistent.
 
-(define py-builtin-help
+(define-rts py-builtin-help
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "help not implemented"))
@@ -6642,7 +6642,7 @@
 ;; Note To obtain a hexadecimal string representation for a float, use
 ;; the float.hex() method.
 
-(define py-builtin-hex
+(define-rts py-builtin-hex
   (procedure->py-function
     (lambda (x)
       (py-str-from-scheme
@@ -6661,7 +6661,7 @@
 ;; CPython implementation detail: This is the address of the object in
 ;; memory.
 
-(define py-builtin-id
+(define-rts py-builtin-id
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "id not implemented"))
@@ -6689,7 +6689,7 @@
 ;; Raises an auditing event builtins.input/result with the result after
 ;; successfully reading input.
 
-(define py-builtin-input
+(define-rts py-builtin-input
   (procedure->py-function
     (lambda (prompt)
       (py-throw-exception-with-message py-builtin-NotImplementedError "input not implemented"))
@@ -6731,7 +6731,7 @@
 ;; Changed in version 3.8: Falls back to __index__() if __int__() is not
 ;; defined.
 
-(define py-builtin-int #f)
+(define-rts py-builtin-int #f)
 
 ;;-------------------- isinstance(object, classinfo)
 
@@ -6743,7 +6743,7 @@
 ;; types. If classinfo is not a type or tuple of types and such tuples, a
 ;; TypeError exception is raised.
 
-(define py-builtin-isinstance
+(define-rts py-builtin-isinstance
   (procedure->py-function
     (lambda (object classinfo)
       (if (py-isinstance? object classinfo) py-True py-False))
@@ -6756,7 +6756,7 @@
 ;; be a tuple of class objects, in which case every entry in classinfo
 ;; will be checked. In any other case, a TypeError exception is raised.
 
-(define py-builtin-issubclass
+(define-rts py-builtin-issubclass
   (procedure->py-function
     (lambda (object classinfo)
       (if (py-isinstance? object py-builtin-type)
@@ -6799,7 +6799,7 @@
 ;;     for block in iter(partial(f.read, 64), b''):
 ;;         process_block(block)
 
-(define py-builtin-iter
+(define-rts py-builtin-iter
   (procedure->py-function
     (lambda (object sentinel)
       (if (eq? sentinel py-absent)
@@ -6813,7 +6813,7 @@
 ;; be a sequence (such as a string, bytes, tuple, list, or range) or a
 ;; collection (such as a dictionary, set, or frozen set).
 
-(define py-builtin-len
+(define-rts py-builtin-len
   (procedure->py-function
     (lambda (o) (py-length o))
     (make-signature posonlyargs: (obj))))
@@ -6823,7 +6823,7 @@
 ;; Rather than being a function, list is actually a mutable sequence
 ;; type, as documented in Lists and Sequence Types — list, tuple, range.
 
-(define py-builtin-list py-list-class)
+(define-rts py-builtin-list py-list-class)
 
 ;;-------------------- locals()
 
@@ -6836,7 +6836,7 @@
 ;; may not affect the values of local and free variables used by the
 ;; interpreter.
 
-(define py-builtin-locals
+(define-rts py-builtin-locals
   (procedure->py-function
     (lambda ()
       (py-throw-exception-with-message py-builtin-NotImplementedError "locals not implemented"))
@@ -6852,7 +6852,7 @@
 ;; where the function inputs are already arranged into argument
 ;; tuples, see itertools.starmap().
 
-(define py-builtin-map
+(define-rts py-builtin-map
   (procedure->py-function
     (lambda (function iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "map not implemented"))
@@ -6881,7 +6881,7 @@
 ;;
 ;; Changed in version 3.8: The key can be None.
 
-(define py-builtin-max
+(define-rts py-builtin-max
   (procedure->py-function
     (lambda (arg1 args key default)
       (py-throw-exception-with-message py-builtin-NotImplementedError "max not implemented"))
@@ -6896,7 +6896,7 @@
 ;; Return a “memory view” object created from the given argument. See
 ;; Memory Views for more information.
 
-(define py-builtin-memoryview
+(define-rts py-builtin-memoryview
   (procedure->py-function
     (lambda (obj)
       (py-throw-exception-with-message py-builtin-NotImplementedError "memoryview not implemented"))
@@ -6928,7 +6928,7 @@
 ;;
 ;; Changed in version 3.8: The key can be None.
 
-(define py-builtin-min
+(define-rts py-builtin-min
   (procedure->py-function
     (lambda (arg1 args key default)
       (py-throw-exception-with-message py-builtin-NotImplementedError "min not implemented"))
@@ -6944,7 +6944,7 @@
 ;; method. If default is given, it is returned if the iterator is
 ;; exhausted, otherwise StopIteration is raised.
 
-(define py-builtin-next
+(define-rts py-builtin-next
   (procedure->py-function
     iterator-next
     (make-signature posonlyargs: (iterator default) defaults: (vector py-absent))))
@@ -6958,7 +6958,7 @@
 ;; Note object does not have a __dict__, so you can’t assign arbitrary
 ;; attributes to an instance of the object class.
 
-(define py-builtin-object py-object-class)
+(define-rts py-builtin-object py-object-class)
 
 ;;-------------------- oct(x)
 
@@ -6984,7 +6984,7 @@
 ;;
 ;; See also format() for more information.
 
-(define py-builtin-oct
+(define-rts py-builtin-oct
   (procedure->py-function
     (lambda (x)
       (py-throw-exception-with-message py-builtin-NotImplementedError "oct not implemented"))
@@ -7167,7 +7167,7 @@
 ;; Support added to accept objects implementing os.PathLike.
 ;; On Windows, opening a console buffer may return a subclass of io.RawIOBase other than io.FileIO.
 
-(define py-builtin-open
+(define-rts py-builtin-open
   (procedure->py-function
     py-open
     (make-signature
@@ -7189,7 +7189,7 @@
 ;; example, ord('a') returns the integer 97 and ord('€') (Euro sign)
 ;; returns 8364. This is the inverse of chr().
 
-(define py-builtin-ord
+(define-rts py-builtin-ord
   (procedure->py-function
     (lambda (c)
       (if (and (py-subtype-of-str? c) (fx= (py-str-len-to-scheme c) 1))
@@ -7228,7 +7228,7 @@
 ;; pow now allows the second argument to be negative, permitting
 ;; computation of modular inverses.
 
-(define py-builtin-pow
+(define-rts py-builtin-pow
   (procedure->py-function
     (lambda (base exp mod)
       (py-throw-exception-with-message py-builtin-NotImplementedError "pow not implemented"))
@@ -7257,7 +7257,7 @@
 ;;
 ;; Changed in version 3.3: Added the flush keyword argument.
 
-(define py-builtin-print
+(define-rts py-builtin-print
   (procedure->py-function
     (lambda (objects) ;; add args (non-positional): sep end file flush
       (let* ((port (current-output-port))
@@ -7353,7 +7353,7 @@
 ;; Changed in version 3.5: The docstrings of property objects are now
 ;; writeable.
 
-(define py-builtin-property
+(define-rts py-builtin-property
   (procedure->py-function
     (lambda (fget fset fdel doc)
       (py-throw-exception-with-message py-builtin-NotImplementedError "property not implemented"))
@@ -7367,10 +7367,10 @@
 ;; Rather than being a function, range is actually an immutable sequence
 ;; type, as documented in Ranges and Sequence Types — list, tuple, range.
 
-(define py-builtin-range #f)
-(define py-builtin-range_iterator #f)
+(define-rts py-builtin-range #f)
+(define-rts py-builtin-range_iterator #f)
 
-(define range.__iter__ #f)
+(define-rts range.__iter__ #f)
 
 ;;-------------------- repr(object)
 
@@ -7383,7 +7383,7 @@
 ;; the object. A class can control what this function returns for its
 ;; instances by defining a __repr__() method.
 
-(define py-builtin-repr
+(define-rts py-builtin-repr
   (procedure->py-function
     py-repr
     (make-signature posonlyargs: (repr))))
@@ -7395,7 +7395,7 @@
 ;; method and the __getitem__() method with integer arguments starting at
 ;; 0).
 
-(define py-builtin-reversed
+(define-rts py-builtin-reversed
   (procedure->py-function
     (lambda (seq)
       (py-throw-exception-with-message py-builtin-NotImplementedError "reversed not implemented"))
@@ -7424,7 +7424,7 @@
 ;; can’t be represented exactly as a float. See Floating Point
 ;; Arithmetic: Issues and Limitations for more information.
 
-(define py-builtin-round
+(define-rts py-builtin-round
   (procedure->py-function
     (lambda (number ndigits)
       (py-throw-exception-with-message py-builtin-NotImplementedError "round not implemented"))
@@ -7441,7 +7441,7 @@
 ;; For other containers see the built-in frozenset, list, tuple, and dict
 ;; classes, as well as the collections module.
 
-(define py-builtin-set py-set-class)
+(define-rts py-builtin-set py-set-class)
 
 ;;-------------------- setattr(object, name, value)
 
@@ -7451,7 +7451,7 @@
 ;; attribute, provided the object allows it. For example, setattr(x,
 ;; 'foobar', 123) is equivalent to x.foobar = 123.
 
-(define py-builtin-setattr
+(define-rts py-builtin-setattr
   (procedure->py-function
     (lambda (object name value)
       (py-throw-exception-with-message py-builtin-NotImplementedError "setattr not implemented"))
@@ -7470,7 +7470,7 @@
 ;; a[start:stop:step] or a[start:stop, i]. See itertools.islice() for an
 ;; alternate version that returns an iterator.
 
-(define py-builtin-slice py-slice-class)
+(define-rts py-builtin-slice py-slice-class)
 
 ;;-------------------- sorted(iterable, *, key=None, reverse=False)
 
@@ -7497,7 +7497,7 @@
 ;;
 ;; For sorting examples and a brief sorting tutorial, see Sorting HOW TO.
 
-(define py-builtin-sorted
+(define-rts py-builtin-sorted
   (procedure->py-function
     (lambda (iterable key reverse)
       (py-throw-exception-with-message py-builtin-NotImplementedError "sorted not implemented"))
@@ -7536,7 +7536,7 @@
 ;;
 ;; For more information on static methods, see The standard type hierarchy.
 
-(define py-builtin-staticmethod
+(define-rts py-builtin-staticmethod
   (procedure->py-function
     (lambda (function)
       (py-throw-exception-with-message py-builtin-NotImplementedError "staticmethod not implemented"))
@@ -7550,7 +7550,7 @@
 ;; str is the built-in string class. For general information about
 ;; strings, see Text Sequence Type — str.
 
-(define py-builtin-str #f)
+(define-rts py-builtin-str #f)
 
 ;;-------------------- sum(iterable, /, start=0)
 
@@ -7567,7 +7567,7 @@
 ;; Changed in version 3.8: The start parameter can be specified as a
 ;; keyword argument.
 
-(define py-builtin-sum
+(define-rts py-builtin-sum
   (procedure->py-function
     (lambda (iterable start)
       (py-throw-exception-with-message py-builtin-NotImplementedError "sum not implemented"))
@@ -7635,26 +7635,26 @@
 ;; For practical suggestions on how to design cooperative classes using
 ;; super(), see guide to using super().
 
-(define (py-throw-super-no-arguments-error)
+(define-rts (py-throw-super-no-arguments-error)
   (py-throw-exception-with-message
       py-builtin-RuntimeError
       "super(): no arguments"))
 
-(define (super-init self type object)
+(define-rts (super-init self type object)
   (if (eq? object py-absent)
     (error "super not implemented for 1 argument")
     (begin
       (py-own-attr-set! self (& "__thisclass__") type)
       (py-own-attr-set! self (& "__self__") object))))
 
-(define super.__init__
+(define-rts super.__init__
   (procedure->py-function
     super-init
     (make-signature
       posonlyargs: (self type object)
       defaults: (vector py-absent py-absent))))
 
-(define (super-getattribute self name)
+(define-rts (super-getattribute self name)
   (if (eq? (py-str-representative name) (& "__class__"))
       py-builtin-super
       (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
@@ -7669,12 +7669,12 @@
          (lambda ()
            (object-getattribute self name))))))
 
-(define super.__getattribute__
+(define-rts super.__getattribute__
   (procedure->py-function
     super-getattribute
     (make-signature posonlyargs: (self name))))
 
-(define py-builtin-super
+(define-rts py-builtin-super
   (py-make-builtin-class
     (&& "super")
     (&& "builtins")
@@ -7688,7 +7688,7 @@
 ;; Rather than being a function, tuple is actually an immutable sequence
 ;; type, as documented in Tuples and Sequence Types — list, tuple, range.
 
-(define py-builtin-tuple py-tuple-class)
+(define-rts py-builtin-tuple py-tuple-class)
 
 ;;-------------------- class type(object)
 ;;                     class type(name, bases, dict)
@@ -7719,7 +7719,7 @@
 ;; type.__new__ may no longer use the one-argument form to get the type
 ;; of an object.
 
-(define py-builtin-type py-type-class)
+(define-rts py-builtin-type py-type-class)
 
 ;;-------------------- vars([object])
 
@@ -7735,7 +7735,7 @@
 ;; dictionary is only useful for reads since updates to the locals
 ;; dictionary are ignored.
 
-(define py-builtin-vars
+(define-rts py-builtin-vars
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "vars not implemented"))
@@ -7787,7 +7787,7 @@
 ;; >>> x == list(x2) and y == list(y2)
 ;; True
 
-(define py-builtin-zip
+(define-rts py-builtin-zip
   (procedure->py-function
     (lambda (iterables)
       (py-throw-exception-with-message py-builtin-NotImplementedError "zip not implemented"))
@@ -7851,7 +7851,7 @@
 ;; Changed in version 3.3: Negative values for level are no longer
 ;; supported (which also changes the default value to 0).
 
-(define py-builtin-__import__
+(define-rts py-builtin-__import__
   (procedure->py-function
    (lambda (name globals locals fromlist level)
      (cond
@@ -7872,72 +7872,72 @@
 
 ;; Exceptions declarations
 
-(define py-builtin-ArithmeticError #f)
-(define py-builtin-AssertionError #f)
-(define py-builtin-AttributeError #f)
-(define py-builtin-BaseException #f)
-(define py-builtin-BlockingIOError #f)
-(define py-builtin-BrokenPipeError #f)
-(define py-builtin-BufferError #f)
-(define py-builtin-BytesWarning #f)
-(define py-builtin-ChildProcessError #f)
-(define py-builtin-ConnectionAbortedError #f)
-(define py-builtin-ConnectionError #f)
-(define py-builtin-ConnectionRefusedError #f)
-(define py-builtin-ConnectionResetError #f)
-(define py-builtin-DeprecationWarning #f)
-(define py-builtin-EOFError #f)
-(define py-builtin-EnvironmentError #f)
-(define py-builtin-Exception #f)
-(define py-builtin-FileExistsError #f)
-(define py-builtin-FileNotFoundError #f)
-(define py-builtin-FloatingPointError #f)
-(define py-builtin-FutureWarning #f)
-(define py-builtin-GeneratorExit #f)
-(define py-builtin-IOError #f)
-(define py-builtin-ImportError #f)
-(define py-builtin-ImportWarning #f)
-(define py-builtin-IndentationError #f)
-(define py-builtin-IndexError #f)
-(define py-builtin-InterruptedError #f)
-(define py-builtin-IsADirectoryError #f)
-(define py-builtin-KeyError #f)
-(define py-builtin-KeyboardInterrupt #f)
-(define py-builtin-LookupError #f)
-(define py-builtin-MemoryError #f)
-(define py-builtin-ModuleNotFoundError #f)
-(define py-builtin-NameError #f)
-(define py-builtin-NotADirectoryError #f)
-(define py-builtin-NotImplementedError #f)
-(define py-builtin-OSError #f)
-(define py-builtin-OverflowError #f)
-(define py-builtin-PendingDeprecationWarning #f)
-(define py-builtin-PermissionError #f)
-(define py-builtin-ProcessLookupError #f)
-(define py-builtin-RecursionError #f)
-(define py-builtin-ReferenceError #f)
-(define py-builtin-ResourceWarning #f)
-(define py-builtin-RuntimeError #f)
-(define py-builtin-RuntimeWarning #f)
-(define py-builtin-StopAsyncIteration #f)
-(define py-builtin-StopIteration #f)
-(define py-builtin-SyntaxError #f)
-(define py-builtin-SyntaxWarning #f)
-(define py-builtin-SystemError #f)
-(define py-builtin-SystemExit #f)
-(define py-builtin-TabError #f)
-(define py-builtin-TimeoutError #f)
-(define py-builtin-TypeError #f)
-(define py-builtin-UnboundLocalError #f)
-(define py-builtin-UnicodeDecodeError #f)
-(define py-builtin-UnicodeEncodeError #f)
-(define py-builtin-UnicodeError #f)
-(define py-builtin-UnicodeTranslateError #f)
-(define py-builtin-UnicodeWarning #f)
-(define py-builtin-UserWarning #f)
-(define py-builtin-ValueError #f)
-(define py-builtin-Warning #f)
-(define py-builtin-ZeroDivisionError #f)
+(define-rts py-builtin-ArithmeticError #f)
+(define-rts py-builtin-AssertionError #f)
+(define-rts py-builtin-AttributeError #f)
+(define-rts py-builtin-BaseException #f)
+(define-rts py-builtin-BlockingIOError #f)
+(define-rts py-builtin-BrokenPipeError #f)
+(define-rts py-builtin-BufferError #f)
+(define-rts py-builtin-BytesWarning #f)
+(define-rts py-builtin-ChildProcessError #f)
+(define-rts py-builtin-ConnectionAbortedError #f)
+(define-rts py-builtin-ConnectionError #f)
+(define-rts py-builtin-ConnectionRefusedError #f)
+(define-rts py-builtin-ConnectionResetError #f)
+(define-rts py-builtin-DeprecationWarning #f)
+(define-rts py-builtin-EOFError #f)
+(define-rts py-builtin-EnvironmentError #f)
+(define-rts py-builtin-Exception #f)
+(define-rts py-builtin-FileExistsError #f)
+(define-rts py-builtin-FileNotFoundError #f)
+(define-rts py-builtin-FloatingPointError #f)
+(define-rts py-builtin-FutureWarning #f)
+(define-rts py-builtin-GeneratorExit #f)
+(define-rts py-builtin-IOError #f)
+(define-rts py-builtin-ImportError #f)
+(define-rts py-builtin-ImportWarning #f)
+(define-rts py-builtin-IndentationError #f)
+(define-rts py-builtin-IndexError #f)
+(define-rts py-builtin-InterruptedError #f)
+(define-rts py-builtin-IsADirectoryError #f)
+(define-rts py-builtin-KeyError #f)
+(define-rts py-builtin-KeyboardInterrupt #f)
+(define-rts py-builtin-LookupError #f)
+(define-rts py-builtin-MemoryError #f)
+(define-rts py-builtin-ModuleNotFoundError #f)
+(define-rts py-builtin-NameError #f)
+(define-rts py-builtin-NotADirectoryError #f)
+(define-rts py-builtin-NotImplementedError #f)
+(define-rts py-builtin-OSError #f)
+(define-rts py-builtin-OverflowError #f)
+(define-rts py-builtin-PendingDeprecationWarning #f)
+(define-rts py-builtin-PermissionError #f)
+(define-rts py-builtin-ProcessLookupError #f)
+(define-rts py-builtin-RecursionError #f)
+(define-rts py-builtin-ReferenceError #f)
+(define-rts py-builtin-ResourceWarning #f)
+(define-rts py-builtin-RuntimeError #f)
+(define-rts py-builtin-RuntimeWarning #f)
+(define-rts py-builtin-StopAsyncIteration #f)
+(define-rts py-builtin-StopIteration #f)
+(define-rts py-builtin-SyntaxError #f)
+(define-rts py-builtin-SyntaxWarning #f)
+(define-rts py-builtin-SystemError #f)
+(define-rts py-builtin-SystemExit #f)
+(define-rts py-builtin-TabError #f)
+(define-rts py-builtin-TimeoutError #f)
+(define-rts py-builtin-TypeError #f)
+(define-rts py-builtin-UnboundLocalError #f)
+(define-rts py-builtin-UnicodeDecodeError #f)
+(define-rts py-builtin-UnicodeEncodeError #f)
+(define-rts py-builtin-UnicodeError #f)
+(define-rts py-builtin-UnicodeTranslateError #f)
+(define-rts py-builtin-UnicodeWarning #f)
+(define-rts py-builtin-UserWarning #f)
+(define-rts py-builtin-ValueError #f)
+(define-rts py-builtin-Warning #f)
+(define-rts py-builtin-ZeroDivisionError #f)
 
 ;; Exception Helpers
 
@@ -7945,7 +7945,7 @@
 ;; TODO: use Zipi print instead of calling __str__ manually
 ;; error message should just be print(exc.__name__, ": ", exc)
 ;; TODO: print that to stderr
-(define (print-exception exc port)
+(define-rts (print-exception exc port)
   (let ((exc-name (getattribute-from-obj-mro exc (& "__name__")))
         (__str__ (getattribute-from-obj-mro exc (& "__str__"))))
     (py-display exc-name port)
@@ -7960,6 +7960,6 @@
 ;; BUILTINS
 ;;==============================================================================
 
-(define builtins-mod (bootstrap-builtins))
+(define-rts builtins-mod (bootstrap-builtins))
 
 (end-registering-constants)

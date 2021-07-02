@@ -1,3 +1,51 @@
+(cond-expand
+  (gambit
+   (define-syntax define-rts
+     (lambda (form-src)
+       (define (err)
+         `(syntax-error "invalid define-rts"))
+       (define (instrument name body)
+         `((enter-rts ,name)
+           (|##let| () ,@body)))
+       (let ((form (|##source-strip| form-src)))
+         (cond ((not (and (pair? (cdr form)) (pair? (cddr form))))
+                (err))
+               ((and (symbol? (|##source-strip| (cadr form)))
+                     (null? (cdddr form)))
+                (let* ((val-src (caddr form))
+                       (val (|##source-strip| val-src)))
+                  (if (and (pair? val)
+                           (memq (|##source-strip| (car val))
+                                 '(lambda |##lambda|)))
+                      `(define ,(cadr form)
+                         (,(car val)
+                          ,(cadr val)
+                          ,@(instrument (cadr form) (cddr val))))
+                      `(define ,(cadr form)
+                         ,val))))
+               ((pair? (|##source-strip| (cadr form)))
+                `(define ,(cadr form)
+                   ,@(instrument (car (|##source-strip| (cadr form)))
+                                 (cddr form))))
+               (else
+                (err))))))
+   (define-syntax enter-rts
+     (lambda (form-src)
+       (define debug? #f)
+       (let ((form (|##source-strip| form-src)))
+         (cond ((not (and (pair? (cdr form)) (null? (cddr form))))
+                `(syntax-error "invalid enter-rts"))
+               ((not debug?)
+                `(|##begin|))
+               (else
+                `(|##println|
+                  port: |##stderr-port|
+                  "=== entering "
+                  ',(|##source-strip| (cadr form)))))))))
+  (else
+   (define-macro (define-rts pattern . body)
+     `(define ,pattern ,@body))))
+
 ;; inline c code
 
 (define-macro (inline-c-code code)
@@ -1822,19 +1870,19 @@
       (string-append "py-" (symbol->string op) "-behavior-call-with-rhs-index-fallback")))
 
   (define (get-binary-behavior-call-fallback op)
-    `(define (,(get-behavior-call-fallback-name op) lhs rhs)
+    `(define-rts (,(get-behavior-call-fallback-name op) lhs rhs)
         ($py-binary-behavior-call ,op lhs rhs)))
 
   (define (get-behavior-call-with-lhs-index-fallback op)
-    `(define (,(get-behavior-call-with-lhs-index-fallback-name op) lhs-index lhs rhs)
+    `(define-rts (,(get-behavior-call-with-lhs-index-fallback-name op) lhs-index lhs rhs)
         ($py-binary-behavior-call-with-lhs-index ,op lhs-index lhs rhs)))
 
   (define (get-behavior-call-with-rhs-index-fallback op)
-    `(define (,(get-behavior-call-with-rhs-index-fallback-name op) lhs rhs-index rhs)
+    `(define-rts (,(get-behavior-call-with-rhs-index-fallback-name op) lhs rhs-index rhs)
         ($py-binary-behavior-call-with-rhs-index ,op lhs rhs-index rhs)))
 
   (define (get-unary-behavior-call-fallback op)
-    `(define (,(get-behavior-call-fallback-name op) x)
+    `(define-rts (,(get-behavior-call-fallback-name op) x)
         ($py-unary-behavior-call ,op x)))
 
   (define (make-init-table-code ops behaviors-list-maker)
@@ -1844,7 +1892,7 @@
             (behaviors-table-name (get-behaviors-table-name op))
             (behaviors (behaviors-list-maker op)))
         (cons
-          `(define ,behaviors-table-name (vector ,@behaviors))
+          `(define-rts ,behaviors-table-name (vector ,@behaviors))
           (make-init-table-code (cdr ops) behaviors-list-maker)))))
 
   (let ((tables-init-code
@@ -1906,7 +1954,7 @@
   (define behavior-tables-size (+ 1 (apply max (map cadr indices-info))))
 
   `(begin
-    (define py-next-behaviors-table
+    (define-rts py-next-behaviors-table
       (make-vector ,behavior-tables-size py-next-fallback))
 
     (vector-set!

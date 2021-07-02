@@ -32,7 +32,7 @@
         ((null? s) '())
         ((eq? (cadar s) form) (cons (car s) (loop (cdr s))))
         (else (loop (cdr s))))))
-  (append (only 'define-macro) (only 'define)))
+  (append (only 'define-macro) (only 'define) (only 'define-rts)))
 
 (define (scheme-init-globals vars conf)
   (map
@@ -220,7 +220,7 @@
 		       (list 'quasiquote
 			  (list 'let (map (lambda (name) (list name (list 'unquote name))) arg-names)
 			     body))))
-		`(define (,scheme-name ,@arg-names) ,body))))))
+		`(define-rts (,scheme-name ,@arg-names) ,body))))))
 
 (define (scheme* nodes conf)
   (map (lambda (n) (scheme n conf)) nodes))
