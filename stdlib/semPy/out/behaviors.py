@@ -5830,11 +5830,11 @@ def py_pos_boolX(x: bool):
 
 @define_behavior
 def py_pos_strX(x: str):
-    raise TypeError("bad operand type for unary+:' str'")
+    raise TypeError("bad operand type for unary +:'str'")
 
 @define_behavior
 def py_pos_functionX(x: function):
-    raise TypeError("bad operand type for unary+:' function'")
+    raise TypeError("bad operand type for unary +:'function'")
 
 @define_behavior
 def py_pos_sintX(x: sint):
@@ -5854,11 +5854,11 @@ def py_neg_boolX(x: bool):
 
 @define_behavior
 def py_neg_strX(x: str):
-    raise TypeError("bad operand type for unary-:' str'")
+    raise TypeError("bad operand type for unary -:'str'")
 
 @define_behavior
 def py_neg_functionX(x: function):
-    raise TypeError("bad operand type for unary-:' function'")
+    raise TypeError("bad operand type for unary -:'function'")
 
 @define_behavior
 def py_neg_sintX(x: sint):
@@ -5870,7 +5870,7 @@ def py_neg_bintX(x: bint):
 
 @define_behavior
 def py_invert_floatX(x: float):
-    raise TypeError("bad operand type for unary~:' float'")
+    raise TypeError("bad operand type for unary ~:'float'")
 
 @define_behavior
 def py_invert_boolX(x: bool):
@@ -5878,11 +5878,11 @@ def py_invert_boolX(x: bool):
 
 @define_behavior
 def py_invert_strX(x: str):
-    raise TypeError("bad operand type for unary~:' str'")
+    raise TypeError("bad operand type for unary ~:'str'")
 
 @define_behavior
 def py_invert_functionX(x: function):
-    raise TypeError("bad operand type for unary~:' function'")
+    raise TypeError("bad operand type for unary ~:'function'")
 
 @define_behavior
 def py_invert_sintX(x: sint):

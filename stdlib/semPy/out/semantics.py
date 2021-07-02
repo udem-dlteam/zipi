@@ -1061,9 +1061,9 @@ def raise_binary_TypeError(op, x, y):
 
 @define_semantics
 def raise_unary_TypeError(op, x):
-    raise TypeError("bad operand type for unary"
+    raise TypeError("bad operand type for unary "
                     + op
-                    + ":' "
+                    + ":'"
                     + class_getattr(x, "__name__")
                     + "'")
 
