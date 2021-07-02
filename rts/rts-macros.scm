@@ -1019,7 +1019,11 @@
   `(py-subtype-of-str-to-scheme-fallback ,str))
 
 (define-macro (py-str-representative str)
-  `(py-str-representative-fallback ,str))
+  `(let ((str ,str))
+     (let ((rep (PyObjectStr-part2-or-rep str)))
+       (if (PyObjectStrRep? rep)
+           rep
+           (py-str-representative-fallback str)))))
 
 (define-macro (py-add-strX-strY str1 str2)
   `(py-add-SstrX-SstrY-fallback ,str1 ,str2))
