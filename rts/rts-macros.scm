@@ -1,3 +1,4 @@
+;; macro to implement rts procedure profiling
 (cond-expand
   (gambit
    (define-syntax define-rts
@@ -8,12 +9,21 @@
              (|##sourcify-aux1| x form-src)))
        (define (err)
          (sourcify `(syntax-error "invalid define-rts")))
-       (define (instrument name body)
-         (list (sourcify (list (sourcify 'enter-rts)
-                               (sourcify name)))
-               (sourcify (cons (sourcify '|##let|)
-                               (cons (sourcify '())
-                                     body)))))
+       (define (instrument? name)
+         (let* ((co
+                 (|##global-var-ref|
+                  (|##make-global-var| '|##compilation-options|)))
+                (comp-opts
+                 (if (|##unbound?| co) '() co)))
+           (assq 'debug comp-opts)))
+       (define (instrument-body name body)
+         (if (instrument? name)
+             (list (sourcify (list (sourcify 'enter-rts)
+                                   (sourcify name)))
+                   (sourcify (cons (sourcify '|##let|)
+                                   (cons (sourcify '())
+                                         body))))
+             body))
        (let ((form (|##source-strip| form-src)))
          (cond ((not (and (pair? (cdr form)) (pair? (cddr form))))
                 (err))
@@ -28,24 +38,27 @@
                             (sourcify (cadr form))
                             (sourcify (cons (sourcify (car val))
                                             (cons (sourcify (cadr val))
-                                                  (instrument (cadr form) (cddr val))))))
+                                                  (instrument-body
+                                                   (cadr form)
+                                                   (cddr val))))))
                       (list (sourcify 'define)
                             (sourcify (cadr form))
                             (sourcify val)))))
                ((pair? (|##source-strip| (cadr form)))
                 (cons (sourcify 'define)
                       (cons (sourcify (cadr form))
-                            (instrument (car (|##source-strip| (cadr form)))
-                                        (cddr form)))))
+                            (instrument-body
+                             (car (|##source-strip| (cadr form)))
+                             (cddr form)))))
                (else
                 (err))))))
    (define-syntax enter-rts
      (lambda (form-src)
-       (define debug? #f)
+       (define disable-trace? #f)
        (let ((form (|##source-strip| form-src)))
          (cond ((not (and (pair? (cdr form)) (null? (cddr form))))
                 `(syntax-error "invalid enter-rts"))
-               ((not debug?)
+               (disable-trace?
                 `(|##begin|))
                (else
                 `(|##println|
