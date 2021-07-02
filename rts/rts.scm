@@ -699,6 +699,21 @@
         (let* ((func (PyObjectMethod-method obj))
                (__self__ (PyObjectMethod-self obj)))
           (py-call-generic func (cons __self__ args))))
+      ;; initialization of instances from type with no special metaclass
+      ((eq? obj-type py-type-class)
+        (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
+          (if (eq? __new__ object.__new__)
+            (if (eq? obj py-object-class)
+              (if (null? args)
+                ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
+                ;; this should be done concurrently in object-new
+                (py-obj-alloc py-object-class)
+                (py-throw-exception-with-message
+                  py-builtin-TypeError
+                  "object() takes no arguments"))
+              (let ((instance (py-obj-alloc obj)))
+                (type-call-from-instance obj instance (cons instance args))))
+            (type-call-from-new-method-fallback obj args __new__))))
       (else
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
@@ -1692,20 +1707,18 @@
       posonlyargs: (self)
       vararg: args)))
 
-;; TODO: remove the tuple->list conversion once we support argument unpacking
-(define-rts (type-call self args)
-  (let ((__new__ (getattribute-from-cls-mro self (& "__new__")))
-        (args-list (vector->list (PyObjectTuple-value args))))
-    (let ((instance (py-call-generic __new__ (cons self args-list))))
-      (if (eq? (py-obj-cls instance) self)
-        (let ((__init__ (getattribute-from-cls-mro self (& "__init__"))))
-            (py-call-generic __init__ (cons instance args-list))
-            instance)
-        instance))))
+(define-rts (type-call-from-new-method-fallback self args __new__)
+  (type-call-from-new-method self args __new__))
+
+(define-rts (type-call-fallback self args)
+  (type-call-from-new-method
+    self
+    (vector->list (PyObjectTuple-value $args))
+    (getattribute-from-cls-mro self (& "__new__"))))
 
 (define-rts type.__call__
   (procedure->py-function
-    type-call
+    type-call-fallback
     (make-signature
       posonlyargs: (self)
       vararg: args)))
@@ -1778,10 +1791,10 @@
     (make-signature posonlyargs: (cls iterable) defaults: (vector py-absent))))
 
 ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
+;; this should be done concurrently in py-call-generic
 ;; TODO: raise TypeError when cannot create, ex: list_iterator.__new__()
-;; TODO: remove the tuple->list conversion once we support argument unpacking
-;; TODO: that's really a lot of todos...
-(define-rts (object-new cls args)
+;; TODO: raise TypeError when object() is called with arguments
+(define-rts (object-new cls args kwargs)
   (if (py-isinstance? cls py-type-class)
     (py-obj-alloc cls)
     (py-throw
@@ -1793,7 +1806,8 @@
     object-new
     (make-signature
       posonlyargs: (cls)
-      vararg: args)))
+      vararg: args
+      kwarg: kwargs)))
 
 ;; object.__init__ exists but does nothing
 ;; its purpose is that super().__init__ does not raise and AttributeError
