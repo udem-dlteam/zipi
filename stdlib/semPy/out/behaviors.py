@@ -5902,7 +5902,7 @@ def py_truth_boolX(obj: bool):
 
 @define_behavior
 def py_truth_strX(obj: str):
-    return py_bool_from_host_bool(py_int_to_host(py_int_from_host(py_str_len_to_host(obj))) != py_sint_to_host(0))
+    return py_bool_from_host_bool(py_str_len_to_host(obj) != py_sint_to_host(0))
 
 @define_behavior
 def py_truth_functionX(obj: function):
@@ -5926,7 +5926,7 @@ def py_test_boolX(obj: bool):
 
 @define_behavior
 def py_test_strX(obj: str):
-    return py_int_to_host(py_int_from_host(py_str_len_to_host(obj))) != py_sint_to_host(0)
+    return py_str_len_to_host(obj) != py_sint_to_host(0)
 
 @define_behavior
 def py_test_functionX(obj: function):

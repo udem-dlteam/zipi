@@ -118,7 +118,7 @@ intrinsics_inverses = {
 
 intrinsics_inverses = {
     *intrinsics_inverses,
-    *map(reversed, intrinsics_inverses)
+    *map(lambda t: t[::-1], intrinsics_inverses)
 }
 
 py_to_host_number_table = {
