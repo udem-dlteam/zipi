@@ -94,11 +94,11 @@
 (define-macro (py-global-call global procedure global-id init-value name cache . args)
    (if (symbol? global-id)
        (let ((params (map (lambda (e) (gensym 'p)) args)))
-	  `(let* ,(map (lambda (p a) (list p a)) params args)
-	      (if (eq? ,global-id ,init-value)
-		  (,procedure ,@params)
-		  (py-call (or ,global-id (global-get ,global ,name ,cache))
-		     ,@params))))
+          `(let* ,(map (lambda (p a) (list p a)) params args)
+              (if (eq? ,global-id ,init-value)
+                  (,procedure ,@params)
+                  (py-call (or ,global-id (global-get ,global ,name ,cache))
+                     ,@params))))
        (error "py-global-call" "global-id must be a symbol" global-id)))
 
 (define-macro (py-call0 fun)
@@ -183,7 +183,7 @@
   `(fixnum->flonum (py-bool-to-scheme-int ,arg)))
 
 (define-macro (py-int-to-scheme-float arg)
-  `(fixnum->flonum (py-int-to-scheme ,arg)))
+  `(exact->inexact (py-int-to-scheme ,arg)))
 
 (define-macro (py-sint-to-scheme-float arg)
   `(fixnum->flonum (py-sint-to-scheme ,arg)))
@@ -1427,7 +1427,7 @@
          ($mro-length (vector-length $mro)))
      (let $loop-mro (($cls-index 0))
        (if (fx< $cls-index $mro-length)
-    	   (let (($cls (vector-ref $mro $cls-index)))
+           (let (($cls (vector-ref $mro $cls-index)))
            (py-own-attr-ref-2cont
             $cls
             ,name
@@ -1435,7 +1435,7 @@
               ($succeed $val $cls))
             (lambda ()
               ($loop-mro (fx+ $cls-index 1)))))
-	       (,fail)))))
+               (,fail)))))
 
 (define-macro (get-magic-attribute-from-cls-mro-with-owner-2cont cls magic-index succeed fail)
   `(let* (($mro (PyObjectType-mro ,cls))
@@ -1444,7 +1444,7 @@
          ($mro-length (vector-length $mro)))
     (let $loop-mro (($cls-index 0))
       (if (fx< $cls-index $mro-length)
-   	   (let* (($cls (vector-ref $mro $cls-index))
+           (let* (($cls (vector-ref $mro $cls-index))
               ($attr (magic-attr-ref $cls $magic-index)))
           (if $attr
             (,succeed $attr $cls)
@@ -1455,7 +1455,7 @@
  `(let (($mro (PyObjectType-mro ,cls)))
     (let $loop-mro (($cls-index 0))
       (if (fx< $cls-index (vector-length $mro))
-   	   (let (($cls (vector-ref $mro $cls-index)))
+           (let (($cls (vector-ref $mro $cls-index)))
           (py-own-attr-index/ref-2cont
            $cls
            ,name
@@ -1463,7 +1463,7 @@
              (,succeed $index $val $cls))
            (lambda ()
              ($loop-mro (fx+ $cls-index 1)))))
-	       (,fail)))))
+               (,fail)))))
 
 (define-macro (getattribute-from-cls-mro cls name)
   `(getattribute-from-cls-mro-with-owner-2cont
@@ -2436,10 +2436,10 @@
 
 (define-macro (py-getattribute obj attr . opts)
    (let ((cache (if (null? opts) #f (car opts)))
-	 (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
+         (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
       (if cache
-	  `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
-	  `(py-getattribute-fallback ,obj ,attr))))
+          `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
+          `(py-getattribute-fallback ,obj ,attr))))
 
 (define-macro (py-getattribute-cached obj attr cache inline-priorities)
   ;; attr should always be a string literal

@@ -15,15 +15,15 @@
      `(begin))
    (define-macro (declare-fixnum)
      `(begin
-	(define (+ x y) (+fx x y))
-	(define (- x y) (-fx x y))
-	(define (* x y) (*fx x y))
-	(define (/ x y) (/fx x y))
-	(define (<= x y) (<=fx x y))
-	(define (< x y) (<fx x y))
-	(define (>= x y) (>=fx x y))
-	(define (> x y) (>fx x y))
-	(define (= x y) (=fx x y))))
+        (define (+ x y) (+fx x y))
+        (define (- x y) (-fx x y))
+        (define (* x y) (*fx x y))
+        (define (/ x y) (/fx x y))
+        (define (<= x y) (<=fx x y))
+        (define (< x y) (<fx x y))
+        (define (>= x y) (>=fx x y))
+        (define (> x y) (>fx x y))
+        (define (= x y) (=fx x y))))
    (define-macro (declare-not-interrupts-enabled)
      `(begin))))
 
@@ -59,17 +59,17 @@
 (define-rts (find-next name op lst)
    (let loop ((lst lst))
       (if (null? lst)
-	  '()
-	  (let ((a (car lst)))
-	     (if (and (eq? name (caar a)) (eq? op (cdar a)))
-		 a
-		 (loop (cdr lst)))))))
+          '()
+          (let ((a (car lst)))
+             (if (and (eq? name (caar a)) (eq? op (cdar a)))
+                 a
+                 (loop (cdr lst)))))))
 
 (define-macro (HClass-next hc name op)
   `(let (($hc ,hc) ($name ,name))
     (let ((tran (find-next $name ,op (HClass-transitions $hc))))
        (if (pair? tran)
-	   (cdr tran)
+           (cdr tran)
         (let ((nhclass
                 (make-HClass
                   (vector-extend (HClass-names $hc) $name)
@@ -1101,9 +1101,9 @@
   (declare-fixnum)
   (let loop ((i 0))
      (and (< i (vector-length mro))
-	  (let* ((cls (vector-ref mro i)))
-	     (or (eq? cls target)
-		 (loop (+ i 1)))))))
+          (let* ((cls (vector-ref mro i)))
+             (or (eq? cls target)
+                 (loop (+ i 1)))))))
 
 (define-rts (py-isinstance? obj cls)
   (let ((mro (py-obj-mro obj)))
@@ -1468,6 +1468,51 @@
 (define-rts int.__hash__
   (procedure->py-function
     int-hash
+    (make-signature posonlyargs: (self))))
+
+(define-rts (int-int self)
+  (if (py-subtype-of-int? self)
+      (py-int-from-scheme (py-subtype-of-int-to-scheme self))
+      (py-throw-required-type "__int__" "int" self)))
+
+(define-rts int.__int__
+  (procedure->py-function
+    int-int
+    (make-signature posonlyargs: (self))))
+
+(define-rts (int-bool self)
+  (if (py-subtype-of-int? self)
+      (py-bool-from-scheme-bool
+       (not (eqv? 0 (py-subtype-of-int-to-scheme self))))
+      (py-throw-required-type "__bool__" "int" self)))
+
+(define-rts int.__bool__
+  (procedure->py-function
+    int-bool
+    (make-signature posonlyargs: (self))))
+
+(define-rts (int-float self)
+
+  (define (fallback)
+    (if (py-subtype-of-int? self)
+        (let ((value (py-int-to-scheme-float self)))
+          (if (flfinite? value)
+              (py-float-from-scheme value)
+              (py-throw-exception-with-message
+               py-builtin-OverflowError
+               "int too large to convert to float")))
+        (py-throw-required-type "__float__" "int" self)))
+
+  (py-if-specialized-sint-representation
+   (if (fixnum? self)
+       (py-float-from-scheme
+        (py-sint-to-scheme-float self)) ;; overflow not possible
+       (fallback))
+   (fallback)))
+
+(define-rts int.__float__
+  (procedure->py-function
+    int-float
     (make-signature posonlyargs: (self))))
 
 ;;;----------------------------------------------------------------------------
@@ -2280,6 +2325,44 @@
   (procedure->py-function
    float-repr
    (make-signature posonlyargs: (self))))
+
+(define-rts (float-int self)
+  (if (py-subtype-of-float? self)
+      (let ((value (py-subtype-of-float-to-scheme self)))
+        (if (flfinite? value)
+            (py-int-from-scheme (inexact->exact (fltruncate value)))
+            (py-throw-exception-with-message
+             py-builtin-OverflowError
+             (if (flinfinite? value)
+                 "cannot convert float infinity to integer"
+                 "cannot convert float NaN to integer"))))
+      (py-throw-required-type "__int__" "float" self)))
+
+(define-rts float.__int__
+  (procedure->py-function
+    float-int
+    (make-signature posonlyargs: (self))))
+
+(define-rts (float-bool self)
+  (if (py-subtype-of-float? self)
+      (py-bool-from-scheme-bool
+       (not (fl= 0.0 (py-subtype-of-float-to-scheme self))))
+      (py-throw-required-type "__bool__" "float" self)))
+
+(define-rts float.__bool__
+  (procedure->py-function
+    float-bool
+    (make-signature posonlyargs: (self))))
+
+(define-rts (float-float self)
+  (if (py-subtype-of-float? self)
+      (py-float-from-scheme (py-subtype-of-float-to-scheme self))
+      (py-throw-required-type "__float__" "float" self)))
+
+(define-rts float.__float__
+  (procedure->py-function
+    float-float
+    (make-signature posonlyargs: (self))))
 
 (define-rts (py-display obj port)
   (display (py-str-to-scheme (py-str obj)) port))
@@ -5045,6 +5128,9 @@
     (py-own-attr-set! int-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! int-class (& "__repr__") int.__repr__)
     (py-own-attr-set! int-class (& "__hash__") int.__hash__)
+    (py-own-attr-set! int-class (& "__int__") int.__int__)
+    (py-own-attr-set! int-class (& "__bool__") int.__bool__)
+    (py-own-attr-set! int-class (& "__float__") int.__float__)
 
     ;; bool
     (set! py-bool-class bool-class)
@@ -5058,6 +5144,9 @@
     (py-own-attr-set! float-class (& "__name__") (&& "float"))
     (py-own-attr-set! float-class (& "__module__") (&& "builtins"))
     (py-own-attr-set! float-class (& "__repr__") float.__repr__)
+    (py-own-attr-set! float-class (& "__int__") float.__int__)
+    (py-own-attr-set! float-class (& "__bool__") float.__bool__)
+    (py-own-attr-set! float-class (& "__float__") float.__float__)
 
     ;; function
     (set! py-function-class function-class)
