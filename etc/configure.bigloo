@@ -44,9 +44,6 @@ bglcloselibs=""
 if [ "$prefix " = " " ]; then
   prefix=/usr/local
 fi  
-etcdir=$prefix/etc
-bindir=$prefix/bin
-libdir=$prefix/lib
 
 #*---------------------------------------------------------------------*/
 #*    Private variables                                                */
