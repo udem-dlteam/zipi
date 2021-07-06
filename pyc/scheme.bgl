@@ -13,11 +13,11 @@
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
 (module __pyc_scheme
-   
+
    (include "ast.sch"
 	    "walk.sch"
 	    "new.sch")
-   
+
    (import __pyc_configure
 	   __pyc_dump
 	   __pyc_ast
@@ -80,11 +80,11 @@
 ;*    pyc-scheme-bigloo-semantics ...                                  */
 ;*---------------------------------------------------------------------*/
 (define (pyc-scheme-bigloo-semantics ast conf)
-   
+
    (define (no-macro s)
       (unless (is-macro? (cdr s))
 	 (cdr s)))
-	  
+
    (let* ((semantics (sort-semantics (collect-semantics* ast conf)))
 	  (defs (filter-map no-macro semantics))
 	  (protos (filter-map def->proto defs)))
@@ -97,11 +97,11 @@
 ;*    pyc-scheme-bigloo-semantics-macros ...                           */
 ;*---------------------------------------------------------------------*/
 (define (pyc-scheme-bigloo-semantics-macros ast conf)
-   
+
    (define (only-macro s)
       (when (is-macro? (cdr s))
 	 (cdr s)))
-   
+
    (let ((semantics (sort-semantics (collect-semantics* ast conf))))
       (filter-map only-macro semantics)))
 
@@ -116,9 +116,13 @@
        `(,id ,@args))
       ((define ?id ?val)
        id)
+      ((define-rts (?id . ?args) ?body)
+       `(,id ,@args))
+      ((define-rts ?id ?val)
+       id)
       (else
        #f)))
-   
+
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-ast ...                                        */
 ;*---------------------------------------------------------------------*/
@@ -144,7 +148,7 @@
 	  (mod (if (config-get conf :bootstrap)
 		   (pyc-scheme-bigloo-ast-bootstrap-module ast conf)
 		   (pyc-scheme-bigloo-ast-module conf))))
-      
+
       `(;; module declaration
 	,mod
 	(start-registering-constants)

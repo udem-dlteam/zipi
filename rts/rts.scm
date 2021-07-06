@@ -1758,7 +1758,7 @@
 (define-rts (type-call-fallback self args)
   (type-call-from-new-method
     self
-    (vector->list (PyObjectTuple-value $args))
+    (vector->list (PyObjectTuple-value args))
     (getattribute-from-cls-mro self (& "__new__"))))
 
 (define-rts type.__call__

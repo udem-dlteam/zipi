@@ -54,6 +54,8 @@
 
 	   max-fixnum
 	   (inline infinite?::bool ::double)
+     (inline flfinite?::bool ::double)
+     (inline flinfinite?::bool ::double)
 	   (inline nan?::bool ::double)
 
 	   (inline +fx/overflow::obj ::obj ::obj)
@@ -151,6 +153,12 @@
 ;*---------------------------------------------------------------------*/
 (define-inline (infinite? n)
    (or (=fl n +inf.0) (=fl n -inf.0)))
+
+(define-inline (flfinite? n)
+  (finitefl? n))
+
+(define-inline (flinfinite? n)
+  (infinitefl? n))
 
 ;*---------------------------------------------------------------------*/
 ;*    nan? ...                                                         */
