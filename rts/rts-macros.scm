@@ -2540,7 +2540,7 @@
       ((not (PyObjectType-can-have-getter $cls))
         $attr) ;; this covers the case fixnum/flonum
       ((PyObjectFunction? $attr)
-        (py-descriptor-get-functionX-inline $attr $instance $owner))
+        (py-descriptor-get-functionX-Y-Z-inline $attr $instance $owner))
       (else
         (py-descriptor-get-fallback $attr $instance $owner)))))
 

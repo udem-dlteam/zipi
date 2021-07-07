@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-import ast, argparse, copy, itertools, logging, operator, sys
+import ast, copy, itertools, logging, operator, sys
 from collections import Counter
 
-from utils import *
+from .utils import *
+from . import config
 
 try:
     ast.unparse
@@ -37,7 +38,7 @@ class AstRegister(ast.NodeVisitor):
     def get(self, item, default=None):
         try:
             return self.__getitem__(item)
-        except AttributeError:
+        except LookupError:
             return default
 
 
@@ -54,7 +55,7 @@ class MethodRegister(AstRegister):
             if method is not None:
                 return method
 
-        raise AttributeError(item)
+        raise KeyError(item)
 
     def visit_FunctionDef(self, node):
         self[node.name] = node
@@ -74,17 +75,13 @@ class ClassRegister(AstRegister):
 
 class SemanticsRegister(AstRegister):
     # Offers a register of semantics to be optimized to behaviors and a second register of all defined semantics
-    # The second register must be accessed through the 'get_from_all_semantics' method
     def __init__(self, ast_):
-        self._all_semantics = {}
         super().__init__(ast_)
 
     def visit_FunctionDef(self, node):
         decorators = node.decorator_list
         if any(isinstance(d, ast.Name) and d.id == 'define_semantics' for d in decorators):
-            if node.name in target_semantics:
-                self[node.name] = node
-            self._all_semantics[node.name] = node
+            self[node.name] = node
 
     def iter_binary_semantics(self):
         for name, sem in self._register.items():
@@ -95,9 +92,6 @@ class SemanticsRegister(AstRegister):
         for name, sem in self._register.items():
             if len(sem.args.args) == 1:
                 yield name, sem
-
-    def get_from_all_semantics(self, name, default=None):
-        return self._all_semantics.get(name, default)
 
 
 class AstNameInliner(ast.NodeTransformer):
@@ -275,16 +269,11 @@ class StmtSequence(ast.stmt):
 #   Partial evaluation
 # ======================================================================================================================
 
-class Unknown:
-    def __repr__(self):
-        return "<unknown>"
 
-
-_unknown = Unknown()
 
 
 class VarContext:
-    def __init__(self, type=_unknown, value=_unknown, __type=type):
+    def __init__(self, type=unknown, value=unknown, __type=type):
         self._type = type
         self.value = value
 
@@ -295,7 +284,7 @@ class VarContext:
                 self._type = 'NotImplementedType'
             elif value.value in {int, bool, float, str}:
                 self._type = "type"
-        elif isinstance(value, ast.Constant) and type is _unknown:
+        elif isinstance(value, ast.Constant) and type is unknown:
             self._type = partial_eval_resolve_type(value, {})
 
     @property
@@ -362,7 +351,7 @@ class Context:
         return Context(self.semantics, self.classes, closure=closure)
 
     def get_semantics(self, name, default=None):
-        return self.semantics.get_from_all_semantics(name, default)
+        return self.semantics.get(name, default)
 
 
 def optimize_body(body, ctx):
@@ -398,7 +387,7 @@ def inline_variables(body, ctx):
            and not name_counter[name, "Del"]
            and name_counter[name, "Load"] == 1
            and name in ctx
-           and ctx.get(name).value is not _unknown
+           and ctx.get(name).value is not unknown
     }
 
     body_copy = copy.deepcopy(body)
@@ -484,7 +473,7 @@ def partial_eval_resolve_type(expr, ctx):
     elif isinstance(expr, ast.Call):
         return partial_eval_resolve_call_return_type(ctx, expr)
 
-    return _unknown
+    return unknown
 
 
 def partial_eval_resolve_call_return_type(ctx, call):
@@ -502,7 +491,7 @@ def partial_eval_resolve_call_return_type(ctx, call):
         elif name == "py_str_from_host":
             return "str"
 
-    return _unknown
+    return unknown
 
 
 def partial_eval_set(ctx, name, ast_val):
@@ -536,7 +525,7 @@ def partial_eval_stmt(stmt, ctx):
             if var:
                 if isinstance(var.value, StmtSequence):
                     yield from var.value.body
-                elif var.value is not _unknown:
+                elif var.value is not unknown:
                     yield ast.Return(var.value)
                 else:
                     yield ast.Return(ast.Name(value.id, ast.Load()))
@@ -842,7 +831,7 @@ def partial_eval_is(left, right, ctx):
                 # this assumption can hold here because absent and NotImplemented values being returned by a semantics
                 # or a dunder is never specific to a value, but always to a whole type
                 return ast.Constant(left_type == right_type)
-            if left_var.type != _unknown != right_var.type and left_var.type != right_var.type:
+            if left_var.type != unknown != right_var.type and left_var.type != right_var.type:
                 return ast.Constant(False)
             if isinstance(left_var.value, ast.Constant) and isinstance(right_var.value, ast.Constant):
                 return ast.Constant(left_var.value.value is right_var.value.value)
@@ -893,7 +882,7 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
             if instance_ctx:
                 instance_actual_type = instance_ctx.type
 
-                if instance_actual_type is _unknown:
+                if instance_actual_type is unknown:
                     raise TypeError(f"partial_eval_static_function_call: type of '{instance_name}' is unknown")
                 elif type_info_name == "sint":
                     # TODO: incorrect but temporarily works for index semantics
@@ -903,7 +892,7 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
                     return ast.Constant(False)
                 elif issubclass(eval(instance_actual_type), eval(type_info_name)):
                     return ast.Constant(True)
-                elif instance_actual_type in types:
+                elif instance_actual_type in known_types:
                     return ast.Constant(False)
             else:
                 raise NameError(f"partial_eval_static_function_call: could not resolve name '{instance_name}'")
@@ -919,7 +908,7 @@ def partial_eval_static_function_call(func_name, args, keywords, ctx):
             if instance_ctx:
                 instance_actual_type = instance_ctx.type
 
-                if instance_actual_type is not _unknown:
+                if instance_actual_type is not unknown:
                     return ast.Name(instance_actual_type, ast.Load())
                 else:
                     raise TypeError(f"partial_eval_static_function_call: type of '{instance_name}' is unknown")
@@ -1023,7 +1012,7 @@ def partial_eval_class_getattr_call(args, ctx):
 
             if obj is None:
                 raise NameError(f"partial_eval: could not resolve {name.id}")
-            elif obj.type is _unknown:
+            elif obj.type is unknown:
                 raise NotImplementedError(f"partial_eval_class_getattr_call: could not resolve type of '{name.id}'")
             else:
                 obj_type = obj.type
@@ -1077,11 +1066,6 @@ def convert_body_to_return_host_bool(body):
         raise NotImplementedError("cannot convert body to a return-host-bool version due to len != 1")
 
 
-def get_behavior_name(semantics, types):
-    type_signature = '-'.join(t + id_ for t, id_ in zip(types, 'XYZWABCDEF'))
-    return f"py-{semantics}-{type_signature}"
-
-
 def make_ast_raise_with_msg(error_name, msg):
     exc = ast.Call(ast.Name(error_name, ast.Load()), [ast.Constant(msg)], [])
     return ast.Raise(exc, None)
@@ -1099,6 +1083,7 @@ def get_subtree_nested_item(tree, chain):
 
 
 def build_semantics(semantics_file, builtins_file):
+    # Preload builtins and semantics
     with open(builtins_file, 'r') as f:
         builtins_ast = ast.parse(f.read())
 
@@ -1108,8 +1093,7 @@ def build_semantics(semantics_file, builtins_file):
     class_register = ClassRegister(builtins_ast)
     semantics_register = SemanticsRegister(semantics_ast)
 
-    behaviors = []
-
+    # Known intrinsics
     define_behavior = "define_behavior"
     other_intrinsics = "py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
                        "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, " \
@@ -1117,48 +1101,39 @@ def build_semantics(semantics_file, builtins_file):
 
     behavior_decorator_list = [ast.Name(f"{define_behavior}", ast.Load())]
 
-    def register_behavior(name, sem, *types):
-        args_names = [a.arg for a in sem.args.args]
-        annotations = [None if t is _unknown else ast.Name(t, ast.Load()) for t in types]
+    behaviors = []
+
+    def register_behavior(name, module, function_name, types, as_test):
+        if module == "semantics":
+            function = semantics_register[function_name]
+        else:
+            raise NotImplementedError("can only partially evaluate from semantics module")
+
+        args_names = [a.arg for a in function.args.args]
+        annotations = [None if t is unknown else ast.Name(t, ast.Load()) for t in types]
 
         annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
-        behavior_name = get_behavior_name(name, [t for t in types if t is not _unknown])
-        behavior_func_name = behavior_name.replace('-', '_')
 
-        result_body = partial_eval(sem, semantics_register, class_register,
+        result_body = partial_eval(function, semantics_register, class_register,
                                    *[VarContext(type=t) for t in types])
 
-        behavior_func = ast.FunctionDef(behavior_func_name, annotated_arguments, result_body,
+        if as_test:
+            result_body = convert_body_to_return_host_bool(result_body)
+
+        behavior_func = ast.FunctionDef(name, annotated_arguments, result_body,
                                         behavior_decorator_list, None, None)
 
         behaviors.append(behavior_func)
 
-        # For comparisons, we generate a version of the behavior which returns a host bool
-        if name in ("eq", "ne", "ge", "gt", "le", "lt"):
-            test_behavior_func_name = behavior_name.replace('py-', 'py-test-').replace('-', '_')
+    for specializations in config.get_specializations():
+        for name, types in specializations:
+            register_behavior(name,
+                              specializations.module,
+                              specializations.function,
+                              types,
+                              specializations.as_test)
 
-            test_body = convert_body_to_return_host_bool(result_body)
-            test_behavior_func = ast.FunctionDef(test_behavior_func_name, annotated_arguments, test_body,
-                                                 behavior_decorator_list, None, None)
-            behaviors.append(test_behavior_func)
-
-    for name, bin_semantics in semantics_register.iter_binary_semantics():
-        for left_type in types_without_int:
-            for right_type in types_without_int:
-                if (name, left_type, right_type) not in binary_skip:
-                    register_behavior(name, bin_semantics, left_type, right_type)
-
-    for name, un_semantics in semantics_register.iter_unary_semantics():
-        for type_ in types_without_int:
-            register_behavior(name, un_semantics, type_)
-
-    # special case
-    for type_ in types_without_int:
-        register_behavior("descriptor_get", semantics_register["descriptor_get"], type_, _unknown, _unknown)
-
-    result = ""
-
-    result += f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n\n"
+    result = f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n\n"
 
     for b in behaviors:
         try:
@@ -1169,26 +1144,3 @@ def build_semantics(semantics_file, builtins_file):
             raise
 
     return result
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")
-    parser.add_argument('semantics')
-    parser.add_argument('builtins')
-    parser.add_argument('-path', default=None)
-    parser.add_argument('--int-maxsize', dest='int_maxsize', type=int, default=-1)
-
-    args = parser.parse_args()
-    semantics_file = args.semantics
-    builtins_file = args.builtins
-    path = args.path
-    int_maxsize = args.int_maxsize
-
-    if int_maxsize != -1:
-        INT_MAXSIZE = int_maxsize
-
-    if path:
-        with open(path, 'w') as f:
-            f.write(build_semantics(semantics_file, builtins_file))
-    else:
-        print(build_semantics(semantics_file, builtins_file))
