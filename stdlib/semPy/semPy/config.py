@@ -7,7 +7,7 @@ class Specializations:
     def __init__(self, *, module, function, types, prefix=None, as_test=False):
         self.module = module
         self.function = function
-        self.types = types
+        self.types = [ts if isinstance(ts, (list, tuple)) else [ts] for ts in types]
         if prefix is None:
             if as_test:
                 self.prefix = f"py_test_{function}" if prefix is None else prefix
@@ -54,7 +54,7 @@ add_specializations(module="semantics", function="bitor", types=default_binary_t
 add_specializations(module="semantics", function="floordiv", types=default_binary_types)
 add_specializations(module="semantics", function="lshift", types=default_binary_types)
 add_specializations(module="semantics", function="matmul", types=default_binary_types)
-add_specializations(module="semantics", function="mod", types=(defaults_except("str"), default_types))
+add_specializations(module="semantics", function="mod", types=[defaults_except("str"), default_types])
 add_specializations(module="semantics", function="mul", types=default_binary_types)
 add_specializations(module="semantics", function="pow", types=default_binary_types)
 add_specializations(module="semantics", function="rshift", types=default_binary_types)
@@ -69,7 +69,7 @@ add_specializations(module="semantics", function="ibitor", types=default_binary_
 add_specializations(module="semantics", function="ifloordiv", types=default_binary_types)
 add_specializations(module="semantics", function="ilshift", types=default_binary_types)
 add_specializations(module="semantics", function="imatmul", types=default_binary_types)
-add_specializations(module="semantics", function="imod", types=(defaults_except("str"), default_types))
+add_specializations(module="semantics", function="imod", types=[defaults_except("str"), default_types])
 add_specializations(module="semantics", function="imul", types=default_binary_types)
 add_specializations(module="semantics", function="ipow", types=default_binary_types)
 add_specializations(module="semantics", function="irshift", types=default_binary_types)
@@ -93,14 +93,14 @@ add_specializations(module="semantics", function="eq", types=default_binary_type
 add_specializations(module="semantics", function="ne", types=default_binary_types, as_test=True)
 
 # Unary semantics
-add_specializations(module="semantics", function="pos", types=(default_types,))
-add_specializations(module="semantics", function="neg", types=(default_types,))
-add_specializations(module="semantics", function="invert", types=(default_types,))
-add_specializations(module="semantics", function="truth", types=(default_types,))
-add_specializations(module="semantics", function="test", types=(default_types,))
+add_specializations(module="semantics", function="pos", types=[default_types])
+add_specializations(module="semantics", function="neg", types=[default_types])
+add_specializations(module="semantics", function="invert", types=[default_types])
+add_specializations(module="semantics", function="truth", types=[default_types])
+add_specializations(module="semantics", function="test", types=[default_types])
 
 # Type casts
-add_specializations(module="builtins", function="float", types=(default_types,), prefix="py_call_float")
+add_specializations(module="builtins", function="float", types=[default_types], prefix="py_call_float")
 
 # Other
-add_specializations(module="semantics", function="descriptor_get", types=[("function",), (unknown,), (unknown,)])
+add_specializations(module="semantics", function="descriptor_get", types=["function", unknown, unknown])

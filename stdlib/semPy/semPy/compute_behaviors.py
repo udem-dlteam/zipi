@@ -400,8 +400,8 @@ def inline_variables(body, ctx):
 def partial_eval(fn_ast, semantics, classes, *args):
     ast_args = fn_ast.args
 
-    if ast_args.kwonlyargs or ast_args.kw_defaults or ast_args.defaults:
-        raise NotImplementedError("partial_eval only supports no-default positional arguments")
+    if ast_args.kwonlyargs or ast_args.kw_defaults:
+        raise NotImplementedError("partial_eval only supports positional arguments")
 
     # For now we assume only positional args
     fn_args = ast_args.posonlyargs + ast_args.args
@@ -1115,8 +1115,9 @@ def build_semantics(semantics_file, builtins_file):
             # The called object is a class
             # We short-circuit the call protocol a little here by skipping the type.__call__ call
             fn = fn["__new__"]
+            klass = eval(function_name)
             result_body = partial_eval(fn, semantics_register, builtins_register,
-                                       VarContext(value=float, type="type"), # TODO: INCORRECTLY PASSED float builtin
+                                       VarContext(value=StaticValue(klass)),
                                        *[VarContext(type=t) for t in types])
         else:
             # The called object is a function
