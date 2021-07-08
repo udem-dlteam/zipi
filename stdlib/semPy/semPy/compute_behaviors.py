@@ -1090,7 +1090,7 @@ def build_semantics(semantics_file, builtins_file):
     with open(semantics_file, 'r') as f:
         semantics_ast = ast.parse(f.read())
 
-    class_register = ClassRegister(builtins_ast)
+    builtins_register = ClassRegister(builtins_ast)
     semantics_register = SemanticsRegister(semantics_ast)
 
     # Known intrinsics
@@ -1105,20 +1105,31 @@ def build_semantics(semantics_file, builtins_file):
 
     def register_behavior(name, module, function_name, types, as_test):
         if module == "semantics":
-            function = semantics_register[function_name]
+            fn = semantics_register[function_name]
+        elif module == "builtins":
+            fn = builtins_register[function_name]
         else:
             raise NotImplementedError("can only partially evaluate from semantics module")
 
-        args_names = [a.arg for a in function.args.args]
-        annotations = [None if t is unknown else ast.Name(t, ast.Load()) for t in types]
-
-        annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
-
-        result_body = partial_eval(function, semantics_register, class_register,
-                                   *[VarContext(type=t) for t in types])
+        if isinstance(fn, MethodRegister):
+            # The called object is a class
+            # We short-circuit the call protocol a little here by skipping the type.__call__ call
+            fn = fn["__new__"]
+            result_body = partial_eval(fn, semantics_register, builtins_register,
+                                       VarContext(value=float, type="type"), # TODO: INCORRECTLY PASSED float builtin
+                                       *[VarContext(type=t) for t in types])
+        else:
+            # The called object is a function
+            result_body = partial_eval(fn, semantics_register, builtins_register,
+                                       *[VarContext(type=t) for t in types])
 
         if as_test:
             result_body = convert_body_to_return_host_bool(result_body)
+
+        args_names = [a.arg for a in fn.args.args]
+        annotations = [None if t is unknown else ast.Name(t, ast.Load()) for t in types]
+
+        annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
 
         behavior_func = ast.FunctionDef(name, annotated_arguments, result_body,
                                         behavior_decorator_list, None, None)
