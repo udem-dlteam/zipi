@@ -1,6 +1,6 @@
 from itertools import product
 
-from .utils import unknown, get_behavior_name
+from utils import get_behavior_name
 
 
 class Specializations:
@@ -103,4 +103,4 @@ add_specializations(module="semantics", function="test", types=[default_types])
 add_specializations(module="builtins", function="float", types=[default_types], prefix="py_call_float")
 
 # Other
-add_specializations(module="semantics", function="descriptor_get", types=["function", unknown, unknown])
+add_specializations(module="semantics", function="descriptor_get", types=["function", "unknown", "unknown"])

@@ -1,11 +1,3 @@
-class Unknown:
-    def __repr__(self):
-        return "<unknown>"
-
-
-unknown = Unknown()
-
-
 def get_type_name(obj):
     return type(obj).__name__
 
@@ -15,7 +7,7 @@ def get_type_alias(type_name):
 
 
 def get_behavior_name(prefix, types):
-    type_signature = '_'.join(t + id_ for t, id_ in zip(['' if t is unknown else t for t in types], 'XYZWABCDEF'))
+    type_signature = '_'.join(t + id_ for t, id_ in zip(['' if t == "unknown" else t for t in types], 'XYZWABCDEF'))
     return f"{prefix}_{type_signature}"
 
 
