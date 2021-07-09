@@ -165,7 +165,13 @@ class RTE:
         if val:
             return val
         else:
-            raise KeyError(item)
+            ppy_builtins = self.modules["builtins"]
+            val = ppy_builtins[item]
+
+            if val:
+                return val
+            else:
+                raise KeyError(item)
 
     def __setitem__(self, item, value):
         if self._locals is not None:
@@ -349,8 +355,15 @@ def partial_eval_return(stmt, rte):
         yield rte.return_kind.do_return(ppy_expr)
 
 
-def partial_eval_expr_call(stmt, rte):
-    raise NotImplementedError
+def partial_eval_expr_call(call, rte):
+    func = call.func
+    args = [partial_eval_expr(a, rte) for a in call.args]
+    if isinstance(func, ast.Name):
+        name = func.id
+        ppy_func = rte[name]
+        yield from partial_eval_function_call(ppy_func, args, rte, return_kind=ReturnKind.as_expr())
+    else:
+        yield ast.Call(func, args, call.keywords)
 
 
 def partial_eval_return_tail_call(call, rte):
@@ -409,7 +422,8 @@ def partial_eval_name(name, rte):
 
 def partial_eval_expr(expr, rte):
     if isinstance(expr, ast.Call):
-        return partial_eval_expr_call(expr, rte)
+        resolved_call = list(partial_eval_expr_call(expr, rte))
+        return resolved_call
     elif isinstance(expr, ast.Name):
         return partial_eval_name(expr, rte)
     elif isinstance(expr, ast.Compare):
@@ -474,25 +488,23 @@ def partial_eval_is_not(left, right, ctx):
 
 
 def partial_eval_is(left, right, rte):
-    if isinstance(left, ast.Name) and isinstance(right, ast.Name):
-        left_var = rte.get(left.id)
-        right_var = rte.get(right.id)
+    if left in (ppy_intrinsic_absent, ppy_NotImplemented) \
+       or right in (ppy_intrinsic_absent, ppy_NotImplemented):
+        # TODO: this assumption can be removed once we have more solid type-checking
+        # absent and NotImplemented are singletons which should always be resolvable statically
+        # if a type is unknown, we assume it was not absent or NotImplemented
+        # this assumption can hold here because absent and NotImplemented values being returned by a semantics
+        # or a dunder is never specific to a value, but always to a whole type
+        return ast.Constant(left is right)
 
-        if left_var and right_var:
-            left_type = left_var.type
-            right_type = right_var.type
-            if left_type in (ppy_intrinsic_absent, ppy_NotImplemented) \
-               or right_type in (ppy_intrinsic_absent, ppy_NotImplemented):
-                # TODO: this assumption can be removed once we have more solid type-checking
-                # absent and NotImplemented are singletons which should always be resolvable statically
-                # if a type is unknown, we assume it was not absent or NotImplemented
-                # this assumption can hold here because absent and NotImplemented values being returned by a semantics
-                # or a dunder is never specific to a value, but always to a whole type
-                return ast.Constant(left_type == right_type)
-            if left_var.type is None is right_var.type and left_var.type != right_var.type:
-                return ast.Constant(False)
-            if isinstance(left_var.value, ast.Constant) and isinstance(right_var.value, ast.Constant):
-                return ast.Constant(left_var.value.value is right_var.value.value)
+    # is should not be used against other intrinsics than absent, so at that point values are PPY objects
+    left_type = left.type
+    right_type = right.type
+
+    if left_type is None is right_type and left_type != right_type:
+        return ast.Constant(False)
+    if isinstance(left.value, ast.Constant) and isinstance(right.value, ast.Constant):
+        return ast.Constant(left.value.value is right.value.value)
     # Unresolved
     return None
 
