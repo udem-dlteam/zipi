@@ -10,9 +10,6 @@ def get_behavior_name(prefix, types):
     type_signature = '_'.join(t + id_ for t, id_ in zip(['' if t == "unknown" else t for t in types], 'XYZWABCDEF'))
     return f"{prefix}_{type_signature}"
 
-
-function = type(lambda: None)
-
 known_types = ["int", "float", "bool", "str", "function"]
 int_specialized_types = ['sint', 'bint']
 known_types += int_specialized_types

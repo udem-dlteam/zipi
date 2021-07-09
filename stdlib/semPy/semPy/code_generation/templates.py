@@ -1625,17 +1625,17 @@ class NameError(Exception):
 
 
 @builtin
-class EnvironmentError(Exception):
-    pass
-
-
-@builtin
-class IOError(Exception):
-    pass
-
-
-@builtin
 class OSError(Exception):
+    pass
+    
+
+@builtin
+class IOError(OSError):
+    pass
+    
+    
+@builtin
+class EnvironmentError(OSError):
     pass
 
 
