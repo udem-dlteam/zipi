@@ -297,6 +297,10 @@ def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()
 def partial_eval_intrinsic_call(fn, args, rte, return_kind=ReturnKind.as_return()):
     if fn is ppy_intrinsic_class_getattr:
         yield return_kind.do_return(intrinsic_eval_class_getattr_call(args, rte))
+    elif fn in (ppy_intrinsic_py_int_to_host,
+                ppy_intrinsic_py_int_from_host):
+        # Cannot evaluate
+        yield return_kind.do_return(PPYValue(origin=ast.Call(fn, args, []), context=rte))
     else:
         raise NotImplementedError
 
@@ -415,7 +419,7 @@ def partial_eval_return_tail_call(call, rte):
     if isinstance(func, ast.Name):
         name = func.id
         ppy_func = rte[name]
-        yield from partial_eval_function_call(ppy_func, args, rte, return_kind=ReturnKind.as_return())
+        yield from partial_eval_function_call(ppy_func, args, rte, return_kind=rte.return_kind)
     else:
         yield ast.Return(ast.Call(func, args, call.keywords))
 
