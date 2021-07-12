@@ -1,4 +1,4 @@
-import ast, copy, itertools, logging, types
+import ast, copy, itertools, logging, operator, types
 
 import config
 import utils
@@ -98,6 +98,25 @@ class PPYBaseModule(PPYContainer):
 
 
 class PPYModule(PPYValue, PPYBaseModule):
+    pass
+
+
+class PPYStaticValue:
+    _all = {}
+
+    def __init__(self, name):
+        self.name = name
+        self._all[name] = self
+
+    def __init_subclass__(cls, **kwargs):
+        cls._all = {}
+
+
+class PPYIntrinsic(PPYStaticValue):
+    pass
+
+
+class PPYBuiltin(PPYStaticValue):
     pass
 
 
@@ -210,15 +229,6 @@ class RTE:
 #  Mock module for __compiler_intrinsics__
 # ======================================================================================================================
 
-
-class PPYIntrinsic:
-    all_intrinsics = {}
-
-    def __init__(self, name):
-        self.name = name
-        PPYIntrinsic.all_intrinsics[name] = self
-
-
 ppy_intrinsic_absent = PPYIntrinsic("absent")
 ppy_intrinsic_sint = PPYIntrinsic("sint")
 ppy_intrinsic_bint = PPYIntrinsic("bint")
@@ -245,8 +255,8 @@ ppy_intrinsic_semantics_maybe_index = PPYIntrinsic("semantics_maybe_index")
 ppy_intrinsic_semantics_maybe_trunc = PPYIntrinsic("semantics_maybe_trunc")
 ppy_intrinsic_semantics_big_index = PPYIntrinsic("semantics_big_index")
 
-# do not make a copy of 'all_intrinsics', semantics are later loaded in intrinsics
-ppy__compiler_intrinsics__ = PPYBaseModule(items=PPYIntrinsic.all_intrinsics)
+# do not make a copy of '_all', semantics are later loaded in intrinsics
+ppy__compiler_intrinsics__ = PPYBaseModule(items=PPYIntrinsic._all)
 
 
 # ======================================================================================================================
@@ -256,6 +266,8 @@ ppy__compiler_intrinsics__ = PPYBaseModule(items=PPYIntrinsic.all_intrinsics)
 def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()):
     if isinstance(fn, PPYIntrinsic):
         yield from partial_eval_intrinsic_call(fn, args, rte, return_kind=return_kind)
+    elif isinstance(fn, PPYBuiltin):
+        yield from partial_eval_builtin_call(fn, args, rte, return_kind=return_kind)
     else:
         ast_args = fn.origin.args
 
@@ -319,6 +331,37 @@ def intrinsic_eval_class_getattr_call(args, rte):
 
 
 # End of intrinsic calls
+
+def partial_eval_builtin_call(fn, args, rte, return_kind=ReturnKind.as_return()):
+    if fn is ppy_isinstance:
+        yield return_kind.do_return(builtin_eval_isinstance_call(args, rte))
+    else:
+        raise NotImplementedError
+
+
+# Evaluation of builtin calls
+
+def builtin_eval_isinstance_call(args, rte):
+    # Assume correct arity
+    instance, type_info = args
+
+    instance_type = instance.type
+
+    if isinstance(type_info, PPYClass):
+        if instance_type in (ppy_intrinsic_sint, ppy_intrinsic_bint):
+            return ast.Constant(type_info is ppy_int_class)
+        else:
+            return ast.Constant(instance_type in type_info.mro)
+
+    elif type_info is ppy_intrinsic_sint:
+        return ast.Constant(instance_type in (ppy_intrinsic_sint, ppy_int_class))
+    elif type_info is ppy_intrinsic_bint:
+        return ast.Constant(instance_type in (ppy_intrinsic_bint, ppy_int_class))
+    else:
+        raise NotImplementedError
+
+
+# End of builtin calls
 
 
 def partial_eval_stmts(stmts, rte):
@@ -423,7 +466,10 @@ def partial_eval_name(name, rte):
 def partial_eval_expr(expr, rte):
     if isinstance(expr, ast.Call):
         resolved_call = list(partial_eval_expr_call(expr, rte))
-        return resolved_call
+        if len(resolved_call) != 1:
+            raise NotImplementedError
+        else:
+            return resolved_call[0]
     elif isinstance(expr, ast.Name):
         return partial_eval_name(expr, rte)
     elif isinstance(expr, ast.Compare):
@@ -438,6 +484,68 @@ def partial_eval_expr(expr, rte):
         raise NotImplementedError
     else:
         return expr
+
+
+def partial_eval_un_op(expr, ctx):
+    operand = partial_eval_expr(expr.operand, ctx)
+    return ast.UnaryOp(expr.op, operand)
+
+
+def get_operator_from_ast(op):
+    return {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.FloorDiv: operator.floordiv,
+    }.get(type(op))
+
+
+def partial_eval_bin_op(expr, ctx):
+    left = partial_eval_expr(expr.left, ctx)
+    right = partial_eval_expr(expr.right, ctx)
+    op = expr.op
+    operator_ = get_operator_from_ast(op)
+
+    if isinstance(left, ast.Constant) and isinstance(right, ast.Constant) and operator_:
+        return ast.Constant(operator_(left.value, right.value))
+
+    return ast.BinOp(left, op, right)
+
+
+def partial_eval_bool_op(expr, ctx):
+    op = expr.op
+    values = [partial_eval_expr(e, ctx) for e in expr.values]
+
+    evaluated_values = []
+
+    # TODO: this is not exactly correct. For example, 'foo or True' will return foo even if foo is falsy.
+    # TODO: this is ok for the current usage of partial evaluation, but could be improved once we have some time
+    if isinstance(op, ast.And):
+        for val in values:
+            if isinstance(val, ast.Constant):
+                if not val.value:
+                    return val
+            else:
+                evaluated_values.append(val)
+
+    elif isinstance(op, ast.Or):
+        for val in values:
+            if isinstance(val, ast.Constant):
+                if val.value:
+                    return val
+            else:
+                evaluated_values.append(val)
+    else:
+        raise NotImplementedError(f"missing partial_eval implementation for {type(op).__name__}")
+
+    if not evaluated_values:
+        # All values were evaluated, return the last one
+        return val
+    elif len(evaluated_values) == 1:
+        return evaluated_values[0]
+    else:
+        return ast.BoolOp(op, evaluated_values)
 
 
 def partial_eval_compare(cmp, rte):
@@ -474,8 +582,111 @@ def partial_eval_compare(cmp, rte):
             return res
 
 
-def partial_eval_is_not(left, right, ctx):
-    is_res = partial_eval_is(left, right, ctx)
+def is_chained_calls(node, names):
+    if names:
+        if isinstance(node, ast.Call) and isinstance(func := node.func, ast.Name) and func.id == names[0]:
+            if len(node.args) == 1:
+                return is_chained_calls(node.args[0], names[1:])
+        return False
+    else:
+        return True
+
+
+def resolve_expression_sign(expr, rte):
+    if isinstance(expr, PPYValue):
+        if is_chained_calls(expr.origin, ["py_int_from_host", "py_str_len_to_host"]):
+            return 1, False
+    return None, None
+
+
+# We implemented limited mechanism to detect whether a value is positive or negative
+# This is mainly aimed at resolving the sign of int values coming from length of a sequence
+def partial_eval_lt(left, right, rte):
+    if isinstance(right, ast.Constant) and right.value == 0:
+        sign, strict = resolve_expression_sign(left, rte)
+
+        if sign is not None:
+            if sign == -1:
+                if strict:
+                    return ast.Constant(True)
+            else:  # 0 or 1
+                return ast.Constant(False)
+
+    return None
+
+
+def partial_eval_le(left, right, rte):
+    if isinstance(right, ast.Constant) and right.value == 0:
+        sign, strict = resolve_expression_sign(left, rte)
+
+        if sign is not None:
+            if sign == -1 or sign == 0:
+                return ast.Constant(True)
+
+            elif strict:  # > 0
+                return ast.Constant(False)
+
+    return None
+
+
+def partial_eval_gt(left, right, rte):
+    if isinstance(right, ast.Constant) and right.value == 0:
+        sign, strict = resolve_expression_sign(left, rte)
+
+        if sign is not None:
+            if sign == 1:
+                if strict:
+                    return ast.Constant(True)
+            else:  # 0 or -1
+                return ast.Constant(False)
+
+    return None
+
+
+def partial_eval_ge(left, right, rte):
+    if isinstance(right, ast.Constant) and right.value == 0:
+        sign, strict = resolve_expression_sign(left, rte)
+
+        if sign is not None:
+            if sign == 1 or sign == 0:
+                return ast.Constant(True)
+
+            elif strict:  # > 0
+                return ast.Constant(False)
+
+    return None
+
+
+def partial_eval_eq(left, right, rte):
+    if isinstance(left, ast.Constant):
+        if isinstance(right, ast.Constant):
+            return ast.Constant(left.value == right.value)
+        else:
+            return partial_eval_eq(right, left, rte)
+    elif isinstance(right, ast.Constant):
+        if right.value == 0 and isinstance(left, PPYValue):
+            left_type = left.type
+            if left_type is ppy_intrinsic_bint:
+                return ast.Constant(False)
+            elif left_type is ppy_bool_class:
+                return ast.UnaryOp(ast.Not(), left)
+    return None
+
+
+def partial_eval_ne(left, right, rte):
+    eq_res = partial_eval_eq(left, right, rte)
+    if isinstance(eq_res, ast.Constant):
+        if eq_res.value is True:
+            return ast.Constant(False)
+        elif eq_res.value is False:
+            return ast.Constant(True)
+    elif isinstance(eq_res, ast.UnaryOp) and isinstance(eq_res.op, ast.Not):
+        return eq_res.operand
+    return None
+
+
+def partial_eval_is_not(left, right, rte):
+    is_res = partial_eval_is(left, right, rte)
 
     if is_res:
         # an evaluation of is should always yield a bool
@@ -489,7 +700,7 @@ def partial_eval_is_not(left, right, ctx):
 
 def partial_eval_is(left, right, rte):
     if left in (ppy_intrinsic_absent, ppy_NotImplemented) \
-       or right in (ppy_intrinsic_absent, ppy_NotImplemented):
+            or right in (ppy_intrinsic_absent, ppy_NotImplemented):
         # TODO: this assumption can be removed once we have more solid type-checking
         # absent and NotImplemented are singletons which should always be resolvable statically
         # if a type is unknown, we assume it was not absent or NotImplemented
@@ -532,6 +743,10 @@ def load_module(name, module, sys_modules):
             partial_eval_import(stmt, rte)
         else:
             raise NotImplementedError("PPY: modules can only contain import or class and function definitions")
+
+    if name == "builtins":
+        # Load some builtins in global scope
+        bootstrap_builtins(this_module)
 
 
 def partial_eval_def(func_def, rte):
@@ -661,11 +876,28 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
                            None)
 
 
+ppy_object_class = PPYClass(context=None, origin=ast.parse("class object: pass").body[0])
 ppy_NotImplemented = PPYSingleton(name="NotImplemented")
+ppy_isinstance = PPYBuiltin(name="isinstance")
+ppy_int_class = None
+ppy_bool_class = None
+ppy_float_class = None
+ppy_str_class = None
+
 
 def populate_builtins(ppy_builtin):
-    ppy_builtin["object"] = PPYClass(context=None, origin=ast.parse("class object: pass").body[0])
+    ppy_builtin["object"] = ppy_object_class
     ppy_builtin["NotImplemented"] = ppy_NotImplemented
+    ppy_builtin["isinstance"] = ppy_isinstance
+
+
+def bootstrap_builtins(ppy_builtin):
+    global ppy_int_class, ppy_bool_class, ppy_float_class, ppy_str_class
+
+    ppy_int_class = ppy_builtin["int"]
+    ppy_bool_class = ppy_builtin["bool"]
+    ppy_float_class = ppy_builtin["float"]
+    ppy_str_class = ppy_builtin["str"]
 
 
 def compute_behaviors(semantics_file, builtins_file):
