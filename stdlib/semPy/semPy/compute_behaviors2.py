@@ -1,6 +1,11 @@
-import ast, copy, itertools, logging, operator, types
-
+import ast
+import collections
 import config
+import copy
+import itertools
+import logging
+import operator
+import types
 import utils
 
 
@@ -9,7 +14,7 @@ def get_unique_name(name="var", _unique_name_counter=itertools.count()):
 
 
 # ======================================================================================================================
-#  Name Mangler
+#  Preprocessing of AST
 # ======================================================================================================================
 def get_node_ppy_info(node, item):
     if hasattr(node, "_ppy"):
@@ -118,6 +123,64 @@ class NameMangler(ast.NodeTransformer):
 
     def visit_Name(self, node):
         return ast.Name(self.mangle_name(node.id), node.ctx)
+
+
+# ======================================================================================================================
+#  Postprocessing of AST
+# ======================================================================================================================
+
+class NameCounter(ast.NodeVisitor):
+    def __init__(self):
+        self.counter = collections.defaultdict(collections.Counter)
+
+    def count(self, fn):
+        if isinstance(fn, ast.FunctionDef):
+            for stmt in fn.body:
+                self.visit(stmt)
+        else:
+            raise TypeError("NameCounter can only be applied on function def")
+
+        return self.counter
+
+    def visit_FunctionDef(self, node):
+        raise NotImplementedError("postprocessing does not expect nested function definitions")
+
+    def visit_Name(self, node):
+        self.counter[node.id][type(node.ctx)] += 1
+
+
+class AssignmentRemover(ast.NodeTransformer):
+    def __init__(self, fn):
+        self.fn = fn
+        self.counter = NameCounter().count(fn)
+        self.to_remove = set()
+        self.to_inline = set()
+
+    def remove_assignments(self):
+        # assignments which can be fully removed as they were inlined
+        to_remove = self.to_remove
+
+        for name, count in self.counter.items():
+            if count[ast.Store] == 1 and count[ast.Load] == 0:
+                to_remove.add(name)
+
+        # assignments which can be inlined as the variable is single use
+        to_inline = self.to_inline
+        for name, count in self.counter.items():
+            if count[ast.Store] == 1 and count[ast.Load] == 1:
+                to_inline.add(name)
+
+        return self.visit(self.fn)
+
+    def visit_Assign(self, node):
+        targets = node.targets
+
+        if len(targets) > 1 or not isinstance(var:=targets[0], ast.Name):
+            return self.generic_visit(node)
+
+        if var.id in self.to_remove:
+            return None
+
 
 # ======================================================================================================================
 #  Data model for partially evaluated values
@@ -273,7 +336,7 @@ class ReturnKind:
             return ast.Return(value)
         elif name := self.assign:
             self.rte[name] = value
-            return ast.Assign([ast.Name(name, ast.Load())], value)
+            return ast.Assign([ast.Name(name, ast.Store())], value)
         elif self.expr:
             return value
         else:
@@ -547,7 +610,7 @@ def partial_eval_assign_call(name, call, rte):
         ppy_func = rte[func_name]
         yield from partial_eval_function_call(ppy_func, args, rte, return_kind=ReturnKind.as_assign(name, rte))
     else:
-        yield ast.Assign([ast.Name(name, ast.Load())], ast.Call(func, args, call.keywords))
+        yield ast.Assign([ast.Name(name, ast.Store())], ast.Call(func, args, call.keywords))
 
 
 def partial_eval_assign(assign, rte):
@@ -1051,6 +1114,7 @@ def compute_behaviors(semantics_file, builtins_file):
                                                specializations.as_test,
                                                ppy_sys_modules)
             try:
+                AssignmentRemover(behavior).remove_assignments()
                 ast.fix_missing_locations(behavior)
                 result += f"{ast.unparse(behavior)}\n\n"
             except Exception:
