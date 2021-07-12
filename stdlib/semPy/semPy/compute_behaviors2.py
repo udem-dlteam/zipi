@@ -5,8 +5,119 @@ import utils
 
 
 def get_unique_name(name="var", _unique_name_counter=itertools.count()):
-    return f"_{name}__{next(_unique_name_counter)}"
+    return f"{name}__{next(_unique_name_counter)}_"
 
+
+# ======================================================================================================================
+#  Name Mangler
+# ======================================================================================================================
+def get_node_ppy_info(node, item):
+    if hasattr(node, "_ppy"):
+        return node._ppy.get(item)
+    else:
+        node._ppy = {}
+        return None
+
+
+def set_node_ppy_info(node, item, value):
+    if hasattr(node, "_ppy"):
+        node._ppy[item] = value
+    else:
+        node._ppy = {item: value}
+
+
+class NameScopeResolver(ast.NodeVisitor):
+    def __init__(self, fn, parent=None):
+        self.fn = fn
+        self.parent = parent
+        self._locals = None
+        self._queue = []
+
+    def resolve(self):
+        fn = self.fn
+        scope_info = get_node_ppy_info(fn, "locals")
+
+        if scope_info is not None:
+            # Already resolved
+            return
+        else:
+            set_node_ppy_info(fn, "locals",
+                              set(a.arg for a in [*fn.args.args, *fn.args.posonlyargs, *fn.args.kwonlyargs]))
+
+        for stmt in fn.body:
+            self.visit(stmt)
+
+        for nested_fn in self._queue:
+            NameScopeResolver(nested_fn).resolve()
+
+    def visit_FunctionDef(self, node):
+        get_node_ppy_info(self.fn, "locals").add(node.name)
+        self._queue.append(node)
+
+    def visit_ClassDef(self, node):
+        raise NotImplementedError
+
+    def visit_NonLocal(self, node):
+        raise NotImplementedError
+
+    def visit_Global(self, node):
+        raise NotImplementedError
+
+    def visit_Name(self, node):
+        if isinstance(node.ctx, ast.Store):
+            get_node_ppy_info(self.fn, "locals").add(node.id)
+
+
+class NameMangler(ast.NodeTransformer):
+    def __init__(self, fn, parent=None):
+        if not isinstance(fn, ast.FunctionDef):
+            raise TypeError("NameMangler can only apply to FunctionDef")
+
+        self.fn = fn
+        NameScopeResolver(self.fn).resolve()
+
+        self.mangle_table = {name: get_unique_name(name) for name in get_node_ppy_info(self.fn, "locals")}
+
+        if parent:
+            self.mangle_table = {**parent.mangle_table, **self.mangle_table}
+
+    def mangle_name(self, name):
+        return self.mangle_table.get(name, name)
+
+    def mangle(self, fn_name=None):
+        fn_copy = copy.deepcopy(self.fn)
+
+        mangled_body = [self.visit(stmt) for stmt in fn_copy.body]
+
+        arguments = fn_copy.args
+        mangled_args = [ast.arg(self.mangle_name(a.arg)) for a in arguments.args]
+        mangled_posonlyargs = [ast.arg(self.mangle_name(a.arg)) for a in arguments.posonlyargs]
+        mangled_kwonlyargs = [ast.arg(self.mangle_name(a.arg)) for a in arguments.kwonlyargs]
+        mangled_vararg = arguments.vararg and ast.arg(self.mangle_name(arguments.vararg))
+        mangled_kwarg = arguments.kwarg and ast.arg(self.mangle_name(arguments.kwarg))
+
+        if arguments.kw_defaults or arguments.defaults:
+            raise NotImplementedError
+
+        return ast.FunctionDef(
+            fn_name or fn_copy.name,
+            ast.arguments(
+                mangled_posonlyargs,
+                mangled_args,
+                mangled_vararg,
+                mangled_kwonlyargs,
+                [],
+                mangled_kwarg,
+                []),
+            mangled_body,
+            fn_copy.decorator_list)
+
+    def visit_FunctionDef(self, node):
+        nested_mangler = NameMangler(node, parent=self)
+        return nested_mangler.mangle(fn_name=self.mangle_name(node.name))
+
+    def visit_Name(self, node):
+        return ast.Name(self.mangle_name(node.id), node.ctx)
 
 # ======================================================================================================================
 #  Data model for partially evaluated values
@@ -269,7 +380,10 @@ def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()
     elif isinstance(fn, PPYBuiltin):
         yield from partial_eval_builtin_call(fn, args, rte, return_kind=return_kind)
     else:
-        ast_args = fn.origin.args
+        # Apply name mangling for sound inlining
+        mangled_fn_origin = NameMangler(fn.origin).mangle()
+
+        ast_args = mangled_fn_origin.args
 
         if ast_args.kwonlyargs or ast_args.kw_defaults:
             raise NotImplementedError("partial_eval only supports positional arguments")
@@ -288,10 +402,11 @@ def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()
         else:
             call_rte = rte.make_frame(return_kind=return_kind)
 
+
         for fn_arg, callee_arg in zip(fn_args, args):
             call_rte[fn_arg.arg] = callee_arg
 
-        yield from partial_eval_stmts(fn.origin.body, call_rte)
+        yield from partial_eval_stmts(mangled_fn_origin.body, call_rte)
 
 
 def partial_eval_intrinsic_call(fn, args, rte, return_kind=ReturnKind.as_return()):
