@@ -1211,7 +1211,8 @@
             (,$scheme-str (py-str-to-scheme ,$str))
             (,$i (py-subtype-of-int-to-scheme ,int)))
        (if (index-in-length-range ,$i ,$len)
-           (string-ref ,$scheme-str (modulo ,$i ,$len))
+           (py-str-from-string 1
+                               (make-string 1 (string-ref ,$scheme-str (modulo ,$i ,$len))))
            (py-throw-index-out-of-range "str")))))
 
 (define-macro (py-getitem-strX-boolY str bool)
@@ -1225,11 +1226,13 @@
        (cond
         ((eq? ,bool py-False)
          (if (>= ,$len 1)
-             (string-ref ,$scheme-str 0)
+             (py-str-from-string 1
+                                 (make-string 1 (string-ref ,$scheme-str 0)))
              (py-throw-index-out-of-range "str")))
         ((eq? ,bool py-True)
          (if (>= ,$len 2)
-             (string-ref ,$scheme-str 1)
+             (py-str-from-string 1
+                                 (make-string 1 (string-ref ,$scheme-str 1)))
              (py-throw-index-out-of-range "str")))))))
 
 (define-macro (py-getitem-strX-sliceY str slice)

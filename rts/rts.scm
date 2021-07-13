@@ -2736,6 +2736,7 @@
   (py-getitem-tupleX-sliceY obj item))
 
 (define-rts (py-getitem-strX-intY-fallback obj item)
+  (step)
   (py-getitem-strX-intY obj item))
 
 (define-rts (py-getitem-strX-boolY-fallback obj item)
