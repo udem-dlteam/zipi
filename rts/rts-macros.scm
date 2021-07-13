@@ -2628,9 +2628,7 @@
   (let (($obj (gensym 'obj))
         ($item (gensym 'item)))
     `(let* ((,$obj ,obj)
-            (,$item ,item)
-            (_ (step))
-            )
+            (,$item ,item))
        ((vector-ref getitem-behavior-dispatch-vector
                     (+ (* ,(length table-info) (py-obj-class-index ,$obj)) (py-obj-class-index ,$item)))
         ,$obj
