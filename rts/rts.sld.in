@@ -156,10 +156,16 @@
     $py-getitem
     py-getitem
     py-getitem-fallback
+    py-getitem-strX-intY-fallback
+    py-getitem-strX-boolY-fallback
+    py-getitem-strX-sliceY-fallback
+    py-getitem-tupleX-intY-fallback
+    py-getitem-tupleX-boolY-fallback
+    py-getitem-tupleX-sliceY-fallback
     py-getitem-listX-intY-fallback
-    getitem-behavior-dispatch-vector
     py-getitem-listX-boolY-fallback
     py-getitem-listX-sliceY-fallback
+    getitem-behavior-dispatch-vector
     py-setitem
     py-delitem
 

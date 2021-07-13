@@ -2718,14 +2718,31 @@
 (bootstrap-type-hierarchy-phase1)
 
 (define-rts (py-getitem-listX-intY-fallback obj item)
-  (py-getitem-listX-intY obj item)) ;; macro call
+  (py-getitem-listX-intY obj item))
 
 (define-rts (py-getitem-listX-boolY-fallback obj item)
-  (py-getitem-listX-boolY obj item)) ;; macro call
+  (py-getitem-listX-boolY obj item))
 
 (define-rts (py-getitem-listX-sliceY-fallback obj item)
-  (py-getitem-listX-sliceY obj item)) ;; macro call
+  (py-getitem-listX-sliceY obj item))
 
+(define-rts (py-getitem-tupleX-intY-fallback obj item)
+  (py-getitem-tupleX-intY obj item))
+
+(define-rts (py-getitem-tupleX-boolY-fallback obj item)
+  (py-getitem-tupleX-boolY obj item))
+
+(define-rts (py-getitem-tupleX-sliceY-fallback obj item)
+  (py-getitem-tupleX-sliceY obj item))
+
+(define-rts (py-getitem-strX-intY-fallback obj item)
+  (py-getitem-strX-intY obj item))
+
+(define-rts (py-getitem-strX-boolY-fallback obj item)
+  (py-getitem-strX-boolY obj item))
+
+(define-rts (py-getitem-strX-sliceY-fallback obj item)
+  (py-getitem-strX-sliceY obj item))
 ;; adds top-level behavior tables
 (init-behavior-dispatch-vector)
 

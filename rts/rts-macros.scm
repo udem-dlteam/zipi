@@ -1183,8 +1183,6 @@
         (vector-ref ,$vec (modulo ,$i ,$len))
         (py-throw-index-out-of-range "list")))))
 
-
-
 (define-macro (py-getitem-listX-boolY lst bool)
   (let (($lst (gensym 'lst))
         ($len (gensym 'len))
@@ -1202,8 +1200,62 @@
                (vector-ref ,$vec 1)
                (py-throw-index-out-of-range "list"))))))
 
+(define-macro (py-getitem-strX-intY str int)
+  (let (($str (gensym 'str))
+        ($len (gensym 'len))
+        ($scheme-str (gensym 'scheme-str))
+        ($i (gensym 'i)))
+    `(let* ((,$str ,str)
+            (,$len (PyObjectStr-len ,$str))
+            (,$scheme-str (py-str-to-scheme ,$str))
+            (,$i (py-subtype-of-int-to-scheme ,int)))
+       (if (index-in-length-range ,$i ,$len)
+           (string-ref ,$scheme-str (modulo ,$i ,$len))
+           (py-throw-index-out-of-range "str")))))
 
-;; TODO change
+(define-macro (py-getitem-strX-boolY str bool)
+  (let (($str (gensym 'str))
+        ($len (gensym 'len))
+        ($scheme-str (gensym 'scheme-str))
+        )
+    `(let* ((,$str ,str)
+            (,$len (PyObjectStr-len ,$str))
+            (,$scheme-str (py-str-to-scheme ,$str)))
+       (if (eq? ,bool py-False)
+           (if (>= ,$len 1)
+               (vector-ref ,$scheme-str 0)
+               (py-throw-index-out-of-range "str")))
+       (if (eq? ,bool py-True)
+           (if (>= ,$len 2)
+               (vector-ref ,$scheme-str 1)
+               (py-throw-index-out-of-range "str"))))))
+
+(define-macro (py-getitem-strX-sliceY str slice)
+  (let (($str (gensym 'str))
+        ($len (gensym 'len))
+        ($scheme-str (gensym 'scheme-str))
+        ($indices (gensym 'indices))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($res-len (gensym 'len))
+        ($res-str (gensym 'str)))
+    `(let* ((,$str ,str)
+            (,$len (PyObjectStr-len ,$str))
+            (,$scheme-str (py-str-to-scheme ,$str))
+            (,$indices (py-slice-indices ,slice ,$len))
+            (,$start (vector-ref ,$indices 0))
+            (,$stop (vector-ref ,$indices 1))
+            (,$step (vector-ref ,$indices 2))
+            (,$res-len (max 0 (ceiling (/ (- ,$stop ,$start) ,$step))))
+            (,$res-str (make-string (list-get-inner-len ,$res-len) #f)))
+       (let loop ((source ,$start) (target 0))
+         (if (< target ,$res-len)
+             (begin
+               (string-set! ,$res-str target (string-ref ,$scheme-str source))
+               (loop (+ source ,$step) (+ target 1)))
+             (py-str-from-string ,$res-str ,$res-len))))))
+
 (define-macro (py-getitem-tupleX-sliceY tuple slice)
   (let (($tuple (gensym 'tuple))
         ($len (gensym 'len))
@@ -1230,7 +1282,6 @@
           (loop (+ source ,$step) (+ target 1)))
         (py-tuple-from-scheme ,$res-vec))))))
 
-;; TODO change
 (define-macro (py-getitem-tupleX-intY tuple item)
   (let (($tuple (gensym 'tuple))
         ($len (gensym 'len))
@@ -1244,7 +1295,6 @@
         (vector-ref ,$vec (modulo ,$i ,$len))
         (py-throw-index-out-of-range "tuple")))))
 
-;; TODO change
 (define-macro (py-getitem-listX-boolY tuple bool)
   (let (($tuple (gensym 'tuple))
         ($len (gensym 'len))
@@ -1862,6 +1912,16 @@
      ,(add-case 'list 'bint 'py-getitem-listX-intY-fallback)
      ,(add-case 'list 'slice 'py-getitem-listX-sliceY-fallback)
      ,(add-case 'list 'bool 'py-getitem-listX-boolY-fallback)
+
+     ,(add-case 'tuple 'sint 'py-getitem-tupleX-intY-fallback)
+     ,(add-case 'tuple 'bint 'py-getitem-tupleX-intY-fallback)
+     ,(add-case 'tuple 'slice 'py-getitem-tupleX-sliceY-fallback)
+     ,(add-case 'tuple 'bool 'py-getitem-tupleX-boolY-fallback)
+
+     ,(add-case 'str 'sint 'py-getitem-strX-intY-fallback)
+     ,(add-case 'str 'bint 'py-getitem-strX-intY-fallback)
+     ,(add-case 'str 'slice 'py-getitem-strX-sliceY-fallback)
+     ,(add-case 'str 'bool 'py-getitem-strX-boolY-fallback)
      ))
 
 (define-macro ($init-arithmetic-behavior-dispatch-vector indices-info)
