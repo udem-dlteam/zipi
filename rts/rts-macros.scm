@@ -1183,6 +1183,85 @@
         (vector-ref ,$vec (modulo ,$i ,$len))
         (py-throw-index-out-of-range "list")))))
 
+
+
+(define-macro (py-getitem-listX-boolY lst bool)
+  (let (($lst (gensym 'lst))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        )
+    `(let* ((,$lst ,lst)
+            (,$len (PyObjectList-len ,$lst))
+            (,$vec (PyObjectList-vector ,$lst)))
+       (if (eq? ,bool py-False)
+           (if (>= ,$len 1)
+               (vector-ref ,$vec 0)
+               (py-throw-index-out-of-range "list")))
+       (if (eq? ,bool py-True)
+           (if (>= ,$len 2)
+               (vector-ref ,$vec 1)
+               (py-throw-index-out-of-range "list"))))))
+
+
+;; TODO change
+(define-macro (py-getitem-tupleX-sliceY tuple slice)
+  (let (($tuple (gensym 'tuple))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($indices (gensym 'indices))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($res-len (gensym 'len))
+        ($res-vec (gensym 'vec)))
+  `(let* ((,$tuple ,tuple)
+         (,$vec (PyObjectTuple-vector ,$tuple))
+         (,$len (vector-length ,$vec))
+         (,$indices (py-slice-indices ,slice ,$len))
+         (,$start (vector-ref ,$indices 0))
+         (,$stop (vector-ref ,$indices 1))
+         (,$step (vector-ref ,$indices 2))
+         (,$res-len (max 0 (ceiling (/ (- ,$stop ,$start) ,$step))))
+         (,$res-vec (make-vector ,$res-len #f)))
+    (let loop ((source ,$start) (target 0))
+      (if (< target ,$res-len)
+        (begin
+          (vector-set! ,$res-vec target (vector-ref ,$vec source))
+          (loop (+ source ,$step) (+ target 1)))
+        (py-tuple-from-scheme ,$res-vec))))))
+
+;; TODO change
+(define-macro (py-getitem-tupleX-intY tuple item)
+  (let (($tuple (gensym 'tuple))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($i (gensym 'i)))
+    `(let* ((,$tuple ,tuple)
+            (,$vec (PyObjectTuple-vector ,$tuple))
+            (,$len (vector-length ,$vec))
+            (,$i (py-subtype-of-int-to-scheme ,item)))
+      (if (index-in-length-range ,$i ,$len)
+        (vector-ref ,$vec (modulo ,$i ,$len))
+        (py-throw-index-out-of-range "tuple")))))
+
+;; TODO change
+(define-macro (py-getitem-listX-boolY tuple bool)
+  (let (($tuple (gensym 'tuple))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        )
+    `(let* ((,$tuple ,tuple)
+            (,$vec (PyObjectTuple-vector ,$tuple))
+            (,$len (vector-length ,$vec)))
+       (if (eq? ,bool py-False)
+           (if (>= ,$len 1)
+               (vector-ref ,$vec 0)
+               (py-throw-index-out-of-range "tuple")))
+       (if (eq? ,bool py-True)
+           (if (>= ,$len 2)
+               (vector-ref ,$vec 1)
+               (py-throw-index-out-of-range "tuple"))))))
+
 (define-macro (py-EQUAL?-listX-listY list1 list2 yes no)
   (let (($list1 (gensym 'list))
         ($list2 (gensym 'list))
@@ -1663,7 +1742,9 @@
             (list           12              #f                   #f)
             (list_iterator  13              #f                   #f)
             (range          14              #f                   #f)
-            (range_iterator 15              #f                   #f))))
+            (range_iterator 15              #f                   #f)
+            (slice          16              #f                   #f)
+            (dict           17              #f                   #f))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -1758,7 +1839,30 @@
 (define-macro (init-behavior-dispatch-vector)
  `(begin
    (with-class-indices-info $init-arithmetic-behavior-dispatch-vector)
-   (with-class-indices-info $init-iteration-behavior-dispatch-vector)))
+   (with-class-indices-info $init-iteration-behavior-dispatch-vector)
+   (with-class-indices-info $init-getitem-behavior-dispatch-vector)
+   ))
+
+(define-macro ($init-getitem-behavior-dispatch-vector indices-info)
+  (define (type-index type)
+    (cadr (assq type indices-info)))
+
+  (define (add-case type-obj type-item func)
+    `(vector-set! getitem-behavior-dispatch-vector
+                 ,(+
+                  (* (length indices-info)
+                     (type-index type-obj))
+                  (type-index type-item))
+                 ,func))
+  `(begin
+     (define-rts getitem-behavior-dispatch-vector
+       (make-vector ,(expt (length indices-info) 2) py-getitem-fallback))
+
+     ,(add-case 'list 'sint 'py-getitem-listX-intY-fallback)
+     ,(add-case 'list 'bint 'py-getitem-listX-intY-fallback)
+     ,(add-case 'list 'slice 'py-getitem-listX-sliceY-fallback)
+     ,(add-case 'list 'bool 'py-getitem-listX-boolY-fallback)
+     ))
 
 (define-macro ($init-arithmetic-behavior-dispatch-vector indices-info)
   (define types-with-specialized-behaviors
@@ -1974,27 +2078,6 @@
         ,@tables-init-code
         ,@behavior-call-fallbacks)))
 
-(define-macro (py-for-each-listX iterable body)
-  (let (($iterable (gensym 'iterable)))
-  `(let ((,$iterable ,iterable))
-    (let loop ((i 0))
-      (if (fx< i (PyObjectList-len ,$iterable))
-        (begin
-          (,body (vector-ref (PyObjectList-vector ,$iterable) i))
-          (loop (fx+ i 1))))))))
-
-(define-macro (py-for-each-tupleX iterable body)
-  (let (($iterable (gensym 'iterable))
-        ($vec (gensym 'vector))
-        ($len (gensym 'len)))
-  `(let* ((,$iterable ,iterable)
-          (,$vec (PyObjectTuple-value ,$iterable))
-          (,$len (vector-length ,$vec)))
-    (let loop ((i 0))
-      (if (fx< i ,$len)
-        (begin
-          (,body (vector-ref ,$vec i))
-          (loop (fx+ i 1))))))))
 
 (define-macro ($init-iteration-behavior-dispatch-vector indices-info)
   (define behavior-tables-size (+ 1 (apply max (map cadr indices-info))))
@@ -2040,6 +2123,27 @@
               (py-throw-unsafe e)))
           (lambda () (py-generator-next gen)))))))
 
+(define-macro (py-for-each-listX iterable body)
+  (let (($iterable (gensym 'iterable)))
+    `(let ((,$iterable ,iterable))
+       (let loop ((i 0))
+         (if (fx< i (PyObjectList-len ,$iterable))
+             (begin
+               (,body (vector-ref (PyObjectList-vector ,$iterable) i))
+               (loop (fx+ i 1))))))))
+
+(define-macro (py-for-each-tupleX iterable body)
+  (let (($iterable (gensym 'iterable))
+        ($vec (gensym 'vector))
+        ($len (gensym 'len)))
+    `(let* ((,$iterable ,iterable)
+            (,$vec (PyObjectTuple-value ,$iterable))
+            (,$len (vector-length ,$vec)))
+       (let loop ((i 0))
+         (if (fx< i ,$len)
+             (begin
+               (,body (vector-ref ,$vec i))
+               (loop (fx+ i 1))))))))
 (define-macro (get-behavior-index lhs-index rhs-index)
    `(with-class-indices-info $get-behavior-index ,lhs-index ,rhs-index))
 
@@ -2517,7 +2621,20 @@
   `(py-setattribute-fallback ,obj ,attr ,val))
 
 (define-macro (py-getitem obj item)
-  `(py-getitem-fallback ,obj ,item))
+  `(with-class-indices-info $py-getitem ,obj ,item))
+
+(define-macro ($py-getitem table-info obj item)
+
+  (let (($obj (gensym 'obj))
+        ($item (gensym 'item)))
+    `(let* ((,$obj ,obj)
+            (,$item ,item)
+            (_ (step))
+            )
+       ((vector-ref getitem-behavior-dispatch-vector
+                    (+ (* ,(length table-info) (py-obj-class-index ,$obj)) (py-obj-class-index ,$item)))
+        ,$obj
+        ,$item))))
 
 (define-macro (py-setitem obj item value)
   `(py-setitem-fallback ,obj ,item ,value))

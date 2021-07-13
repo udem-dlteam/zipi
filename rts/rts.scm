@@ -2717,6 +2717,15 @@
 
 (bootstrap-type-hierarchy-phase1)
 
+(define-rts (py-getitem-listX-intY-fallback obj item)
+  (py-getitem-listX-intY obj item)) ;; macro call
+
+(define-rts (py-getitem-listX-boolY-fallback obj item)
+  (py-getitem-listX-boolY obj item)) ;; macro call
+
+(define-rts (py-getitem-listX-sliceY-fallback obj item)
+  (py-getitem-listX-sliceY obj item)) ;; macro call
+
 ;; adds top-level behavior tables
 (init-behavior-dispatch-vector)
 
@@ -3210,6 +3219,7 @@
   (procedure->py-function
     list-getitem
     (make-signature posonlyargs: (self item))))
+
 
 (define-rts (list-set-simple-slice! lst start stop vec len)
   (let* ((self-vec (PyObjectList-vector lst))
