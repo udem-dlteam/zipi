@@ -11,6 +11,7 @@ parser.add_argument('files', metavar="FILES", type=str, nargs="+", help="Path of
 parser.add_argument('-c', '--complete', action="store_true", help="Show a complete report of the errors")
 parser.add_argument('-zipi', '--path-zipi-executable', type=str, default="$ZIPIROOT/bin/zipi.gambit")
 parser.add_argument('-zpc', '--path-zpc-executable', type=str, default="$ZIPIROOT/bin/zpc.gambit")
+parser.add_argument('-t', "--timeout", type=str, default="5m", help="time each unittest has to compile. Otherwise, it will get terminated (using builtin timeout command)")
 
 args = parser.parse_args()
 
@@ -152,11 +153,14 @@ dev_null = open(os.devnull, 'w')
 
 def run_test_suite(col, test_suite):
     try:
-        result = subprocess.check_output(args.path_zipi_executable+" "+ test_suite +" print_tests & wait $!", shell = True, stderr=dev_null).decode("utf-8")
+        result = subprocess.check_output("timeout " + args.timeout + " " + args.path_zipi_executable+" "+ test_suite +" print_tests", shell = True, stderr=dev_null).decode("utf-8")
     except subprocess.CalledProcessError as e:
-        return InitializationFail("Compilation error", "Compilation error \n" + e.output.decode("utf-8"))
+        error = "Compilation error"
+        if(e.returncode == 124):
+            error = "Compilation took more than " + args.timeout + " (exitcode=124)"
+        return InitializationFail(error, error + "\n" + e.output.decode("utf-8"))
     except Exception as e:
-        return InitializationFail("Compilation error", repr(e))
+        return InitializationFail("Compilation error 2", repr(e))
 
     lines = result.strip().split("\n")
     if lines[0] != "success":
@@ -209,7 +213,7 @@ def run_test(col, test, test_name):
 
 def clear_cache():
     try:
-        subprocess.check_output(args.path_zipi_executable+" -X reset", shell = True, stderr=dev_null)
+        subprocess.check_output(args.path_zipi_executable+" -X reset", shell = True)
     except Exception as e:
         print("cannot clear cache, verify paths and environnement variable... exiting...")
         print(e)

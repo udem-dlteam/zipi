@@ -1,3 +1,4 @@
+notf = lambda x : not x
 
 class TestCase():
     class _AssertRaise():
@@ -12,7 +13,7 @@ class TestCase():
             if exc_type is None:
                 exc_name = str(self.exc)
                 self.test_case._fail(exc_name + " not raised")
-            elif not isinstance(exc_value, self.exc):
+            elif notf(isinstance(exc_value, self.exc)):
                 self.test_case._fail(str(self.exc) + " does not match " + str(exc_value))
 
     is_testcase = True
@@ -31,11 +32,11 @@ class TestCase():
 
     def _assert(self, comparison_func, name):
         self.assert_count += 1
-        if not(comparison_func()):
+        if notf(comparison_func()):
             self._fail(str(name) + " FAILED")
 
     def _assertType(self, obj1, obj2, expected_type, name):
-        if not (type(obj1) == type(obj2) and type(obj2) == expected_type):
+        if notf(type(obj1) == type(obj2) and type(obj2) == expected_type):
             self._fail(str(name) + " FAILED")
 
     def _notImplemented(self, msg):
@@ -211,7 +212,6 @@ def _display_test_cases(class_instance, show_class = False):
 
     except AttributeError:
         pass
-
 
 # second entry point
 def _run_tests(class_instance):

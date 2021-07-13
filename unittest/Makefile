@@ -1,6 +1,7 @@
 
 
 -include ../etc/Makefile.zipiconfig
+test_folder = "../zipitestlib/test"
 
 cpython:
 	git clone https://github.com/python/cpython.git \
@@ -13,14 +14,14 @@ cpython:
 
 clean:
 	rm -rf cpython
-	rm -rf ../zipitestlib/test
+	rm -rf $(test_folder)
 
 install: cpython
 	cp -r test ../zipitestlib
 	cp -n -r cpython/Lib/test ../zipitestlib/
 
 unittest: install
-	python run-test.py ../zipitestlib/test/test_*.py -c
+	python run-test.py $(test_folder)/test_*.py -c -zipi "../bin/zipi.gambit" -zpc "../bin/zipi.zpc"
 
 unittest-fast: install
-	python run-test.py ../zipitestlib/test/{test_int.py,test_bool.py} -c
+	python run-test.py $(test_folder)/test_int.py $(test_folder)/test_bool.py -c -zipi "../bin/zipi.gambit" -zpc "../bin/zipi.zpc"
