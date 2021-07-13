@@ -148,7 +148,7 @@ class NameCounter(ast.NodeVisitor):
     def visit_Name(self, node):
         self.counter[node.id][type(node.ctx)] += 1
 
-
+# TODO: This must be a fixed point algorithm
 class AssignmentRemover(ast.NodeTransformer):
     def __init__(self, fn):
         self.fn = fn
