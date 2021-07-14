@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Wed May  5 09:37:13 2021 (serrano)                */
+#*    Last change :  Tue Jul 13 08:09:36 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    Zipi autoconfiguration                                           */
@@ -142,9 +142,10 @@ while : ; do
   shift
 done
 
+versiondash=`echo $version | sed 's/[.]/-/g'`
 prefix=${prefix%/}
 installbindir=$prefix/bin
-zipiroot=$prefix/lib/zipi-0-0-1/zipi # TODO: when gambit can accept . in path, use: $prefix/lib/zipi-${version}/zipi
+zipiroot=$prefix/lib/zipi-$versiondash/zipi # TODO: when gambit can accept . in path, use: $prefix/lib/zipi-${version}/zipi
 etcdir=$zipiroot/etc
 rtsdir=$zipiroot/rts
 bindir=$zipiroot/bin

@@ -133,7 +133,12 @@
         (args (PycCall-args this)))
     (if (not (= (length args) 1))
       (error "make-py-float-to-scheme" "incorrect arity for call to py-float-to-scheme" this))
-    (let ((arg0 (car args)))
+    (let* ((arg0 (car args))
+           (arg-type (get-expr-type-hint arg0))
+           (float-procedure
+             (if (eq? arg-type 'float)
+              'py-float-to-scheme
+              'py-subtype-of-float-to-scheme)))
       (if (and
             (isa? arg0 PycNumber)
             (flonum? (PycLiteralValue-val arg0)))
@@ -143,7 +148,7 @@
           type: 'Ufloat)
         (new-PycCall
           loc
-          (new-PycPragma loc 'py-float-to-scheme)
+          (new-PycPragma loc float-procedure)
           args)))))
 
 (define (make-alloc this)
@@ -523,6 +528,14 @@
                   semantics))))
           (lambda-lift-semantics! this))))
 
+  ;; scoping/behaviors intrinsics
+  (let ((use_simple_scoping-var (list-find-PycVar-by-id intrinsics 'use_simple_scoping)))
+    (if use_simple_scoping-var
+        (mark-use-simple-scoping! this (list-find-PycVar-by-id intrinsics 'use_simple_scoping))))
+  (let ((define_behavior-var (list-find-PycVar-by-id intrinsics 'define_behavior)))
+    (if define_behavior-var
+      (mark-define-behavior! this intrinsics-info define_behavior-var)))
+
   ;; static functions and values
   (resolve-statics-calls!
     this
@@ -536,14 +549,6 @@
     statics-assoc-list
     macro-assoc-list
     #f)
-
-  ;; scoping/behaviors intrinsics
-  (let ((use_simple_scoping-var (list-find-PycVar-by-id intrinsics 'use_simple_scoping)))
-    (if use_simple_scoping-var
-        (mark-use-simple-scoping! this (list-find-PycVar-by-id intrinsics 'use_simple_scoping))))
-  (let ((define_behavior-var (list-find-PycVar-by-id intrinsics 'define_behavior)))
-    (if define_behavior-var
-      (mark-define-behavior! this intrinsics-info define_behavior-var)))
 
   (let ((builtin-var (list-find-PycVar-by-id intrinsics 'builtin))
         (private-var (list-find-PycVar-by-id intrinsics 'private)))
@@ -660,6 +665,7 @@
       ((eq? expr 'py-sint-to-scheme) 'Usint)
       ((eq? expr 'py-bint-to-scheme) 'Ubint)
       ((eq? expr 'py-float-to-scheme) 'Ufloat)
+      ((eq? expr 'py-subtype-of-float-to-scheme) 'Ufloat)
       ((eq? expr 'py-bool-to-scheme-bool) 'Ubool)
       ((eq? expr 'py-str-to-scheme) 'Ustr)
       ((eq? expr 'py-int-from-scheme) 'int)
@@ -835,7 +841,7 @@
           kw-defaults
           kwarg
           defaults
-          body
+          (annotate-behavior! body (map cons annotation-names annotation))
           decorators:
             (list-remove
               decorators
@@ -887,6 +893,34 @@
 		(make-behavior (make-fallback-behavior-name name) body #f #f)
 		(make-behavior (make-inline-behavior-name name) (make-default-inline-behavior-body) #t #t))))
       this)))
+
+(define annotable-types '(sint bint float str bool))
+
+(define (annotate-behavior! body annotation-list)
+  (annotate-behavior-walk!
+    body
+    (filter-map
+      (lambda (pair)
+        (let ((var (car pair))
+              (annotation (cdr pair)))
+          (if (and (isa? annotation PycRefUnresolved))
+            (let ((annotated-type
+                   (memq (PycRefUnresolved-id annotation) annotable-types)))
+              (if annotated-type
+                (cons var (car annotated-type))
+                #f))
+            #f)))
+      annotation-list)))
+
+(define-walk-method (annotate-behavior-walk! this::PycNode annotation-list)
+  (call-default-walker))
+
+(define-walk-method (annotate-behavior-walk! this::PycRef annotation-list)
+  (let* ((var (PycRef-decl this))
+         (annotation (assq var annotation-list)))
+    (if annotation
+      (PycExpr-type-set! this (cdr annotation))))
+    this)
 
 ;; lambda lifting of semantics
 

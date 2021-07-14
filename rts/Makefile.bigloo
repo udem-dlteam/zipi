@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Sun May  2 07:17:37 2021 (serrano)                */
+#*    Last change :  Tue Jul 13 08:40:12 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the ZIPI rts library                       */
@@ -100,7 +100,7 @@ o/bigloo.o: bigloo.bgl
 o/hash.o: hash/hash.bgl hash/hash.scm
 	$(BIGLOO) -O3 -c $+ -o $@
 
-builtins.bgl: ../stdlib//builtins.py
+builtins.bgl: ../stdlib/builtins.py
 	$(BUILDBINDIR)/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_builtins --bootstrap --bin-dir=$(BUILDBINDIR)
 
 zemantics.bgl: ../stdlib/zemantics.py

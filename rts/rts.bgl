@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Wed May 26 14:09:09 2021 (serrano)                */
+;*    Last change :  Tue Jul 13 15:09:38 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -343,6 +343,7 @@
            (py-make-class name module bases . atrs)
 
            (py-throw ::obj)
+           (py-throw-with-values exc . values)
            (inline py-try-except-else handler body orelse)
            (inline py-try-except handler body)
            (inline py-throw-unsafe exc)
@@ -371,10 +372,11 @@
            py-function-class
            (py-own-attr-set! obj attr val)
 
-           (py-isinstance? ::PyObject ::PyObject)
-
+           (py-isinstance? ::obj ::PyObject)
 
            (py-slice-from-scheme ::obj ::obj ::obj)
+
+           (py-make-set elements)
 
            (py-obj-alloc cls)
 
@@ -507,7 +509,11 @@
 
 	   py-classmethod-hclass-of-instances
 	   py-staticmethod-hclass-of-instances
-           )
+
+	   py-next-behaviors-table
+	   (py-iter-fallback obj)
+
+     (py-make-dict key-value-pairs))
 
    (eval   (export-all)))
 
