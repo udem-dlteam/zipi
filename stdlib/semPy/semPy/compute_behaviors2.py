@@ -129,6 +129,11 @@ class NameMangler(ast.NodeTransformer):
 #  Postprocessing of AST
 # ======================================================================================================================
 
+
+def remove_extra_pass(behavior):
+    behavior.body = [stmt for stmt in behavior.body if not isinstance(stmt, ast.Pass)] or [ast.Pass()]
+
+
 class NameCounter(ast.NodeVisitor):
     def __init__(self):
         self.ref_counter = collections.Counter()
@@ -148,7 +153,7 @@ class NameCounter(ast.NodeVisitor):
 
     def visit_Name(self, node):
         if isinstance(node.ctx, ast.Load):
-            self.ref_counter[node.id]+= 1
+            self.ref_counter[node.id] += 1
         elif isinstance(node.ctx, ast.Store):
             raise NotImplementedError("NameCounter: ref with Store context out of assignment")
         else:
@@ -159,38 +164,45 @@ class NameCounter(ast.NodeVisitor):
             if isinstance(t, ast.Name):
                 self.assignments[t.id].append(node.value)
 
-# TODO: This must be a fixed point algorithm
+
 class AssignmentRemover(ast.NodeTransformer):
     def __init__(self, fn):
         self.fn = fn
-        self.ref_counter, self.assignments = NameCounter().count(fn)
         self.to_remove = set()
         self.to_inline = {}
+        self.must_iterate = True
+        self.ref_counter = self.assignments = None
 
     def remove_assignments(self):
-        assignments = self.assignments
-        ref_counter = self.ref_counter
+        while self.must_iterate:
+            self.must_iterate = False
+            ref_counter, assignments = self.ref_counter, self.assignments = NameCounter().count(self.fn)
 
-        # assignments which can be fully removed as they were inlined
-        to_remove = self.to_remove
+            # assignments which can be fully removed as they were inlined
+            to_remove = self.to_remove
 
-        for name, values in self.assignments.items():
-            if ref_counter[name] == 0 and len(values) == 1:
-                to_remove.add(name)
+            for name, values in self.assignments.items():
+                if ref_counter[name] == 0 and len(values) == 1:
+                    to_remove.add(name)
 
-        # assignments which can be inlined as the variable is single use
-        to_inline = self.to_inline
-        for name, count in ref_counter.items():
-            if count == 1:
-                name_assignments = assignments[name]
-                if len(name_assignments) == 1:
-                    to_inline[name] = name_assignments[0].value
+            # assignments which can be inlined as the variable is single use
+            to_inline = self.to_inline
+            for name, count in ref_counter.items():
+                if count == 1:
+                    name_assignments = assignments[name]
+                    if len(name_assignments) == 1:
+                        to_inline[name] = name_assignments[0].value
 
-        return self.visit(self.fn)
+            self.fn = self.visit(self.fn)
+
+        return self.fn
 
     def visit_Assign(self, node):
         targets = node.targets
         new_targets = [t for t in targets if not isinstance(t, ast.Name) or t.id not in self.to_remove]
+
+        if len(targets) != len(new_targets):
+            self.must_iterate = True
 
         if new_targets:
             targets[:] = new_targets
@@ -199,16 +211,68 @@ class AssignmentRemover(ast.NodeTransformer):
             return None
 
     def visit_Name(self, node):
-        return self.to_inline.get(node.id, node)
+        res = self.to_inline.get(node.id, None)
+
+        if res is None:
+            return node
+        else:
+            self.must_iterate = True
+            return res
+
+
+class PPYValuesReplacer(ast.NodeTransformer):
+    def __init__(self, fn):
+        self.fn = fn
+
+    def generic_visit(self, node):
+        for field, old_value in ast.iter_fields(node):
+            if isinstance(old_value, list):
+                new_values = []
+                for value in old_value:
+                    if isinstance(value, (ast.AST, PPYObject)):
+                        value = self.visit(value)
+                        if value is None:
+                            continue
+                        elif not isinstance(value, ast.AST):
+                            new_values.extend(value)
+                            continue
+                    new_values.append(value)
+                old_value[:] = new_values
+            elif isinstance(old_value, (ast.AST, PPYObject)):
+                new_node = self.visit(old_value)
+                if new_node is None:
+                    delattr(node, field)
+                else:
+                    setattr(node, field, new_node)
+        return node
+
+    def replace_ppy(self):
+        return self.visit(self.fn)
+
+    def visit_PPYValue(self, node):
+        origin = node.origin
+        if isinstance(origin, ast.arg):
+            return ast.Name(origin.arg, ast.Load())
+        elif node.origin:
+            return self.generic_visit(origin)
+        else:
+            raise ValueError(f"Cannot replace {node} in ast")
+
+    def visit_PPYIntrinsic(self, node):
+        return ast.Name(node.name, ast.Load())
+
 
 
 # ======================================================================================================================
 #  Data model for partially evaluated values
 # ======================================================================================================================
 
-# The PPY or ppy prefix means "partial python". Value prefixed with ppy are object from the partial evaluator runtime
+class PPYObject:
+    pass
 
-class PPYValue:
+
+# The PPY or ppy prefix means "partial python". Value prefixed with ppy are object from the partial evaluator runtime
+class PPYValue(PPYObject):
     def __init__(self, *, origin, context, type=None, **kwargs):
         super().__init__(**kwargs)
         self.origin = origin  # origin of the value in the ast
@@ -220,7 +284,7 @@ class PPYValue:
         return cls(origin=None, context=None, type=type)
 
 
-class PPYContainer:
+class PPYContainer(PPYObject):
     def __init__(self, *, items=None, **kwargs):
         super().__init__(**kwargs)
         self._items = items if items is not None else {}  # dict of attributes the container has after its evaluation
@@ -295,7 +359,7 @@ class PPYModule(PPYValue, PPYBaseModule):
     pass
 
 
-class PPYStaticValue:
+class PPYStaticValue(PPYObject):
     _all = {}
 
     def __init__(self, name):
@@ -485,8 +549,8 @@ def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()
         else:
             call_rte = rte.make_frame(return_kind=return_kind)
 
-
         for fn_arg, callee_arg in zip(fn_args, args):
+            callee_arg.origin = fn_arg
             call_rte[fn_arg.arg] = callee_arg
 
         yield from partial_eval_stmts(mangled_fn_origin.body, call_rte)
@@ -1134,7 +1198,11 @@ def compute_behaviors(semantics_file, builtins_file):
                                                specializations.as_test,
                                                ppy_sys_modules)
             try:
+                # We apply post-processing to behaviors beautify the code and remove statements which were made obsolete
+                remove_extra_pass(behavior)
                 AssignmentRemover(behavior).remove_assignments()
+                PPYValuesReplacer(behavior).replace_ppy()
+
                 ast.fix_missing_locations(behavior)
                 result += f"{ast.unparse(behavior)}\n\n"
             except Exception:
