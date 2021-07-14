@@ -131,7 +131,8 @@ class NameMangler(ast.NodeTransformer):
 
 class NameCounter(ast.NodeVisitor):
     def __init__(self):
-        self.counter = collections.defaultdict(collections.Counter)
+        self.ref_counter = collections.Counter()
+        self.assignments = collections.defaultdict(list)
 
     def count(self, fn):
         if isinstance(fn, ast.FunctionDef):
@@ -140,46 +141,65 @@ class NameCounter(ast.NodeVisitor):
         else:
             raise TypeError("NameCounter can only be applied on function def")
 
-        return self.counter
+        return self.ref_counter, self.assignments
 
     def visit_FunctionDef(self, node):
         raise NotImplementedError("postprocessing does not expect nested function definitions")
 
     def visit_Name(self, node):
-        self.counter[node.id][type(node.ctx)] += 1
+        if isinstance(node.ctx, ast.Load):
+            self.ref_counter[node.id]+= 1
+        elif isinstance(node.ctx, ast.Store):
+            raise NotImplementedError("NameCounter: ref with Store context out of assignment")
+        else:
+            raise NotImplementedError("assignment deletion")
+
+    def visit_Assign(self, node):
+        for t in node.targets:
+            if isinstance(t, ast.Name):
+                self.assignments[t.id].append(node.value)
 
 # TODO: This must be a fixed point algorithm
 class AssignmentRemover(ast.NodeTransformer):
     def __init__(self, fn):
         self.fn = fn
-        self.counter = NameCounter().count(fn)
+        self.ref_counter, self.assignments = NameCounter().count(fn)
         self.to_remove = set()
-        self.to_inline = set()
+        self.to_inline = {}
 
     def remove_assignments(self):
+        assignments = self.assignments
+        ref_counter = self.ref_counter
+
         # assignments which can be fully removed as they were inlined
         to_remove = self.to_remove
 
-        for name, count in self.counter.items():
-            if count[ast.Store] == 1 and count[ast.Load] == 0:
+        for name, values in self.assignments.items():
+            if ref_counter[name] == 0 and len(values) == 1:
                 to_remove.add(name)
 
         # assignments which can be inlined as the variable is single use
         to_inline = self.to_inline
-        for name, count in self.counter.items():
-            if count[ast.Store] == 1 and count[ast.Load] == 1:
-                to_inline.add(name)
+        for name, count in ref_counter.items():
+            if count == 1:
+                name_assignments = assignments[name]
+                if len(name_assignments) == 1:
+                    to_inline[name] = name_assignments[0].value
 
         return self.visit(self.fn)
 
     def visit_Assign(self, node):
         targets = node.targets
+        new_targets = [t for t in targets if not isinstance(t, ast.Name) or t.id not in self.to_remove]
 
-        if len(targets) > 1 or not isinstance(var:=targets[0], ast.Name):
-            return self.generic_visit(node)
-
-        if var.id in self.to_remove:
+        if new_targets:
+            targets[:] = new_targets
+            return node
+        else:
             return None
+
+    def visit_Name(self, node):
+        return self.to_inline.get(node.id, node)
 
 
 # ======================================================================================================================
