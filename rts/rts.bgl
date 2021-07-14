@@ -509,7 +509,8 @@
 
 	   py-next-behaviors-table
 	   (py-iter-fallback obj)
-           )
+
+     (py-make-dict key-value-pairs))
 
    (eval   (export-all)))
 
