@@ -591,7 +591,9 @@ def partial_eval_intrinsic_call(fn, args, rte, return_kind=ReturnKind.as_return(
     if fn is ppy_intrinsic_class_getattr:
         yield return_kind.do_return(intrinsic_eval_class_getattr_call(args, rte))
     elif fn in (ppy_intrinsic_py_int_to_host,
-                ppy_intrinsic_py_int_from_host):
+                ppy_intrinsic_py_int_from_host,
+                ppy_intrinsic_py_float_to_host,
+                ppy_intrinsic_py_float_from_host):
         # Cannot evaluate
         yield return_kind.do_return(PPYValue(origin=ast.Call(fn, args, []), context=rte))
     else:
@@ -648,7 +650,7 @@ def builtin_eval_isinstance_call(args, rte):
         if instance_type in (ppy_intrinsic_sint, ppy_intrinsic_bint):
             return ast.Constant(type_info is ppy_int_class)
         else:
-            return ast.Constant(instance_type in type_info.mro)
+            return ast.Constant(type_info in instance_type.mro)
 
     elif type_info is ppy_intrinsic_sint:
         return ast.Constant(instance_type in (ppy_intrinsic_sint, ppy_int_class))
