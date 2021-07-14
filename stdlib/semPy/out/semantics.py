@@ -1078,13 +1078,13 @@ def maybe_trunc(obj):
         if type(result) is int:
             return result
         else:
-            raise TypeError("__trunc__ returned non-int type: '" + type(obj).__name__ + "'")
+            raise TypeError("__trunc__ returned non-int type: '" + class_getattr(obj, "__name__") + "'")
 
 @define_semantics
 def trunc(obj):
     result = maybe_trunc(obj)
     if result is absent:
-        raise TypeError("type '" + type(obj).__name__ + "' doesn't define __trunc__ method")
+        raise TypeError("type '" + class_getattr(obj, "__name__") + "' doesn't define __trunc__ method")
     else:
         return result
 
@@ -1099,13 +1099,13 @@ def maybe_to_int(obj):
         if type(result) is int:
             return result
         else:
-            raise TypeError("__int__ returned non-int type: '" + type(obj).__name__ + "'")
+            raise TypeError("__int__ returned non-int type: '" + class_getattr(obj, "__name__") + "'")
 
 @define_semantics
 def to_int(obj):
     result = maybe_to_int(obj)
     if result is absent:
-        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+        raise TypeError("'" + class_getattr(obj, "__name__") + "' object cannot be interpreted as an integer")
     else:
         return result
 
@@ -1120,13 +1120,13 @@ def maybe_to_float(obj):
         if isinstance(result, float):
             return result
         else:
-            raise TypeError("__float__ returned non-float type: '" + type(obj).__name__ + "'")
+            raise TypeError("__float__ returned non-float type: '" + class_getattr(obj, "__name__") + "'")
 
 @define_semantics
 def to_float(obj):
     result = maybe_to_float(obj)
     if result is absent:
-        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as a float")
+        raise TypeError("'" + class_getattr(obj, "__name__") + "' object cannot be interpreted as a float")
     else:
         return result
 
@@ -1145,13 +1145,13 @@ def maybe_index(obj):
         elif isinstance(result, bint):
             raise OverflowError("cannot fit 'int' into an index-sized integer")
         else:
-            raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+            raise TypeError("__index__ returned non-int type: '" + class_getattr(obj, "__name__") + "'")
 
 @define_semantics
 def index(obj):
     result = maybe_index(obj)
     if result is absent:
-        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+        raise TypeError("'" + class_getattr(obj, "__name__") + "' object cannot be interpreted as an integer")
     else:
         return result
 
@@ -1168,13 +1168,13 @@ def maybe_big_index(obj):
         elif type(result) is int:
             return result
         else:
-            raise TypeError("__index__ returned non-int type: '" + type(obj).__name__ + "'")
+            raise TypeError("__index__ returned non-int type: '" + class_getattr(obj, "__name__") + "'")
 
 @define_semantics
 def big_index(obj):
     result = maybe_big_index(obj)
     if result is absent:
-        raise TypeError("'" + type(obj).__name__ + "' object cannot be interpreted as an integer")
+        raise TypeError("'" + class_getattr(obj, "__name__") + "' object cannot be interpreted as an integer")
     else:
         return result
 
@@ -1195,7 +1195,7 @@ def maybe_length(obj):
 def length(obj):
     result = maybe_length(obj)
     if result is absent:
-        raise TypeError("object of type" + type(obj).__name__ + "has no len()")
+        raise TypeError("object of type" + class_getattr(obj, "__name__") + "has no len()")
     else:
         return result
 
@@ -1207,7 +1207,7 @@ def truth(obj):
         if type(result) is bool:
             return result
         else:
-            raise TypeError("__bool__ should return bool, returned '" + type(obj).__name__ + "'")
+            raise TypeError("__bool__ should return bool, returned '" + class_getattr(obj, "__name__") + "'")
     else:
         len_result = maybe_length(obj)
         if len_result is not absent:

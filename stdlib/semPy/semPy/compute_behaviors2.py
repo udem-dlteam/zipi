@@ -533,7 +533,19 @@ def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()
     elif isinstance(fn, PPYBuiltin):
         yield from partial_eval_builtin_call(fn, args, rte, return_kind=return_kind)
     else:
-        fn_origin_args = fn.origin.args
+        fn_origin = fn.origin
+
+        if isinstance(fn_origin, ast.ClassDef):
+            # Special case to skip partial evaluation of an exception instantiation
+            try:
+                klass = eval(fn_origin.name)
+                if issubclass(klass, BaseException):
+                    yield ast.Call(ast.Name(klass.__name__, ast.Load()), args, [])
+                    return
+            except NameError:
+                pass # ppy only class (ex: sint or bint)
+
+        fn_origin_args = fn_origin.args
         fn_origin_positional_args = fn_origin_args.posonlyargs + fn_origin_args.args
 
         if fn_origin_args.kwonlyargs or fn_origin_args.kw_defaults:
