@@ -356,6 +356,9 @@ class PPYClass(PPYValue, PPYContainer):
 
         self.mro = ppy_mro
 
+        # Add __name__ to attributes as there is no support for descriptors yet
+        self["__name__"] = ast.Constant(name)
+
 
 class PPYBaseModule(PPYContainer):
     pass
@@ -564,7 +567,11 @@ def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()
         # Apply name mangling for sound inlining
         mangle_table = {}
         for fn_arg, callee_arg in zip(fn_origin_positional_args, args):
+            if isinstance(callee_arg, ast.AST):
+                continue
+
             callee_arg_origin = callee_arg.origin
+
             if isinstance(callee_arg_origin, ast.Name):
                 mangle_table[fn_arg.arg] = callee_arg_origin.id
             elif isinstance(callee_arg_origin, ast.arg):
