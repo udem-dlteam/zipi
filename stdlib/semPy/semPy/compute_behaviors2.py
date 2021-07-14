@@ -74,14 +74,20 @@ class NameScopeResolver(ast.NodeVisitor):
 
 
 class NameMangler(ast.NodeTransformer):
-    def __init__(self, fn, parent=None):
+    def __init__(self, fn, parent=None, mangle_table=None):
         if not isinstance(fn, ast.FunctionDef):
             raise TypeError("NameMangler can only apply to FunctionDef")
 
         self.fn = fn
         NameScopeResolver(self.fn).resolve()
 
-        self.mangle_table = {name: get_unique_name(name) for name in get_node_ppy_info(self.fn, "locals")}
+        if mangle_table:
+            self.mangle_table = {}
+            for name in get_node_ppy_info(self.fn, "locals"):
+                predefined_mangle = mangle_table.get(name)
+                self.mangle_table[name] = predefined_mangle or get_unique_name(name)
+        else:
+            self.mangle_table = {name: get_unique_name(name) for name in get_node_ppy_info(self.fn, "locals")}
 
         if parent:
             self.mangle_table = {**parent.mangle_table, **self.mangle_table}
@@ -521,33 +527,46 @@ ppy__compiler_intrinsics__ = PPYBaseModule(items=PPYIntrinsic._all)
 #  Evaluation of function specialization
 # ======================================================================================================================
 
-def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()):
+def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return(), toplevel=False):
     if isinstance(fn, PPYIntrinsic):
         yield from partial_eval_intrinsic_call(fn, args, rte, return_kind=return_kind)
     elif isinstance(fn, PPYBuiltin):
         yield from partial_eval_builtin_call(fn, args, rte, return_kind=return_kind)
     else:
-        # Apply name mangling for sound inlining
-        mangled_fn_origin = NameMangler(fn.origin).mangle()
+        fn_origin_args = fn.origin.args
+        fn_origin_positional_args = fn_origin_args.posonlyargs + fn_origin_args.args
 
-        ast_args = mangled_fn_origin.args
-
-        if ast_args.kwonlyargs or ast_args.kw_defaults:
+        if fn_origin_args.kwonlyargs or fn_origin_args.kw_defaults:
             raise NotImplementedError("partial_eval only supports positional arguments")
 
-        fn_args = ast_args.posonlyargs + ast_args.args
-
-        if len(args) > len(fn_args):
+        arity = len(fn_origin_positional_args)
+        if len(args) != arity:
             raise TypeError(
-                f"partially evaluated function takes {len(fn_args)} context arguments, {len(args)} were given.")
-        elif len(args) < len(fn_args):
-            raise TypeError(
-                f"partially evaluated function missing {len(fn_args) - len(args)} context arguments. Empty contexts must be given explicitly.")
+                f"partially evaluated function takes {arity} context arguments, {len(args)} were given.")
 
         if isinstance(fn, PPYClosure):
             call_rte = rte.make_frame(closure=fn.parent_rte, return_kind=return_kind)
         else:
             call_rte = rte.make_frame(return_kind=return_kind)
+
+        # Apply name mangling for sound inlining
+        mangle_table = {}
+        for fn_arg, callee_arg in zip(fn_origin_positional_args, args):
+            callee_arg_origin = callee_arg.origin
+            if isinstance(callee_arg_origin, ast.Name):
+                mangle_table[fn_arg.arg] = callee_arg_origin.id
+            elif isinstance(callee_arg_origin, ast.arg):
+                mangle_table[fn_arg.arg] = callee_arg_origin.arg
+
+        if toplevel:
+            for a in fn_origin_positional_args:
+                mangle_table[a.arg] = a.arg
+
+        mangled_fn_origin = NameMangler(fn.origin, mangle_table=mangle_table).mangle()
+
+        mangled_ast_args = mangled_fn_origin.args
+
+        fn_args = mangled_ast_args.posonlyargs + mangled_ast_args.args
 
         for fn_arg, callee_arg in zip(fn_args, args):
             callee_arg.origin = fn_arg
@@ -1124,7 +1143,7 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
         fn = callee
         args = [PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)) for t in types]
 
-    result_body = list(partial_eval_function_call(fn, args, rte))
+    result_body = list(partial_eval_function_call(fn, args, rte, toplevel=True))
 
     if as_test:
         result_body = convert_body_to_return_host_bool(result_body)
