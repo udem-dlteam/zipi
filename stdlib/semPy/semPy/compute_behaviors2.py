@@ -546,7 +546,7 @@ def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()
                     yield ast.Call(ast.Name(klass.__name__, ast.Load()), args, [])
                     return
             except NameError:
-                pass # ppy only class (ex: sint or bint)
+                raise TypeError(f"Calling non instantiable ppy class: {fn_origin.name}")
 
         fn_origin_args = fn_origin.args
         fn_origin_positional_args = fn_origin_args.posonlyargs + fn_origin_args.args
@@ -600,7 +600,10 @@ def partial_eval_intrinsic_call(fn, args, rte, return_kind=ReturnKind.as_return(
     elif fn in (ppy_intrinsic_py_int_to_host,
                 ppy_intrinsic_py_int_from_host,
                 ppy_intrinsic_py_float_to_host,
-                ppy_intrinsic_py_float_from_host):
+                ppy_intrinsic_py_float_from_host,
+                ppy_intrinsic_py_str_to_host,
+                ppy_intrinsic_py_str_from_host,
+                ppy_intrinsic_py_str_len_to_host):
         # Cannot evaluate
         yield return_kind.do_return(PPYValue(origin=ast.Call(fn, args, []), context=rte))
     else:
@@ -641,11 +644,25 @@ def intrinsic_eval_class_getattr_call(args, rte):
 def partial_eval_builtin_call(fn, args, rte, return_kind=ReturnKind.as_return()):
     if fn is ppy_isinstance:
         yield return_kind.do_return(builtin_eval_isinstance_call(args, rte))
+    elif fn is ppy_type:
+        yield return_kind.do_return(builtin_eval_type_call(args, rte))
     else:
         raise NotImplementedError
 
 
 # Evaluation of builtin calls
+def builtin_eval_type_call(args, rte):
+    # Assume correct arity
+    instance, = args
+    instance_type = instance.type
+
+    if isinstance(instance_type, PPYClass):
+        return instance_type
+    elif instance_type in (ppy_intrinsic_sint, ppy_intrinsic_bint):
+        return ppy_int_class
+    else:
+        raise NotImplementedError
+
 
 def builtin_eval_isinstance_call(args, rte):
     # Assume correct arity
@@ -691,7 +708,7 @@ def partial_eval_stmt(stmt, rte):
     elif isinstance(stmt, ast.Raise):
         yield ast.Raise(partial_eval_expr(stmt.exc, rte), None)
     else:
-        yield stmt
+        raise NotImplementedError
 
 
 def partial_eval_return(stmt, rte):
@@ -723,7 +740,7 @@ def partial_eval_return_tail_call(call, rte):
         ppy_func = rte[name]
         yield from partial_eval_function_call(ppy_func, args, rte, return_kind=rte.return_kind)
     else:
-        yield ast.Return(ast.Call(func, args, call.keywords))
+        yield rte.return_kind.do_return(ast.Call(func, args, call.keywords))
 
 
 def partial_eval_assign_call(name, call, rte):
@@ -761,8 +778,8 @@ def partial_eval_if(stmt, rte):
             yield from partial_eval_stmts(stmt.orelse, rte)
     else:
         yield ast.If(test_result,
-                     partial_eval_stmts(stmt.body, rte),
-                     partial_eval_stmts(stmt.orelse, rte))
+                     list(partial_eval_stmts(stmt.body, rte)),
+                     list(partial_eval_stmts(stmt.orelse, rte)))
 
 
 def partial_eval_name(name, rte):
@@ -1014,6 +1031,9 @@ def partial_eval_is(left, right, rte):
         # or a dunder is never specific to a value, but always to a whole type
         return ast.Constant(left is right)
 
+    if isinstance(left, PPYClass) and isinstance(right, PPYClass):
+        return ast.Constant(left is right)
+
     # is should not be used against other intrinsics than absent, so at that point values are PPY objects
     left_type = left.type
     right_type = right.type
@@ -1056,7 +1076,6 @@ def load_module(name, module, sys_modules):
 
 
 def partial_eval_def(func_def, rte):
-    # TODO: Support closures
     decorators = func_def.decorator_list
     decorators_values = [partial_eval_expr(d, rte) for d in decorators]
     if ppy_intrinsic_define_semantics in decorators_values:
@@ -1185,6 +1204,8 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
 ppy_object_class = PPYClass(context=None, origin=ast.parse("class object: pass").body[0])
 ppy_NotImplemented = PPYSingleton(name="NotImplemented")
 ppy_isinstance = PPYBuiltin(name="isinstance")
+# NOTE: it is not exactly correct to treat type as a function, but we do not intend on handling metaclass anyway
+ppy_type = PPYBuiltin(name="type")
 ppy_int_class = None
 ppy_bool_class = None
 ppy_float_class = None
@@ -1195,6 +1216,7 @@ def populate_builtins(ppy_builtin):
     ppy_builtin["object"] = ppy_object_class
     ppy_builtin["NotImplemented"] = ppy_NotImplemented
     ppy_builtin["isinstance"] = ppy_isinstance
+    ppy_builtin["type"] = ppy_type
 
 
 def bootstrap_builtins(ppy_builtin):
