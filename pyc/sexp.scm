@@ -7,7 +7,14 @@
       (string->symbol (string-append "$" (symbol->string sym) "_" (number->string i)))))
 (define gensym-count 0)
 
-(define (collect-annotation-info arg-info loc scope conf)
+(define (collect-annotation-info arg-info args-vars loc scope conf)
+  (define (get-var id)
+    ;; there should always exist a var by id
+    (let loop ((vars args-vars))
+      (if (eq? id (PycVar-id (car vars)))
+        (car vars)
+        (loop (cdr vars)))))
+
   (let* ((posonly (car arg-info))
         (args (cadr arg-info))
         (vararg (caddr arg-info))
@@ -27,7 +34,7 @@
                (ann (cadr arg)))
           (if ann
             (loop (cdr chained-args)
-                  (cons name names-acc)
+                  (cons (get-var name) names-acc)
                   (cons (sexp ann #f scope conf) ann-acc))
             (loop (cdr chained-args)
                   (cons (new-PycUninit loc) names-acc)
@@ -54,37 +61,54 @@
 
     ;; lambda
     ((Lambda ?loc ?args ?body . ?type_comment)
-      (let* ((annotation-info (collect-annotation-info args loc scope conf))
+      (let* ((args-vars
+              (map (lambda (a)
+                     (new-PycVar '(-1 -1) (car a) 'local))
+                   (car args)))
+             (posonly-vars
+               (map (lambda (a)
+                      (new-PycVar '(-1 -1) (car a) 'local))
+                    (cadr args)))
+             (vararg-var
+               (let ((a (caddr args)))
+                 (if a
+                     (new-PycVar '(-1 -1) (car a) 'local)
+                     (new-PycUninit loc))))
+             (kwonly-vars
+               (map (lambda (a)
+                      (new-PycVar '(-1 -1) (car a) 'local))
+                    (list-ref args 3)))
+             (kwarg-var
+               (let ((a (list-ref args 5)))
+                 (if a
+                     (new-PycVar '(-1 -1) (car a) 'local)
+                     (new-PycUninit loc))))
+             (all-vars
+               (append
+                 args-vars
+                 posonly-vars
+                 kwonly-vars
+                 (if (PycUninit? vararg-var) '() (list vararg-var))
+                 (if (PycUninit? kwarg-var) '() (list kwarg-var))))
+             (annotation-info (collect-annotation-info args all-vars loc scope conf))
              (annotation-names (car annotation-info))
              (annotation (cdr annotation-info)))
      (new-PycFun
        loc
        ;; args
-       (map (lambda (a)
-              (new-PycVar '(-1 -1) (car a) 'local))
-            (car args))
+       args-vars
        ;; posonlyargs
-       (map (lambda (a)
-              (new-PycVar '(-1 -1) (car a) 'local))
-            (cadr args))
+       posonly-vars
        ;; vararg
-       (let ((a (caddr args)))
-         (if a
-             (new-PycVar '(-1 -1) (car a) 'local)
-             (new-PycUninit loc)))
+       vararg-var
        ;; kwonlyargs
-       (map (lambda (a)
-              (new-PycVar '(-1 -1) (car a) 'local))
-            (list-ref args 3))
+       kwonly-vars
        ;; kw-defaults
        (map (lambda (a)
               (sexp a tail scope conf))
             (list-ref args 4))
        ;; kwarg
-       (let ((a (list-ref args 5)))
-         (if a
-             (new-PycVar '(-1 -1) (car a) 'local)
-             (new-PycUninit loc)))
+       kwarg-var
        ;; defaults
        (map
          (lambda (a)
@@ -100,10 +124,36 @@
 
     ;; stmt
     ((FunctionDef ?loc ?id ?args ?body ?decorator_list ?returns . ?type_comment)
-     ;; FunctionDef(identifier name, arguments args,
-     ;;             stmt* body, expr* decorator_list, expr? returns,
-     ;;             string? type_comment)
-     (let* ((annotation-info (collect-annotation-info args loc scope conf))
+     (let* ((args-vars
+             (map (lambda (a)
+                    (new-PycVar '(-1 -1) (car a) 'local))
+                  (car args)))
+            (posonly-vars
+              (map (lambda (a)
+                     (new-PycVar '(-1 -1) (car a) 'local))
+                   (cadr args)))
+            (vararg-var
+              (let ((a (caddr args)))
+                (if a
+                    (new-PycVar '(-1 -1) (car a) 'local)
+                    (new-PycUninit loc))))
+            (kwonly-vars
+              (map (lambda (a)
+                     (new-PycVar '(-1 -1) (car a) 'local))
+                   (list-ref args 3)))
+            (kwarg-var
+              (let ((a (list-ref args 5)))
+                (if a
+                    (new-PycVar '(-1 -1) (car a) 'local)
+                    (new-PycUninit loc))))
+            (all-vars
+              (append
+                args-vars
+                posonly-vars
+                kwonly-vars
+                (if (PycUninit? vararg-var) '() (list vararg-var))
+                (if (PycUninit? kwarg-var) '() (list kwarg-var))))
+            (annotation-info (collect-annotation-info args all-vars loc scope conf))
             (annotation-names (car annotation-info))
             (annotation (cdr annotation-info)))
       (new-PycAssig
@@ -112,31 +162,19 @@
         (new-PycFun
           loc
           ;; args
-          (map (lambda (a)
-                 (new-PycVar '(-1 -1) (car a) 'local))
-               (car args))
+          args-vars
           ;; posonlyargs
-          (map (lambda (a)
-                 (new-PycVar '(-1 -1) (car a) 'local))
-               (cadr args))
+          posonly-vars
           ;; vararg
-          (let ((a (caddr args)))
-            (if a
-                (new-PycVar '(-1 -1) (car a) 'local)
-                (new-PycUninit loc)))
+          vararg-var
           ;; kwonlyargs
-          (map (lambda (a)
-                 (new-PycVar '(-1 -1) (car a) 'local))
-               (list-ref args 3))
+          kwonly-vars
           ;; kw-defaults
           (map (lambda (a)
                  (sexp a tail scope conf))
                (list-ref args 4))
           ;; kwarg
-          (let ((a (list-ref args 5)))
-            (if a
-                (new-PycVar '(-1 -1) (car a) 'local)
-                (new-PycUninit loc)))
+          kwarg-var
           ;; defaults
           (map (lambda (a)
                  (sexp a tail scope conf))

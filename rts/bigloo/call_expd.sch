@@ -154,11 +154,12 @@
 		      ;; the following condition check that there is no collision
 		      ;; in a table of length 'size'
 		      ((= names-length
-			  (table-length
-			     (list->table
-				(map
-				   (lambda (n) (cons (fast-range-hash (hash-FNV1a n) size) #t))
-				   names))))
+      			  (hashtable-size
+      			     (let ((tab (make-hashtable)))
+          				(for-each
+          				   (lambda (n) (hashtable-put! tab (fast-range-hash (hash-FNV1a n) size) #t))
+          				   names)
+                  tab)))
 		       size)
 		      (else
 		       (loop (+ size 1)))))))
@@ -254,4 +255,3 @@
        (e (call-expander f args) e))
       (else
        (error "py-call" "bad syntax" x))))
-   
