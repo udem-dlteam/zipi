@@ -225,6 +225,20 @@ class AssignmentRemover(ast.NodeTransformer):
             self.must_iterate = True
             return res
 
+    def visit_If(self, node):
+        res = self.generic_visit(node)
+        res_body = res.body
+        res_orelse = res.orelse
+
+        if not res_body and not res_orelse:
+            return None
+        elif not res_body:
+            res_body.append(ast.Pass())
+        elif not res_orelse:
+            res_orelse.append(ast.Pass())
+
+        return res
+
 
 class PPYValuesReplacer(ast.NodeTransformer):
     def __init__(self, fn):
@@ -267,6 +281,23 @@ class PPYValuesReplacer(ast.NodeTransformer):
     def visit_PPYIntrinsic(self, node):
         return ast.Name(node.name, ast.Load())
 
+    def visit_PPYRaise(self, node):
+        return ast.Raise(self.generic_visit(node.exception))
+
+    def visit_PPYConditional(self, node):
+        raise NotImplementedError
+
+    def visit_Return(self, node):
+        value = node.value
+        if isinstance(value, PPYConditional):
+            return ast.If(
+                self.visit(value.condition),
+                [self.visit(ast.Return(value.then_value))],
+                [self.visit(ast.Return(value.orelse_value))])
+        elif isinstance(value, PPYRaise):
+            return self.visit_PPYRaise(value)
+        else:
+            return self.generic_visit(node)
 
 
 # ======================================================================================================================
@@ -387,15 +418,33 @@ class PPYBuiltin(PPYStaticValue):
     pass
 
 
+class PPYRaise(PPYObject):
+    def __init__(self, *, exception, context, **kwargs):
+        super().__init__(**kwargs)
+        self.exception = exception  # origin of the value in the ast
+        self.context = context.copy() if context is not None else None  # copy of the context the value was computed in
+
+
+class PPYConditional(PPYObject):
+    def __init__(self, *, condition, then_value, orelse_value, identifier, **kwargs):
+        super().__init__(**kwargs)
+        self.condition = condition
+        self.then_value = then_value
+        self.orelse_value = orelse_value
+        self.identifier = identifier
+
+
 # ======================================================================================================================
 #  Runtime Environment for partial evaluation
 # ======================================================================================================================
 
 class ReturnKind:
-    def __init__(self, kind, info=None, rte=None):
+    def __init__(self, kind, info=None, rte=None, then=None, orelse=None):
         self.kind = kind
         self.info = info
         self.rte = rte
+        self._then = then
+        self._orelse = orelse
 
     @classmethod
     def as_return(cls):
@@ -408,6 +457,17 @@ class ReturnKind:
     @classmethod
     def as_expr(cls):
         return cls("expr")
+
+    @classmethod
+    def as_branch(cls, condition, rte):
+        branch_return_kind = cls("branch", info=condition, rte=rte)
+        then_return_kind = cls("then", info=branch_return_kind)
+        orelse_return_kind = cls("orelse", info=branch_return_kind)
+
+        branch_return_kind._then = then_return_kind
+        branch_return_kind._orelse = orelse_return_kind
+
+        return branch_return_kind
 
     @property
     def return_(self):
@@ -424,6 +484,14 @@ class ReturnKind:
     def expr(self):
         return self.kind == "expr"
 
+    @property
+    def then(self):
+        return self.kind == "then"
+
+    @property
+    def orelse(self):
+        return self.kind == "orelse"
+
     def do_return(self, value):
         if self.return_:
             return ast.Return(value)
@@ -432,8 +500,67 @@ class ReturnKind:
             return ast.Assign([ast.Name(name, ast.Store())], value)
         elif self.expr:
             return value
+        elif self.then or self.orelse:
+            return self._do_branch_return(value)
         else:
             raise ValueError("wrong return kind")
+
+    def _do_branch_return(self, value):
+        conditional_return_kind = self.info
+        parent_return_kind = conditional_return_kind.rte.return_kind
+
+        if name := parent_return_kind.assign:
+            rte = parent_return_kind.rte
+            if self.then:
+                previous_value = rte.get(name)
+                rte[name] = PPYConditional(condition=conditional_return_kind.info,
+                                           then_value=value,
+                                           orelse_value=previous_value,
+                                           identifier=conditional_return_kind)
+                return ast.Assign([ast.Name(name, ast.Store())], value)
+            elif self.orelse:
+                previous_value = rte.get(name)
+                if isinstance(previous_value, PPYConditional) and previous_value.identifier is conditional_return_kind:
+                    previous_value.orelse_value = value
+                else:
+                    rte[name] = PPYConditional(condition=conditional_return_kind.info,
+                                               then_value=previous_value,
+                                               orelse_value=value,
+                                               identifier=conditional_return_kind)
+                return ast.Assign([ast.Name(name, ast.Store())], value)
+        return parent_return_kind.do_return(value)
+
+    def do_raise(self, exc):
+        if self.then or self.orelse:
+            return self._do_branch_raise(exc)
+        else:
+            return ast.Raise(exc)
+
+    def _do_branch_raise(self, exc):
+        conditional_return_kind = self.info
+        parent_return_kind = conditional_return_kind.rte.return_kind
+
+        if name := parent_return_kind.assign:
+            rte = parent_return_kind.rte
+            if self.then:
+                previous_value = rte.get(name)
+                rte[name] = PPYConditional(condition=conditional_return_kind.info,
+                                           # TODO: if ever needed we could link ReturnKind to the context
+                                           then_value=PPYRaise(exception=exc, context=None),
+                                           orelse_value=previous_value,
+                                           identifier=conditional_return_kind)
+            elif self.orelse:
+                previous_value = rte.get(name)
+                if isinstance(previous_value, PPYConditional) and previous_value.identifier is conditional_return_kind:
+                    previous_value.orelse_value = PPYRaise(exception=exc, context=None)
+                else:
+                    rte[name] = PPYConditional(condition=conditional_return_kind.info,
+                                               then_value=previous_value,
+                                               orelse_value=PPYRaise(exception=exc, context=None),
+                                               identifier=conditional_return_kind)
+
+        return ast.Raise(exc)
+
 
 
 class RTE:
@@ -490,6 +617,28 @@ class RTE:
                    locals={},
                    closure=closure,
                    return_kind=return_kind)
+
+    def branch(self, condition):
+        conditional_return_kind = ReturnKind.as_branch(condition, self)
+
+        return RTE(self.modules,
+                   globals=self._globals,
+                   closure=self._closure,
+                   locals=self._locals.copy(),
+                   return_kind=conditional_return_kind._then), \
+               RTE(self.modules,
+                   globals=self._globals,
+                   closure=self._closure,
+                   locals=self._locals.copy(),
+                   return_kind=conditional_return_kind._orelse)
+
+    def merge(self, condition, then_rte, orelse_rte):
+        then_locals = then_rte._locals
+        orelse_locals = orelse_rte._locals
+
+        for item in {*then_locals, *orelse_locals}:
+            if then_locals.get(item) is not orelse_locals.get(item):
+                raise NotImplementedError
 
 
 # ======================================================================================================================
@@ -706,7 +855,7 @@ def partial_eval_stmt(stmt, rte):
     elif isinstance(stmt, ast.Assign):
         yield from partial_eval_assign(stmt, rte)
     elif isinstance(stmt, ast.Raise):
-        yield ast.Raise(partial_eval_expr(stmt.exc, rte), None)
+        yield rte.return_kind.do_raise(partial_eval_expr(stmt.exc, rte))
     else:
         raise NotImplementedError
 
@@ -777,9 +926,14 @@ def partial_eval_if(stmt, rte):
         else:
             yield from partial_eval_stmts(stmt.orelse, rte)
     else:
-        yield ast.If(test_result,
-                     list(partial_eval_stmts(stmt.body, rte)),
-                     list(partial_eval_stmts(stmt.orelse, rte)))
+        then_rte, orelse_rte = rte.branch(test_result)
+
+        then_body = list(partial_eval_stmts(stmt.body, then_rte))
+        orelse_body = list(partial_eval_stmts(stmt.orelse, orelse_rte))
+
+        rte.merge(test_result, then_rte, orelse_rte)
+
+        yield ast.If(test_result, then_body, orelse_body)
 
 
 def partial_eval_name(name, rte):
