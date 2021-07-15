@@ -343,6 +343,7 @@
            (py-make-class name module bases . atrs)
 
            (py-throw ::obj)
+           (py-throw-with-values exc . values)
            (inline py-try-except-else handler body orelse)
            (inline py-try-except handler body)
            (inline py-throw-unsafe exc)
@@ -374,6 +375,8 @@
            (py-isinstance? ::obj ::PyObject)
 
            (py-slice-from-scheme ::obj ::obj ::obj)
+
+           (py-make-set elements)
 
            (py-obj-alloc cls)
 
@@ -509,7 +512,8 @@
 
 	   py-next-behaviors-table
 	   (py-iter-fallback obj)
-           )
+
+     (py-make-dict key-value-pairs))
 
    (eval   (export-all)))
 
