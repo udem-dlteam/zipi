@@ -1148,6 +1148,35 @@
             (loop (+ i ,$len)))
           (py-list-from-scheme ,$res-vec ,$res-len))))))
 
+;; TODO : The case of having a step of 1 in the slice could be optimized with
+;;        a vector-copy directly. This is curently pending and not used (need testing)
+;;        See https://github.com/udem-dlteam/zipi/pull/518#discussion_r669576132
+(define-macro (py-getitem-listX-sliceY-step1 lst slice)
+  (let (($list (gensym 'list))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($indices (gensym 'indices))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($res-len (gensym 'len))
+        ($res-vec (gensym 'vec)))
+    `(let* ((,$list ,lst)
+            (,$len (PyObjectList-len ,$list))
+            (,$vec (PyObjectList-vector ,$list))
+            (,$indices (py-slice-indices ,slice ,$len))
+            (,$start (vector-ref ,$indices 0))
+            (,$stop (vector-ref ,$indices 1))
+            (,$res-len (- ,$stop ,$start 1) ,$step)
+            (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
+       
+       (py-list-from-scheme (vector-copy ,$vec ,$start ,$stop))
+       (let loop ((source ,$start) (target 0))
+         (if (< target ,$res-len)
+             (begin
+               (vector-set! ,$res-vec target (vector-ref ,$vec source))
+               (loop (+ source ,$step) (+ target 1)))
+             (py-list-from-scheme ,$res-vec ,$res-len))))))
+
 (define-macro (py-getitem-listX-sliceY lst slice)
   (let (($list (gensym 'list))
         ($len (gensym 'len))
@@ -1167,6 +1196,7 @@
          (,$step (vector-ref ,$indices 2))
          (,$res-len (max 0 (+ 1 (quotient (- ,$stop ,$start 1) ,$step))))
          (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
+     (step)
     (let loop ((source ,$start) (target 0))
       (if (< target ,$res-len)
         (begin
