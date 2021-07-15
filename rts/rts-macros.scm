@@ -1251,7 +1251,7 @@
             (,$stop (vector-ref ,$indices 1))
             (,$step (vector-ref ,$indices 2))
             (,$res-len (max 0 (+ 1 (quotient (- ,$stop ,$start 1) ,$step))))
-            (,$res-str (make-string ,$res-len \#0)))
+            (,$res-str (make-string ,$res-len #\0)))
        (let loop ((source ,$start) (target 0))
          (if (< target ,$res-len)
              (begin
