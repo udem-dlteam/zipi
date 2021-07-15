@@ -2626,7 +2626,7 @@
   `(py-maybe-big-index-fallback ,obj))
 
 (define-macro (py-length obj)
-  `(py-len-fallback ,obj))
+  `(py-length-fallback ,obj))
 
 (define-macro (py-maybe-gth obj)
   `(py-maybe-length-fallback ,obj))
