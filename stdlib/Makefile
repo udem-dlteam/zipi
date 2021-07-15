@@ -35,5 +35,6 @@ install: $(ZIPISYSTEMS:%=install.%)
 -include Makefile.gambit
 
 clean: $(ZIPISYSTEMS:%=clean.%)
+	rm -f behaviors.py behaviors.scm zemantics.py zemantics.scm builtins.py
 distclean: $(ZIPISYSTEMS:%=distclean.%)
 	rm -f behaviors.py behaviors.scm zemantics.py zemantics.scm builtins.py
