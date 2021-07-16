@@ -17,6 +17,7 @@ bin/zipi
 bin/pysexp
 bin/zipi.gambit
 bin/zipi-compile-and-run.gambit
+bin/zipi-compile-and-run.bigloo
 bin/zipi.bigloo
 bin/zipi.bigloo.sh
 bin/zpc

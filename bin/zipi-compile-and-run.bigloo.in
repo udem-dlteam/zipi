@@ -1,0 +1,27 @@
+(define (config-version) "@VERSION@")
+(define (config-branch) "@BRANCH@")
+(define (config-python-version) "@PYTHONVERSION@")
+
+
+(define (main zipicache zipiroot . args)
+  (define cache-location
+          (path-expand
+            "cache@zipi-bigloo-@VERSION@-@PYTHONVERSION@"
+            zipicache))
+  ((eval '(lambda (path argv compile debug profile expansion)
+
+            (import (zipi rts))
+
+            (compile-flag-set! compile)
+            (debug-flag-set! debug)
+            (profile-flag-set! profile)
+            (expansion-flag-set! expansion)
+            (command-line-argv-set! argv)
+
+            (run-as-main path cache-location)))
+    (car args)
+    '()
+    #t
+    #f
+    #f
+    #f))

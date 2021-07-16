@@ -18,18 +18,18 @@
 	   __py_configure)
 
    (export (macro let-values)
-	   
+
 	   (object->serial-number ::obj)
-	   
+
 	   (inline arithmetic-shift::long ::long ::long)
 	   (inline bitwise-and::long ::long ::long)
 	   (inline bitwise-ior::long ::long ::long)
 	   (inline bitwise-xor::long ::long ::long)
 	   (inline bitwise-not::long ::long)
-	   
+
 	   (inline floor-quotient x y)
 	   (inline inexact::double x)
-	   
+
 	   (inline fx+::long ::long ::long)
 	   (inline fx-::long ::long ::long)
 	   (inline fx*::long ::long ::long)
@@ -41,7 +41,7 @@
 	   (inline fx>::bool ::long ::long)
 	   (inline fxmax::bool ::long ::long)
 	   (inline fxquotient::long ::long ::long)
-	   
+
 	   (inline u8+::uint8 ::uint8 ::uint8)
 	   (inline u8-::uint8 ::uint8 ::uint8)
 	   (inline u8*::uint8 ::uint8 ::uint8)
@@ -51,58 +51,58 @@
 	   (inline u8<::bool ::uint8 ::uint8)
 	   (inline u8<=::bool ::uint8 ::uint8)
 	   (inline u8>::bool ::uint8 ::uint8)
-	   
+
 	   max-fixnum
 	   (inline infinite?::bool ::double)
 	   (inline flfinite?::bool ::double)
 	   (inline flinfinite?::bool ::double)
 	   (inline nan?::bool ::double)
-	   
+
 	   (inline +fx/overflow::obj ::obj ::obj)
 	   (inline -fx/overflow::obj ::obj ::obj)
 	   (inline *fx/overflow::obj ::obj ::obj)
-	   
+
 	   (inline u8vector-append . vecs)
 	   (inline subu8vector vec start stop)
 	   (u8vector-copy::u8vector ::u8vector)
-	   
+
 	   (append-strings ::pair-nil)
 	   (substring-move! src-string src-start src-end dst-string dst-start)
-	   
+
 	   (inline current-second)
 	   (inline current-time)
 	   (time->seconds::double d)
 	   (macro time->seconds)
-	   
+
 	   (path-directory ::bstring)
 	   (path-strip-extension ::bstring)
 	   (path-strip-directory ::bstring)
 	   (path-normalize ::bstring)
 	   (path-expand ::bstring #!optional (origin (pwd)))
 	   (path-strip-trailing-directory-separator::bstring ::bstring)
-	   
+
 	   (create-directory ::bstring)
-	   
+
 	   (file-info path . rest)
 	   (file-info-last-modification-time info)
 	   (file-info-type path)
-	   
+
 	   (inline make-table #!key test weak-values)
 	   (inline table-set! table key value)
 	   (inline table-ref table key #!optional default)
 	   (inline table->list table)
 	   (inline table-length table)
-	   
+
 	   (module-not-found-exception? e)
-	   
+
 	   (shell-command ::bstring #!optional capture)
-	   
+
 	   (getenv name #!optional default)
-	   
+
 	   (module-search-order-add! dir)
 	   (load-module-and-get-init name)
 	   (compile-source ::bstring ::bstring)
-	   
+
 	   (inline get-environment-variable ::bstring)
 	   (fold ::procedure ::obj ::pair-nil)))
 
@@ -452,7 +452,7 @@
 ;*---------------------------------------------------------------------*/
 (define (compile-source source target)
    (system
-      (format "~a/zpc -t bigloo ~a -o ~a -y" (zipi-bin-dir) source target)))
+      (format "~a/zpc --no-py-module-name -t bigloo ~a -o ~a -y" (zipi-bin-dir) source target)))
 
 ;*---------------------------------------------------------------------*/
 ;*    get-environment-variable ...                                     */

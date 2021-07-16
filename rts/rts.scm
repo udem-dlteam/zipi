@@ -5626,44 +5626,6 @@
 
   (wind path '()))
 
-
-(define-rts (compile-to-cache path path-info path-in-cache)
-  (let* ((path-cache
-           (string-append
-             (cache-location-get)
-             "/"
-             path-in-cache
-             "/"
-             (path-strip-directory path-in-cache)
-             ".sld"))
-         (path-cache-info (file-info path-cache #t #f)))
-
-    (define (create-_must-build_)
-      ;; create empty "._must-build_" file
-      (if compile-flag
-          (let ((_must-build_-path
-                  (string-append (path-strip-extension path-cache) "._must-build_")))
-            (if compile-flag
-                (with-output-to-file _must-build_-path list)
-                (delete-file _must-build_-path)))))
-
-    ;; compile file and return #f if compilation failed
-    (define (compile)
-      (ensure-parent-dir-exists path-cache)
-      (create-_must-build_)
-      (fx= 0 (compile-source path path-cache)))
-
-    (if path-cache-info
-        ;; check according to modified date
-        (if (< (time->seconds (file-info-last-modification-time path-info))
-               (time->seconds (file-info-last-modification-time path-cache-info)))
-            (begin
-              (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
-              (create-_must-build_)
-              #t) ;; compilation "successful" (file already compiled)
-            (compile))
-        (compile)))) ;; compiled file does not exist (must compile)
-
 ;; mangle path of modules in cache to be valid scheme module names
 (define-rts (mangle-cache-path path)
   (define (char-in-range? c lo hi)

@@ -182,13 +182,13 @@
 		       (py-make-global)
 		       ,(scheme-make-caches ast)))))
 	    (else
-	     `(define (zipi-init name package path)
+	     `(define (init name package path)
 		 (init-registered-constants)
 		 (let ((caches ,(scheme-make-caches ast))
 		       (module (py-make-module
-				  (py-str-from-scheme name)
-				  (py-str-from-scheme package)
-				  (py-str-from-scheme path))))
+				  name
+				  package
+				  path)))
 		    ,@(if full-path
 			  `((py-own-attr-set!
 			       module (& "__file__") (& ,full-path)))
