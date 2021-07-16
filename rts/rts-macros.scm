@@ -1177,6 +1177,7 @@
         ($start (gensym 'start))
         ($stop (gensym 'stop))
         ($step (gensym 'step))
+        ($quot (gensym 'diff))
         ($res-len (gensym 'res-len))
         ($res-vec (gensym 'vec)))
   `(let* ((,$list ,lst)
@@ -1184,20 +1185,17 @@
          (,$vec (PyObjectList-vector ,$list))
          (,$indices (py-slice-indices ,slice ,$len))
          (,$start (vector-ref ,$indices 0))
-         (,$start
-          (if (> ,$start -1)
-              ,$start
-              (max (+ ,$start ,$len) 0)))
          (,$stop (vector-ref ,$indices 1))
-         (,$stop
-          (if (> ,$stop -1)
-              (min ,$stop ,$len)
-              (+ ,$stop ,$len)))
          (,$step (vector-ref ,$indices 2))
-         (,$res-len (max 0 (+ 1 (quotient (- ,$stop ,$start 1) ,$step))))
+         (,$quot (fxquotient (fx- ,$stop ,$start) ,$step))
+         (,$res-len
+          (fxmax 0
+                 (fx+ ,$quot
+                      (and (fx> ,$quot 0)
+                           (not (fxzero? (fxmodulo (fx- ,$stop ,$start) ,$step)))))))
          (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
+     (step)
      (let loop ((source ,$start) (target 0))
-       (step)
        (if (< target ,$res-len)
            (begin
              (vector-set! ,$res-vec target (vector-ref ,$vec source))
