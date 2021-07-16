@@ -1187,12 +1187,8 @@
          (,$start (vector-ref ,$indices 0))
          (,$stop (vector-ref ,$indices 1))
          (,$step (vector-ref ,$indices 2))
-         (,$quot (fxquotient (fx- ,$stop ,$start) ,$step))
          (,$res-len
-          (fxmax 0
-                 (fx+ ,$quot
-                      (and (fx> ,$quot 0)
-                           (not (fxzero? (fxmodulo (fx- ,$stop ,$start) ,$step)))))))
+          (max 0 (quotient (+ (- ,$stop ,$start) ,$step 1) ,$step)))
          (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
      (step)
      (let loop ((source ,$start) (target 0))
