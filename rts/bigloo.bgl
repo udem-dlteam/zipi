@@ -102,6 +102,7 @@
 	   (module-search-order-add! dir)
 	   (load-module-and-get-init name)
 	   (compile-source ::bstring ::bstring)
+     (compile-to-cache ::bstring ::bstring ::bstring)
 
 	   (inline get-environment-variable ::bstring)
 	   (fold ::procedure ::obj ::pair-nil)))
@@ -453,6 +454,11 @@
 (define (compile-source source target)
    (system
       (format "~a/zpc --no-py-module-name -t bigloo ~a -o ~a -y" (zipi-bin-dir) source target)))
+
+(define (compile-to-cache path path-info path-in-cache)
+  (print "compiling to cache" path path-info path-in-cache)
+  #t
+)
 
 ;*---------------------------------------------------------------------*/
 ;*    get-environment-variable ...                                     */

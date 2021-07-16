@@ -204,7 +204,7 @@
    (append (pyc-scheme-bigloo-module-base conf)
       (if (config-get conf main:)
 	  '((main main))
-	  '((export (zipi-init ::bstring ::bstring ::bstring))))))
+	  '((export (init ::bstring ::bstring ::bstring))))))
 
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-ast-bootstrap-module ...                       */
