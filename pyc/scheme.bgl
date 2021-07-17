@@ -228,25 +228,25 @@
 ;*    pyc-scheme-bigloo-module-base ...                                */
 ;*---------------------------------------------------------------------*/
 (define (pyc-scheme-bigloo-module-base conf)
-   `(module ,(string->symbol
-		(or (config-get conf module-name:)
-		    (config-get conf src:)
-		    "__stdin"))
-       ,@(if (or (config-get conf bootstrap:)
-		 (config-get conf semantics:))
-	     `((import __py_rts
-		  __py_bigloo
-		  ,@(if (equal? (config-get conf module-name:)
-			   "__stdlib_zemantics")
-			'()
-			'(__stdlib_zemantics))
-		  ,@(if (equal? (config-get conf module-name:)
-			   "__stdlib_behaviors")
-			'()
-			'(__stdlib_behaviors)))
-	       (include "rts-macros.scm"
-		  "bigloo/call.sch"
-		  "bigloo/constants.sch"
-		  "behaviors.sch"
-		  "zemantics.sch"))
-	     '((library zipi)))))
+  `(module ,(string->symbol
+             (or (config-get conf module-name:)
+                 (config-get conf src:)
+                 "__stdin"))
+           ,@(if (or (config-get conf bootstrap:)
+                     (config-get conf semantics:))
+                 `((import __py_rts
+                           __py_bigloo
+                           ,@(if (equal? (config-get conf module-name:)
+                                         "__stdlib_zemantics")
+                                 '()
+                                 '(__stdlib_zemantics))
+                           ,@(if (equal? (config-get conf module-name:)
+                                         "__stdlib_behaviors")
+                                 '()
+                                 '(__stdlib_behaviors)))
+                   (include "rts-macros.scm"
+                            "bigloo/call.sch"
+                            "bigloo/constants.sch"
+                            "behaviors.sch"
+                            "zemantics.sch"))
+                 '((library zipi)))))
