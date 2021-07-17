@@ -348,9 +348,35 @@ class PPYValue(PPYObject):
             self.type = ppy_type_class
         elif isinstance(origin, ast.FunctionDef):
             self.type = ppy_function_class
+        elif isinstance(origin, ast.Module):
+            self.type = ppy_module_class
+        elif isinstance(origin, ast.Compare):
+            # In the context of behavior which are only for builtin types, a comparison will always return a bool
+            self.type = ppy_bool_class
+        elif isinstance(origin, ast.UnaryOp):
+            if isinstance(origin.op, ast.Not):
+                self.type = ppy_bool_class
+            else:
+                self.type = None
+        elif isinstance(origin, ast.Call):
+            self.type = self._resolve_call_return_type(origin)
         else:
             self.type = None
 
+    def _resolve_call_return_type(self, call):
+        func = call.func
+
+        # Resolve return types of intrinsics functions
+        if func is ppy_intrinsic_py_int_from_host:
+            return ppy_int_class
+        elif func is ppy_intrinsic_py_bool_from_host_bool:
+            return ppy_bool_class
+        elif func is ppy_intrinsic_py_float_from_host:
+            return ppy_float_class
+        elif func is ppy_intrinsic_py_str_from_host:
+            return ppy_str_class
+
+        return None
 
     @classmethod
     def with_type_only(cls, type):
@@ -403,16 +429,23 @@ class PPYSemantics(PPYFunction):
 
 
 class PPYClass(PPYValue, PPYContainer):
+    MRO_SELF_AND_OBJECT = object()
+    MRO_SELF = object()
+
     def __init__(self, *, context, _mro=None, **kwargs):
         super().__init__(context=context, **kwargs)
 
-        # Use Python host types to determine mro
         name = self.origin.name
-        klass = type_name_to_python(name)
 
-        if _mro is not None:
+        if _mro is PPYClass.MRO_SELF:
+            self.mro = [self]
+        elif _mro is PPYClass.MRO_SELF_AND_OBJECT:
+            self.mro = [self, ppy_object_class]
+        elif _mro is not None:
             self.mro = _mro
         else:
+            # Use Python host types to determine mro
+            klass = type_name_to_python(name)
             mro = klass.mro()
 
             ppy_mro = []
@@ -1378,6 +1411,8 @@ def type_name_to_python(name):
         return types.MethodType
     elif name == "range_iterator":
         return type(iter(range(42)))  # range_iterator
+    elif name == "NotImplementedType":
+        return type(NotImplemented)
     else:
         return eval(name)
 
@@ -1425,17 +1460,22 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
 
     return behavior
 
+
 # Bootstrap base types
-ppy_type_class = PPYClass(context=None, origin=ast.parse("class type: pass").body[0], type="TMP", _mro=[])
-ppy_object_class = PPYClass(context=None, origin=ast.parse("class object: pass").body[0], _mro=[])
-ppy_function_class = PPYClass(context=None, origin=ast.parse("class function: pass").body[0], _mro=[])
+def dummy_class_def(name):
+    return ast.parse(f"class {name}: pass")
 
-ppy_type_class.type = ppy_object_class.type = ppy_function_class.type = ppy_type_class
-ppy_object_class.mro = [ppy_object_class]
-ppy_type_class.mro = [ppy_type_class, ppy_object_class]
-ppy_function_class.mro = [ppy_function_class, ppy_object_class]
 
-ppy_NotImplemented = PPYSingleton(name="NotImplemented")
+ppy_type_class = PPYClass(context=None, origin=dummy_class_def("type").body[0], type="TMP", _mro=[])
+ppy_object_class = PPYClass(context=None, origin=dummy_class_def("object").body[0], _mro=PPYClass.MRO_SELF)
+ppy_module_class = PPYClass(context=None, origin=dummy_class_def("module").body[0], _mro=PPYClass.MRO_SELF_AND_OBJECT)
+ppy_function_class = PPYClass(context=None, origin=dummy_class_def("function").body[0],
+                              _mro=PPYClass.MRO_SELF_AND_OBJECT)
+ppy_NotImplementedType = PPYClass(context=None, origin=dummy_class_def("NotImplementedType").body[0], _mro=PPYClass.MRO_SELF_AND_OBJECT)
+
+ppy_type_class.type = ppy_type_class
+
+ppy_NotImplemented = PPYSingleton(name="NotImplemented", type=ppy_NotImplementedType)
 ppy_isinstance = PPYBuiltin(name="isinstance")
 # NOTE: it is not exactly correct to treat type as a function, but we do not intend on handling metaclass anyway
 ppy_type = PPYBuiltin(name="type")
