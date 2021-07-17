@@ -1,5 +1,3 @@
 #!/bin/sh
 
-SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
-
-$SCRIPT_DIR/zpc.bigloo -Ox $1 -o /tmp/zipi.bigloo.out && /tmp/zipi.bigloo.out
+@ZIPIROOT@/bin/zipi-compile-and-run.bigloo @ZIPICACHE@ @ZIPIROOT@ "$@"

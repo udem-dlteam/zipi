@@ -1,0 +1,49 @@
+(module zipi-compile-and-run
+        (main main))
+
+(define (config-version) "@VERSION@")
+(define (config-branch) "@BRANCH@")
+(define (config-python-version) "@PYTHONVERSION")
+
+(define cache-location (make-file-name "@ZIPICACHE@" "cache@zipi-bigloo@VERSION@-@PYTHONVERSION@"))
+
+(define (main args)
+  (compile-and-run args))
+
+(define (compile-and-run args)
+  (bigloo-library-path-set!
+   (cons "/usr/local/lib/zipi-0-0-1/zipi/lib/zipi/0.0.1"
+         (bigloo-library-path)))
+
+  #;(define zipi-lib-path
+    (make-file-name
+     zipiroot
+     "lib/zipi/0.0.1"))
+  (define zipi-lib-path "/usr/local/lib/zipi-0-0-1/zipi/lib/zipi/0.0.1")
+
+  (print args)
+  (if (not (string? (car args)))
+      (begin
+        (print "*** ERROR - expected filename, none provided")
+        (exit)))
+
+
+  ((eval '(lambda (path zipi-lib-path cache-location argv compile debug profile expansion)
+
+            (library-load 'zipi zipi-lib-path)
+            (compile-flag-set! compile)
+            (debug-flag-set! debug)
+            (profile-flag-set! profile)
+            (expansion-flag-set! expansion)
+            (command-line-argv-set! argv)
+
+            (print path)
+            (run-as-main path cache-location)))
+   (car args)
+   zipi-lib-path
+   cache-location
+    '()
+    #t
+    #f
+    #f
+    #f))
