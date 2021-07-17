@@ -100,7 +100,6 @@
 	   (getenv name #!optional default)
 	   
 	   (module-search-order-add! dir)
-	   (load-module-and-get-init name)
 	   (compile-source ::bstring ::bstring)
 	   
 	   (inline get-environment-variable ::bstring)
@@ -438,21 +437,11 @@
    (string-append name "." shared-lib-suffix))
 
 ;*---------------------------------------------------------------------*/
-;*    load-module-and-get-init ...                                     */
-;*---------------------------------------------------------------------*/
-(define (load-module-and-get-init name)
-   (let ((libname (name->library-name name)))
-      (dynamic-load libname)
-      (let ((dlsym (dynamic-load-symbol libname "init")))
-	 (when dlsym
-	    (dynamic-load-symbol-get dlsym)))))
-
-;*---------------------------------------------------------------------*/
 ;*    compile-source ...                                               */
 ;*---------------------------------------------------------------------*/
 (define (compile-source source target)
    (system
-      (format "~a/zpc -t bigloo ~a -o ~a -y" (zipi-bin-dir) source target)))
+      (format "~a/zpc.bigloo --no-py-module-main ~a -o ~a -y -t ~a" (zipi-bin-dir) source target (string-append target ".scm"))))
 
 ;*---------------------------------------------------------------------*/
 ;*    get-environment-variable ...                                     */

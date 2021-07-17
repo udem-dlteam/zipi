@@ -18,7 +18,8 @@
   (define zipi-lib-path "@BIGLOOLIBPATH@/lib/zipi/@VERSION@")
 
   (print args)
-  (if (not (string? (car args)))
+  (if (not (and (pair? (cdr args))
+                (string? (cadr args))))
       (begin
         (print "*** ERROR - expected filename, none provided")
         (exit)))
@@ -34,8 +35,8 @@
             (command-line-argv-set! argv)
 
             (print path)
-            (run-as-main path cache-location)))
-   (car args)
+            (run-as-main (path-normalize path) cache-location)))
+   (cadr args)
    zipi-lib-path
    cache-location
     '()

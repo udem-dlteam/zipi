@@ -5646,7 +5646,7 @@
             (compile-to-cache path path-info path-in-cache)
             ;; TODO : for windows user, the path is not formated with a / before
             (load-module-and-get-init path-in-cache))))
-    (print 3.3)
+    (print -3.2 " ->> "  mod-init)
     (if mod-init
         (mod-init py-__name__ py-__package__ py-module.__path__)
         #f)))

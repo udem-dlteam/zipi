@@ -383,6 +383,7 @@
 
            procedure->py-function
            (compile-to-cache path path-info path-in-cache)
+           (load-module-and-get-init path-in-cache)
 
 ;;           (py-int-from-scheme value)
            (py-int-from-scheme-fallback value)
@@ -725,10 +726,84 @@
         " > "
         target))))))
 
+(define-rts (ensure-parent-dir-exists path)
+
+  (define (wind path todo)
+    (let* ((dir (path-strip-trailing-directory-separator
+                 (path-directory path)))
+           (fi (if (file-exists? dir)
+                   dir
+                   #f)))
+      (if fi
+          (if (eq? (file-type fi) 'directory)
+              (unwind todo)
+              (error (string-append "directory component can't be created: " fi)))
+          (wind dir (cons dir todo)))))
+
+  (define (unwind todo)
+    (if (pair? todo)
+        (begin
+          (print "making " (car todo))
+          (make-directory (car todo))
+          (unwind (cdr todo)))))
+
+  (wind path '()))
+
+
 (define-rts (compile-to-cache path path-info path-in-cache)
-  (print path " " path-info " " path-in-cache)
-  
-  #f)
+  (let* ((path-cache
+           (string-append
+             (cache-location-get)
+             "/"
+             path-in-cache
+             "/"
+             (path-strip-directory path-in-cache)
+             ".so"))
+         )
+
+    (print 3.4)
+    (print "print-cache : " path-cache)
+    ;; compile file and return #f if compilation failed
+    (define (compile)
+      (ensure-parent-dir-exists path-cache)
+      (fx= 0 (compile-source path path-cache)))
+
+
+    (if (file-exists? path-cache)
+        ;; check according to modified date
+        (if (< (time->seconds (file-modification-time path-info))
+               (time->seconds (file-modification-time path-cache)))
+            (begin
+              (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
+              #t) ;; compilation "successful" (file already compiled)
+            (compile))
+        (compile)))) ;; compiled file does not exist (must compile)
+
+;*---------------------------------------------------------------------*/
+;*    load-module-and-get-init ...                                     */
+;*---------------------------------------------------------------------*/
+(define (load-module-and-get-init path-in-cache)
+  (let* ((libname
+          (string-append
+           (cache-location-get)
+           "/"
+           path-in-cache
+           "/"
+           (path-strip-directory path-in-cache)
+           ".so"))
+         (module-name
+          (string-append "%%/" path-in-cache))
+         )
+
+    (print "load-module : " libname)
+    (print "path-in-cache : " path-in-cache)
+    (dynamic-load libname)
+    (let ((dlsym (dynamic-load-symbol libname "init" module-name)))
+      (when dlsym
+        (dynamic-load-symbol-get dlsym)))))
+
+
+    
 
 ;*---------------------------------------------------------------------*/
 ;*    PCache-set! ...                                                  */
@@ -854,7 +929,7 @@
 ;*---------------------------------------------------------------------*/
 (define (native-builtin-__import__ name)
    (if (string=? name "builtins")
-       ((@ zipi-init __stdlib_builtins) name "" "")
+       ((@ init __stdlib_builtins) name "" "")
        #f))
 
 ;*---------------------------------------------------------------------*/

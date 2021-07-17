@@ -50,7 +50,33 @@
 ;*---------------------------------------------------------------------*/
 ;*    input-file->module-name ...                                      */
 ;*---------------------------------------------------------------------*/
+;; taken from mangle-cache-path in rts/rts.scm
 (define (input-file->module-name path)
+  (define (char-in-range? c lo hi)
+    (and (char>=? c lo) (char<=? c hi)))
+
+  (define (char-map c)
+    (cond
+     ((or (char-in-range? c #\a #\z)
+          (char-in-range? c #\A #\Z)
+          (char-in-range? c #\0 #\9)
+          (char=? c #\/))
+      (string c))
+     ((char=? c #\_)
+      "__")
+     (else
+      (string-append "_" (number->string (char->integer c) 16)))))
+
+  (define (append-strings str-lst rest)
+    (if (pair? str-lst)
+        (append-strings (cdr str-lst) (string-append rest (car str-lst)))
+        rest
+        ))
+
+  (append-strings (map char-map (string->list path)) "%%"))
+
+
+#;(define (input-file->module-name path)
    (let* ((dir (dirname path))
 	  (mod (prefix (basename path))))
       (if (string=? dir ".")

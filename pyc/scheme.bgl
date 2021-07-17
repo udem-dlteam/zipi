@@ -183,7 +183,7 @@
               (py-make-global)
               ,(scheme-make-caches ast)))))
         (else
-         `(define (zipi-init name package path)
+         `(define (init name package path)
             (init-registered-constants)
             (let ((caches ,(scheme-make-caches ast))
                   (module (py-make-module
@@ -205,7 +205,7 @@
    (append (pyc-scheme-bigloo-module-base conf)
       (if (config-get conf main:)
 	  '((main main))
-	  '((export (zipi-init ::bstring ::bstring ::bstring))))))
+	  '((export (init ::bstring ::bstring ::bstring))))))
 
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-ast-bootstrap-module ...                       */
