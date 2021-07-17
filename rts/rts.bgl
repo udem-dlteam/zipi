@@ -382,6 +382,7 @@
            (py-obj-alloc cls)
 
            procedure->py-function
+           (compile-to-cache path path-info path-in-cache)
 
 ;;           (py-int-from-scheme value)
            (py-int-from-scheme-fallback value)
@@ -723,6 +724,11 @@
         source
         " > "
         target))))))
+
+(define-rts (compile-to-cache path path-info path-in-cache)
+  (print path " " path-info " " path-in-cache)
+  
+  #f)
 
 ;*---------------------------------------------------------------------*/
 ;*    PCache-set! ...                                                  */

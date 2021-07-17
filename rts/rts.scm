@@ -5606,65 +5606,6 @@
 (define-rts (expansion-flag-set! value)
   (set! expansion-flag value))
 
-(define-rts (ensure-parent-dir-exists path)
-
-  (define (wind path todo)
-    (let* ((dir (path-strip-trailing-directory-separator
-                  (path-directory path)))
-           (fi (with-exception-handler
-                 (lambda (exc) #f)
-                 (lambda () (file-info dir)))))
-      (if fi
-          (if (eq? (file-info-type fi) 'directory)
-              (unwind todo)
-              (error (string-append "directory component can't be created: " fi)))
-          (wind dir (cons dir todo)))))
-
-  (define (unwind todo)
-    (if (pair? todo)
-        (begin
-          (create-directory (car todo))
-          (unwind (cdr todo)))))
-
-  (wind path '()))
-
-
-(define-rts (compile-to-cache path path-info path-in-cache)
-  (let* ((path-cache
-           (string-append
-             (cache-location-get)
-             "/"
-             path-in-cache
-             "/"
-             (path-strip-directory path-in-cache)
-             ".sld"))
-         (path-cache-info (file-info path-cache #t #f)))
-
-    (define (create-_must-build_)
-      ;; create empty "._must-build_" file
-      (if compile-flag
-          (let ((_must-build_-path
-                  (string-append (path-strip-extension path-cache) "._must-build_")))
-            (if compile-flag
-                (with-output-to-file _must-build_-path list)
-                (delete-file _must-build_-path)))))
-
-    ;; compile file and return #f if compilation failed
-    (define (compile)
-      (ensure-parent-dir-exists path-cache)
-      (create-_must-build_)
-      (fx= 0 (compile-source path path-cache)))
-
-    (if path-cache-info
-        ;; check according to modified date
-        (if (< (time->seconds (file-info-last-modification-time path-info))
-               (time->seconds (file-info-last-modification-time path-cache-info)))
-            (begin
-              (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
-              (create-_must-build_)
-              #t) ;; compilation "successful" (file already compiled)
-            (compile))
-        (compile)))) ;; compiled file does not exist (must compile)
 
 ;; mangle path of modules in cache to be valid scheme module names
 (define-rts (mangle-cache-path path)
@@ -5688,6 +5629,8 @@
 ;; py-module.__path__ can be #f in the case of non-package importation
 (define-rts (compile-and-get-mod path path-info py-__name__ py-__package__ py-module.__path__)
 
+  (print 3.1)
+
   ;; useful for debugging
   (if expansion-flag
       (cond-expand
@@ -5696,12 +5639,14 @@
         (bigloo
          #f)))
 
+  (print 3.2)
   (let* ((path-in-cache (mangle-cache-path (substring path 1 (string-length path)))) ;; remove trailing /
          (mod-init
           (and
             (compile-to-cache path path-info path-in-cache)
             ;; TODO : for windows user, the path is not formated with a / before
             (load-module-and-get-init path-in-cache))))
+    (print 3.3)
     (if mod-init
         (mod-init py-__name__ py-__package__ py-module.__path__)
         #f)))
@@ -8057,6 +8002,7 @@
 ;; error message should just be print(exc.__name__, ": ", exc)
 ;; TODO: print that to stderr
 (define-rts (print-exception exc port)
+  (print "PRINT EXCEPTION " exc " " port )
   (let ((exc-name (getattribute-from-obj-mro exc (& "__name__")))
         (__str__ (getattribute-from-obj-mro exc (& "__str__"))))
     (py-display exc-name port)
