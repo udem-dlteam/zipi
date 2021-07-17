@@ -3,7 +3,7 @@
 
 (define (config-version) "@VERSION@")
 (define (config-branch) "@BRANCH@")
-(define (config-python-version) "@PYTHONVERSION")
+(define (config-python-version) "@PYTHONVERSION@")
 
 (define cache-location (make-file-name "@ZIPICACHE@" "cache@zipi-bigloo@VERSION@-@PYTHONVERSION@"))
 
@@ -12,14 +12,10 @@
 
 (define (compile-and-run args)
   (bigloo-library-path-set!
-   (cons "/usr/local/lib/zipi-0-0-1/zipi/lib/zipi/0.0.1"
+   (cons "@BIGLOOLIBPATH@"
          (bigloo-library-path)))
 
-  #;(define zipi-lib-path
-    (make-file-name
-     zipiroot
-     "lib/zipi/0.0.1"))
-  (define zipi-lib-path "/usr/local/lib/zipi-0-0-1/zipi/lib/zipi/0.0.1")
+  (define zipi-lib-path "@BIGLOOLIBPATH@/lib/zipi/@VERSION@")
 
   (print args)
   (if (not (string? (car args)))

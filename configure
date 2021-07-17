@@ -249,7 +249,7 @@ fi
 #*---------------------------------------------------------------------*/
 #*    Makefile.zipiconfig                                              */
 #*---------------------------------------------------------------------*/
-for file in Makefile.zipiconfig configure.scm zpc.bigloo.sh; do
+for file in Makefile.zipiconfig  configure.scm zpc.bigloo.sh; do
   mkmf=etc/$file
 
   rm -f $mkmf 2> /dev/null
@@ -322,7 +322,7 @@ for file in configure.scm; do
 done
 
 
-for file in bin/zipi bin/zipi.gambit bin/zipi-compile-and-run.gambit bin/zipi.bigloo bin/zpc bin/zpc.gambit bin/pysexp_script.py zpc/main-gambit.scm; do
+for file in bin/zipi bin/zipi.gambit bin/zipi-compile-and-run.gambit bin/zipi-compile-and-run.bigloo.scm bin/zipi.bigloo bin/zpc bin/zpc.gambit bin/pysexp_script.py zpc/main-gambit.scm; do
   cat $file.in \
     | sed -e "s|@RELEASE@|$version|g" \
           -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|g" \
@@ -341,9 +341,18 @@ for file in bin/zipi bin/zipi.gambit bin/zipi-compile-and-run.gambit bin/zipi.bi
           -e "s|@PYTHON@|$buildpython|g" \
           -e "s|@ZIPICACHE@|$zipicache|g" \
           -e "s|@ZIPIROOT@|$builddir|g" \
+          -e "s|@BIGLOOLIBPATH@|$zipiroot|g"\
     > $file
   chmod +x $file
 done
+
+if test "${systems#*bigloo}" != "$systems"; then
+    $bigloo $buildbindir/zipi-compile-and-run.bigloo.scm -o $buildbindir/zipi-compile-and-run.bigloo
+    if [ -f $buildbindir/zipi.bigloo ]; then
+        rm -f $buildbindir/zipi.bigloo
+    fi
+    ln -s $buildbindir/zipi-compile-and-run.bigloo $buildbindir/zipi.bigloo 
+fi
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
 
