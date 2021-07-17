@@ -341,7 +341,16 @@ class PPYValue(PPYObject):
         super().__init__(**kwargs)
         self.origin = origin  # origin of the value in the ast
         self.context = context.copy() if context is not None else None  # copy of the context the value was computed in
-        self.type = type
+
+        if type is not None:
+            self.type = type
+        elif isinstance(origin, ast.ClassDef):
+            self.type = ppy_type_class
+        elif isinstance(origin, ast.FunctionDef):
+            self.type = ppy_function_class
+        else:
+            self.type = None
+
 
     @classmethod
     def with_type_only(cls, type):
@@ -394,25 +403,29 @@ class PPYSemantics(PPYFunction):
 
 
 class PPYClass(PPYValue, PPYContainer):
-    def __init__(self, *, context, **kwargs):
+    def __init__(self, *, context, _mro=None, **kwargs):
         super().__init__(context=context, **kwargs)
 
         # Use Python host types to determine mro
         name = self.origin.name
         klass = type_name_to_python(name)
-        mro = klass.mro()
 
-        ppy_mro = []
+        if _mro is not None:
+            self.mro = _mro
+        else:
+            mro = klass.mro()
 
-        for k in mro:
-            kname = k.__name__
+            ppy_mro = []
 
-            if kname == name:
-                ppy_mro.append(self)
-            else:
-                ppy_mro.append(type_name_to_ppy(kname, context.modules))
+            for k in mro:
+                kname = k.__name__
 
-        self.mro = ppy_mro
+                if kname == name:
+                    ppy_mro.append(self)
+                else:
+                    ppy_mro.append(type_name_to_ppy(kname, context.modules))
+
+            self.mro = ppy_mro
 
         # Add __name__ to attributes as there is no support for descriptors yet
         self["__name__"] = ast.Constant(name)
@@ -1412,8 +1425,16 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
 
     return behavior
 
+# Bootstrap base types
+ppy_type_class = PPYClass(context=None, origin=ast.parse("class type: pass").body[0], type="TMP", _mro=[])
+ppy_object_class = PPYClass(context=None, origin=ast.parse("class object: pass").body[0], _mro=[])
+ppy_function_class = PPYClass(context=None, origin=ast.parse("class function: pass").body[0], _mro=[])
 
-ppy_object_class = PPYClass(context=None, origin=ast.parse("class object: pass").body[0])
+ppy_type_class.type = ppy_object_class.type = ppy_function_class.type = ppy_type_class
+ppy_object_class.mro = [ppy_object_class]
+ppy_type_class.mro = [ppy_type_class, ppy_object_class]
+ppy_function_class.mro = [ppy_function_class, ppy_object_class]
+
 ppy_NotImplemented = PPYSingleton(name="NotImplemented")
 ppy_isinstance = PPYBuiltin(name="isinstance")
 # NOTE: it is not exactly correct to treat type as a function, but we do not intend on handling metaclass anyway
