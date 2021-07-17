@@ -171,6 +171,33 @@ class NameCounter(ast.NodeVisitor):
                 self.assignments[t.id].append(node.value)
 
 
+class DuplicateBranchingRemover(ast.NodeTransformer):
+    # TODO this case is tricky...
+    # When we inline a PPYConditional, it is often possible to remove its origin if-statement
+    # Here we remove it in a very limited case which is when the PPYConditional is inlined in a return statement at the
+    # end of the function body. Since we expect no side-effects this is safe, but could miss other cases
+    # We can recognize the origin if-statement because it has the same condition object
+    def __init__(self, fn):
+        self.fn = fn
+        self.ppy_conditional = None
+
+    def remove_duplicate_branching(self):
+        body = self.fn.body
+        last = body[-1]
+
+        if isinstance(last, ast.Return):
+            value = last.value
+            if isinstance(value, PPYConditional):
+                self.ppy_conditional = value
+                return self.visit(self.fn)
+
+    def visit_If(self, node):
+        if node.test is self.ppy_conditional.condition:
+            return None
+        else:
+            return node
+
+
 class AssignmentRemover(ast.NodeTransformer):
     def __init__(self, fn):
         self.fn = fn
@@ -562,7 +589,6 @@ class ReturnKind:
         return ast.Raise(exc)
 
 
-
 class RTE:
     def __init__(self, modules, globals=None, locals=None, closure=None, return_kind=ReturnKind.as_return()):
         self.modules = modules
@@ -662,6 +688,7 @@ ppy_intrinsic_py_bool_to_host_bool = PPYIntrinsic("py_bool_to_host_bool")
 ppy_intrinsic_py_str_to_host = PPYIntrinsic("py_str_to_host")
 ppy_intrinsic_py_str_from_host = PPYIntrinsic("py_str_from_host")
 ppy_intrinsic_py_str_len_to_host = PPYIntrinsic("py_str_len_to_host")
+py_bool_from_host_bool = PPYIntrinsic("py_bool_from_host_bool")
 
 # TODO: replace semantics import with semantics
 ppy_intrinsic_semantics_truth = PPYIntrinsic("semantics_truth")
@@ -752,7 +779,8 @@ def partial_eval_intrinsic_call(fn, args, rte, return_kind=ReturnKind.as_return(
                 ppy_intrinsic_py_float_from_host,
                 ppy_intrinsic_py_str_to_host,
                 ppy_intrinsic_py_str_from_host,
-                ppy_intrinsic_py_str_len_to_host):
+                ppy_intrinsic_py_str_len_to_host,
+                py_bool_from_host_bool):
         # Cannot evaluate
         yield return_kind.do_return(PPYValue(origin=ast.Call(fn, args, []), context=rte))
     else:
@@ -803,12 +831,20 @@ def partial_eval_builtin_call(fn, args, rte, return_kind=ReturnKind.as_return())
 def builtin_eval_type_call(args, rte):
     # Assume correct arity
     instance, = args
-    instance_type = instance.type
+    if isinstance(instance, PPYValue):
+        instance_type = instance.type
 
-    if isinstance(instance_type, PPYClass):
-        return instance_type
-    elif instance_type in (ppy_intrinsic_sint, ppy_intrinsic_bint):
-        return ppy_int_class
+        if isinstance(instance_type, PPYClass):
+            return instance_type
+        elif instance_type in (ppy_intrinsic_sint, ppy_intrinsic_bint):
+            return ppy_int_class
+        else:
+            raise NotImplementedError
+    elif isinstance(instance, ast.Compare):
+        return ppy_bool_class
+    elif isinstance(instance, ast.Constant):
+        type_name = type(instance.value).__name__
+        return type_name_to_ppy(type_name, rte.modules)
     else:
         raise NotImplementedError
 
@@ -1194,7 +1230,7 @@ def partial_eval_is(left, right, rte):
 
     if left_type is None is right_type and left_type != right_type:
         return ast.Constant(False)
-    if isinstance(left.value, ast.Constant) and isinstance(right.value, ast.Constant):
+    if isinstance(left.origin, ast.Constant) and isinstance(right.origin, ast.Constant):
         return ast.Constant(left.value.value is right.value.value)
     # Unresolved
     return None
@@ -1276,7 +1312,21 @@ def partial_eval_import(import_stmt, rte):
 # ======================================================================================================================
 
 def convert_expr_to_return_host_bool(expr):
-    raise NotImplementedError
+    if isinstance(expr, ast.Call):
+        func = expr.func
+        if isinstance(func, ast.Name) and func.id == 'py_bool_from_host_bool':
+            # assume correct number of argument
+            return expr.args[0]
+        else:
+            raise TypeError(f"cannot convert call to a return-host-bool version due to unknown callee: {func}")
+    elif isinstance(expr, ast.Compare):
+        return ast.Call(ast.Name('py_bool_to_host_bool', ast.Load()), [expr], [])
+    elif isinstance(expr, ast.Constant):
+        val = expr.value
+        if isinstance(val, bool):
+            return ast.Call(ast.Name('py_bool_to_host_bool', ast.Load()), [expr], [])
+
+    raise TypeError(f"cannot convert expr to a return-host-bool version: {expr}")
 
 
 def convert_body_to_return_host_bool(body):
@@ -1339,20 +1389,28 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
 
     result_body = list(partial_eval_function_call(fn, args, rte, toplevel=True))
 
-    if as_test:
-        result_body = convert_body_to_return_host_bool(result_body)
-
     args_names = [a.arg for a in fn.origin.args.args]
     annotations = [None if t == "unknown" else ast.Name(t, ast.Load()) for t in types]
 
     annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
 
-    return ast.FunctionDef(behavior_name,
-                           annotated_arguments,
-                           result_body,
-                           [ast.Name("define_behavior", ast.Load())],
-                           None,
-                           None)
+    behavior = ast.FunctionDef(behavior_name,
+                               annotated_arguments,
+                               result_body,
+                               [ast.Name("define_behavior", ast.Load())],
+                               None,
+                               None)
+
+    # We apply post-processing to behaviors beautify the code and remove statements which were made obsolete
+    remove_extra_pass(behavior)
+    AssignmentRemover(behavior).remove_assignments()
+    DuplicateBranchingRemover(behavior).remove_duplicate_branching()
+    PPYValuesReplacer(behavior).replace_ppy()
+
+    if as_test:
+        behavior.body = convert_body_to_return_host_bool(behavior.body)
+
+    return behavior
 
 
 ppy_object_class = PPYClass(context=None, origin=ast.parse("class object: pass").body[0])
@@ -1414,11 +1472,6 @@ def compute_behaviors(semantics_file, builtins_file):
                                                specializations.as_test,
                                                ppy_sys_modules)
             try:
-                # We apply post-processing to behaviors beautify the code and remove statements which were made obsolete
-                remove_extra_pass(behavior)
-                AssignmentRemover(behavior).remove_assignments()
-                PPYValuesReplacer(behavior).replace_ppy()
-
                 ast.fix_missing_locations(behavior)
                 result += f"{ast.unparse(behavior)}\n\n"
             except Exception:
