@@ -296,6 +296,7 @@
 
            (bootstrap-builtins)
            (compile-flag-set! flag)
+           (run-as-main path cache-location)
            (expansion-flag-set! value)
            (debug-flag-set! flag)
            (profile-flag-set! flag)

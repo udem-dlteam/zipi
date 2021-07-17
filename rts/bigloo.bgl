@@ -329,7 +329,6 @@
 ;*    files and directories                                            */
 ;*---------------------------------------------------------------------*/
 (define zipidir (make-file-path (zipi-lib-dir) "zipi" (zipi-release)))
-(define zipicache (make-file-path "/tmp" "zipi" (zipi-release) "cache"))
 
 (define (path-directory path)
    (dirname path))
@@ -349,12 +348,13 @@
 	  name)))
 
 (define (path-expand path #!optional (origin (pwd)))
-   (let ((p (pregexp-replace "^~~zipicache" path zipicache)))
-      (cond
-	 ((string=? origin "~~zipidir")
-	  (make-file-name zipidir p))
-	 (else
-	  (make-file-name origin p)))))
+  (let ((p path))
+    (print "there !!")
+    (cond
+     ((string=? origin "~~zipidir")
+      (make-file-name zipidir p))
+     (else
+      (make-file-name origin p)))))
 
 (define (create-directory path)
    (make-directories path))

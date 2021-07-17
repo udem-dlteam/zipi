@@ -5573,9 +5573,11 @@
 (define-rts sys-mod (py-make-sys-mod))
 
 (define-rts (sys.modules-get)
+  (print 11)
   (global-own-attr-ref-no-cache sys-mod (& "modules")))
 
 (define-rts (sys.path-get)
+  (print 12)
   (global-own-attr-ref-no-cache sys-mod (& "path")))
 
 ;; == CACHE SYSTEM ==
@@ -5822,8 +5824,12 @@
   (cache-location-set! zipicache)
   (module-search-order-add! (cache-location-get))
 
+  (print 1)
+
   (let ((sys.modules (sys.modules-get)))
+    (print 1.5 " " path)
     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+    (print 2)
     (py-try-except
      (lambda (e)
        (print-exception e (current-error-port))
@@ -5833,7 +5839,9 @@
        (if profile-flag
            (statprof-begin profile-flag))
 
+       (print 3)
        (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
+       (print 30)
 
        (if profile-flag
            (statprof-end path))))))
