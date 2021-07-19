@@ -5573,11 +5573,9 @@
 (define-rts sys-mod (py-make-sys-mod))
 
 (define-rts (sys.modules-get)
-  (print 11)
   (global-own-attr-ref-no-cache sys-mod (& "modules")))
 
 (define-rts (sys.path-get)
-  (print 12)
   (global-own-attr-ref-no-cache sys-mod (& "path")))
 
 ;; == CACHE SYSTEM ==
@@ -5629,8 +5627,6 @@
 ;; py-module.__path__ can be #f in the case of non-package importation
 (define-rts (compile-and-get-mod path path-info py-__name__ py-__package__ py-module.__path__)
 
-  (print 3.1)
-
   ;; useful for debugging
   (if expansion-flag
       (cond-expand
@@ -5639,14 +5635,12 @@
         (bigloo
          #f)))
 
-  (print 3.2)
   (let* ((path-in-cache (mangle-cache-path (substring path 1 (string-length path)))) ;; remove trailing /
          (mod-init
           (and
             (compile-to-cache path path-info path-in-cache)
             ;; TODO : for windows user, the path is not formated with a / before
             (load-module-and-get-init path-in-cache))))
-    (print -3.2 " ->> "  mod-init)
     (if mod-init
         (mod-init py-__name__ py-__package__ py-module.__path__)
         #f)))
@@ -5769,12 +5763,8 @@
   (cache-location-set! zipicache)
   (module-search-order-add! (cache-location-get))
 
-  (print 1)
-
   (let ((sys.modules (sys.modules-get)))
-    (print 1.5 " " path)
     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
-    (print 2)
     (py-try-except
      (lambda (e)
        (print-exception e (current-error-port))
@@ -5784,9 +5774,7 @@
        (if profile-flag
            (statprof-begin profile-flag))
 
-       (print 3)
        (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
-       (print 30)
 
        (if profile-flag
            (statprof-end path))))))
@@ -8002,7 +7990,6 @@
 ;; error message should just be print(exc.__name__, ": ", exc)
 ;; TODO: print that to stderr
 (define-rts (print-exception exc port)
-  (print "PRINT EXCEPTION " exc " " port )
   (let ((exc-name (getattribute-from-obj-mro exc (& "__name__")))
         (__str__ (getattribute-from-obj-mro exc (& "__str__"))))
     (py-display exc-name port)

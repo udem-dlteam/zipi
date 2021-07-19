@@ -187,16 +187,17 @@
             (init-registered-constants)
             (let ((caches ,(scheme-make-caches ast))
                   (module (py-make-module
-                           (py-str-from-scheme name)
-                           (py-str-from-scheme package)
-                           (py-str-from-scheme path))))
+                           name
+                           package
+                           path)))
               ,@(if full-path
                     `((py-own-attr-set!
                        module (& "__file__") (& ,full-path)))
                     '())
               (py-module module caches)
               module))))
-      (end-registering-constants))))
+      (end-registering-constants)
+      init)))
 
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-ast-module ...                                 */
@@ -205,7 +206,7 @@
    (append (pyc-scheme-bigloo-module-base conf)
       (if (config-get conf main:)
 	  '((main main))
-	  '((export (init ::bstring ::bstring ::bstring))))))
+	  '((export (init name package path))))))
 
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-ast-bootstrap-module ...                       */

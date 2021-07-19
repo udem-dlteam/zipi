@@ -17,7 +17,6 @@
 
   (define zipi-lib-path "@BIGLOOLIBPATH@/lib/zipi/@VERSION@")
 
-  (print args)
   (if (not (and (pair? (cdr args))
                 (string? (cadr args))))
       (begin
@@ -34,7 +33,6 @@
             (expansion-flag-set! expansion)
             (command-line-argv-set! argv)
 
-            (print path)
             (run-as-main (path-normalize path) cache-location)))
    (cadr args)
    zipi-lib-path

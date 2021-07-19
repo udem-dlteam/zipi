@@ -743,7 +743,6 @@
   (define (unwind todo)
     (if (pair? todo)
         (begin
-          (print "making " (car todo))
           (make-directory (car todo))
           (unwind (cdr todo)))))
 
@@ -761,8 +760,6 @@
              ".so"))
          )
 
-    (print 3.4)
-    (print "print-cache : " path-cache)
     ;; compile file and return #f if compilation failed
     (define (compile)
       (ensure-parent-dir-exists path-cache)
@@ -792,13 +789,12 @@
            (path-strip-directory path-in-cache)
            ".so"))
          (module-name
-          (string-append "%%/" path-in-cache))
-         )
+          (string-append "%%/" path-in-cache)))
 
-    (print "load-module : " libname)
-    (print "path-in-cache : " path-in-cache)
     (dynamic-load libname)
-    (let ((dlsym (dynamic-load-symbol libname "init" module-name)))
+    ;; should be changed
+    #;init
+    #;(let ((dlsym (dynamic-load-symbol libname "init" module-name)))
       (when dlsym
         (dynamic-load-symbol-get dlsym)))))
 
@@ -925,9 +921,12 @@
 ;*    native-builtin-__import__ ...                                    */
 ;*---------------------------------------------------------------------*/
 (define (native-builtin-__import__ name)
-   (if (string=? name "builtins")
-       ((@ init __stdlib_builtins) name "" "")
-       #f))
+  (if (string=? name "builtins")
+      ((@ init __stdlib_builtins)
+       (& "builtins")
+       (& "")
+       #f)
+      #f))
 
 ;*---------------------------------------------------------------------*/
 ;*    constants                                                        */

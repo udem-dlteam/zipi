@@ -348,7 +348,6 @@
 
 (define (path-expand path #!optional (origin (pwd)))
   (let ((p path))
-    (print "there !!")
     (cond
      ((string=? origin "~~zipidir")
       (make-file-name zipidir p))
