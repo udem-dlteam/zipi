@@ -818,19 +818,41 @@ def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()
         yield from partial_eval_stmts(mangled_fn_origin.body, call_rte)
 
 
+intrinsics_inverses = {
+    (ppy_intrinsic_py_int_from_host, ppy_intrinsic_py_int_to_host),
+    (ppy_intrinsic_py_float_from_host, ppy_intrinsic_py_float_to_host),
+    (ppy_intrinsic_py_bool_to_host_bool, ppy_intrinsic_py_bool_from_host_bool),
+    (ppy_intrinsic_py_str_to_host, ppy_intrinsic_py_str_from_host)
+}
+
+intrinsics_inverses = {
+    *intrinsics_inverses,
+    *map(lambda t: t[::-1], intrinsics_inverses)
+}
+
+
+def simplify_intrinsic_call(fn, args):
+    if len(args) == 1:
+        arg0 = args[0]
+
+        if isinstance(arg0, PPYValue):
+            arg0 = arg0.origin
+
+        if isinstance(arg0, ast.Call) and len(arg0.args) == 1:
+            right_fn = arg0.func
+
+            if (fn, right_fn) in intrinsics_inverses:
+                return arg0.args[0]
+
+    return ast.Call(fn, args, [])
+
+
 def partial_eval_intrinsic_call(fn, args, rte, return_kind=ReturnKind.as_return()):
     if fn is ppy_intrinsic_class_getattr:
         yield return_kind.do_return(intrinsic_eval_class_getattr_call(args, rte))
-    elif fn in (ppy_intrinsic_py_int_to_host,
-                ppy_intrinsic_py_int_from_host,
-                ppy_intrinsic_py_float_to_host,
-                ppy_intrinsic_py_float_from_host,
-                ppy_intrinsic_py_str_to_host,
-                ppy_intrinsic_py_str_from_host,
-                ppy_intrinsic_py_str_len_to_host,
-                py_bool_from_host_bool):
-        # Cannot evaluate
-        yield return_kind.do_return(PPYValue(origin=ast.Call(fn, args, []), context=rte))
+    elif isinstance(fn, PPYIntrinsic):
+        # Cannot evaluate but can simplify
+        yield return_kind.do_return(PPYValue(origin=simplify_intrinsic_call(fn, args), context=rte))
     else:
         raise NotImplementedError
 
