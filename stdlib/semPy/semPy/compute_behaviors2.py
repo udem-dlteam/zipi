@@ -461,6 +461,7 @@ class PPYClass(PPYValue, PPYContainer):
             self.mro = ppy_mro
 
         # Add __name__ to attributes as there is no support for descriptors yet
+        self.name = name
         self["__name__"] = ast.Constant(name)
 
 
@@ -810,7 +811,8 @@ def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return()
         fn_args = mangled_ast_args.posonlyargs + mangled_ast_args.args
 
         for fn_arg, callee_arg in zip(fn_args, args):
-            callee_arg.origin = fn_arg
+            if toplevel:
+                callee_arg.origin = fn_arg
             call_rte[fn_arg.arg] = callee_arg
 
         yield from partial_eval_stmts(mangled_fn_origin.body, call_rte)
@@ -1143,7 +1145,10 @@ def partial_eval_compare(cmp, rte):
 
 def is_chained_calls(node, names):
     if names:
-        if isinstance(node, ast.Call) and isinstance(func := node.func, ast.Name) and func.id == names[0]:
+        if isinstance(node, PPYValue):
+            node = node.origin
+
+        if isinstance(node, ast.Call) and node.func is names[0]:
             if len(node.args) == 1:
                 return is_chained_calls(node.args[0], names[1:])
         return False
@@ -1152,8 +1157,8 @@ def is_chained_calls(node, names):
 
 
 def resolve_expression_sign(expr, rte):
-    if isinstance(expr, PPYValue):
-        if is_chained_calls(expr.origin, ["py_int_from_host", "py_str_len_to_host"]):
+    if isinstance(expr, PPYValue) or isinstance(expr, ast.Call):
+        if is_chained_calls(expr, [ppy_intrinsic_py_int_from_host, ppy_intrinsic_py_str_len_to_host]):
             return 1, False
     return None, None
 
@@ -1274,7 +1279,7 @@ def partial_eval_is(left, right, rte):
     left_type = left.type
     right_type = right.type
 
-    if left_type is None is right_type and left_type != right_type:
+    if left_type is not None and right_type is not None and left_type != right_type:
         return ast.Constant(False)
     if isinstance(left.origin, ast.Constant) and isinstance(right.origin, ast.Constant):
         return ast.Constant(left.value.value is right.value.value)
