@@ -108,7 +108,7 @@ class NameMangler(ast.NodeTransformer):
         mangled_kwarg = arguments.kwarg and ast.arg(self.mangle_name(arguments.kwarg))
 
         if arguments.kw_defaults or arguments.defaults:
-            raise NotImplementedError
+            pass  # TODO: do not ignore default values
 
         return ast.FunctionDef(
             fn_name or fn_copy.name,
@@ -135,22 +135,59 @@ class NameMangler(ast.NodeTransformer):
 #  Postprocessing of AST
 # ======================================================================================================================
 
+class PPYNodeTransformer(ast.NodeTransformer):
+    def generic_visit(self, node):
+        for field, old_value in ast.iter_fields(node):
+            if isinstance(old_value, list):
+                new_values = []
+                for value in old_value:
+                    if isinstance(value, (ast.AST, PPYObject)):
+                        value = self.visit(value)
+                        if value is None:
+                            continue
+                        elif not isinstance(value, (ast.AST, PPYObject)):
+                            new_values.extend(value)
+                            continue
+                    new_values.append(value)
+                old_value[:] = new_values
+            elif isinstance(old_value, (ast.AST, PPYObject)):
+                new_node = self.visit(old_value)
+                if new_node is None:
+                    delattr(node, field)
+                else:
+                    setattr(node, field, new_node)
+        return node
+
+
+class PPYNodeVisitor(ast.NodeVisitor):
+    def generic_visit(self, node):
+        """Called if no explicit visitor function exists for a node."""
+        for field, value in ast.iter_fields(node):
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, (ast.AST, PPYObject)):
+                        self.visit(item)
+            elif isinstance(value, (ast.AST, PPYObject)):
+                self.visit(value)
+
 
 def remove_extra_pass(behavior):
-    behavior.body = [stmt for stmt in behavior.body if not isinstance(stmt, ast.Pass)] or [ast.Pass()]
+    body = behavior if isinstance(behavior, list) else behavior.body
+    body[:] = [stmt for stmt in body if not isinstance(stmt, ast.Pass)] or [ast.Pass()]
 
 
-class NameCounter(ast.NodeVisitor):
-    def __init__(self):
+class NameCounter(PPYNodeVisitor):
+    def __init__(self, fn_or_body):
+        self.fn_or_body = fn_or_body
         self.ref_counter = collections.Counter()
         self.assignments = collections.defaultdict(list)
 
-    def count(self, fn):
-        if isinstance(fn, ast.FunctionDef):
-            for stmt in fn.body:
-                self.visit(stmt)
-        else:
-            raise TypeError("NameCounter can only be applied on function def")
+    def apply(self):
+        fn_or_body = self.fn_or_body
+        body = fn_or_body if isinstance(fn_or_body, list) else fn_or_body.body
+
+        for stmt in body:
+            self.visit(stmt)
 
         return self.ref_counter, self.assignments
 
@@ -170,6 +207,12 @@ class NameCounter(ast.NodeVisitor):
             if isinstance(t, ast.Name):
                 self.assignments[t.id].append(node.value)
 
+    def visit_PPYValue(self, node):
+        return node
+
+    def visit_PPYConditional(self, node):
+        return node
+
 
 class DuplicateBranchingRemover(ast.NodeTransformer):
     # TODO this case is tricky...
@@ -177,19 +220,22 @@ class DuplicateBranchingRemover(ast.NodeTransformer):
     # Here we remove it in a very limited case which is when the PPYConditional is inlined in a return statement at the
     # end of the function body. Since we expect no side-effects this is safe, but could miss other cases
     # We can recognize the origin if-statement because it has the same condition object
-    def __init__(self, fn):
-        self.fn = fn
+    def __init__(self, fn_or_body):
+        self.fn_or_body = fn_or_body
         self.ppy_conditional = None
 
-    def remove_duplicate_branching(self):
-        body = self.fn.body
+    def apply(self):
+        fn_or_body = self.fn_or_body
+        body = fn_or_body if isinstance(fn_or_body, list) else fn_or_body.body
         last = body[-1]
 
         if isinstance(last, ast.Return):
             value = last.value
             if isinstance(value, PPYConditional):
                 self.ppy_conditional = value
-                return self.visit(self.fn)
+
+                new_body = [self.visit(s) for s in body]
+                body[:] = [s for s in new_body if s is not None]
 
     def visit_If(self, node):
         if node.test is self.ppy_conditional.condition:
@@ -198,18 +244,21 @@ class DuplicateBranchingRemover(ast.NodeTransformer):
             return node
 
 
-class AssignmentRemover(ast.NodeTransformer):
-    def __init__(self, fn):
-        self.fn = fn
+class AssignmentRemover(PPYNodeTransformer):
+    def __init__(self, fn_or_body):
+        self.fn_or_body = fn_or_body
         self.to_remove = set()
         self.to_inline = {}
         self.must_iterate = True
         self.ref_counter = self.assignments = None
 
-    def remove_assignments(self):
+    def apply(self):
+        fn_or_body = self.fn_or_body
+        body = fn_or_body if isinstance(fn_or_body, list) else fn_or_body.body
+
         while self.must_iterate:
             self.must_iterate = False
-            ref_counter, assignments = self.ref_counter, self.assignments = NameCounter().count(self.fn)
+            ref_counter, assignments = self.ref_counter, self.assignments = NameCounter(fn_or_body).apply()
 
             # assignments which can be fully removed as they were inlined
             to_remove = self.to_remove
@@ -226,9 +275,8 @@ class AssignmentRemover(ast.NodeTransformer):
                     if len(name_assignments) == 1:
                         to_inline[name] = name_assignments[0].value
 
-            self.fn = self.visit(self.fn)
-
-        return self.fn
+            new_body = [self.visit(s) for s in body]
+            body[:] = [s for s in new_body if s is not None]
 
     def visit_Assign(self, node):
         targets = node.targets
@@ -266,35 +314,23 @@ class AssignmentRemover(ast.NodeTransformer):
 
         return res
 
-
-class PPYValuesReplacer(ast.NodeTransformer):
-    def __init__(self, fn):
-        self.fn = fn
-
-    def generic_visit(self, node):
-        for field, old_value in ast.iter_fields(node):
-            if isinstance(old_value, list):
-                new_values = []
-                for value in old_value:
-                    if isinstance(value, (ast.AST, PPYObject)):
-                        value = self.visit(value)
-                        if value is None:
-                            continue
-                        elif not isinstance(value, ast.AST):
-                            new_values.extend(value)
-                            continue
-                    new_values.append(value)
-                old_value[:] = new_values
-            elif isinstance(old_value, (ast.AST, PPYObject)):
-                new_node = self.visit(old_value)
-                if new_node is None:
-                    delattr(node, field)
-                else:
-                    setattr(node, field, new_node)
+    def visit_PPYValue(self, node):
         return node
 
-    def replace_ppy(self):
-        return self.visit(self.fn)
+    def visit_PPYConditional(self, node):
+        return node
+
+
+class PPYValuesReplacer(PPYNodeTransformer):
+    def __init__(self, fn_or_body):
+        self.fn_or_body = fn_or_body
+
+    def apply(self):
+        fn_or_body = self.fn_or_body
+        body = fn_or_body if isinstance(fn_or_body, list) else fn_or_body.body
+
+        new_body = [self.visit(s) for s in body]
+        body[:] = [s for s in new_body if s is not None]
 
     def visit_PPYValue(self, node):
         origin = node.origin
@@ -313,6 +349,9 @@ class PPYValuesReplacer(ast.NodeTransformer):
 
     def visit_PPYConditional(self, node):
         raise NotImplementedError
+
+    def visit_PPYClass(self, node):
+        return ast.Name(node.name, ast.Load())
 
     def visit_Return(self, node):
         value = node.value
@@ -753,9 +792,10 @@ ppy__compiler_intrinsics__ = PPYBaseModule(items=PPYIntrinsic._all)
 #  Evaluation of function specialization
 # ======================================================================================================================
 
-def partial_eval_function_call(fn, args, rte, return_kind=ReturnKind.as_return(), toplevel=False):
+def partial_eval_function_call(fn, args, keywords, rte, return_kind=ReturnKind.as_return(), toplevel=False):
+    # TODO: keywords is only passed to intrinsic_call to support the alloc intrinsic, extend it to other cases
     if isinstance(fn, PPYIntrinsic):
-        yield from partial_eval_intrinsic_call(fn, args, rte, return_kind=return_kind)
+        yield from partial_eval_intrinsic_call(fn, args, keywords, rte, return_kind=return_kind)
     elif isinstance(fn, PPYBuiltin):
         yield from partial_eval_builtin_call(fn, args, rte, return_kind=return_kind)
     else:
@@ -831,8 +871,8 @@ intrinsics_inverses = {
 }
 
 
-def simplify_intrinsic_call(fn, args):
-    if len(args) == 1:
+def simplify_intrinsic_call(fn, args, keywords):
+    if len(args) == 1 and not keywords:
         arg0 = args[0]
 
         if isinstance(arg0, PPYValue):
@@ -844,15 +884,19 @@ def simplify_intrinsic_call(fn, args):
             if (fn, right_fn) in intrinsics_inverses:
                 return arg0.args[0]
 
-    return ast.Call(fn, args, [])
+    return ast.Call(fn, args, keywords)
 
 
-def partial_eval_intrinsic_call(fn, args, rte, return_kind=ReturnKind.as_return()):
+def partial_eval_intrinsic_call(fn, args, keywords, rte, return_kind=ReturnKind.as_return()):
     if fn is ppy_intrinsic_class_getattr:
         yield return_kind.do_return(intrinsic_eval_class_getattr_call(args, rte))
     elif isinstance(fn, PPYIntrinsic):
         # Cannot evaluate but can simplify
-        yield return_kind.do_return(PPYValue(origin=simplify_intrinsic_call(fn, args), context=rte))
+        value = simplify_intrinsic_call(fn, args, keywords)
+        if isinstance(value, PPYValue):
+            yield return_kind.do_return(value)
+        else:
+            yield return_kind.do_return(PPYValue(origin=value, context=rte))
     else:
         raise NotImplementedError
 
@@ -891,6 +935,8 @@ def intrinsic_eval_class_getattr_call(args, rte):
 def partial_eval_builtin_call(fn, args, rte, return_kind=ReturnKind.as_return()):
     if fn is ppy_isinstance:
         yield return_kind.do_return(builtin_eval_isinstance_call(args, rte))
+    elif fn is ppy_issubclass:
+        yield return_kind.do_return(builtin_eval_issubclass_call(args, rte))
     elif fn is ppy_type:
         yield return_kind.do_return(builtin_eval_type_call(args, rte))
     else:
@@ -923,6 +969,8 @@ def builtin_eval_isinstance_call(args, rte):
     # Assume correct arity
     instance, type_info = args
 
+    type_info = ppy_type_class if type_info is ppy_type else type_info
+
     instance_type = instance.type
 
     if isinstance(type_info, PPYClass):
@@ -935,6 +983,20 @@ def builtin_eval_isinstance_call(args, rte):
         return ast.Constant(instance_type in (ppy_intrinsic_sint, ppy_int_class))
     elif type_info is ppy_intrinsic_bint:
         return ast.Constant(instance_type in (ppy_intrinsic_bint, ppy_int_class))
+    else:
+        raise NotImplementedError
+
+
+def builtin_eval_issubclass_call(args, rte):
+    cls, type_info = args
+
+    type_info = ppy_type_class if type_info is ppy_type else type_info
+
+    if isinstance(type_info, PPYClass):
+        if cls in (ppy_intrinsic_sint, ppy_intrinsic_bint):
+            return ast.Constant(type_info is ppy_int_class)
+        else:
+            return ast.Constant(type_info in cls.mro)
     else:
         raise NotImplementedError
 
@@ -979,34 +1041,37 @@ def partial_eval_return(stmt, rte):
 def partial_eval_expr_call(call, rte):
     func = call.func
     args = [partial_eval_expr(a, rte) for a in call.args]
+    keywords = call.keywords
     if isinstance(func, ast.Name):
         name = func.id
         ppy_func = rte[name]
-        yield from partial_eval_function_call(ppy_func, args, rte, return_kind=ReturnKind.as_expr())
+        yield from partial_eval_function_call(ppy_func, args, keywords, rte, return_kind=ReturnKind.as_expr())
     else:
-        yield ast.Call(func, args, call.keywords)
+        yield ast.Call(func, args, keywords)
 
 
 def partial_eval_return_tail_call(call, rte):
     func = call.func
     args = [partial_eval_expr(a, rte) for a in call.args]
+    keywords = call.keywords
     if isinstance(func, ast.Name):
         name = func.id
         ppy_func = rte[name]
-        yield from partial_eval_function_call(ppy_func, args, rte, return_kind=rte.return_kind)
+        yield from partial_eval_function_call(ppy_func, args, keywords, rte, return_kind=rte.return_kind)
     else:
-        yield rte.return_kind.do_return(ast.Call(func, args, call.keywords))
+        yield rte.return_kind.do_return(ast.Call(func, args, keywords))
 
 
 def partial_eval_assign_call(name, call, rte):
     func = call.func
     args = [partial_eval_expr(a, rte) for a in call.args]
+    keywords = call.keywords
     if isinstance(func, ast.Name):
         func_name = func.id
         ppy_func = rte[func_name]
-        yield from partial_eval_function_call(ppy_func, args, rte, return_kind=ReturnKind.as_assign(name, rte))
+        yield from partial_eval_function_call(ppy_func, args, keywords, rte, return_kind=ReturnKind.as_assign(name, rte))
     else:
-        yield ast.Assign([ast.Name(name, ast.Store())], ast.Call(func, args, call.keywords))
+        yield ast.Assign([ast.Name(name, ast.Store())], ast.Call(func, args, keywords))
 
 
 def partial_eval_assign(assign, rte):
@@ -1050,9 +1115,15 @@ def partial_eval_expr(expr, rte):
     if isinstance(expr, ast.Call):
         resolved_call = list(partial_eval_expr_call(expr, rte))
         if len(resolved_call) != 1:
-            raise NotImplementedError
-        else:
+            remove_extra_pass(resolved_call)
+            AssignmentRemover(resolved_call).apply()
+            DuplicateBranchingRemover(resolved_call).apply()
+
+        # List len should have changed if it was too long
+        if len(resolved_call) == 1:
             return resolved_call[0]
+        else:
+            raise NotImplementedError
     elif isinstance(expr, ast.Name):
         return partial_eval_name(expr, rte)
     elif isinstance(expr, ast.Compare):
@@ -1297,14 +1368,15 @@ def partial_eval_is(left, right, rte):
     if isinstance(left, PPYClass) and isinstance(right, PPYClass):
         return ast.Constant(left is right)
 
-    # is should not be used against other intrinsics than absent, so at that point values are PPY objects
-    left_type = left.type
-    right_type = right.type
+    if isinstance(left, PPYValue) and isinstance(right, PPYValue):
+        left_type = left.type
+        right_type = right.type
 
-    if left_type is not None and right_type is not None and left_type != right_type:
-        return ast.Constant(False)
-    if isinstance(left.origin, ast.Constant) and isinstance(right.origin, ast.Constant):
-        return ast.Constant(left.value.value is right.value.value)
+        if left_type is not None and right_type is not None and left_type != right_type:
+            return ast.Constant(False)
+        if isinstance(left.origin, ast.Constant) and isinstance(right.origin, ast.Constant):
+            return ast.Constant(left.value.value is right.value.value)
+
     # Unresolved
     return None
 
@@ -1456,13 +1528,13 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
 
     if isinstance(callee, PPYClass):
         fn = callee["__new__"]
-        args = [PPYValue.with_type_only(callee),
+        args = [callee,
                 *(PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)) for t in types)]
     else:
         fn = callee
         args = [PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)) for t in types]
 
-    result_body = list(partial_eval_function_call(fn, args, rte, toplevel=True))
+    result_body = list(partial_eval_function_call(fn, args, [], rte, toplevel=True))
 
     args_names = [a.arg for a in fn.origin.args.args]
     annotations = [None if t == "unknown" else ast.Name(t, ast.Load()) for t in types]
@@ -1478,9 +1550,9 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
 
     # We apply post-processing to behaviors beautify the code and remove statements which were made obsolete
     remove_extra_pass(behavior)
-    AssignmentRemover(behavior).remove_assignments()
-    DuplicateBranchingRemover(behavior).remove_duplicate_branching()
-    PPYValuesReplacer(behavior).replace_ppy()
+    AssignmentRemover(behavior).apply()
+    DuplicateBranchingRemover(behavior).apply()
+    PPYValuesReplacer(behavior).apply()
 
     if as_test:
         behavior.body = convert_body_to_return_host_bool(behavior.body)
@@ -1498,12 +1570,14 @@ ppy_object_class = PPYClass(context=None, origin=dummy_class_def("object").body[
 ppy_module_class = PPYClass(context=None, origin=dummy_class_def("module").body[0], _mro=PPYClass.MRO_SELF_AND_OBJECT)
 ppy_function_class = PPYClass(context=None, origin=dummy_class_def("function").body[0],
                               _mro=PPYClass.MRO_SELF_AND_OBJECT)
-ppy_NotImplementedType = PPYClass(context=None, origin=dummy_class_def("NotImplementedType").body[0], _mro=PPYClass.MRO_SELF_AND_OBJECT)
+ppy_NotImplementedType = PPYClass(context=None, origin=dummy_class_def("NotImplementedType").body[0],
+                                  _mro=PPYClass.MRO_SELF_AND_OBJECT)
 
 ppy_type_class.type = ppy_type_class
 
 ppy_NotImplemented = PPYSingleton(name="NotImplemented", type=ppy_NotImplementedType)
 ppy_isinstance = PPYBuiltin(name="isinstance")
+ppy_issubclass = PPYBuiltin(name="issubclass")
 # NOTE: it is not exactly correct to treat type as a function, but we do not intend on handling metaclass anyway
 ppy_type = PPYBuiltin(name="type")
 ppy_int_class = None
@@ -1516,6 +1590,7 @@ def populate_builtins(ppy_builtin):
     ppy_builtin["object"] = ppy_object_class
     ppy_builtin["NotImplemented"] = ppy_NotImplemented
     ppy_builtin["isinstance"] = ppy_isinstance
+    ppy_builtin["issubclass"] = ppy_issubclass
     ppy_builtin["type"] = ppy_type
 
 
