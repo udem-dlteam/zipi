@@ -1062,7 +1062,8 @@ def partial_eval_assign_call(name, call, rte):
     if isinstance(func, ast.Name):
         func_name = func.id
         ppy_func = rte[func_name]
-        yield from partial_eval_function_call(ppy_func, args, keywords, rte, return_kind=ReturnKind.as_assign(name, rte))
+        yield from partial_eval_function_call(ppy_func, args, keywords, rte,
+                                              return_kind=ReturnKind.as_assign(name, rte))
     else:
         yield ast.Assign([ast.Name(name, ast.Store())], ast.Call(func, args, keywords))
 
@@ -1307,19 +1308,49 @@ def partial_eval_ge(left, right, rte):
     return None
 
 
+def is_always_zero(expr, rte):
+    if isinstance(expr, ast.Constant):
+        return expr.value == 0
+    elif isinstance(expr, PPYValue):
+        origin = expr.origin
+
+        if isinstance(origin, ast.Constant):
+            return is_always_zero(origin)
+        elif isinstance(origin, ast.Call):
+            return origin.func in (ppy_intrinsic_py_int_from_host,
+                                   ppy_intrinsic_py_int_to_host,
+                                   ppy_intrinsic_py_float_from_host,
+                                   ppy_intrinsic_py_float_to_host) \
+                   and is_always_zero(origin.args[0], rte)
+
+
+def is_always_bint_value(expr, rte):
+    if isinstance(expr, PPYValue):
+        if expr.type is ppy_intrinsic_bint:
+            return True
+        origin = expr.origin
+
+        if isinstance(origin, ast.Call) and origin.func in (ppy_intrinsic_py_int_from_host, ppy_intrinsic_py_int_to_host):
+            return is_always_bint_value(origin.args[0], rte)
+    return False
+
+
 def partial_eval_eq(left, right, rte):
     if isinstance(left, ast.Constant):
         if isinstance(right, ast.Constant):
             return ast.Constant(left.value == right.value)
         else:
             return partial_eval_eq(right, left, rte)
-    elif isinstance(right, ast.Constant):
-        if right.value == 0 and isinstance(left, PPYValue):
-            left_type = left.type
-            if left_type is ppy_intrinsic_bint:
-                return ast.Constant(False)
-            elif left_type is ppy_bool_class:
-                return ast.UnaryOp(ast.Not(), left)
+    elif is_always_zero(right, rte) and isinstance(left, PPYValue):
+        if is_always_bint_value(left, rte):
+            return ast.Constant(False)
+
+        left_type = left.type
+        if left_type is ppy_bool_class:
+            return ast.UnaryOp(ast.Not(), left)
+    elif is_always_zero(left, rte) and isinstance(right, PPYValue):
+        return partial_eval_eq(right, left, rte)
+
     return None
 
 
@@ -1605,6 +1636,7 @@ def bootstrap_semantics(ppy_semantics):
         if isinstance(item, PPYSemantics):
             intrinsic_name = f"semantics_{name}"
             ppy__compiler_intrinsics__[intrinsic_name] = item
+
 
 def compute_behaviors(semantics_file, builtins_file):
     # Builtin modules must be preloaded, there is no dynamic loading
