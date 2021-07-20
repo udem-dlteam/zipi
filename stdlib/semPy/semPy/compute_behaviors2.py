@@ -213,6 +213,9 @@ class NameCounter(PPYNodeVisitor):
     def visit_PPYConditional(self, node):
         return node
 
+    def visit_PPYIntrinsic(self, node):
+        return node
+
 
 class DuplicateBranchingRemover(ast.NodeTransformer):
     # TODO this case is tricky...
@@ -320,6 +323,9 @@ class AssignmentRemover(PPYNodeTransformer):
     def visit_PPYConditional(self, node):
         return node
 
+    def visit_PPYIntrinsic(self, node):
+        return node
+
 
 class PPYValuesReplacer(PPYNodeTransformer):
     def __init__(self, fn_or_body):
@@ -376,7 +382,7 @@ class PPYObject:
 
 # The PPY or ppy prefix means "partial python". Value prefixed with ppy are object from the partial evaluator runtime
 class PPYValue(PPYObject):
-    def __init__(self, *, origin, context, type=None, **kwargs):
+    def __init__(self, *, origin, context, type=None, __type=type, **kwargs):
         super().__init__(**kwargs)
         self.origin = origin  # origin of the value in the ast
         self.context = context.copy() if context is not None else None  # copy of the context the value was computed in
@@ -399,6 +405,8 @@ class PPYValue(PPYObject):
                 self.type = None
         elif isinstance(origin, ast.Call):
             self.type = self._resolve_call_return_type(origin)
+        elif isinstance(origin, ast.Constant):
+            self.type = type_name_to_ppy(__type(origin.value).__name__, context.modules)
         else:
             self.type = None
 
@@ -1084,9 +1092,15 @@ def partial_eval_assign(assign, rte):
 
 def partial_eval_if(stmt, rte):
     test_result = partial_eval_expr(stmt.test, rte)
+    maybe_host_bool = get_host_bool(test_result)
 
     if isinstance(test_result, ast.Constant):
         if test_result.value:
+            yield from partial_eval_stmts(stmt.body, rte)
+        else:
+            yield from partial_eval_stmts(stmt.orelse, rte)
+    elif maybe_host_bool is not None:
+        if maybe_host_bool:
             yield from partial_eval_stmts(stmt.body, rte)
         else:
             yield from partial_eval_stmts(stmt.orelse, rte)
@@ -1308,31 +1322,66 @@ def partial_eval_ge(left, right, rte):
     return None
 
 
-def is_always_zero(expr, rte):
+def is_always_python_zero(expr, rte):
     if isinstance(expr, ast.Constant):
         return expr.value == 0
     elif isinstance(expr, PPYValue):
         origin = expr.origin
 
         if isinstance(origin, ast.Constant):
-            return is_always_zero(origin)
+            return is_always_python_zero(origin)
         elif isinstance(origin, ast.Call):
             return origin.func in (ppy_intrinsic_py_int_from_host,
-                                   ppy_intrinsic_py_int_to_host,
-                                   ppy_intrinsic_py_float_from_host,
+                                   ppy_intrinsic_py_float_from_host,) \
+                   and is_always_ppy_zero(origin.args[0], rte)
+    return False
+
+
+def is_always_ppy_zero(expr, rte):
+    if isinstance(expr, PPYValue):
+        origin = expr.origin
+
+        if isinstance(origin, ast.Call):
+            return origin.func in (ppy_intrinsic_py_int_to_host,
                                    ppy_intrinsic_py_float_to_host) \
-                   and is_always_zero(origin.args[0], rte)
+                   and is_always_python_zero(origin.args[0], rte)
+    return False
 
 
-def is_always_bint_value(expr, rte):
+def is_always_python_bint(expr, rte):
     if isinstance(expr, PPYValue):
         if expr.type is ppy_intrinsic_bint:
             return True
         origin = expr.origin
 
-        if isinstance(origin, ast.Call) and origin.func in (ppy_intrinsic_py_int_from_host, ppy_intrinsic_py_int_to_host):
-            return is_always_bint_value(origin.args[0], rte)
+        if isinstance(origin, ast.Call) and origin.func is ppy_intrinsic_py_int_from_host:
+            return is_always_ppy_bint(origin.args[0], rte)
     return False
+
+
+def is_always_ppy_bint(expr, rte):
+    if isinstance(expr, PPYValue):
+        if expr.type is ppy_intrinsic_bint:
+            return True
+        origin = expr.origin
+
+        if isinstance(origin, ast.Call) and origin.func is ppy_intrinsic_py_int_to_host:
+            return is_always_python_bint(origin.args[0], rte)
+    return False
+
+
+def host_bool(b):
+    return ast.Call(ppy_intrinsic_py_bool_to_host_bool, [ast.Constant(b)], [])
+
+
+def get_host_bool(expr):
+    if isinstance(expr, PPYValue):
+        expr = expr.origin
+
+    if isinstance(expr, ast.Call) and expr.func is ppy_intrinsic_py_bool_to_host_bool:
+        if isinstance(arg0 := expr.args[0], ast.Constant):
+            return arg0.value
+    return None
 
 
 def partial_eval_eq(left, right, rte):
@@ -1341,16 +1390,12 @@ def partial_eval_eq(left, right, rte):
             return ast.Constant(left.value == right.value)
         else:
             return partial_eval_eq(right, left, rte)
-    elif is_always_zero(right, rte) and isinstance(left, PPYValue):
-        if is_always_bint_value(left, rte):
-            return ast.Constant(False)
-
-        left_type = left.type
-        if left_type is ppy_bool_class:
-            return ast.UnaryOp(ast.Not(), left)
-    elif is_always_zero(left, rte) and isinstance(right, PPYValue):
-        return partial_eval_eq(right, left, rte)
-
+    elif is_always_python_zero(right, rte) and is_always_python_bint(left, rte) \
+         or is_always_python_zero(left, rte) and is_always_python_bint(right, rte):
+        return ast.Constant(False)
+    elif is_always_ppy_zero(right, rte) and is_always_ppy_bint(left, rte) \
+         or is_always_ppy_zero(left, rte) and is_always_ppy_bint(right, rte):
+        return host_bool(False)
     return None
 
 
@@ -1363,7 +1408,13 @@ def partial_eval_ne(left, right, rte):
             return ast.Constant(True)
     elif isinstance(eq_res, ast.UnaryOp) and isinstance(eq_res.op, ast.Not):
         return eq_res.operand
-    return None
+
+    maybe_host_bool = get_host_bool(eq_res)
+
+    if maybe_host_bool is None:
+        return None
+    else:
+        return host_bool(not maybe_host_bool)
 
 
 def partial_eval_is_not(left, right, rte):

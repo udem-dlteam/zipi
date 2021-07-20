@@ -102,7 +102,7 @@ class int:
 
     def __bool__(self):
         if isinstance(self, int):
-            return 0 != self
+            return py_bool_from_host_bool(py_int_to_host(0) != py_int_to_host(self))
         else:
             raise TypeError("descriptor '__bool__' requires a 'int' object but received a '" + class_getattr(self, "__name__") + "'")
     
@@ -120,7 +120,7 @@ class int:
 
     def __abs__(self):
         if isinstance(self, int):
-            if self < 0:
+            if py_int_to_host(self) < py_int_to_host(0):
                 return py_int_from_host(-py_int_to_host(self))
             else:
                 return py_int_from_host(py_int_to_host(self))
@@ -880,7 +880,7 @@ class float:
 
     def __bool__(self):
         if isinstance(self, float):
-            return 0.0 != self
+            return py_bool_from_host_bool(py_float_to_host(0.0) != py_float_to_host(self))
         else:
             raise TypeError("descriptor '__bool__' requires a 'float' object but received a '" + class_getattr(self, "__name__") + "'")
 
