@@ -5540,17 +5540,19 @@
 ;; IMPORT SYSTEM
 ;; ===========================================
 
-(define-rts zipi-stdlib-dir (let ((default-dir
-                                (list (path-expand (path-expand "libs" "stdlib") (path-expand "~~zipiroot"))
-                                      (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
-                              (env-dir
-                                (list
-                                  (get-environment-variable "PYTHONPATH")
-                                  (get-environment-variable "ZIPIPATH"))))
-                          (fold (lambda (env r)
-                                  (if env (append (string-split env #\:) r) r))
-                                default-dir
-                                env-dir)))
+
+(define-rts zipi-stdlib-dir
+  (let ((default-dir
+          (list (path-expand (path-expand "libs" "stdlib") (path-expand "~~zipiroot"))
+                (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
+        (env-dir
+         (list
+          (get-environment-variable "PYTHONPATH")
+          (get-environment-variable "ZIPIPATH"))))
+    (fold (lambda (env r)
+            (if env (append (string-split env #\:) r) r))
+          default-dir
+          env-dir)))
 
 ;; note here that we assume that the list is at least of size 1 and contains as first argument the filename
 (define-rts (command-line-argv-set! list-with-file-name)

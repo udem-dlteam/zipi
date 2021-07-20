@@ -78,7 +78,7 @@
 	   (path-strip-extension ::bstring)
 	   (path-strip-directory ::bstring)
 	   (path-normalize ::bstring)
-	   (path-expand ::bstring #!optional (origin (pwd)))
+	   (path-expand ::bstring #!optional origin)
 	   (path-strip-trailing-directory-separator::bstring ::bstring)
 	   
 	   (create-directory ::bstring)
@@ -339,20 +339,49 @@
    (basename path))
 
 (define (path-normalize path)
-   (let ((name (if (char=? (string-ref path 0) (file-separator))
-		   (file-name-canonicalize path)
-		   (file-name-canonicalize (make-file-name (pwd) path)))))
-      (if (directory? name)
-	  (string-append (string (file-separator)))
-	  name)))
+  (let ((name (if (char=? (string-ref path 0) (file-separator))
+                  (file-name-canonicalize path)
+                  (file-name-canonicalize (make-file-name (pwd) path)))))
+    (if (directory? name)
+        (string-append name (string (file-separator)))
+        name)))
 
-(define (path-expand path #!optional (origin (pwd)))
-  (let ((p path))
-    (cond
-     ((string=? origin "~~zipidir")
-      (make-file-name zipidir p))
-     (else
-      (make-file-name origin p)))))
+(define (path-expand path #!optional origin)
+  (define ~~reg "~~([[:alnum:]]*)")
+
+  (define (expand~~ path)
+
+    (let ((match (pregexp-match ~~reg path)))
+      (if match
+          (let* ((fullmatch (car match))
+                 (keyword (cadr match))
+                 (env (getenv (string-upcase keyword))))
+            (if env
+                (expand~~ (pregexp-replace* fullmatch path env))
+                (error "path-expand" "environnement variable is not defined" (string-upcase keyword))))
+
+          path)))
+
+  (define (merge-path path origin)
+    (define (last-ch str) (string-ref str (- (string-length str) 1)))
+    (define (first-ch str) (string-ref str (- (string-length str) 1)))
+
+    (if (eq? (last-ch path) #\/)
+        (if (eq? (first-ch origin) #\/)
+            (string-append origin (substring path 1 (string-length origin)))
+            (string-append origin path)
+            )
+        (if (eq? (first-ch origin) #\/)
+            (string-append origin path)
+            (string-append origin "/" path))))
+
+  (let* ((new-path (expand~~ path))
+        (new-origin (or origin (pwd))))
+    (if (eq? (string-ref new-path 0) #\/)
+        new-path
+        (merge-path new-path (expand~~ origin)))
+    ;; NOT COMPATIBLE WITH WINDOWS
+    ))
 
 (define (create-directory path)
    (make-directories path))
@@ -367,7 +396,8 @@
 		 path)))))
 
 (define (file-info path . rest)
-   path)
+  (and (file-exists? path)
+       path))
 
 (define (file-info-last-modification-time info)
    (file-modification-time info))

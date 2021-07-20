@@ -14,511 +14,511 @@
 ;*---------------------------------------------------------------------*/
 (module __py_rts
 
-   (cond-expand
-      ((not classgen)
-       (include
-          "rts-macros.scm"
-          "rts.sch"
-	  "behaviors.sch"
-	  "zemantics.sch"
-          "bigloo/include.sch"
-          "bigloo/call.sch"
-          "bigloo/constants.sch"
-          "bigloo/integer.sch"
-          )))
-
-   (import __py_bigloo
-           __py_configure
-           __py_hash
-           __stdlib_builtins
-           __stdlib_behaviors
-           __stdlib_zemantics)
-
-   (export (class PyObject
-              (hclass (default #f))
-              (%elements (default (make-vector 4)))
-              class)
-
-           (class PyObjectType::PyObject
-              class-index
-              bases
-              mro
-              hclass-of-instances
-              is-builtin
-	      can-have-getter
-              magic-attrs)
-
-	   (class PyObjectModule::PyObject)
-
-           (abstract-class PyObjectNumber::PyObject
-              value)
-
-           (class PyObjectInt::PyObjectNumber)
-           (class PyObjectFloat::PyObjectNumber)
-           (class PyObjectComplex::PyObjectNumber)
-
-           (class PyObjectList::PyObject
-              vector
-              len)
-
-           (class PyObjectListIterator::PyObject
-              index
-              list)
-
-           (class PyObjectBytearray::PyObject
-              value)
-
-           (class PyObjectBytearrayIterator::PyObject
-              index
-              bytearray)
-
-           (class PyObjectStr::PyObject
-              len
-              part1-or-string
-              part2-or-rep)
-
-           (class PyObjectStrRep::PyObjectStr
-              hash
-              magic-index)
-
-           (class PyObjectFunction::PyObject
-              procedure
-              arity
-              signature)
-
-	   (class PyObjectGenerator::PyObject
-	      continuation)
-
-	   (class AttributeCache
-	      object-hclass
-	      mro-hclass
-	      module-hclass
-	      type-hclass
-	      index
-	      attr
-	      owner
-	      bind)
-
-           (class PyObjectFunctionArity0::PyObjectFunction)
-           (class PyObjectFunctionArity1::PyObjectFunction)
-           (class PyObjectFunctionArity2::PyObjectFunction)
-           (class PyObjectFunctionArity3::PyObjectFunction)
-           (class PyObjectFunctionArity4::PyObjectFunction)
-           (class PyObjectFunctionArity5::PyObjectFunction)
-           (class PyObjectFunctionArity6::PyObjectFunction)
-           (class PyObjectFunctionArity7::PyObjectFunction)
-           (class PyObjectFunctionArity8::PyObjectFunction)
-           (class PyObjectFunctionArity9::PyObjectFunction)
-           (class PyObjectFunctionArity10::PyObjectFunction)
-
-           (class PyObjectMethod::PyObject
-              self
-              method)
-
-           (class PyObjectMethodWrapper::PyObject
-              method)
-
-           (class PyObjectDict::PyObject
-              value)
-
-           (class PyObjectSet::PyObject
-              value)
-
-           (class PyObjectTuple::PyObject
-              value)
-
-           (class PyObjectTupleIterator::PyObject
-              index
-              vec)
-
-           (class PyObjectDictItemsIterator::PyObject
-              node
-              iterator-token)
-
-           (class PyObjectSlice::PyObject
-              start
-              stop
-              step)
-
-           (class PyObjectRange::PyObject
-              start
-              stop
-              step)
-
-           (class PyObjectRangeIterator::PyObject
-              start
-              stop
-              step)
-
-           (class PyObjectTextIOWrapper::PyObject
-              port
-              mode
-              encoding)
-
-           (py-add-behavior-call-fallback lhs rhs)
-           (py-bitand-behavior-call-fallback lhs rhs)
-           (py-bitor-behavior-call-fallback lhs rhs)
-           (py-floordiv-behavior-call-fallback lhs rhs)
-           (py-lshift-behavior-call-fallback lhs rhs)
-           (py-matmul-behavior-call-fallback lhs rhs)
-           (py-mod-behavior-call-fallback lhs rhs)
-           (py-mul-behavior-call-fallback lhs rhs)
-           (py-pow-behavior-call-fallback lhs rhs)
-           (py-rshift-behavior-call-fallback lhs rhs)
-           (py-sub-behavior-call-fallback lhs rhs)
-           (py-truediv-behavior-call-fallback lhs rhs)
-           (py-xor-behavior-call-fallback lhs rhs)
-           (py-iadd-behavior-call-fallback lhs rhs)
-           (py-ibitand-behavior-call-fallback lhs rhs)
-           (py-ibitor-behavior-call-fallback lhs rhs)
-           (py-ifloordiv-behavior-call-fallback lhs rhs)
-           (py-ilshift-behavior-call-fallback lhs rhs)
-           (py-imatmul-behavior-call-fallback lhs rhs)
-           (py-imod-behavior-call-fallback lhs rhs)
-           (py-imul-behavior-call-fallback lhs rhs)
-           (py-ipow-behavior-call-fallback lhs rhs)
-           (py-irshift-behavior-call-fallback lhs rhs)
-           (py-isub-behavior-call-fallback lhs rhs)
-           (py-itruediv-behavior-call-fallback lhs rhs)
-           (py-ixor-behavior-call-fallback lhs rhs)
-           (py-eq-behavior-call-fallback lhs rhs)
-           (py-ne-behavior-call-fallback lhs rhs)
-           (py-ge-behavior-call-fallback lhs rhs)
-           (py-gt-behavior-call-fallback lhs rhs)
-           (py-le-behavior-call-fallback lhs rhs)
-           (py-lt-behavior-call-fallback lhs rhs)
-           (py-test-eq-behavior-call-fallback lhs rhs)
-           (py-test-ne-behavior-call-fallback lhs rhs)
-           (py-test-ge-behavior-call-fallback lhs rhs)
-           (py-test-gt-behavior-call-fallback lhs rhs)
-           (py-test-le-behavior-call-fallback lhs rhs)
-           (py-test-lt-behavior-call-fallback lhs rhs)
-           (py-pos-behavior-call-fallback x)
-           (py-neg-behavior-call-fallback x)
-           (py-invert-behavior-call-fallback x)
-           (py-test-behavior-call-fallback x)
-           (py-truth-behavior-call-fallback x)
-
-           (py-add-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-bitand-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-bitor-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-floordiv-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-lshift-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-matmul-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-mod-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-mul-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-pow-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-rshift-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-sub-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-truediv-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-xor-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-iadd-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-ibitand-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-ibitor-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-ifloordiv-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-ilshift-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-imatmul-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-imod-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-imul-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-ipow-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-irshift-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-isub-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-itruediv-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-ixor-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-eq-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-ne-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-ge-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-gt-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-le-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-lt-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-test-eq-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-test-ne-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-test-ge-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-test-gt-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-test-le-behavior-call-with-lhs-index-fallback index lhs rhs)
-           (py-test-lt-behavior-call-with-lhs-index-fallback index lhs rhs)
-
-           (py-add-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-bitand-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-bitor-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-floordiv-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-lshift-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-matmul-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-mod-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-mul-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-pow-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-rshift-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-sub-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-truediv-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-xor-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-iadd-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-ibitand-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-ibitor-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-ifloordiv-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-ilshift-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-imatmul-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-imod-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-imul-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-ipow-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-irshift-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-isub-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-itruediv-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-ixor-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-eq-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-ne-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-ge-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-gt-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-le-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-lt-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-test-eq-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-test-ne-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-test-ge-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-test-gt-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-test-le-behavior-call-with-rhs-index-fallback lhs index rhs)
-           (py-test-lt-behavior-call-with-rhs-index-fallback lhs index rhs)
-
-	   (py-make-builtin-class-with-class-info class-index can-have-getter name module bases hclass-of-instances . attrs)
-
-           py-object-hclass-of-instances
-           py-int-hclass-of-instances
-           py-float-hclass-of-instances
-           py-str-hclass-of-instances
-           py-tuple-hclass-of-instances
-           py-list-hclass-of-instances
-           py-method-hclass-of-instances
-
-           py-range-hclass-of-instances
-           py-range_iterator-hclass-of-instances
-
-
-           (inline PyObject-type-get o)
-           (inline PyObjectStr-type-get o)
-
-           (bootstrap-builtins)
-           (compile-flag-set! flag)
-           (run-as-main path cache-location)
-           (expansion-flag-set! value)
-           (debug-flag-set! flag)
-           (profile-flag-set! flag)
-           (command-line-argv-set! list-with-filename)
-
-           (global-get ::PyObject ::obj ::obj)
-           (global-put! ::PyObject name val cache)
-           (global-register! ::PyObject name getter::procedure setter::procedure)
-
-           ;; (object-get ::obj ::obj ::obj)
-           (getattribute-from-obj-mro-fallback ::obj ::obj)
-
-           (py-make-module name package #!optional (path #f))
-
-           ;; (py-getitem ::PyObject ::obj ::obj)
-           ;; (py-delitem ::PyObject ::obj ::obj)
-           ;; (py-setitem ::PyObject ::obj ::obj ::obj)
-
-	   (py-getattribute-cached-fallback obj hclass name cache)
-	   (py-getattribute-cached-fallback/no-object obj hclass name cache)
-	   (py-getattribute-cached-fallback/no-mro obj hclass name cache)
-	   (py-getattribute-cached-fallback/no-type obj hclass name cache)
-	   (py-getattribute-cached-fallback/no-module obj hclass name cache)
-	   (py-getattribute-cached-modular-fallback obj hclass name cache
-	      include-object include-mro include-type include-module)
-
-           (inline PyObject-elements-ref ::PyObject ::long)
-           (PyObject-elements-set! ::PyObject ::long ::obj)
-
-           (py-call0-fallback fun)
-           (py-callX-fallback min-neg-arity fun . args)
-	         (py-call-generic ::obj ::obj)
-           (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
-           (py-call-hashed-kwargs obj args *args-lst kwargs-table)
-
-           (py-call-wrong-arity arity nargs nargs-string)
-           (pack-extra-args arity args)
-           (py-ternary-unpack it nleft nright)
-           (py-unpack it)
-
-           (py-make-global)
-           (py-make-caches ::pair-nil)
-
-           (py-extend-builtin-core-class cls . attrs)
-           (py-make-class name module bases . atrs)
-
-           (py-throw ::obj)
-           (py-throw-with-values exc . values)
-           (inline py-try-except-else handler body orelse)
-           (inline py-try-except handler body)
-           (inline py-throw-unsafe exc)
-
-           (py-in x y)
-           (py-notin x y)
-
-           py-None
-           py-absent
-
-           py-True
-           py-False
-           py-NotImplemented
-
-           py-object-class
-           py-type-class
-           py-tuple-class
-           py-list-class
-           py-str-class
-           py-int-class
-           py-bool-class
-           py-float-class
-           py-method-class
-
-           py-module-class
-           py-function-class
-           (py-own-attr-set! obj attr val)
-
-           (py-isinstance? ::obj ::PyObject)
-
-           (py-slice-from-scheme ::obj ::obj ::obj)
-
-           (py-make-set elements)
-
-           (py-obj-alloc cls)
-
-           procedure->py-function
-           (compile-to-cache path path-info path-in-cache)
-           (load-module-and-get-init path-in-cache)
-
-;;           (py-int-from-scheme value)
-           (py-int-from-scheme-fallback value)
-
-;;           (py-float-from-scheme value)
-           (py-float-from-scheme-fallback value)
-
-;;           (py-str-from-scheme::PyObject ::obj)
-;;           (py-str-to-scheme::bstring ::PyObject)
-           (py-str-from-scheme-fallback value)
-           (py-subtype-of-str-from-scheme-fallback value str-subclass)
-           (py-str-to-scheme-fallback ::PyObjectStr)
-           (py-subtype-of-str-to-scheme-fallback ::PyObjectStr)
-           (py-str-representative-fallback ::PyObjectStr)
-           (py-concat-strX-strY str1 str2)
-
-           (py-import path from-list)
-           (py-import-relative selfmod path from-list depth)
-           py-import-root
-
-           (class PyGenerator::PyObject %next)
-           (py-make-generator ::procedure)
-
-           (class PCache
-              (hclass (default (class-nil HClass)))
-              (index::long (default -1)))
-
-           (class HClass
-              (names::vector (default '#()))
-              (transitions::pair-nil (default '())))
-
-           (inline PCache-set! ::PCache ::HClass ::long)
-           (inline HClass-last-index::long ::HClass)
-
-           (&pystring-init str)
-           (py-init-registered-constants strings)
-
-           (py-make-tuple . els)
-
-
-           py-builtin-super
-           py-builtin-tuple
-           py-builtin-type
-           py-builtin-range
-           py-builtin-range_iterator
-           py-builtin-int
-           py-builtin-bool
-           py-builtin-float
-           py-builtin-str
-           py-builtin-classmethod
-           py-builtin-staticmethod
-
-           py-builtin-ArithmeticError
-           py-builtin-AssertionError
-           py-builtin-AttributeError
-           py-builtin-BaseException
-           py-builtin-BlockingIOError
-           py-builtin-BrokenPipeError
-           py-builtin-BufferError
-           py-builtin-BytesWarning
-           py-builtin-ChildProcessError
-           py-builtin-ConnectionAbortedError
-           py-builtin-ConnectionError
-           py-builtin-ConnectionRefusedError
-           py-builtin-ConnectionResetError
-           py-builtin-DeprecationWarning
-           py-builtin-EOFError
-           py-builtin-EnvironmentError
-           py-builtin-Exception
-           py-builtin-FileExistsError
-           py-builtin-FileNotFoundError
-           py-builtin-FloatingPointError
-           py-builtin-FutureWarning
-           py-builtin-GeneratorExit
-           py-builtin-IOError
-           py-builtin-ImportError
-           py-builtin-ImportWarning
-           py-builtin-IndentationError
-           py-builtin-IndexError
-           py-builtin-InterruptedError
-           py-builtin-IsADirectoryError
-           py-builtin-KeyError
-           py-builtin-KeyboardInterrupt
-           py-builtin-LookupError
-           py-builtin-MemoryError
-           py-builtin-ModuleNotFoundError
-           py-builtin-NameError
-           py-builtin-NotADirectoryError
-           py-builtin-NotImplementedError
-           py-builtin-OSError
-           py-builtin-OverflowError
-           py-builtin-PendingDeprecationWarning
-           py-builtin-PermissionError
-           py-builtin-ProcessLookupError
-           py-builtin-RecursionError
-           py-builtin-ReferenceError
-           py-builtin-ResourceWarning
-           py-builtin-RuntimeError
-           py-builtin-RuntimeWarning
-           py-builtin-StopAsyncIteration
-           py-builtin-StopIteration
-           py-builtin-SyntaxError
-           py-builtin-SyntaxWarning
-           py-builtin-SystemError
-           py-builtin-SystemExit
-           py-builtin-TabError
-           py-builtin-TimeoutError
-           py-builtin-TypeError
-           py-builtin-UnboundLocalError
-           py-builtin-UnicodeDecodeError
-           py-builtin-UnicodeEncodeError
-           py-builtin-UnicodeError
-           py-builtin-UnicodeTranslateError
-           py-builtin-UnicodeWarning
-           py-builtin-UserWarning
-           py-builtin-ValueError
-           py-builtin-Warning
-           py-builtin-ZeroDivisionError
-
-           (native-builtin-__import__ ::bstring)
-	   (py-throw-exception-with-message exc . msg)
-
-	   (py-tuple-from-scheme elements)
-	   (py-throw-super-no-arguments-error)
-     (py-throw-from-generator-exception-info exc-info)
-
-	   py-classmethod-hclass-of-instances
-	   py-staticmethod-hclass-of-instances
-
-	   py-next-behaviors-table
-	   (py-iter-fallback obj)
-
-     (py-make-dict key-value-pairs))
-
-   (eval   (export-all)))
+        (cond-expand
+         ((not classgen)
+          (include
+           "rts-macros.scm"
+           "rts.sch"
+           "behaviors.sch"
+           "zemantics.sch"
+           "bigloo/include.sch"
+           "bigloo/call.sch"
+           "bigloo/constants.sch"
+           "bigloo/integer.sch"
+           )))
+
+        (import __py_bigloo
+                __py_configure
+                __py_hash
+                __stdlib_builtins
+                __stdlib_behaviors
+                __stdlib_zemantics)
+
+        (export (class PyObject
+                       (hclass (default #f))
+                       (%elements (default (make-vector 4)))
+                       class)
+
+                (class PyObjectType::PyObject
+                       class-index
+                       bases
+                       mro
+                       hclass-of-instances
+                       is-builtin
+                       can-have-getter
+                       magic-attrs)
+
+                (class PyObjectModule::PyObject)
+
+                (abstract-class PyObjectNumber::PyObject
+                                value)
+
+                (class PyObjectInt::PyObjectNumber)
+                (class PyObjectFloat::PyObjectNumber)
+                (class PyObjectComplex::PyObjectNumber)
+
+                (class PyObjectList::PyObject
+                       vector
+                       len)
+
+                (class PyObjectListIterator::PyObject
+                       index
+                       list)
+
+                (class PyObjectBytearray::PyObject
+                       value)
+
+                (class PyObjectBytearrayIterator::PyObject
+                       index
+                       bytearray)
+
+                (class PyObjectStr::PyObject
+                       len
+                       part1-or-string
+                       part2-or-rep)
+
+                (class PyObjectStrRep::PyObjectStr
+                       hash
+                       magic-index)
+
+                (class PyObjectFunction::PyObject
+                       procedure
+                       arity
+                       signature)
+
+                (class PyObjectGenerator::PyObject
+                       continuation)
+
+                (class AttributeCache
+                       object-hclass
+                       mro-hclass
+                       module-hclass
+                       type-hclass
+                       index
+                       attr
+                       owner
+                       bind)
+
+                (class PyObjectFunctionArity0::PyObjectFunction)
+                (class PyObjectFunctionArity1::PyObjectFunction)
+                (class PyObjectFunctionArity2::PyObjectFunction)
+                (class PyObjectFunctionArity3::PyObjectFunction)
+                (class PyObjectFunctionArity4::PyObjectFunction)
+                (class PyObjectFunctionArity5::PyObjectFunction)
+                (class PyObjectFunctionArity6::PyObjectFunction)
+                (class PyObjectFunctionArity7::PyObjectFunction)
+                (class PyObjectFunctionArity8::PyObjectFunction)
+                (class PyObjectFunctionArity9::PyObjectFunction)
+                (class PyObjectFunctionArity10::PyObjectFunction)
+
+                (class PyObjectMethod::PyObject
+                       self
+                       method)
+
+                (class PyObjectMethodWrapper::PyObject
+                       method)
+
+                (class PyObjectDict::PyObject
+                       value)
+
+                (class PyObjectSet::PyObject
+                       value)
+
+                (class PyObjectTuple::PyObject
+                       value)
+
+                (class PyObjectTupleIterator::PyObject
+                       index
+                       vec)
+
+                (class PyObjectDictItemsIterator::PyObject
+                       node
+                       iterator-token)
+
+                (class PyObjectSlice::PyObject
+                       start
+                       stop
+                       step)
+
+                (class PyObjectRange::PyObject
+                       start
+                       stop
+                       step)
+
+                (class PyObjectRangeIterator::PyObject
+                       start
+                       stop
+                       step)
+
+                (class PyObjectTextIOWrapper::PyObject
+                       port
+                       mode
+                       encoding)
+
+                (py-add-behavior-call-fallback lhs rhs)
+                (py-bitand-behavior-call-fallback lhs rhs)
+                (py-bitor-behavior-call-fallback lhs rhs)
+                (py-floordiv-behavior-call-fallback lhs rhs)
+                (py-lshift-behavior-call-fallback lhs rhs)
+                (py-matmul-behavior-call-fallback lhs rhs)
+                (py-mod-behavior-call-fallback lhs rhs)
+                (py-mul-behavior-call-fallback lhs rhs)
+                (py-pow-behavior-call-fallback lhs rhs)
+                (py-rshift-behavior-call-fallback lhs rhs)
+                (py-sub-behavior-call-fallback lhs rhs)
+                (py-truediv-behavior-call-fallback lhs rhs)
+                (py-xor-behavior-call-fallback lhs rhs)
+                (py-iadd-behavior-call-fallback lhs rhs)
+                (py-ibitand-behavior-call-fallback lhs rhs)
+                (py-ibitor-behavior-call-fallback lhs rhs)
+                (py-ifloordiv-behavior-call-fallback lhs rhs)
+                (py-ilshift-behavior-call-fallback lhs rhs)
+                (py-imatmul-behavior-call-fallback lhs rhs)
+                (py-imod-behavior-call-fallback lhs rhs)
+                (py-imul-behavior-call-fallback lhs rhs)
+                (py-ipow-behavior-call-fallback lhs rhs)
+                (py-irshift-behavior-call-fallback lhs rhs)
+                (py-isub-behavior-call-fallback lhs rhs)
+                (py-itruediv-behavior-call-fallback lhs rhs)
+                (py-ixor-behavior-call-fallback lhs rhs)
+                (py-eq-behavior-call-fallback lhs rhs)
+                (py-ne-behavior-call-fallback lhs rhs)
+                (py-ge-behavior-call-fallback lhs rhs)
+                (py-gt-behavior-call-fallback lhs rhs)
+                (py-le-behavior-call-fallback lhs rhs)
+                (py-lt-behavior-call-fallback lhs rhs)
+                (py-test-eq-behavior-call-fallback lhs rhs)
+                (py-test-ne-behavior-call-fallback lhs rhs)
+                (py-test-ge-behavior-call-fallback lhs rhs)
+                (py-test-gt-behavior-call-fallback lhs rhs)
+                (py-test-le-behavior-call-fallback lhs rhs)
+                (py-test-lt-behavior-call-fallback lhs rhs)
+                (py-pos-behavior-call-fallback x)
+                (py-neg-behavior-call-fallback x)
+                (py-invert-behavior-call-fallback x)
+                (py-test-behavior-call-fallback x)
+                (py-truth-behavior-call-fallback x)
+
+                (py-add-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-bitand-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-bitor-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-floordiv-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-lshift-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-matmul-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-mod-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-mul-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-pow-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-rshift-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-sub-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-truediv-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-xor-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-iadd-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-ibitand-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-ibitor-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-ifloordiv-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-ilshift-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-imatmul-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-imod-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-imul-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-ipow-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-irshift-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-isub-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-itruediv-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-ixor-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-eq-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-ne-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-ge-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-gt-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-le-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-lt-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-test-eq-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-test-ne-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-test-ge-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-test-gt-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-test-le-behavior-call-with-lhs-index-fallback index lhs rhs)
+                (py-test-lt-behavior-call-with-lhs-index-fallback index lhs rhs)
+
+                (py-add-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-bitand-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-bitor-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-floordiv-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-lshift-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-matmul-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-mod-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-mul-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-pow-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-rshift-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-sub-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-truediv-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-xor-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-iadd-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-ibitand-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-ibitor-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-ifloordiv-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-ilshift-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-imatmul-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-imod-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-imul-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-ipow-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-irshift-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-isub-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-itruediv-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-ixor-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-eq-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-ne-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-ge-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-gt-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-le-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-lt-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-test-eq-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-test-ne-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-test-ge-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-test-gt-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-test-le-behavior-call-with-rhs-index-fallback lhs index rhs)
+                (py-test-lt-behavior-call-with-rhs-index-fallback lhs index rhs)
+
+                (py-make-builtin-class-with-class-info class-index can-have-getter name module bases hclass-of-instances . attrs)
+
+                py-object-hclass-of-instances
+                py-int-hclass-of-instances
+                py-float-hclass-of-instances
+                py-str-hclass-of-instances
+                py-tuple-hclass-of-instances
+                py-list-hclass-of-instances
+                py-method-hclass-of-instances
+
+                py-range-hclass-of-instances
+                py-range_iterator-hclass-of-instances
+
+
+                (inline PyObject-type-get o)
+                (inline PyObjectStr-type-get o)
+
+                (bootstrap-builtins)
+                (compile-flag-set! flag)
+                (run-as-main path cache-location)
+                (expansion-flag-set! value)
+                (debug-flag-set! flag)
+                (profile-flag-set! flag)
+                (command-line-argv-set! list-with-filename)
+
+                (global-get ::PyObject ::obj ::obj)
+                (global-put! ::PyObject name val cache)
+                (global-register! ::PyObject name getter::procedure setter::procedure)
+
+                ;; (object-get ::obj ::obj ::obj)
+                (getattribute-from-obj-mro-fallback ::obj ::obj)
+
+                (py-make-module name package #!optional (path #f))
+
+                ;; (py-getitem ::PyObject ::obj ::obj)
+                ;; (py-delitem ::PyObject ::obj ::obj)
+                ;; (py-setitem ::PyObject ::obj ::obj ::obj)
+
+                (py-getattribute-cached-fallback obj hclass name cache)
+                (py-getattribute-cached-fallback/no-object obj hclass name cache)
+                (py-getattribute-cached-fallback/no-mro obj hclass name cache)
+                (py-getattribute-cached-fallback/no-type obj hclass name cache)
+                (py-getattribute-cached-fallback/no-module obj hclass name cache)
+                (py-getattribute-cached-modular-fallback obj hclass name cache
+                                                         include-object include-mro include-type include-module)
+
+                (inline PyObject-elements-ref ::PyObject ::long)
+                (PyObject-elements-set! ::PyObject ::long ::obj)
+
+                (py-call0-fallback fun)
+                (py-callX-fallback min-neg-arity fun . args)
+                (py-call-generic ::obj ::obj)
+                (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
+                (py-call-hashed-kwargs obj args *args-lst kwargs-table)
+
+                (py-call-wrong-arity arity nargs nargs-string)
+                (pack-extra-args arity args)
+                (py-ternary-unpack it nleft nright)
+                (py-unpack it)
+
+                (py-make-global)
+                (py-make-caches ::pair-nil)
+
+                (py-extend-builtin-core-class cls . attrs)
+                (py-make-class name module bases . atrs)
+
+                (py-throw ::obj)
+                (py-throw-with-values exc . values)
+                (inline py-try-except-else handler body orelse)
+                (inline py-try-except handler body)
+                (inline py-throw-unsafe exc)
+
+                (py-in x y)
+                (py-notin x y)
+
+                py-None
+                py-absent
+
+                py-True
+                py-False
+                py-NotImplemented
+
+                py-object-class
+                py-type-class
+                py-tuple-class
+                py-list-class
+                py-str-class
+                py-int-class
+                py-bool-class
+                py-float-class
+                py-method-class
+
+                py-module-class
+                py-function-class
+                (py-own-attr-set! obj attr val)
+
+                (py-isinstance? ::obj ::PyObject)
+
+                (py-slice-from-scheme ::obj ::obj ::obj)
+
+                (py-make-set elements)
+
+                (py-obj-alloc cls)
+
+                procedure->py-function
+                (compile-to-cache path path-info path-in-cache)
+                (load-module-and-get-init path-in-cache)
+
+                ;;           (py-int-from-scheme value)
+                (py-int-from-scheme-fallback value)
+
+                ;;           (py-float-from-scheme value)
+                (py-float-from-scheme-fallback value)
+
+                ;;           (py-str-from-scheme::PyObject ::obj)
+                ;;           (py-str-to-scheme::bstring ::PyObject)
+                (py-str-from-scheme-fallback value)
+                (py-subtype-of-str-from-scheme-fallback value str-subclass)
+                (py-str-to-scheme-fallback ::PyObjectStr)
+                (py-subtype-of-str-to-scheme-fallback ::PyObjectStr)
+                (py-str-representative-fallback ::PyObjectStr)
+                (py-concat-strX-strY str1 str2)
+
+                (py-import path from-list)
+                (py-import-relative selfmod path from-list depth)
+                py-import-root
+
+                (class PyGenerator::PyObject %next)
+                (py-make-generator ::procedure)
+
+                (class PCache
+                       (hclass (default (class-nil HClass)))
+                       (index::long (default -1)))
+
+                (class HClass
+                       (names::vector (default '#()))
+                       (transitions::pair-nil (default '())))
+
+                (inline PCache-set! ::PCache ::HClass ::long)
+                (inline HClass-last-index::long ::HClass)
+
+                (&pystring-init str)
+                (py-init-registered-constants strings)
+
+                (py-make-tuple . els)
+
+
+                py-builtin-super
+                py-builtin-tuple
+                py-builtin-type
+                py-builtin-range
+                py-builtin-range_iterator
+                py-builtin-int
+                py-builtin-bool
+                py-builtin-float
+                py-builtin-str
+                py-builtin-classmethod
+                py-builtin-staticmethod
+
+                py-builtin-ArithmeticError
+                py-builtin-AssertionError
+                py-builtin-AttributeError
+                py-builtin-BaseException
+                py-builtin-BlockingIOError
+                py-builtin-BrokenPipeError
+                py-builtin-BufferError
+                py-builtin-BytesWarning
+                py-builtin-ChildProcessError
+                py-builtin-ConnectionAbortedError
+                py-builtin-ConnectionError
+                py-builtin-ConnectionRefusedError
+                py-builtin-ConnectionResetError
+                py-builtin-DeprecationWarning
+                py-builtin-EOFError
+                py-builtin-EnvironmentError
+                py-builtin-Exception
+                py-builtin-FileExistsError
+                py-builtin-FileNotFoundError
+                py-builtin-FloatingPointError
+                py-builtin-FutureWarning
+                py-builtin-GeneratorExit
+                py-builtin-IOError
+                py-builtin-ImportError
+                py-builtin-ImportWarning
+                py-builtin-IndentationError
+                py-builtin-IndexError
+                py-builtin-InterruptedError
+                py-builtin-IsADirectoryError
+                py-builtin-KeyError
+                py-builtin-KeyboardInterrupt
+                py-builtin-LookupError
+                py-builtin-MemoryError
+                py-builtin-ModuleNotFoundError
+                py-builtin-NameError
+                py-builtin-NotADirectoryError
+                py-builtin-NotImplementedError
+                py-builtin-OSError
+                py-builtin-OverflowError
+                py-builtin-PendingDeprecationWarning
+                py-builtin-PermissionError
+                py-builtin-ProcessLookupError
+                py-builtin-RecursionError
+                py-builtin-ReferenceError
+                py-builtin-ResourceWarning
+                py-builtin-RuntimeError
+                py-builtin-RuntimeWarning
+                py-builtin-StopAsyncIteration
+                py-builtin-StopIteration
+                py-builtin-SyntaxError
+                py-builtin-SyntaxWarning
+                py-builtin-SystemError
+                py-builtin-SystemExit
+                py-builtin-TabError
+                py-builtin-TimeoutError
+                py-builtin-TypeError
+                py-builtin-UnboundLocalError
+                py-builtin-UnicodeDecodeError
+                py-builtin-UnicodeEncodeError
+                py-builtin-UnicodeError
+                py-builtin-UnicodeTranslateError
+                py-builtin-UnicodeWarning
+                py-builtin-UserWarning
+                py-builtin-ValueError
+                py-builtin-Warning
+                py-builtin-ZeroDivisionError
+
+                (native-builtin-__import__ ::bstring)
+                (py-throw-exception-with-message exc . msg)
+
+                (py-tuple-from-scheme elements)
+                (py-throw-super-no-arguments-error)
+                (py-throw-from-generator-exception-info exc-info)
+
+                py-classmethod-hclass-of-instances
+                py-staticmethod-hclass-of-instances
+
+                py-next-behaviors-table
+                (py-iter-fallback obj)
+
+                (py-make-dict key-value-pairs))
+
+        (eval   (export-all)))
 
 (include "rts-macros.scm")
 
@@ -763,7 +763,8 @@
     ;; compile file and return #f if compilation failed
     (define (compile)
       (ensure-parent-dir-exists path-cache)
-      (fx= 0 (compile-source path path-cache)))
+      (and (file-exists? path)
+           (fx= 0 (compile-source path path-cache))))
 
 
     (if (file-exists? path-cache)
