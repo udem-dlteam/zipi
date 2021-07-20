@@ -1,4 +1,4 @@
-from __compiler_intrinsics__ import absent, builtin, class_getattr, private, sint, bint, alloc, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_truth, semantics_maybe_to_int, semantics_maybe_to_float, semantics_maybe_index, semantics_maybe_trunc, semantics_big_index
+from __compiler_intrinsics__ import absent, builtin, class_getattr, private, sint, bint, alloc, py_int_to_float, py_int_from_host, py_int_to_host, py_float_from_host, py_float_to_host, py_bool_from_host_bool, py_bool_to_host_bool, py_str_to_host, py_str_from_host, py_str_len_to_host, semantics_truth, semantics_maybe_to_int, semantics_maybe_to_float, semantics_maybe_index, semantics_maybe_trunc, semantics_big_index
 
 
 @builtin
@@ -105,6 +105,12 @@ class int:
             return 0 != self
         else:
             raise TypeError("descriptor '__bool__' requires a 'int' object but received a '" + class_getattr(self, "__name__") + "'")
+    
+    def __float__(self):
+        if isinstance(self, int):
+            return py_int_to_float(self)
+        else:
+            raise TypeError("descriptor '__float__' requires a 'int' object but received a '" + class_getattr(self, "__name__") + "'")
 
     def __index__(self):
         if isinstance(self, int):

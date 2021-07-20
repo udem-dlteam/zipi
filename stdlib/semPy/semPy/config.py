@@ -100,7 +100,7 @@ add_specializations(module="semantics", function="truth", types=[default_types])
 add_specializations(module="semantics", function="test", types=[default_types])
 
 # Type casts
-add_specializations(module="builtins", function="float", types=[default_types], prefix="py_call_float")
+add_specializations(module="builtins", function="float", types=[defaults_except("str")], prefix="py_call_float")
 
 # Other
 add_specializations(module="semantics", function="descriptor_get", types=["function", "unknown", "unknown"])

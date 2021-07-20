@@ -406,11 +406,11 @@ class PPYValue(PPYObject):
         func = call.func
 
         # Resolve return types of intrinsics functions
-        if func is ppy_intrinsic_py_int_from_host:
+        if func in [ppy_intrinsic_py_int_from_host, ppy_intrinsic_py_float_to_int]:
             return ppy_int_class
         elif func is ppy_intrinsic_py_bool_from_host_bool:
             return ppy_bool_class
-        elif func is ppy_intrinsic_py_float_from_host:
+        elif func in [ppy_intrinsic_py_float_from_host, ppy_intrinsic_py_int_to_float]:
             return ppy_float_class
         elif func is ppy_intrinsic_py_str_from_host:
             return ppy_str_class
@@ -774,15 +774,8 @@ ppy_intrinsic_py_bool_to_host_bool = PPYIntrinsic("py_bool_to_host_bool")
 ppy_intrinsic_py_str_to_host = PPYIntrinsic("py_str_to_host")
 ppy_intrinsic_py_str_from_host = PPYIntrinsic("py_str_from_host")
 ppy_intrinsic_py_str_len_to_host = PPYIntrinsic("py_str_len_to_host")
-py_bool_from_host_bool = PPYIntrinsic("py_bool_from_host_bool")
-
-# TODO: replace semantics import with semantics
-ppy_intrinsic_semantics_truth = PPYIntrinsic("semantics_truth")
-ppy_intrinsic_semantics_maybe_to_int = PPYIntrinsic("semantics_maybe_to_int")
-ppy_intrinsic_semantics_maybe_to_float = PPYIntrinsic("semantics_maybe_to_float")
-ppy_intrinsic_semantics_maybe_index = PPYIntrinsic("semantics_maybe_index")
-ppy_intrinsic_semantics_maybe_trunc = PPYIntrinsic("semantics_maybe_trunc")
-ppy_intrinsic_semantics_big_index = PPYIntrinsic("semantics_big_index")
+ppy_intrinsic_py_int_to_float = PPYIntrinsic("py_int_to_float")
+ppy_intrinsic_py_float_to_int = PPYIntrinsic("py_float_to_int")
 
 # do not make a copy of '_all', semantics are later loaded in intrinsics
 ppy__compiler_intrinsics__ = PPYBaseModule(items=PPYIntrinsic._all)
@@ -1408,6 +1401,9 @@ def load_module(name, module, sys_modules):
     if name == "builtins":
         # Load some builtins in global scope
         bootstrap_builtins(this_module)
+    elif name == "semantics":
+        # Load semantics in __compiler_intrinsics__
+        bootstrap_semantics(this_module)
 
 
 def partial_eval_def(func_def, rte):
@@ -1602,6 +1598,12 @@ def bootstrap_builtins(ppy_builtin):
     ppy_float_class = ppy_builtin["float"]
     ppy_str_class = ppy_builtin["str"]
 
+
+def bootstrap_semantics(ppy_semantics):
+    for name, item in ppy_semantics.items():
+        if isinstance(item, PPYSemantics):
+            intrinsic_name = f"semantics_{name}"
+            ppy__compiler_intrinsics__[intrinsic_name] = item
 
 def compute_behaviors(semantics_file, builtins_file):
     # Builtin modules must be preloaded, there is no dynamic loading
