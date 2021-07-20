@@ -1526,13 +1526,14 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
         fn = callee["__new__"]
         args = [callee,
                 *(PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)) for t in types)]
+        args_names = [a.arg for a in fn.origin.args.args][1:]
     else:
         fn = callee
         args = [PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)) for t in types]
+        args_names = [a.arg for a in fn.origin.args.args]
 
     result_body = list(partial_eval_function_call(fn, args, [], rte, toplevel=True))
 
-    args_names = [a.arg for a in fn.origin.args.args]
     annotations = [None if t == "unknown" else ast.Name(t, ast.Load()) for t in types]
 
     annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
