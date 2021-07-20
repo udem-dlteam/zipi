@@ -1322,29 +1322,29 @@ def partial_eval_ge(left, right, rte):
     return None
 
 
-def is_always_python_zero(expr, rte):
+def is_always_python_numeric(expr, value, rte):
     if isinstance(expr, ast.Constant):
-        return expr.value == 0
+        return expr.value == value
     elif isinstance(expr, PPYValue):
         origin = expr.origin
 
         if isinstance(origin, ast.Constant):
-            return is_always_python_zero(origin)
+            return is_always_python_numeric(origin, value, rte)
         elif isinstance(origin, ast.Call):
             return origin.func in (ppy_intrinsic_py_int_from_host,
                                    ppy_intrinsic_py_float_from_host,) \
-                   and is_always_ppy_zero(origin.args[0], rte)
+                   and is_always_host_numeric(origin.args[0], value, rte)
     return False
 
 
-def is_always_ppy_zero(expr, rte):
+def is_always_host_numeric(expr, value, rte):
     if isinstance(expr, PPYValue):
         origin = expr.origin
 
         if isinstance(origin, ast.Call):
             return origin.func in (ppy_intrinsic_py_int_to_host,
                                    ppy_intrinsic_py_float_to_host) \
-                   and is_always_python_zero(origin.args[0], rte)
+                   and is_always_python_numeric(origin.args[0], value, rte)
     return False
 
 
@@ -1355,11 +1355,11 @@ def is_always_python_bint(expr, rte):
         origin = expr.origin
 
         if isinstance(origin, ast.Call) and origin.func is ppy_intrinsic_py_int_from_host:
-            return is_always_ppy_bint(origin.args[0], rte)
+            return is_always_host_bint(origin.args[0], rte)
     return False
 
 
-def is_always_ppy_bint(expr, rte):
+def is_always_host_bint(expr, rte):
     if isinstance(expr, PPYValue):
         if expr.type is ppy_intrinsic_bint:
             return True
@@ -1384,19 +1384,98 @@ def get_host_bool(expr):
     return None
 
 
+def partial_eval_eq_left_bool(left, right, rte):
+    if isinstance(right, ast.Constant):
+        if right.value == 0:
+            return ast.Compare(left, [ast.Is()], [ast.Constant(False)])
+        elif right.value == 1:
+            return ast.Compare(left, [ast.Is()], [ast.Constant(True)])
+        else:
+            return ast.Constant(False)
+    elif isinstance(right, PPYValue):
+        return partial_eval_eq_left_bool(left, right.origin, rte)
+    else:
+        return None
+
+
+def is_always_python_bool(expr, rte):
+    return isinstance(expr, PPYValue) and expr.type is ppy_bool_class \
+           or isinstance(expr, ast.Constant) and isinstance(expr.value, bool)
+
+
+def is_always_host_int_from_bool(expr, rte):
+    if isinstance(expr, PPYValue):
+        return is_always_host_int_from_bool(expr.origin, rte)
+    else:
+        return isinstance(expr, ast.Call) \
+               and expr.func is ppy_intrinsic_py_int_to_host \
+               and is_always_python_bool(expr.args[0], rte)
+
+
+def partial_eval_eq_left_host_int_from_bool(left, right, rte):
+    if isinstance(left, PPYValue):
+        return partial_eval_eq_left_host_int_from_bool(left.origin, right, rte)
+    if is_always_host_numeric(right, 0, rte):
+        return ast.Call(ppy_intrinsic_py_bool_from_host_bool, [ast.Compare(left.args[0], [ast.IsNot()], [ast.Constant(True)])], [])
+    elif is_always_host_numeric(right, 1, rte):
+        return ast.Call(ppy_intrinsic_py_bool_from_host_bool, [left.args[0]], [])
+    else:
+        return None
+
+
 def partial_eval_eq(left, right, rte):
     if isinstance(left, ast.Constant):
         if isinstance(right, ast.Constant):
             return ast.Constant(left.value == right.value)
         else:
             return partial_eval_eq(right, left, rte)
-    elif is_always_python_zero(right, rte) and is_always_python_bint(left, rte) \
-         or is_always_python_zero(left, rte) and is_always_python_bint(right, rte):
+    # Checks for division, a bint cannot be 0
+    elif is_always_python_numeric(right, 0, rte) and is_always_python_bint(left, rte) \
+         or is_always_python_numeric(left, 0, rte) and is_always_python_bint(right, rte):
         return ast.Constant(False)
-    elif is_always_ppy_zero(right, rte) and is_always_ppy_bint(left, rte) \
-         or is_always_ppy_zero(left, rte) and is_always_ppy_bint(right, rte):
+    elif is_always_host_numeric(right, 0, rte) and is_always_host_bint(left, rte) \
+         or is_always_host_numeric(left, 0, rte) and is_always_host_bint(right, rte):
         return host_bool(False)
+    # Special cases when either value is a bool
+    elif isinstance(left, PPYValue) and left.type is ppy_bool_class:
+        return partial_eval_eq_left_bool(left, right, rte)
+    elif isinstance(right, PPYValue) and right.type is ppy_bool_class:
+        return partial_eval_eq_left_bool(right, left, rte)
+    elif is_always_host_int_from_bool(left, rte):
+        return partial_eval_eq_left_host_int_from_bool(left, right, rte)
+    elif is_always_host_int_from_bool(right, rte):
+        return partial_eval_eq_left_host_int_from_bool(right, left, rte)
+
     return None
+
+
+comparison_inverses = {
+    ast.Is: ast.IsNot,
+    ast.LtE: ast.Gt,
+    ast.Lt: ast.GtE,
+    ast.Eq: ast.NotEq
+}
+
+comparison_inverses.update({v: k for k, v in comparison_inverses.items()})
+
+
+def reverse_comparison(comparison, rte):
+    if len(comparison.ops) == 1:
+        left = comparison.left
+        right = comparison.comparators[0]
+
+        op_type = type(comparison.ops[0])
+        inverse_op = comparison_inverses[op_type]()
+
+        if is_always_python_bool(left, rte) and isinstance(right, ast.Constant):
+            if isinstance(inverse_op, ast.Is) and right.value is True:
+                return left
+            elif isinstance(inverse_op, ast.IsNot) and right.value is False:
+                return left
+
+        return ast.Compare(comparison.left, [inverse_op], comparison.comparators)
+    else:
+        raise NotImplementedError
 
 
 def partial_eval_ne(left, right, rte):
@@ -1408,6 +1487,14 @@ def partial_eval_ne(left, right, rte):
             return ast.Constant(True)
     elif isinstance(eq_res, ast.UnaryOp) and isinstance(eq_res.op, ast.Not):
         return eq_res.operand
+    elif isinstance(eq_res, ast.Call) and eq_res.func is ppy_intrinsic_py_bool_from_host_bool:
+        arg0 = eq_res.args[0]
+
+        if isinstance(arg0, ast.Compare):
+            return ast.Call(ppy_intrinsic_py_bool_to_host_bool, [reverse_comparison(arg0, rte)], [])
+    elif isinstance(eq_res, ast.Compare):
+        return reverse_comparison(eq_res, rte)
+
 
     maybe_host_bool = get_host_bool(eq_res)
 
