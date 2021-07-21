@@ -4702,18 +4702,18 @@
 
 (define-rts (ordered-table-get-cell ordered-table key)
   (let* ((hash (py-subtype-of-int-to-scheme (py-hash key)))
-        (table (ordered-table-table ordered-table))
-        (size (vector-length table)))
+         (table (ordered-table-table ordered-table))
+         (size (vector-length table)))
     (let loop ((i (hash->cell hash size)))
       (let ((node (vector-ref table i)))
         (if (eq? node empty-table-cell)
-          empty-table-cell
-          (let* ((cell (doubly-linked-list-node-value node))
-                (cell-key (dict-cell-key cell))
-                (cell-hash (dict-cell-hash cell)))
-            (if (and (= hash cell-hash) (py-test (py-eq key cell-key)))
-              cell
-              (loop (cell-next i size)))))))))
+            empty-table-cell
+            (let* ((cell (doubly-linked-list-node-value node))
+                   (cell-key (dict-cell-key cell))
+                   (cell-hash (dict-cell-hash cell)))
+              (if (and (= hash cell-hash) (py-test (py-eq key cell-key)))
+                  cell
+                  (loop (cell-next i size)))))))))
 
 (define-rts (table-bucket-indices table size i)
   (let loop ((i i))
@@ -4903,8 +4903,13 @@
     (make-signature posonlyargs: (self key value))))
 
 (define-rts (dict-get self key default)
+  (print "GETTING KEY " self " " key)
   (if (py-isinstance? self py-dict-class)
     (let ((ordered-table (PyObjectDict-value self)))
+      (print "length of table is : " (ordered-table-length ordered-table))
+      #;(print "humm" ordered-table)
+      #;(pp ordered-table)
+      #;(pp (table-length ordered-table))
       (ordered-table-get ordered-table key (if (eq? default py-absent) py-None default)))
     (py-throw-not-a-type-object "dict.get" self)))
 
@@ -5533,6 +5538,7 @@
    (global-own-attr-put-no-cache! mod (& "__name__") name)
    (global-own-attr-put-no-cache! mod (& "__package__") package)
    (if path (global-own-attr-put-no-cache! mod (& "__path__") path))
+   (print "SETTING MODULE UP " name " " package)
    (dict-setitem modules name mod)
    mod))
 
@@ -5643,20 +5649,39 @@
             (compile-to-cache path path-info path-in-cache)
             ;; TODO : for windows user, the path is not formated with a / before
             (load-module-and-get-init path-in-cache))))
-    (if mod-init
+    (if (procedure? mod-init)
         (mod-init py-__name__ py-__package__ py-module.__path__)
         #f)))
 
 (define-rts (import-with-zipi-cache path py-__name__ py-__package__)
+  (print "IMPORT WITH ZIPI CACHE" "\n")
+  (print "path ; " path "\n")
   (let* ((path-package (path-expand "__init__.py" path))
          (path-package-info (file-info path-package #t #f)))
+    (print 1 "\n")
     (if path-package-info
-        (compile-and-get-mod path-package path-package-info py-__name__ py-__name__ (py-make-list (py-str-from-scheme path)))
+        (begin
+          (print 2 "\n")
+          (print "path-package-info : " path-package-info "\n")
+          (let ((t (compile-and-get-mod path-package path-package-info py-__name__ py-__name__ (py-make-list (py-str-from-scheme path)))))
+            (print "compile and run:(1) " t "\n")
+            t
+            )
+          
+          )
         (let* ((path-mod (string-append path ".py"))
                (path-mod-info (file-info path-mod #t #f)))
+          (print 2.1 "\n")
+          (print "path-mod-info" path-mod-info "\n")
           (if path-mod-info
-              (compile-and-get-mod path-mod path-mod-info py-__name__ py-__package__ #f)
-              #f)))))
+              (let ((t (compile-and-get-mod path-mod path-mod-info py-__name__ py-__package__ #f)))
+                (print "compile and run (2): " t "\n")
+                t)
+              (begin
+                (print ":( im here" "\n")
+
+                #f)
+              )))))
 
 (define-rts (import-from-sys.path sys.path __name__ py-__name__ py-__package__)
   (or (dict-get (sys.modules-get) py-__name__ #f)

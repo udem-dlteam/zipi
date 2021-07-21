@@ -73,8 +73,10 @@
 	  vec)))
 
 (define (init-constants constants)
+  (print "init registering constants !")
   (vector-for-each
-    (lambda (obj)
+   (lambda (obj)
+     (print "for each : " obj)
 
       (case (type-name (structure-type obj))
         ((StaticPyObjectStr)
@@ -153,7 +155,7 @@
                      (continuation-return abort #f)
                      (##repl-debug)))
              (lambda ()
-               (load-module sym)
+               (##demand-module sym)
                (let ((init (module-var-ref modref 'init)))
                  (if (procedure? init)
                      init

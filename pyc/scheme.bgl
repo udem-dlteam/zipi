@@ -183,18 +183,25 @@
               (py-make-global)
               ,(scheme-make-caches ast)))))
         (else
-         `(define (init name package path)
-            (init-registered-constants)
+         `(define (init name package path init-constants)
+            (print "INIT CALLED " name " " package " " path " " init-constants)
+            (if init-constants
+                (init-registered-constants))
+            (print 1)
             (let ((caches ,(scheme-make-caches ast))
+                  (_ (print 2))
                   (module (py-make-module
                            name
                            package
                            path)))
+              (print 3)
               ,@(if full-path
                     `((py-own-attr-set!
                        module (& "__file__") (& ,full-path)))
                     '())
+              (print 4)
               (py-module module caches)
+              (print 5)
               module))))
       (end-registering-constants)
       init)))
@@ -206,7 +213,7 @@
    (append (pyc-scheme-bigloo-module-base conf)
       (if (config-get conf main:)
 	  '((main main))
-	  '((export (init name package path))))))
+	  '((export (init name package path init-constants))))))
 
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-ast-bootstrap-module ...                       */
