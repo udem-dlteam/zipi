@@ -5,7 +5,7 @@
 # ======================================================================================================================
 
 semantics_template = \
-    """from __compiler_intrinsics__ import define_semantics, class_getattr, py_bool_to_host_bool, absent
+    """from __compiler_intrinsics__ import define_semantics, class_getattr, py_bool_to_host_bool, absent, sint, bint
 
 {arithmetic}
 

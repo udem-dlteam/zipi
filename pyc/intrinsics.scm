@@ -97,7 +97,14 @@
         (args (PycCall-args this)))
     (if (not (= (length args) 1))
       (error "make-py-int-to-scheme" "incorrect arity for call to py-int-to-scheme" this))
-    (let ((arg0 (car args)))
+    (let* ((arg0 (car args))
+          (arg-type (get-expr-type-hint arg0))
+          (int-procedure
+            (case arg-type
+              ((sint) 'py-sint-to-scheme)
+              ((bint) 'py-bint-to-scheme)
+              ((bool) 'py-bool-to-scheme-int)
+              (else 'py-int-to-scheme))))
       (if (and
             (isa? arg0 PycNumber)
             (integer? (PycLiteralValue-val arg0)))
@@ -107,8 +114,9 @@
           type: (if (fixnum? (PycLiteralValue-val arg0)) 'Usint 'Ubint))
         (new-PycCall
           loc
-          (new-PycPragma loc 'py-int-to-scheme)
-          args)))))
+          (new-PycPragma loc int-procedure)
+          args
+          type: (case arg-type ((sint bool) 'Usint) (else 'Ubint)))))))
 
 (define (make-py-sint-to-scheme this)
   (let* ((loc (PycNode-loc this))
@@ -150,6 +158,25 @@
           loc
           (new-PycPragma loc float-procedure)
           args)))))
+
+(define (make-py-int-to-float this)
+  (let* ((loc (PycNode-loc this))
+        (args (PycCall-args this)))
+    (if (not (= (length args) 1))
+      (error "make-py-int-to-float" "incorrect arity for call to py-float-to-scheme" this))
+    (let* ((arg0 (car args))
+           (arg-type (get-expr-type-hint arg0))
+           (int-procedure
+             (case arg-type
+               ((sint) 'py-sint-to-float)
+               ((bint) 'py-bint-to-float)
+               ((bool) 'py-bool-to-float)
+               (else 'py-int-to-float))))
+        (new-PycCall
+          loc
+          (new-PycPragma loc int-procedure)
+          args
+          type: 'float))))
 
 (define (make-alloc this)
   (define (get-kwarg-value name pairs)
@@ -242,8 +269,8 @@
     (if (= args-len 2)
       (let ((arg1 (car args))
             (arg2 (cadr args)))
-        (if (isa? arg2 PycRefUnresolved)
-          (case (PycRefUnresolved-id arg2)
+        (if (isa? arg2 PycStatic)
+          (case (PycIntrinsics-id arg2)
             ((sint)
               (new-PycCall
                 loc
@@ -296,6 +323,7 @@
    (cons 'class_getattr make-class_getattr)
    (cons 'call_host make-call_host)
    (cons 'alloc make-alloc)
+   (cons 'py_int_to_float make-py-int-to-float)
    (cons 'py_float_to_host make-py-float-to-scheme)
    (cons 'py_float_from_host (make-pragma-call-maker 'py-float-from-scheme))
    (cons 'py_int_from_host (make-pragma-call-maker 'py-int-from-scheme))
@@ -323,7 +351,9 @@
 
 (define static-intrinsics
  (list
-   (cons 'absent 'py-absent)))
+   (cons 'absent 'py-absent)
+   (cons 'sint 'sint) ;; bint and sint are intrinsics which should not appear in scheme code, they are used by isinstance
+   (cons 'bint 'bint)))
 
 (define macro-static-builtins
   (list
@@ -501,7 +531,7 @@
              valid-intrinsics)
         (check-invalid-intrinsics (cdr intrinsics)))
       (else
-        (error "SyntaxError" "invalid __compiler_intrinsics__" (car intrinsics)))))
+        (error "SyntaxError" "invalid __compiler_intrinsics__:" (PycVar-id (car intrinsics))))))
 
   (check-invalid-intrinsics intrinsics)
   (check-no-intrinsics-assignation this intrinsics)
