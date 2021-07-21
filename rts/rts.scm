@@ -4903,13 +4903,8 @@
     (make-signature posonlyargs: (self key value))))
 
 (define-rts (dict-get self key default)
-  (print "GETTING KEY " self " " key)
   (if (py-isinstance? self py-dict-class)
     (let ((ordered-table (PyObjectDict-value self)))
-      (print "length of table is : " (ordered-table-length ordered-table))
-      #;(print "humm" ordered-table)
-      #;(pp ordered-table)
-      #;(pp (table-length ordered-table))
       (ordered-table-get ordered-table key (if (eq? default py-absent) py-None default)))
     (py-throw-not-a-type-object "dict.get" self)))
 
@@ -5538,7 +5533,6 @@
    (global-own-attr-put-no-cache! mod (& "__name__") name)
    (global-own-attr-put-no-cache! mod (& "__package__") package)
    (if path (global-own-attr-put-no-cache! mod (& "__path__") path))
-   (print "SETTING MODULE UP " name " " package)
    (dict-setitem modules name mod)
    mod))
 
@@ -5654,33 +5648,15 @@
         #f)))
 
 (define-rts (import-with-zipi-cache path py-__name__ py-__package__)
-  (print "IMPORT WITH ZIPI CACHE" "\n")
-  (print "path ; " path "\n")
   (let* ((path-package (path-expand "__init__.py" path))
          (path-package-info (file-info path-package #t #f)))
-    (print 1 "\n")
     (if path-package-info
-        (begin
-          (print 2 "\n")
-          (print "path-package-info : " path-package-info "\n")
-          (let ((t (compile-and-get-mod path-package path-package-info py-__name__ py-__name__ (py-make-list (py-str-from-scheme path)))))
-            (print "compile and run:(1) " t "\n")
-            t
-            )
-          
-          )
+        (compile-and-get-mod path-package path-package-info py-__name__ py-__name__ (py-make-list (py-str-from-scheme path)))
         (let* ((path-mod (string-append path ".py"))
                (path-mod-info (file-info path-mod #t #f)))
-          (print 2.1 "\n")
-          (print "path-mod-info" path-mod-info "\n")
           (if path-mod-info
-              (let ((t (compile-and-get-mod path-mod path-mod-info py-__name__ py-__package__ #f)))
-                (print "compile and run (2): " t "\n")
-                t)
-              (begin
-                (print ":( im here" "\n")
-
-                #f)
+              (compile-and-get-mod path-mod path-mod-info py-__name__ py-__package__ #f)
+              #f
               )))))
 
 (define-rts (import-from-sys.path sys.path __name__ py-__name__ py-__package__)

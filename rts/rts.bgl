@@ -762,14 +762,11 @@
 
     ;; compile file and return #f if compilation failed
     (define (compile)
-      (print "creating dirs...")
       (ensure-parent-dir-exists path-cache)
-      (print "compiling... " path " -> " path-cache)
       (and (file-exists? path)
            (fx= 0 (compile-source path path-cache))))
 
 
-    (print "path-cache " path-cache)
     (if (file-exists? path-cache)
         ;; check according to modified date
         (if (< (time->seconds (file-modification-time path-info))
@@ -798,19 +795,16 @@
          (module-name
           (string-append "%%/" path-in-cache)))
 
-    (print "loading dynamic module... " libname)
     (let ((preloaded-init (hashtable-get loaded-modules libname)))
-      (print "preloaded-init : " preloaded-init )
       (or preloaded-init
           (let ((init (dynamic-load libname)))
-            (print "init : " init)
             (hashtable-put! loaded-modules libname (lambda (a b c d) (init a b c #f)))
-            (lambda (a b c)) (init a b c #t))))
+            (lambda (a b c) (init a b c #t))))
     ;; should be changed
     #;init
     #;(let ((dlsym (dynamic-load-symbol libname "init" module-name)))
       (when dlsym
-        (dynamic-load-symbol-get dlsym)))))
+        (dynamic-load-symbol-get dlsym))))))
 
 ;*---------------------------------------------------------------------*/
 ;*    PCache-set! ...                                                  */

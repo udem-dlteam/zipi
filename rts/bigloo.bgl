@@ -339,11 +339,13 @@
    (basename path))
 
 (define (path-normalize path)
-  (let ((name (if (char=? (string-ref path 0) (file-separator))
+  (let ((name (if (and (> (string-length path) 0) (char=? (string-ref path 0) (file-separator)))
                   (file-name-canonicalize path)
                   (file-name-canonicalize (make-file-name (pwd) path)))))
     (if (directory? name)
-        (string-append name (string (file-separator)))
+        (if (eq? (string-ref name (- (string-length name) 1)) (file-separator))
+            name
+            (string-append name (string (file-separator))))
         name)))
 
 (define (path-expand path #!optional origin)
