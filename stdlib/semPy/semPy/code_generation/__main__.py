@@ -1,4 +1,4 @@
-import argparse, sys
+import argparse
 
 from . import templates
 

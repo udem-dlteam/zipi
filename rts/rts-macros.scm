@@ -256,6 +256,22 @@
 (define-macro (py-bint-from-scheme value)
   `(py-bint-from-scheme-fallback ,value))
 
+;; TODO: handle overflow (these procedures should raise an OverflowError
+(define-macro (py-int-to-float value)
+  `(let (($value ,value))
+    (if (fixnum? $value)
+      (py-sint-to-float $value)
+      (exact->inexact (PyObjectInt-value $value)))))
+
+(define-macro (py-sint-to-float value)
+  `(fixnum->flonum ,value))
+
+(define-macro (py-bint-to-float value)
+  `(exact->inexact (py-bint-to-scheme ,value)))
+
+(define-macro (py-bool-to-float value)
+  `(if (eq? ,value py-True) 1.0 0.0))
+
 (define-macro (py-int-from-scheme arg)
 
   ;; assume all small int operations don't cause an overflow?
@@ -2544,7 +2560,7 @@
       ((not (PyObjectType-can-have-getter $cls))
         $attr) ;; this covers the case fixnum/flonum
       ((PyObjectFunction? $attr)
-        (py-descriptor-get-functionX-inline $attr $instance $owner))
+        (py-descriptor-get-functionX-Y-Z-inline $attr $instance $owner))
       (else
         (py-descriptor-get-fallback $attr $instance $owner)))))
 

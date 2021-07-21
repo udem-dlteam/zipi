@@ -434,6 +434,11 @@
     py-subtype-of-int?
     py-strict-subtype-of-int?
 
+    py-int-to-float
+    py-sint-to-float
+    py-bint-to-float
+    py-bool-to-float
+
     py-bool-to-scheme-float
     py-sint-to-scheme-float
     py-bint-to-scheme-float
