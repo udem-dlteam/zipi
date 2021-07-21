@@ -4185,6 +4185,13 @@ def py_test_strX(obj: str):
     return py_bool_to_host_bool(py_int_from_host(py_str_len_to_host(obj)) != 0)
 
 @define_behavior
+def py_descriptor_get_functionX_Y_Z(attr: function, instance, owner):
+    if instance is None:
+        return attr
+    else:
+        return alloc(method, method=attr, self=instance)
+
+@define_behavior
 def py_call_float_sintX(val: sint):
     return py_int_to_float(val)
 
@@ -4199,11 +4206,4 @@ def py_call_float_boolX(val: bool):
 @define_behavior
 def py_call_float_floatX(val: float):
     return val
-
-@define_behavior
-def py_descriptor_get_functionX_Y_Z(attr: function, instance, owner):
-    if instance is None:
-        return attr
-    else:
-        return alloc(method, method=attr, self=instance)
 

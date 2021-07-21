@@ -4,9 +4,10 @@ import copy
 import itertools
 import logging
 import operator
+import os
 import types
 
-from . import config
+from . import api
 
 
 def get_unique_name(name="var", _unique_name_counter=itertools.count()):
@@ -1776,20 +1777,52 @@ def bootstrap_semantics(ppy_semantics):
             ppy__compiler_intrinsics__[intrinsic_name] = item
 
 
-def compute_behaviors(semantics_file, builtins_file):
+def load_sempy_file(module_path, specializations, must_exist=True):
+    path, ext = os.path.splitext(module_path)
+    sempy_path = path + ".sempy"
+    module_name = os.path.split(path)[-1]
+
+    try:
+        with open(sempy_path, 'r') as f:
+            content = f.read()
+    except FileNotFoundError:
+        if must_exist:
+            raise FileNotFoundError(f"semPy requires a {module_name}.sempy file next to the module {module_path}")
+        else:
+            return
+
+    exec(content, {"add_specializations": api.maker_specializations_adder(module_name, specializations)})
+
+
+def compute_behaviors(semantics_file, builtins_file, more_modules):
     # Builtin modules must be preloaded, there is no dynamic loading
     ppy_sys_modules = PPYContainer(items={"__compiler_intrinsics__": ppy__compiler_intrinsics__})
+
+    specializations = []
 
     # Preload builtins and semantics
     with open(semantics_file, 'r') as f:
         semantics_ast = ast.parse(f.read())
 
+    load_sempy_file(semantics_file, specializations, must_exist=False)
     load_module("semantics", semantics_ast, ppy_sys_modules)
 
     with open(builtins_file, 'r') as f:
         builtins_ast = ast.parse(f.read())
 
+    load_sempy_file(builtins_file, specializations, must_exist=False)
     load_module("builtins", builtins_ast, ppy_sys_modules)
+
+    # Extra modules
+    for filename in more_modules:
+        module_path, _ = os.path.splitext(filename)
+        module_name = os.path.split(module_path)[-1]
+
+        with open(filename, 'r') as f:
+            module_ast = ast.parse(f.read())
+
+        load_sempy_file(filename, specializations, must_exist=False)
+        load_module(module_name, module_ast, ppy_sys_modules)
 
     # Known intrinsics
     define_behavior = "define_behavior"
@@ -1799,13 +1832,13 @@ def compute_behaviors(semantics_file, builtins_file):
 
     result = f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n\n"
 
-    for specializations in config.get_specializations():
-        for behavior_name, types in specializations:
+    for specs in specializations:
+        for behavior_name, types in specs:
             behavior = compute_single_behavior(behavior_name,
-                                               specializations.module,
-                                               specializations.function,
+                                               specs.module,
+                                               specs.function,
                                                types,
-                                               specializations.as_test,
+                                               specs.as_test,
                                                ppy_sys_modules)
             try:
                 ast.fix_missing_locations(behavior)
