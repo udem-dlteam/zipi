@@ -1,5 +1,5 @@
 import argparse
-from .compute_behaviors import build_semantics
+from .compute_behaviors import compute_behaviors
 
 parser = argparse.ArgumentParser(description="Generate zipi decision tree and behavior functions")
 parser.add_argument('semantics')
@@ -13,11 +13,12 @@ builtins_file = args.builtins
 path = args.path
 int_maxsize = args.int_maxsize
 
+# TODO: unused for now
 if int_maxsize != -1:
     INT_MAXSIZE = int_maxsize
 
 if path:
     with open(path, 'w') as f:
-        f.write(build_semantics(semantics_file, builtins_file))
+        f.write(compute_behaviors(semantics_file, builtins_file))
 else:
-    print(build_semantics(semantics_file, builtins_file))
+    print(compute_behaviors(semantics_file, builtins_file))

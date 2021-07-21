@@ -1,6 +1,6 @@
 from itertools import product
 
-from utils import get_behavior_name
+from .utils import get_behavior_name
 
 
 class Specializations:

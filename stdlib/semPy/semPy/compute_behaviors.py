@@ -1,113 +1,869 @@
-#!/usr/bin/env python3
+import ast
+import collections
+import copy
+import itertools
+import logging
+import operator
+import types
 
-import ast, copy, itertools, logging, operator, sys
-from collections import Counter
-
-from .utils import *
 from . import config
 
-try:
-    ast.unparse
-except AttributeError:
-    logging.error("Behavior generation requires Python >=3.9")
-    raise
 
-# ======================================================================================================================
-#   Parameters
-# ======================================================================================================================
-
-# Default value if not --int-maxsize argument is passed
-INT_MAXSIZE = sys.maxsize
+def get_unique_name(name="var", _unique_name_counter=itertools.count()):
+    return f"{name}__{next(_unique_name_counter)}_"
 
 
 # ======================================================================================================================
-#   AST traversal
+#  Preprocessing of AST
+# ======================================================================================================================
+def get_node_ppy_info(node, item):
+    if hasattr(node, "_ppy"):
+        return node._ppy.get(item)
+    else:
+        node._ppy = {}
+        return None
+
+
+def set_node_ppy_info(node, item, value):
+    if hasattr(node, "_ppy"):
+        node._ppy[item] = value
+    else:
+        node._ppy = {item: value}
+
+
+class NameScopeResolver(ast.NodeVisitor):
+    def __init__(self, fn, parent=None):
+        self.fn = fn
+        self.parent = parent
+        self._locals = None
+        self._queue = []
+
+    def resolve(self):
+        fn = self.fn
+        scope_info = get_node_ppy_info(fn, "locals")
+
+        if scope_info is not None:
+            # Already resolved
+            return
+        else:
+            set_node_ppy_info(fn, "locals",
+                              set(a.arg for a in [*fn.args.args, *fn.args.posonlyargs, *fn.args.kwonlyargs]))
+
+        for stmt in fn.body:
+            self.visit(stmt)
+
+        for nested_fn in self._queue:
+            NameScopeResolver(nested_fn).resolve()
+
+    def visit_FunctionDef(self, node):
+        get_node_ppy_info(self.fn, "locals").add(node.name)
+        self._queue.append(node)
+
+    def visit_ClassDef(self, node):
+        raise NotImplementedError
+
+    def visit_NonLocal(self, node):
+        raise NotImplementedError
+
+    def visit_Global(self, node):
+        raise NotImplementedError
+
+    def visit_Name(self, node):
+        if isinstance(node.ctx, ast.Store):
+            get_node_ppy_info(self.fn, "locals").add(node.id)
+
+
+class NameMangler(ast.NodeTransformer):
+    def __init__(self, fn, parent=None, mangle_table=None):
+        if not isinstance(fn, ast.FunctionDef):
+            raise TypeError("NameMangler can only apply to FunctionDef")
+
+        self.fn = fn
+        NameScopeResolver(self.fn).resolve()
+
+        if mangle_table:
+            self.mangle_table = {}
+            for name in get_node_ppy_info(self.fn, "locals"):
+                predefined_mangle = mangle_table.get(name)
+                self.mangle_table[name] = predefined_mangle or get_unique_name(name)
+        else:
+            self.mangle_table = {name: get_unique_name(name) for name in get_node_ppy_info(self.fn, "locals")}
+
+        if parent:
+            self.mangle_table = {**parent.mangle_table, **self.mangle_table}
+
+    def mangle_name(self, name):
+        return self.mangle_table.get(name, name)
+
+    def mangle(self, fn_name=None):
+        fn_copy = copy.deepcopy(self.fn)
+
+        mangled_body = [self.visit(stmt) for stmt in fn_copy.body]
+
+        arguments = fn_copy.args
+        mangled_args = [ast.arg(self.mangle_name(a.arg)) for a in arguments.args]
+        mangled_posonlyargs = [ast.arg(self.mangle_name(a.arg)) for a in arguments.posonlyargs]
+        mangled_kwonlyargs = [ast.arg(self.mangle_name(a.arg)) for a in arguments.kwonlyargs]
+        mangled_vararg = arguments.vararg and ast.arg(self.mangle_name(arguments.vararg))
+        mangled_kwarg = arguments.kwarg and ast.arg(self.mangle_name(arguments.kwarg))
+
+        if arguments.kw_defaults or arguments.defaults:
+            pass  # TODO: do not ignore default values
+
+        return ast.FunctionDef(
+            fn_name or fn_copy.name,
+            ast.arguments(
+                mangled_posonlyargs,
+                mangled_args,
+                mangled_vararg,
+                mangled_kwonlyargs,
+                [],
+                mangled_kwarg,
+                []),
+            mangled_body,
+            fn_copy.decorator_list)
+
+    def visit_FunctionDef(self, node):
+        nested_mangler = NameMangler(node, parent=self)
+        return nested_mangler.mangle(fn_name=self.mangle_name(node.name))
+
+    def visit_Name(self, node):
+        return ast.Name(self.mangle_name(node.id), node.ctx)
+
+
+# ======================================================================================================================
+#  Postprocessing of AST
 # ======================================================================================================================
 
-class AstRegister(ast.NodeVisitor):
-    def __init__(self, ast_):
-        self._register = {}
-        self.visit(ast_)
+class PPYNodeTransformer(ast.NodeTransformer):
+    def generic_visit(self, node):
+        for field, old_value in ast.iter_fields(node):
+            if isinstance(old_value, list):
+                new_values = []
+                for value in old_value:
+                    if isinstance(value, (ast.AST, PPYObject)):
+                        value = self.visit(value)
+                        if value is None:
+                            continue
+                        elif not isinstance(value, (ast.AST, PPYObject)):
+                            new_values.extend(value)
+                            continue
+                    new_values.append(value)
+                old_value[:] = new_values
+            elif isinstance(old_value, (ast.AST, PPYObject)):
+                new_node = self.visit(old_value)
+                if new_node is None:
+                    delattr(node, field)
+                else:
+                    setattr(node, field, new_node)
+        return node
+
+
+class PPYNodeVisitor(ast.NodeVisitor):
+    def generic_visit(self, node):
+        """Called if no explicit visitor function exists for a node."""
+        for field, value in ast.iter_fields(node):
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, (ast.AST, PPYObject)):
+                        self.visit(item)
+            elif isinstance(value, (ast.AST, PPYObject)):
+                self.visit(value)
+
+
+def remove_extra_pass(behavior):
+    body = behavior if isinstance(behavior, list) else behavior.body
+    body[:] = [stmt for stmt in body if not isinstance(stmt, ast.Pass)] or [ast.Pass()]
+
+
+class NameCounter(PPYNodeVisitor):
+    def __init__(self, fn_or_body):
+        self.fn_or_body = fn_or_body
+        self.ref_counter = collections.Counter()
+        self.assignments = collections.defaultdict(list)
+
+    def apply(self):
+        fn_or_body = self.fn_or_body
+        body = fn_or_body if isinstance(fn_or_body, list) else fn_or_body.body
+
+        for stmt in body:
+            self.visit(stmt)
+
+        return self.ref_counter, self.assignments
+
+    def visit_FunctionDef(self, node):
+        raise NotImplementedError("postprocessing does not expect nested function definitions")
+
+    def visit_Name(self, node):
+        if isinstance(node.ctx, ast.Load):
+            self.ref_counter[node.id] += 1
+        elif isinstance(node.ctx, ast.Store):
+            raise NotImplementedError("NameCounter: ref with Store context out of assignment")
+        else:
+            raise NotImplementedError("assignment deletion")
+
+    def visit_Assign(self, node):
+        for t in node.targets:
+            if isinstance(t, ast.Name):
+                self.assignments[t.id].append(node.value)
+
+    def visit_PPYValue(self, node):
+        return node
+
+    def visit_PPYConditional(self, node):
+        return node
+
+    def visit_PPYIntrinsic(self, node):
+        return node
+
+
+class DuplicateBranchingRemover(ast.NodeTransformer):
+    # TODO this case is tricky...
+    # When we inline a PPYConditional, it is often possible to remove its origin if-statement
+    # Here we remove it in a very limited case which is when the PPYConditional is inlined in a return statement at the
+    # end of the function body. Since we expect no side-effects this is safe, but could miss other cases
+    # We can recognize the origin if-statement because it has the same condition object
+    def __init__(self, fn_or_body):
+        self.fn_or_body = fn_or_body
+        self.ppy_conditional = None
+
+    def apply(self):
+        fn_or_body = self.fn_or_body
+        body = fn_or_body if isinstance(fn_or_body, list) else fn_or_body.body
+        last = body[-1]
+
+        if isinstance(last, ast.Return):
+            value = last.value
+            if isinstance(value, PPYConditional):
+                self.ppy_conditional = value
+
+                new_body = [self.visit(s) for s in body]
+                body[:] = [s for s in new_body if s is not None]
+
+    def visit_If(self, node):
+        if node.test is self.ppy_conditional.condition:
+            return None
+        else:
+            return node
+
+
+class AssignmentRemover(PPYNodeTransformer):
+    def __init__(self, fn_or_body):
+        self.fn_or_body = fn_or_body
+        self.to_remove = set()
+        self.to_inline = {}
+        self.must_iterate = True
+        self.ref_counter = self.assignments = None
+
+    def apply(self):
+        fn_or_body = self.fn_or_body
+        body = fn_or_body if isinstance(fn_or_body, list) else fn_or_body.body
+
+        while self.must_iterate:
+            self.must_iterate = False
+            ref_counter, assignments = self.ref_counter, self.assignments = NameCounter(fn_or_body).apply()
+
+            # assignments which can be fully removed as they were inlined
+            to_remove = self.to_remove
+
+            for name, values in self.assignments.items():
+                if ref_counter[name] == 0 and len(values) == 1:
+                    to_remove.add(name)
+
+            # assignments which can be inlined as the variable is single use
+            to_inline = self.to_inline
+            for name, count in ref_counter.items():
+                if count == 1:
+                    name_assignments = assignments[name]
+                    if len(name_assignments) == 1:
+                        to_inline[name] = name_assignments[0].value
+
+            new_body = [self.visit(s) for s in body]
+            body[:] = [s for s in new_body if s is not None]
+
+    def visit_Assign(self, node):
+        targets = node.targets
+        new_targets = [t for t in targets if not isinstance(t, ast.Name) or t.id not in self.to_remove]
+
+        if len(targets) != len(new_targets):
+            self.must_iterate = True
+
+        if new_targets:
+            targets[:] = new_targets
+            return node
+        else:
+            return None
+
+    def visit_Name(self, node):
+        res = self.to_inline.get(node.id, None)
+
+        if res is None:
+            return node
+        else:
+            self.must_iterate = True
+            return res
+
+    def visit_If(self, node):
+        res = self.generic_visit(node)
+        res_body = res.body
+        res_orelse = res.orelse
+
+        if not res_body and not res_orelse:
+            return None
+        elif not res_body:
+            res_body.append(ast.Pass())
+        elif not res_orelse:
+            res_orelse.append(ast.Pass())
+
+        return res
+
+    def visit_PPYValue(self, node):
+        return node
+
+    def visit_PPYConditional(self, node):
+        return node
+
+    def visit_PPYIntrinsic(self, node):
+        return node
+
+
+class PPYValuesReplacer(PPYNodeTransformer):
+    def __init__(self, fn_or_body):
+        self.fn_or_body = fn_or_body
+
+    def apply(self):
+        fn_or_body = self.fn_or_body
+        body = fn_or_body if isinstance(fn_or_body, list) else fn_or_body.body
+
+        new_body = [self.visit(s) for s in body]
+        body[:] = [s for s in new_body if s is not None]
+
+    def visit_PPYValue(self, node):
+        origin = node.origin
+        if isinstance(origin, ast.arg):
+            return ast.Name(origin.arg, ast.Load())
+        elif node.origin:
+            return self.generic_visit(origin)
+        else:
+            raise ValueError(f"Cannot replace {node} in ast")
+
+    def visit_PPYIntrinsic(self, node):
+        return ast.Name(node.name, ast.Load())
+
+    def visit_PPYRaise(self, node):
+        return ast.Raise(self.generic_visit(node.exception))
+
+    def visit_PPYConditional(self, node):
+        raise NotImplementedError
+
+    def visit_PPYClass(self, node):
+        return ast.Name(node.name, ast.Load())
+
+    def visit_Return(self, node):
+        value = node.value
+        if isinstance(value, PPYConditional):
+            return ast.If(
+                self.visit(value.condition),
+                [self.visit(ast.Return(value.then_value))],
+                [self.visit(ast.Return(value.orelse_value))])
+        elif isinstance(value, PPYRaise):
+            return self.visit_PPYRaise(value)
+        else:
+            return self.generic_visit(node)
+
+
+# ======================================================================================================================
+#  Data model for partially evaluated values
+# ======================================================================================================================
+
+class PPYObject:
+    pass
+
+
+# The PPY or ppy prefix means "partial python". Value prefixed with ppy are object from the partial evaluator runtime
+class PPYValue(PPYObject):
+    def __init__(self, *, origin, context, type=None, __type=type, **kwargs):
+        super().__init__(**kwargs)
+        self.origin = origin  # origin of the value in the ast
+        self.context = context.copy() if context is not None else None  # copy of the context the value was computed in
+
+        if type is not None:
+            self.type = type
+        elif isinstance(origin, ast.ClassDef):
+            self.type = ppy_type_class
+        elif isinstance(origin, ast.FunctionDef):
+            self.type = ppy_function_class
+        elif isinstance(origin, ast.Module):
+            self.type = ppy_module_class
+        elif isinstance(origin, ast.Compare):
+            # In the context of behavior which are only for builtin types, a comparison will always return a bool
+            self.type = ppy_bool_class
+        elif isinstance(origin, ast.UnaryOp):
+            if isinstance(origin.op, ast.Not):
+                self.type = ppy_bool_class
+            else:
+                self.type = None
+        elif isinstance(origin, ast.Call):
+            self.type = self._resolve_call_return_type(origin)
+        elif isinstance(origin, ast.Constant):
+            self.type = type_name_to_ppy(__type(origin.value).__name__, context.modules)
+        else:
+            self.type = None
+
+    def _resolve_call_return_type(self, call):
+        func = call.func
+
+        # Resolve return types of intrinsics functions
+        if func in [ppy_intrinsic_py_int_from_host, ppy_intrinsic_py_float_to_int]:
+            return ppy_int_class
+        elif func is ppy_intrinsic_py_bool_from_host_bool:
+            return ppy_bool_class
+        elif func in [ppy_intrinsic_py_float_from_host, ppy_intrinsic_py_int_to_float]:
+            return ppy_float_class
+        elif func is ppy_intrinsic_py_str_from_host:
+            return ppy_str_class
+
+        return None
+
+    @classmethod
+    def with_type_only(cls, type):
+        return cls(origin=None, context=None, type=type)
+
+
+class PPYContainer(PPYObject):
+    def __init__(self, *, items=None, **kwargs):
+        super().__init__(**kwargs)
+        self._items = items if items is not None else {}  # dict of attributes the container has after its evaluation
 
     def __getitem__(self, item):
-        return self._register[item]
+        return self._items[item]
 
     def __setitem__(self, item, value):
-        self._register[item] = value
+        self._items[item] = value
+
+    def __contains__(self, item):
+        sentinel = object()
+        return self.get(item, default=sentinel) is not sentinel
 
     def get(self, item, default=None):
         try:
-            return self.__getitem__(item)
-        except LookupError:
+            return self[item]
+        except KeyError:
             return default
 
+    def items(self):
+        return self._items.items()
 
-class MethodRegister(AstRegister):
-    def __init__(self, ast_, classes):
-        super().__init__(ast_)
-        self.classes = classes
+
+class PPYSingleton(PPYValue):
+    def __init__(self, *, name=None, origin=None, context=None, type=None, **kwargs):
+        self.name = name
+        super().__init__(origin=origin, context=context, type=type, **kwargs)
+
+
+class PPYFunction(PPYValue):
+    pass
+
+
+class PPYClosure(PPYFunction):
+    def __init__(self, *, context, **kwargs):
+        super().__init__(context=context, **kwargs)
+        self.parent_rte = context
+
+
+class PPYSemantics(PPYFunction):
+    pass
+
+
+class PPYClass(PPYValue, PPYContainer):
+    MRO_SELF_AND_OBJECT = object()
+    MRO_SELF = object()
+
+    def __init__(self, *, context, _mro=None, **kwargs):
+        super().__init__(context=context, **kwargs)
+
+        name = self.origin.name
+
+        if _mro is PPYClass.MRO_SELF:
+            self.mro = [self]
+        elif _mro is PPYClass.MRO_SELF_AND_OBJECT:
+            self.mro = [self, ppy_object_class]
+        elif _mro is not None:
+            self.mro = _mro
+        else:
+            # Use Python host types to determine mro
+            klass = type_name_to_python(name)
+            mro = klass.mro()
+
+            ppy_mro = []
+
+            for k in mro:
+                kname = k.__name__
+
+                if kname == name:
+                    ppy_mro.append(self)
+                else:
+                    ppy_mro.append(type_name_to_ppy(kname, context.modules))
+
+            self.mro = ppy_mro
+
+        # Add __name__ to attributes as there is no support for descriptors yet
+        self.name = name
+        self["__name__"] = ast.Constant(name)
+
+
+class PPYBaseModule(PPYContainer):
+    pass
+
+
+class PPYModule(PPYValue, PPYBaseModule):
+    pass
+
+
+class PPYStaticValue(PPYObject):
+    _all = {}
+
+    def __init__(self, name):
+        self.name = name
+        self._all[name] = self
+
+    def __init_subclass__(cls, **kwargs):
+        cls._all = {}
+
+
+class PPYIntrinsic(PPYStaticValue):
+    pass
+
+
+class PPYBuiltin(PPYStaticValue):
+    pass
+
+
+class PPYRaise(PPYObject):
+    def __init__(self, *, exception, context, **kwargs):
+        super().__init__(**kwargs)
+        self.exception = exception  # origin of the value in the ast
+        self.context = context.copy() if context is not None else None  # copy of the context the value was computed in
+
+
+class PPYConditional(PPYObject):
+    def __init__(self, *, condition, then_value, orelse_value, identifier, **kwargs):
+        super().__init__(**kwargs)
+        self.condition = condition
+        self.then_value = then_value
+        self.orelse_value = orelse_value
+        self.identifier = identifier
+
+
+# ======================================================================================================================
+#  Runtime Environment for partial evaluation
+# ======================================================================================================================
+
+class ReturnKind:
+    def __init__(self, kind, info=None, rte=None, then=None, orelse=None):
+        self.kind = kind
+        self.info = info
+        self.rte = rte
+        self._then = then
+        self._orelse = orelse
+
+    @classmethod
+    def as_return(cls):
+        return cls("return")
+
+    @classmethod
+    def as_assign(cls, name, rte):
+        return cls("assign", name, rte)
+
+    @classmethod
+    def as_expr(cls):
+        return cls("expr")
+
+    @classmethod
+    def as_branch(cls, condition, rte):
+        branch_return_kind = cls("branch", info=condition, rte=rte)
+        then_return_kind = cls("then", info=branch_return_kind)
+        orelse_return_kind = cls("orelse", info=branch_return_kind)
+
+        branch_return_kind._then = then_return_kind
+        branch_return_kind._orelse = orelse_return_kind
+
+        return branch_return_kind
+
+    @property
+    def return_(self):
+        return self.kind == "return"
+
+    @property
+    def assign(self):
+        if self.kind == "assign":
+            return self.info
+        else:
+            return False
+
+    @property
+    def expr(self):
+        return self.kind == "expr"
+
+    @property
+    def then(self):
+        return self.kind == "then"
+
+    @property
+    def orelse(self):
+        return self.kind == "orelse"
+
+    def do_return(self, value):
+        if self.return_:
+            return ast.Return(value)
+        elif name := self.assign:
+            self.rte[name] = value
+            return ast.Assign([ast.Name(name, ast.Store())], value)
+        elif self.expr:
+            return value
+        elif self.then or self.orelse:
+            return self._do_branch_return(value)
+        else:
+            raise ValueError("wrong return kind")
+
+    def _do_branch_return(self, value):
+        conditional_return_kind = self.info
+        parent_return_kind = conditional_return_kind.rte.return_kind
+
+        if name := parent_return_kind.assign:
+            rte = parent_return_kind.rte
+            if self.then:
+                previous_value = rte.get(name)
+                rte[name] = PPYConditional(condition=conditional_return_kind.info,
+                                           then_value=value,
+                                           orelse_value=previous_value,
+                                           identifier=conditional_return_kind)
+                return ast.Assign([ast.Name(name, ast.Store())], value)
+            elif self.orelse:
+                previous_value = rte.get(name)
+                if isinstance(previous_value, PPYConditional) and previous_value.identifier is conditional_return_kind:
+                    previous_value.orelse_value = value
+                else:
+                    rte[name] = PPYConditional(condition=conditional_return_kind.info,
+                                               then_value=previous_value,
+                                               orelse_value=value,
+                                               identifier=conditional_return_kind)
+                return ast.Assign([ast.Name(name, ast.Store())], value)
+        return parent_return_kind.do_return(value)
+
+    def do_raise(self, exc):
+        if self.then or self.orelse:
+            return self._do_branch_raise(exc)
+        else:
+            return ast.Raise(exc)
+
+    def _do_branch_raise(self, exc):
+        conditional_return_kind = self.info
+        parent_return_kind = conditional_return_kind.rte.return_kind
+
+        if name := parent_return_kind.assign:
+            rte = parent_return_kind.rte
+            if self.then:
+                previous_value = rte.get(name)
+                rte[name] = PPYConditional(condition=conditional_return_kind.info,
+                                           # TODO: if ever needed we could link ReturnKind to the context
+                                           then_value=PPYRaise(exception=exc, context=None),
+                                           orelse_value=previous_value,
+                                           identifier=conditional_return_kind)
+            elif self.orelse:
+                previous_value = rte.get(name)
+                if isinstance(previous_value, PPYConditional) and previous_value.identifier is conditional_return_kind:
+                    previous_value.orelse_value = PPYRaise(exception=exc, context=None)
+                else:
+                    rte[name] = PPYConditional(condition=conditional_return_kind.info,
+                                               then_value=previous_value,
+                                               orelse_value=PPYRaise(exception=exc, context=None),
+                                               identifier=conditional_return_kind)
+
+        return ast.Raise(exc)
+
+
+class RTE:
+    def __init__(self, modules, globals=None, locals=None, closure=None, return_kind=ReturnKind.as_return()):
+        self.modules = modules
+        self._locals = locals
+        self._closure = closure
+        self._globals = globals
+        self.return_kind = return_kind
 
     def __getitem__(self, item):
-        for base_name in self._register['__mro__']:
-            base = self.classes[base_name]
-            method = base._register.get(item)
+        val = self._locals and self._locals.get(item) \
+              or self._closure and self._closure.get(item) \
+              or self._globals.get(item)
+        if val:
+            return val
+        else:
+            ppy_builtins = self.modules["builtins"]
+            val = ppy_builtins[item]
 
-            if method is not None:
-                return method
+            if val:
+                return val
+            else:
+                raise KeyError(item)
 
-        raise KeyError(item)
+    def __setitem__(self, item, value):
+        if self._locals is not None:
+            self._locals[item] = value
+        else:
+            self._globals[item] = value
 
-    def visit_FunctionDef(self, node):
-        self[node.name] = node
+    def __contains__(self, item):
+        sentinel = object()
+        return self.get(item, default=sentinel) is not sentinel
+
+    def get(self, item, default=None):
+        try:
+            return self[item]
+        except KeyError:
+            return default
+
+    def copy(self):
+        return RTE(self.modules,
+                   globals=copy.copy(self._globals),
+                   closure=copy.copy(self._closure),
+                   locals=copy.copy(self._locals))
+
+    def is_global(self):
+        return self._locals is None
+
+    def make_frame(self, closure=None, return_kind=ReturnKind.as_return()):
+        return RTE(self.modules,
+                   globals=self._globals,
+                   locals={},
+                   closure=closure,
+                   return_kind=return_kind)
+
+    def branch(self, condition):
+        conditional_return_kind = ReturnKind.as_branch(condition, self)
+
+        return RTE(self.modules,
+                   globals=self._globals,
+                   closure=self._closure,
+                   locals=self._locals.copy(),
+                   return_kind=conditional_return_kind._then), \
+               RTE(self.modules,
+                   globals=self._globals,
+                   closure=self._closure,
+                   locals=self._locals.copy(),
+                   return_kind=conditional_return_kind._orelse)
+
+    def merge(self, condition, then_rte, orelse_rte):
+        then_locals = then_rte._locals
+        orelse_locals = orelse_rte._locals
+
+        for item in {*then_locals, *orelse_locals}:
+            if then_locals.get(item) is not orelse_locals.get(item):
+                raise NotImplementedError
 
 
-class ClassRegister(AstRegister):
-    def visit_ClassDef(self, node):
-        self[node.name] = MethodRegister(node, self)
-        self[node.name]['__mro__'] = (node.name,) + tuple(t.id for t in node.bases)
-        self[node.name]['__name__'] = ast.Constant(node.name)
+# ======================================================================================================================
+#  Mock module for __compiler_intrinsics__
+# ======================================================================================================================
 
-    def get_by_qualname(self, qualname):
-        cls_name, method_name = qualname.split('.')
-        method_register = self.get(cls_name)
-        return method_register.get(method_name) if method_register else None
+ppy_intrinsic_absent = PPYIntrinsic("absent")
+ppy_intrinsic_sint = PPYIntrinsic("sint")
+ppy_intrinsic_bint = PPYIntrinsic("bint")
+ppy_intrinsic_class_getattr = PPYIntrinsic("class_getattr")
+ppy_intrinsic_define_semantics = PPYIntrinsic("define_semantics")
+ppy_intrinsic_builtin = PPYIntrinsic("builtin")
+ppy_intrinsic_private = PPYIntrinsic("private")
+ppy_intrinsic_alloc = PPYIntrinsic("alloc")
+ppy_intrinsic_py_int_from_host = PPYIntrinsic("py_int_from_host")
+ppy_intrinsic_py_int_to_host = PPYIntrinsic("py_int_to_host")
+ppy_intrinsic_py_float_from_host = PPYIntrinsic("py_float_from_host")
+ppy_intrinsic_py_float_to_host = PPYIntrinsic("py_float_to_host")
+ppy_intrinsic_py_bool_from_host_bool = PPYIntrinsic("py_bool_from_host_bool")
+ppy_intrinsic_py_bool_to_host_bool = PPYIntrinsic("py_bool_to_host_bool")
+ppy_intrinsic_py_str_to_host = PPYIntrinsic("py_str_to_host")
+ppy_intrinsic_py_str_from_host = PPYIntrinsic("py_str_from_host")
+ppy_intrinsic_py_str_len_to_host = PPYIntrinsic("py_str_len_to_host")
+ppy_intrinsic_py_int_to_float = PPYIntrinsic("py_int_to_float")
+ppy_intrinsic_py_float_to_int = PPYIntrinsic("py_float_to_int")
 
-
-class SemanticsRegister(AstRegister):
-    # Offers a register of semantics to be optimized to behaviors and a second register of all defined semantics
-    def __init__(self, ast_):
-        super().__init__(ast_)
-
-    def visit_FunctionDef(self, node):
-        decorators = node.decorator_list
-        if any(isinstance(d, ast.Name) and d.id == 'define_semantics' for d in decorators):
-            self[node.name] = node
-
-    def iter_binary_semantics(self):
-        for name, sem in self._register.items():
-            if len(sem.args.args) == 2:
-                yield name, sem
-
-    def iter_unary_semantics(self):
-        for name, sem in self._register.items():
-            if len(sem.args.args) == 1:
-                yield name, sem
+# do not make a copy of '_all', semantics are later loaded in intrinsics
+ppy__compiler_intrinsics__ = PPYBaseModule(items=PPYIntrinsic._all)
 
 
-class AstNameInliner(ast.NodeTransformer):
-    def __init__(self, table):
-        self.table = table
+# ======================================================================================================================
+#  Evaluation of function specialization
+# ======================================================================================================================
 
-    def visit_Name(self, node):
-        return self.table.get((node.id, type(node.ctx).__name__), None) or node
+def partial_eval_function_call(fn, args, keywords, rte, return_kind=ReturnKind.as_return(), toplevel=False):
+    # TODO: keywords is only passed to intrinsic_call to support the alloc intrinsic, extend it to other cases
+    if isinstance(fn, PPYIntrinsic):
+        yield from partial_eval_intrinsic_call(fn, args, keywords, rte, return_kind=return_kind)
+    elif isinstance(fn, PPYBuiltin):
+        yield from partial_eval_builtin_call(fn, args, rte, return_kind=return_kind)
+    else:
+        fn_origin = fn.origin
+
+        if isinstance(fn_origin, ast.ClassDef):
+            # Special case to skip partial evaluation of an exception instantiation
+            try:
+                klass = eval(fn_origin.name)
+                if issubclass(klass, BaseException):
+                    yield ast.Call(ast.Name(klass.__name__, ast.Load()), args, [])
+                    return
+            except NameError:
+                raise TypeError(f"Calling non instantiable ppy class: {fn_origin.name}")
+
+        fn_origin_args = fn_origin.args
+        fn_origin_positional_args = fn_origin_args.posonlyargs + fn_origin_args.args
+
+        if fn_origin_args.kwonlyargs or fn_origin_args.kw_defaults:
+            raise NotImplementedError("partial_eval only supports positional arguments")
+
+        arity = len(fn_origin_positional_args)
+        if len(args) != arity:
+            raise TypeError(
+                f"partially evaluated function takes {arity} context arguments, {len(args)} were given.")
+
+        if isinstance(fn, PPYClosure):
+            call_rte = rte.make_frame(closure=fn.parent_rte, return_kind=return_kind)
+        else:
+            call_rte = rte.make_frame(return_kind=return_kind)
+
+        # Apply name mangling for sound inlining
+        mangle_table = {}
+        for fn_arg, callee_arg in zip(fn_origin_positional_args, args):
+            if isinstance(callee_arg, ast.AST):
+                continue
+
+            callee_arg_origin = callee_arg.origin
+
+            if isinstance(callee_arg_origin, ast.Name):
+                mangle_table[fn_arg.arg] = callee_arg_origin.id
+            elif isinstance(callee_arg_origin, ast.arg):
+                mangle_table[fn_arg.arg] = callee_arg_origin.arg
+
+        if toplevel:
+            for a in fn_origin_positional_args:
+                mangle_table[a.arg] = a.arg
+
+        mangled_fn_origin = NameMangler(fn.origin, mangle_table=mangle_table).mangle()
+
+        mangled_ast_args = mangled_fn_origin.args
+
+        fn_args = mangled_ast_args.posonlyargs + mangled_ast_args.args
+
+        for fn_arg, callee_arg in zip(fn_args, args):
+            if toplevel:
+                callee_arg.origin = fn_arg
+            call_rte[fn_arg.arg] = callee_arg
+
+        yield from partial_eval_stmts(mangled_fn_origin.body, call_rte)
 
 
 intrinsics_inverses = {
-    ("py_int_from_host", "py_sint_to_host"),
-    ("py_int_from_host", "py_bint_to_host"),
-    ("py_int_from_host", "py_int_to_host"),
-    ("py_float_from_host", "py_float_to_host"),
-    ("py_bool_to_host_bool", "py_bool_from_host_bool")
+    (ppy_intrinsic_py_int_from_host, ppy_intrinsic_py_int_to_host),
+    (ppy_intrinsic_py_float_from_host, ppy_intrinsic_py_float_to_host),
+    (ppy_intrinsic_py_bool_to_host_bool, ppy_intrinsic_py_bool_from_host_bool),
+    (ppy_intrinsic_py_str_to_host, ppy_intrinsic_py_str_from_host)
 }
 
 intrinsics_inverses = {
@@ -115,468 +871,286 @@ intrinsics_inverses = {
     *map(lambda t: t[::-1], intrinsics_inverses)
 }
 
-py_to_host_number_table = {
-    "int": "py_int_to_host",
-    "sint": "py_sint_to_host",
-    "bint": "py_bint_to_host",
-    "float": "py_float_to_host",
-}
+
+def simplify_intrinsic_call(fn, args, keywords):
+    if len(args) == 1 and not keywords:
+        arg0 = args[0]
+
+        if isinstance(arg0, PPYValue):
+            arg0 = arg0.origin
+
+        if isinstance(arg0, ast.Call) and len(arg0.args) == 1:
+            right_fn = arg0.func
+
+            if (fn, right_fn) in intrinsics_inverses:
+                return arg0.args[0]
+
+    return ast.Call(fn, args, keywords)
 
 
-def get_py_to_host_number_intrinsics(type_):
-    return py_to_host_number_table.get(type_)
-
-
-def intrinsics_are_inverse(left_func, right_func):
-    try:
-        return (left_func, right_func) in intrinsics_inverses
-    except KeyError:
-        return False
-
-
-class AstIntrinsicsCallSimplifier(ast.NodeTransformer):
-    @classmethod
-    def get_call_function_id(cls, call):
-        func = call.func
-        if isinstance(func, ast.Name):
-            return func.id
+def partial_eval_intrinsic_call(fn, args, keywords, rte, return_kind=ReturnKind.as_return()):
+    if fn is ppy_intrinsic_class_getattr:
+        yield return_kind.do_return(intrinsic_eval_class_getattr_call(args, rte))
+    elif isinstance(fn, PPYIntrinsic):
+        # Cannot evaluate but can simplify
+        value = simplify_intrinsic_call(fn, args, keywords)
+        if isinstance(value, PPYValue):
+            yield return_kind.do_return(value)
         else:
-            return None
-
-    @classmethod
-    def get_arg_call_function_id(cls, call, i):
-        args = call.args
-        if i < len(args) and isinstance(args[i], ast.Call):
-            return cls.get_call_function_id(args[i])
-        else:
-            return None
-
-    def visit_Call(self, node):
-        node = self.generic_visit(node)
-
-        func_name = self.get_call_function_id(node)
-        first_arg_func_name = self.get_arg_call_function_id(node, 0)
-
-        if intrinsics_are_inverse(func_name, first_arg_func_name):
-            return node.args[0].args[0]
-
-        return node
-
-
-class AstConvertOpsToHost(ast.NodeTransformer):
-    # TODO: convert BinOp, this was not required when this comment was written
-    def __init__(self, ctx):
-        self.ctx = ctx
-
-    def visit_Compare(self, node):
-        left = node.left
-        comparators = node.comparators
-
-        left_type = partial_eval_resolve_type(left, self.ctx)
-        comparators_types = [partial_eval_resolve_type(c, self.ctx) for c in comparators]
-
-        left_intrinsics = get_py_to_host_number_intrinsics(left_type)
-        comparators_intrinsics = [get_py_to_host_number_intrinsics(t) for t in comparators_types]
-
-        if left_intrinsics and all(comparators_intrinsics):
-            host_comparison = ast.Compare(
-                ast.Call(
-                    ast.Name(left_intrinsics, ast.Load()), [left], []),
-                node.ops,
-                [ast.Call(ast.Name(i, ast.Load()), [c], []) for i, c in zip(comparators_intrinsics, comparators)])
-            return ast.Call(
-                ast.Name("py_bool_from_host_bool", ast.Load()),
-                [host_comparison],
-                [])
-        return node
-
-
-class AstNameCounter(ast.NodeVisitor, Counter):
-    def visit_Name(self, node):
-        self[node.id, type(node.ctx).__name__] += 1
-
-
-def is_chained_calls(node, names):
-    if names:
-        if isinstance(node, ast.Call) and isinstance(func := node.func, ast.Name) and func.id == names[0]:
-            if len(node.args) == 1:
-                return is_chained_calls(node.args[0], names[1:])
-        return False
+            yield return_kind.do_return(PPYValue(origin=value, context=rte))
     else:
-        return True
+        raise NotImplementedError
 
 
-# ======================================================================================================================
-#   Partial evaluation
-# ======================================================================================================================
+# Evaluation of intrinsic calls
+def intrinsic_eval_class_getattr_call(args, rte):
+    # Assume correct arity
+    obj = args[0]
+    attr = args[1]
 
-# Used by partial evaluator to preserve closure of a FunctionDef
-class ClosureDef(ast.FunctionDef):
-    def __init__(self, *args, closure=None):
-        super().__init__(*args)
-        self.closure = closure
+    if isinstance(obj, PPYValue):
+        if isinstance(attr, ast.Constant) and isinstance(attr.value, str):
+            type_ = rte.modules["builtins"]["int"] if obj.type in (ppy_intrinsic_sint, ppy_intrinsic_bint) else obj.type
 
-    @classmethod
-    def from_FunctionDef(cls, fd, ctx):
-        cd = cls(*[getattr(fd, attr) for attr in ast.FunctionDef._fields], closure=ctx)
-        return cd
+            if type_ is None:
+                raise NotImplementedError(f"partial_eval_class_getattr_call: could not resolve type")
+            else:
+                attr_name = attr.value
 
-    _fields = (
-        'name',
-        'args',
-        'body',
-        'decorator_list',
-        'returns',
-        'type_comment',
-        'closure',
-    )
+                for ppy_class in type_.mro:
+                    attr = ppy_class.get(attr_name)
 
+                    if attr is not None:
+                        return attr
 
-class StaticValue(ast.Constant):
-    _absent = object()
-
-    def __init__(self, value):
-        super().__init__(value)
-
-    def __deepcopy__(self, memodict={}):
-        # Ignore memodict as there should be no cycles in a tree
-        # Do not copy the value as it might be comapred with is
-        return StaticValue(self.value)
-
-    @classmethod
-    def absent(cls):
-        return cls(cls._absent)
-
-    @classmethod
-    def NotImplemented(cls):
-        return cls(NotImplemented)
-
-
-class StmtSequence(ast.stmt):
-    def __init__(self, body):
-        self.body = body
-
-    def __deepcopy__(self, memodict={}):
-        # Ignore memodict as there should be no cycles in a tree
-        return StmtSequence(copy.deepcopy(self.body, memodict))
-
-    _fields = (
-        'body',
-    )
-
-
-# ======================================================================================================================
-#   Partial evaluation
-# ======================================================================================================================
-
-
-
-
-class VarContext:
-    def __init__(self, type=unknown, value=unknown, __type=type):
-        self._type = type
-        self.value = value
-
-        if isinstance(value, StaticValue):
-            if value.value is StaticValue._absent:
-                self._type = 'absent'
-            elif value.value is NotImplemented:
-                self._type = 'NotImplementedType'
-            elif value.value in {int, bool, float, str}:
-                self._type = "type"
-        elif isinstance(value, ast.Constant) and type is unknown:
-            self._type = partial_eval_resolve_type(value, {})
-
-    @property
-    def type(self):
-        return get_type_alias(self._type)
-
-    @property
-    def specialized_type(self):
-        return self._type
-
-    def __repr__(self):
-        return f"VarContext(type={self.type} ({self.specialized_type}), value={self.value})"
-
-
-class Context:
-    def __init__(self, semantics, classes, closure=None):
-        self._locals = {}
-        self._closure = closure if closure is not None else {}
-        self._globals = {
-            'absent': VarContext(value=StaticValue.absent()),
-            'NotImplemented': VarContext(value=StaticValue.NotImplemented()),
-            'int': VarContext(value=StaticValue(int)),
-            'bool': VarContext(value=StaticValue(bool)),
-            'float': VarContext(value=StaticValue(float)),
-            'str': VarContext(value=StaticValue(str)),
-            'function': VarContext(value=StaticValue(function)),
-        }
-
-        self.semantics = semantics
-        self.classes = classes
-
-    def __getitem__(self, item):
-        loc = self._locals.get(item)
-        clo = self._closure.get(item)
-        glo = self._globals.get(item)
-
-        val = loc or clo or glo
-        if val:
-            return val
+                return ppy_intrinsic_absent
         else:
-            raise KeyError(item)
-
-    def __setitem__(self, item, value):
-        self._locals[item] = value
-
-    def __contains__(self, item):
-        try:
-            self[item]
-            return True
-        except KeyError:
-            return False
-
-    def get(self, item, default=None):
-        loc = self._locals.get(item)
-        clo = self._closure.get(item)
-        glo = self._globals.get(item)
-
-        return loc or clo or glo or default
-
-    def new(self):
-        return Context(self.semantics, self.classes)
-
-    def from_closure(self, closure):
-        return Context(self.semantics, self.classes, closure=closure)
-
-    def get_semantics(self, name, default=None):
-        return self.semantics.get(name, default)
+            raise ValueError("partial_eval_class_getattr_call: second argument must be a string literal")
+    else:
+        raise NotImplementedError(
+            "partial_eval_class_getattr_call: first argument must have been resolved to a ppy object")
 
 
-def optimize_body(body, ctx):
-    for optimization in [inline_variables, convert_ops_to_host_version, resolve_intrinsics_inverses]:
-        body = optimization(body, ctx)
-    return body
+# End of intrinsic calls
+
+def partial_eval_builtin_call(fn, args, rte, return_kind=ReturnKind.as_return()):
+    if fn is ppy_isinstance:
+        yield return_kind.do_return(builtin_eval_isinstance_call(args, rte))
+    elif fn is ppy_issubclass:
+        yield return_kind.do_return(builtin_eval_issubclass_call(args, rte))
+    elif fn is ppy_type:
+        yield return_kind.do_return(builtin_eval_type_call(args, rte))
+    else:
+        raise NotImplementedError
 
 
-def convert_ops_to_host_version(body, ctx):
-    return [AstConvertOpsToHost(ctx).visit(stmt) for stmt in copy.deepcopy(body)]
+# Evaluation of builtin calls
+def builtin_eval_type_call(args, rte):
+    # Assume correct arity
+    instance, = args
+    if isinstance(instance, PPYValue):
+        instance_type = instance.type
+
+        if isinstance(instance_type, PPYClass):
+            return instance_type
+        elif instance_type in (ppy_intrinsic_sint, ppy_intrinsic_bint):
+            return ppy_int_class
+        else:
+            raise NotImplementedError
+    elif isinstance(instance, ast.Compare):
+        return ppy_bool_class
+    elif isinstance(instance, ast.Constant):
+        type_name = type(instance.value).__name__
+        return type_name_to_ppy(type_name, rte.modules)
+    else:
+        raise NotImplementedError
 
 
-def resolve_intrinsics_inverses(body, ctx):
-    return [AstIntrinsicsCallSimplifier().visit(stmt) for stmt in copy.deepcopy(body)]
+def builtin_eval_isinstance_call(args, rte):
+    # Assume correct arity
+    instance, type_info = args
+
+    type_info = ppy_type_class if type_info is ppy_type else type_info
+
+    instance_type = instance.type
+
+    if isinstance(type_info, PPYClass):
+        if instance_type in (ppy_intrinsic_sint, ppy_intrinsic_bint):
+            return ast.Constant(type_info is ppy_int_class)
+        else:
+            return ast.Constant(type_info in instance_type.mro)
+
+    elif type_info is ppy_intrinsic_sint:
+        return ast.Constant(instance_type in (ppy_intrinsic_sint, ppy_int_class))
+    elif type_info is ppy_intrinsic_bint:
+        return ast.Constant(instance_type in (ppy_intrinsic_bint, ppy_int_class))
+    else:
+        raise NotImplementedError
 
 
-def inline_variables(body, ctx):
-    """
-    Replace Name(..., Load()) which appear exactly once in the body by its value in the context
-    Since assignments are removed in the pre-evaluated code, this is necessary
-    TODO: When a name is referenced but cannot be inlined, we should add an assignment at the beginning of the body
-    """
-    name_counter = AstNameCounter()
-    for stmt in body:
-        name_counter.visit(stmt)
+def builtin_eval_issubclass_call(args, rte):
+    cls, type_info = args
 
-    names = {name for name, _ in name_counter.keys()}
+    type_info = ppy_type_class if type_info is ppy_type else type_info
 
-    inlining_table = {
-        (name, "Load"): ctx.get(name).value
-        for name in names
-        if not name_counter[name, "Store"]
-           and not name_counter[name, "Del"]
-           and name_counter[name, "Load"] == 1
-           and name in ctx
-           and ctx.get(name).value is not unknown
-    }
-
-    body_copy = copy.deepcopy(body)
-    for stmt in body_copy:
-        AstNameInliner(inlining_table).visit(stmt)
-
-    return body_copy
+    if isinstance(type_info, PPYClass):
+        if cls in (ppy_intrinsic_sint, ppy_intrinsic_bint):
+            return ast.Constant(type_info is ppy_int_class)
+        else:
+            return ast.Constant(type_info in cls.mro)
+    else:
+        raise NotImplementedError
 
 
-def partial_eval(fn_ast, semantics, classes, *args):
-    ast_args = fn_ast.args
-
-    if ast_args.kwonlyargs or ast_args.kw_defaults:
-        raise NotImplementedError("partial_eval only supports positional arguments")
-
-    # For now we assume only positional args
-    fn_args = ast_args.posonlyargs + ast_args.args
-
-    if len(args) > len(fn_args):
-        raise TypeError(f"partially evaluated function takes {len(fn_args)} context arguments, {len(args)} were given.")
-    elif len(args) < len(fn_args):
-        raise TypeError(
-            f"partially evaluated function missing {len(fn_args) - len(args)} context arguments. Empty contexts must be given explicitly.")
-
-    ctx = Context(semantics, classes)
-
-    for ctx_var, arg in zip(args, fn_args):
-        ctx[arg.arg] = ctx_var
-
-    body = fn_ast.body
-    return partial_eval_body(body, ctx)
+# End of builtin calls
 
 
-def partial_eval_body(body, ctx):
-    result = []
+def partial_eval_stmts(stmts, rte):
+    for stmt in stmts:
+        yield from partial_eval_stmt(stmt, rte)
 
-    for stmt in partial_eval_stmts(body, ctx):
-        result.append(stmt)
         if isinstance(stmt, ast.Return) or isinstance(stmt, ast.Raise):
             break
 
-    return optimize_body(result, ctx)
+
+def partial_eval_stmt(stmt, rte):
+    if isinstance(stmt, ast.If):
+        yield from partial_eval_if(stmt, rte)
+    elif isinstance(stmt, ast.Return):
+        yield from partial_eval_return(stmt, rte)
+    elif isinstance(stmt, ast.FunctionDef):
+        partial_eval_def(stmt, rte)
+        yield ast.Pass()  # in the context of behavior we do not consider functions as first class
+    elif isinstance(stmt, ast.Assign):
+        yield from partial_eval_assign(stmt, rte)
+    elif isinstance(stmt, ast.Raise):
+        yield rte.return_kind.do_raise(partial_eval_expr(stmt.exc, rte))
+    else:
+        raise NotImplementedError
 
 
-def partial_eval_stmts(stmts, ctx):
-    for stmt in stmts:
-        # filter out None which is a removed statement (assignment which was resolved)
-        yield from filter(None, partial_eval_stmt(stmt, ctx))
+def partial_eval_return(stmt, rte):
+    value = stmt.value
+
+    if isinstance(value, ast.Call):
+        yield from partial_eval_return_tail_call(value, rte)
+    else:
+        ppy_expr = partial_eval_expr(value, rte)
+        yield rte.return_kind.do_return(ppy_expr)
 
 
-def is_sint_value(val):
-    return val in range(-INT_MAXSIZE - 1, INT_MAXSIZE + 1)
-
-
-def is_bint_value(val):
-    return val not in range(-INT_MAXSIZE - 1, INT_MAXSIZE + 1)
-
-
-def partial_eval_resolve_type(expr, ctx):
-    if isinstance(expr, ast.Constant):
-        value = expr.value
-        type_name = type(value).__name__
-
-        if type_name == "int":
-            if is_sint_value(value):
-                return "sint"
-            elif is_bint_value(value):
-                return "bint"
-            else:
-                return "int"
-        else:
-            return type_name
-    elif isinstance(expr, ast.Compare):
-        # In the context of behavior which are only for builtin types, a comparison will always return a bool
-        return 'bool'
-    elif isinstance(expr, ast.UnaryOp):
-        if isinstance(expr.op, ast.Not):
-            return 'bool'
-    elif isinstance(expr, ast.Name):
-        var = ctx.get(expr.id)
-        if var:
-            return var.specialized_type
-    elif isinstance(expr, ast.Call):
-        return partial_eval_resolve_call_return_type(ctx, expr)
-
-    return unknown
-
-
-def partial_eval_resolve_call_return_type(ctx, call):
+def partial_eval_expr_call(call, rte):
     func = call.func
-
-    # Resolve return types of intrinsics functions
+    args = [partial_eval_expr(a, rte) for a in call.args]
+    keywords = call.keywords
     if isinstance(func, ast.Name):
         name = func.id
-        if name == "py_int_from_host":
-            return "int"
-        elif name == "py_bool_from_host_bool":
-            return "bool"
-        elif name == "py_float_from_host":
-            return "float"
-        elif name == "py_str_from_host":
-            return "str"
-
-    return unknown
-
-
-def partial_eval_set(ctx, name, ast_val):
-    if name in ctx:
-        raise NotImplementedError(f"partial evaluation does not support re-assignation: {name}")
-    elif isinstance(ast_val, ast.FunctionDef):
-        ctx[name] = VarContext(type='function', value=ClosureDef.from_FunctionDef(ast_val, ctx))
+        ppy_func = rte[name]
+        yield from partial_eval_function_call(ppy_func, args, keywords, rte, return_kind=ReturnKind.as_expr())
     else:
-        ctx[name] = VarContext(type=partial_eval_resolve_type(ast_val, ctx), value=ast_val)
+        yield ast.Call(func, args, keywords)
 
 
-def partial_eval_stmt(stmt, ctx):
-    if isinstance(stmt, ast.If):
-        test_result = partial_eval_expr(stmt.test, ctx)
+def partial_eval_return_tail_call(call, rte):
+    func = call.func
+    args = [partial_eval_expr(a, rte) for a in call.args]
+    keywords = call.keywords
+    if isinstance(func, ast.Name):
+        name = func.id
+        ppy_func = rte[name]
+        yield from partial_eval_function_call(ppy_func, args, keywords, rte, return_kind=rte.return_kind)
+    else:
+        yield rte.return_kind.do_return(ast.Call(func, args, keywords))
 
-        if isinstance(test_result, ast.Constant):
-            if test_result.value:
-                yield from partial_eval_stmts(stmt.body, ctx)
-            else:
-                yield from partial_eval_stmts(stmt.orelse, ctx)
-        else:
-            yield ast.If(test_result,
-                         partial_eval_body(stmt.body, ctx),
-                         partial_eval_body(stmt.orelse, ctx))
-    elif isinstance(stmt, ast.Return):
-        value = stmt.value
+
+def partial_eval_assign_call(name, call, rte):
+    func = call.func
+    args = [partial_eval_expr(a, rte) for a in call.args]
+    keywords = call.keywords
+    if isinstance(func, ast.Name):
+        func_name = func.id
+        ppy_func = rte[func_name]
+        yield from partial_eval_function_call(ppy_func, args, keywords, rte,
+                                              return_kind=ReturnKind.as_assign(name, rte))
+    else:
+        yield ast.Assign([ast.Name(name, ast.Store())], ast.Call(func, args, keywords))
+
+
+def partial_eval_assign(assign, rte):
+    if len(assign.targets) == 1 and isinstance(assign.targets[0], ast.Name):
+        name = assign.targets[0].id
+        value = assign.value
         if isinstance(value, ast.Call):
-            yield from partial_eval_return_tail_call(value, ctx)
-        elif isinstance(value, ast.Name):
-            var = ctx.get(value.id)
-            if var:
-                if isinstance(var.value, StmtSequence):
-                    yield from var.value.body
-                elif var.value is not unknown:
-                    yield ast.Return(var.value)
-                else:
-                    yield ast.Return(ast.Name(value.id, ast.Load()))
-            else:
-                yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
+            yield from partial_eval_assign_call(name, value, rte)
         else:
-            yield ast.Return(partial_eval_expr(value, ctx) if value is not None else value)
-    elif isinstance(stmt, ast.FunctionDef):
-        partial_eval_set(ctx, stmt.name, stmt)
-        yield None  # TODO: not ok in general, but should be in the case of behaviors where we inline local functions
-    elif isinstance(stmt, ast.Assign):
-        if len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
-            expr = partial_eval_expr(stmt.value, ctx)
-            partial_eval_set(ctx, stmt.targets[0].id, expr)
-            yield None  # TODO: not ok in general, but should be in the case of behaviors
-        else:
-            raise NotImplementedError("Unsupported assignment to multiple targets or non name targets")
-    elif isinstance(stmt, ast.Raise):
-        yield ast.Raise(partial_eval_expr(stmt.exc, ctx), None)
+            ppy_value = partial_eval_expr(value, rte)
+            rte[name] = PPYValue(origin=ppy_value, context=rte)
+            yield ast.Assign(assign.targets, ppy_value)
     else:
-        yield stmt
+        raise NotImplementedError("Unsupported assignment to multiple targets or non name targets")
 
 
-def partial_eval_expr(expr, ctx):
+def partial_eval_if(stmt, rte):
+    test_result = partial_eval_expr(stmt.test, rte)
+    maybe_host_bool = get_host_bool(test_result)
+
+    if isinstance(test_result, ast.Constant):
+        if test_result.value:
+            yield from partial_eval_stmts(stmt.body, rte)
+        else:
+            yield from partial_eval_stmts(stmt.orelse, rte)
+    elif maybe_host_bool is not None:
+        if maybe_host_bool:
+            yield from partial_eval_stmts(stmt.body, rte)
+        else:
+            yield from partial_eval_stmts(stmt.orelse, rte)
+    else:
+        then_rte, orelse_rte = rte.branch(test_result)
+
+        then_body = list(partial_eval_stmts(stmt.body, then_rte))
+        orelse_body = list(partial_eval_stmts(stmt.orelse, orelse_rte))
+
+        rte.merge(test_result, then_rte, orelse_rte)
+
+        yield ast.If(test_result, then_body, orelse_body)
+
+
+def partial_eval_name(name, rte):
+    return rte[name.id]
+
+
+def partial_eval_expr(expr, rte):
     if isinstance(expr, ast.Call):
-        return partial_eval_call(expr, ctx)
-    elif isinstance(expr, ast.Name):
-        return partial_eval_inline_name(expr, ctx)
-    elif isinstance(expr, ast.Compare):
-        return partial_eval_compare(expr, ctx)
-    elif isinstance(expr, ast.BoolOp):
-        return partial_eval_bool_op(expr, ctx)
-    elif isinstance(expr, ast.BinOp):
-        return partial_eval_bin_op(expr, ctx)
-    elif isinstance(expr, ast.UnaryOp):
-        return partial_eval_un_op(expr, ctx)
-    elif isinstance(expr, ast.Attribute):
-        obj = partial_eval_expr(expr.value, ctx)
+        resolved_call = list(partial_eval_expr_call(expr, rte))
+        if len(resolved_call) != 1:
+            remove_extra_pass(resolved_call)
+            AssignmentRemover(resolved_call).apply()
+            DuplicateBranchingRemover(resolved_call).apply()
 
-        if isinstance(obj, ast.Name):
-            var = ctx.get(obj.id)
-            if var and isinstance(var.value, StaticValue):
-                try:
-                    attr = getattr(var.value.value, expr.attr)
-                    if isinstance(attr, (int, float, str)):
-                        return ast.Constant(attr)
-                except AttributeError:
-                    pass
-        return ast.Attribute(obj, expr.attr, expr.ctx)
+        # List len should have changed if it was too long
+        if len(resolved_call) == 1:
+            return resolved_call[0]
+        else:
+            raise NotImplementedError
+    elif isinstance(expr, ast.Name):
+        return partial_eval_name(expr, rte)
+    elif isinstance(expr, ast.Compare):
+        return partial_eval_compare(expr, rte)
+    elif isinstance(expr, ast.BoolOp):
+        return partial_eval_bool_op(expr, rte)
+    elif isinstance(expr, ast.BinOp):
+        return partial_eval_bin_op(expr, rte)
+    elif isinstance(expr, ast.UnaryOp):
+        return partial_eval_un_op(expr, rte)
+    elif isinstance(expr, ast.Attribute):
+        raise NotImplementedError
     else:
         return expr
+
+
+def partial_eval_un_op(expr, ctx):
+    operand = partial_eval_expr(expr.operand, ctx)
+    return ast.UnaryOp(expr.op, operand)
 
 
 def get_operator_from_ast(op):
@@ -593,17 +1167,12 @@ def partial_eval_bin_op(expr, ctx):
     left = partial_eval_expr(expr.left, ctx)
     right = partial_eval_expr(expr.right, ctx)
     op = expr.op
-    operator = get_operator_from_ast(op)
+    operator_ = get_operator_from_ast(op)
 
-    if isinstance(left, ast.Constant) and isinstance(right, ast.Constant) and operator:
-        return ast.Constant(operator(left.value, right.value))
+    if isinstance(left, ast.Constant) and isinstance(right, ast.Constant) and operator_:
+        return ast.Constant(operator_(left.value, right.value))
 
     return ast.BinOp(left, op, right)
-
-
-def partial_eval_un_op(expr, ctx):
-    operand = partial_eval_expr(expr.operand, ctx)
-    return ast.UnaryOp(expr.op, operand)
 
 
 def partial_eval_bool_op(expr, ctx):
@@ -641,92 +1210,31 @@ def partial_eval_bool_op(expr, ctx):
         return ast.BoolOp(op, evaluated_values)
 
 
-def partial_eval_inline_name(name, ctx):
-    # Inline only constants
-    var = ctx.get(name.id)
-    value = var and var.value
-    # Only inline proper Python constants, not semantics static values
-    return value if type(value) is ast.Constant else name
-
-
-def partial_eval_call(call, ctx):
-    func = partial_eval_expr(call.func, ctx)
-    args = [partial_eval_expr(arg, ctx) for arg in call.args]
-
-    if isinstance(func, ast.Name):
-        result = partial_eval_static_function_call(func.id, args, call.keywords, ctx)
-
-        if isinstance(result, StmtSequence):
-            body = result.body
-
-            if len(body) == 1 and isinstance(body[0], ast.Return):
-                return body[0].value
-            else:
-                return result
-        else:
-            return result
-    else:
-        return ast.Call(func, args, call.keywords)
-
-
-def ast_always_returns(node):
-    # TODO: does not cover all forms (missing: With, Try, AsyncFor, AsyncWith)
-    if isinstance(node, list):
-        return any(ast_always_returns(n) for n in node)
-    elif isinstance(node, (ast.Return, ast.Raise)):
-        return True
-    elif isinstance(node, ast.For):
-        return ast_always_returns(node.body) and ast_always_returns(node.orelse)
-    elif isinstance(node, ast.If):
-        return ast_always_returns(node.body) and ast_always_returns(node.orelse)
-    elif isinstance(node, ast.While):
-        return ast_always_returns(node.body) and ast_always_returns(node.orelse)
-    else:
-        return False
-
-
-def partial_eval_return_tail_call(call, ctx):
-    func = partial_eval_expr(call.func, ctx)
-    args = [partial_eval_expr(arg, ctx) for arg in call.args]
-
-    if isinstance(func, ast.Name):
-        result = partial_eval_static_function_call(func.id, args, call.keywords, ctx)
-
-        if isinstance(result, StmtSequence):
-            yield from result.body
-            if not ast_always_returns(result.body):
-                yield ast.Return(None)
-        else:
-            yield ast.Return(result)
-    else:
-        yield ast.Return(ast.Call(func, args, call.keywords))
-
-
-def partial_eval_compare(cmp, ctx):
-    left = partial_eval_expr(cmp.left, ctx)
+def partial_eval_compare(cmp, rte):
+    left = partial_eval_expr(cmp.left, rte)
 
     if len(cmp.comparators) > 1:
         raise NotImplementedError("partial_eval_compare: chain comparison not supported")
     else:
         op = cmp.ops[0]
-        right = partial_eval_expr(cmp.comparators[0], ctx)
+        right = partial_eval_expr(cmp.comparators[0], rte)
 
         if isinstance(op, ast.Is):
-            res = partial_eval_is(left, right, ctx)
+            res = partial_eval_is(left, right, rte)
         elif isinstance(op, ast.IsNot):
-            res = partial_eval_is_not(left, right, ctx)
+            res = partial_eval_is_not(left, right, rte)
         elif isinstance(op, ast.Eq):
-            res = partial_eval_eq(left, right, ctx)
+            res = partial_eval_eq(left, right, rte)
         elif isinstance(op, ast.NotEq):
-            res = partial_eval_ne(left, right, ctx)
+            res = partial_eval_ne(left, right, rte)
         elif isinstance(op, ast.Lt):
-            res = partial_eval_lt(left, right, ctx)
+            res = partial_eval_lt(left, right, rte)
         elif isinstance(op, ast.LtE):
-            res = partial_eval_le(left, right, ctx)
+            res = partial_eval_le(left, right, rte)
         elif isinstance(op, ast.Gt):
-            res = partial_eval_gt(left, right, ctx)
+            res = partial_eval_gt(left, right, rte)
         elif isinstance(op, ast.GtE):
-            res = partial_eval_ge(left, right, ctx)
+            res = partial_eval_ge(left, right, rte)
         else:
             res = None
 
@@ -736,20 +1244,31 @@ def partial_eval_compare(cmp, ctx):
             return res
 
 
-def resolve_expression_sign(expr, ctx):
-    if isinstance(expr, ast.Name):
-        var = ctx.get(expr.id)
+def is_chained_calls(node, names):
+    if names:
+        if isinstance(node, PPYValue):
+            node = node.origin
 
-        if is_chained_calls(var.value, ["py_int_from_host", "py_str_len_to_host"]):
+        if isinstance(node, ast.Call) and node.func is names[0]:
+            if len(node.args) == 1:
+                return is_chained_calls(node.args[0], names[1:])
+        return False
+    else:
+        return True
+
+
+def resolve_expression_sign(expr, rte):
+    if isinstance(expr, PPYValue) or isinstance(expr, ast.Call):
+        if is_chained_calls(expr, [ppy_intrinsic_py_int_from_host, ppy_intrinsic_py_str_len_to_host]):
             return 1, False
     return None, None
 
 
 # We implemented limited mechanism to detect whether a value is positive or negative
 # This is mainly aimed at resolving the sign of int values coming from length of a sequence
-def partial_eval_lt(left, right, ctx):
+def partial_eval_lt(left, right, rte):
     if isinstance(right, ast.Constant) and right.value == 0:
-        sign, strict = resolve_expression_sign(left, ctx)
+        sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
             if sign == -1:
@@ -761,9 +1280,9 @@ def partial_eval_lt(left, right, ctx):
     return None
 
 
-def partial_eval_le(left, right, ctx):
+def partial_eval_le(left, right, rte):
     if isinstance(right, ast.Constant) and right.value == 0:
-        sign, strict = resolve_expression_sign(left, ctx)
+        sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
             if sign == -1 or sign == 0:
@@ -775,9 +1294,9 @@ def partial_eval_le(left, right, ctx):
     return None
 
 
-def partial_eval_gt(left, right, ctx):
+def partial_eval_gt(left, right, rte):
     if isinstance(right, ast.Constant) and right.value == 0:
-        sign, strict = resolve_expression_sign(left, ctx)
+        sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
             if sign == 1:
@@ -789,9 +1308,9 @@ def partial_eval_gt(left, right, ctx):
     return None
 
 
-def partial_eval_ge(left, right, ctx):
+def partial_eval_ge(left, right, rte):
     if isinstance(right, ast.Constant) and right.value == 0:
-        sign, strict = resolve_expression_sign(left, ctx)
+        sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
             if sign == 1 or sign == 0:
@@ -803,11 +1322,193 @@ def partial_eval_ge(left, right, ctx):
     return None
 
 
-def partial_eval_is_not(left, right, ctx):
-    is_res = partial_eval_is(left, right, ctx)
+def is_always_python_numeric(expr, value, rte):
+    if isinstance(expr, ast.Constant):
+        return expr.value == value
+    elif isinstance(expr, PPYValue):
+        origin = expr.origin
+
+        if isinstance(origin, ast.Constant):
+            return is_always_python_numeric(origin, value, rte)
+        elif isinstance(origin, ast.Call):
+            return origin.func in (ppy_intrinsic_py_int_from_host,
+                                   ppy_intrinsic_py_float_from_host,) \
+                   and is_always_host_numeric(origin.args[0], value, rte)
+    return False
+
+
+def is_always_host_numeric(expr, value, rte):
+    if isinstance(expr, PPYValue):
+        origin = expr.origin
+
+        if isinstance(origin, ast.Call):
+            return origin.func in (ppy_intrinsic_py_int_to_host,
+                                   ppy_intrinsic_py_float_to_host) \
+                   and is_always_python_numeric(origin.args[0], value, rte)
+    return False
+
+
+def is_always_python_bint(expr, rte):
+    if isinstance(expr, PPYValue):
+        if expr.type is ppy_intrinsic_bint:
+            return True
+        origin = expr.origin
+
+        if isinstance(origin, ast.Call) and origin.func is ppy_intrinsic_py_int_from_host:
+            return is_always_host_bint(origin.args[0], rte)
+    return False
+
+
+def is_always_host_bint(expr, rte):
+    if isinstance(expr, PPYValue):
+        if expr.type is ppy_intrinsic_bint:
+            return True
+        origin = expr.origin
+
+        if isinstance(origin, ast.Call) and origin.func is ppy_intrinsic_py_int_to_host:
+            return is_always_python_bint(origin.args[0], rte)
+    return False
+
+
+def host_bool(b):
+    return ast.Call(ppy_intrinsic_py_bool_to_host_bool, [ast.Constant(b)], [])
+
+
+def get_host_bool(expr):
+    if isinstance(expr, PPYValue):
+        expr = expr.origin
+
+    if isinstance(expr, ast.Call) and expr.func is ppy_intrinsic_py_bool_to_host_bool:
+        if isinstance(arg0 := expr.args[0], ast.Constant):
+            return arg0.value
+    return None
+
+
+def partial_eval_eq_left_bool(left, right, rte):
+    if isinstance(right, ast.Constant):
+        if right.value == 0:
+            return ast.Compare(left, [ast.Is()], [ast.Constant(False)])
+        elif right.value == 1:
+            return ast.Compare(left, [ast.Is()], [ast.Constant(True)])
+        else:
+            return ast.Constant(False)
+    elif isinstance(right, PPYValue):
+        return partial_eval_eq_left_bool(left, right.origin, rte)
+    else:
+        return None
+
+
+def is_always_python_bool(expr, rte):
+    return isinstance(expr, PPYValue) and expr.type is ppy_bool_class \
+           or isinstance(expr, ast.Constant) and isinstance(expr.value, bool)
+
+
+def is_always_host_int_from_bool(expr, rte):
+    if isinstance(expr, PPYValue):
+        return is_always_host_int_from_bool(expr.origin, rte)
+    else:
+        return isinstance(expr, ast.Call) \
+               and expr.func is ppy_intrinsic_py_int_to_host \
+               and is_always_python_bool(expr.args[0], rte)
+
+
+def partial_eval_eq_left_host_int_from_bool(left, right, rte):
+    if isinstance(left, PPYValue):
+        return partial_eval_eq_left_host_int_from_bool(left.origin, right, rte)
+    if is_always_host_numeric(right, 0, rte):
+        return ast.Call(ppy_intrinsic_py_bool_from_host_bool, [ast.Compare(left.args[0], [ast.IsNot()], [ast.Constant(True)])], [])
+    elif is_always_host_numeric(right, 1, rte):
+        return ast.Call(ppy_intrinsic_py_bool_from_host_bool, [left.args[0]], [])
+    else:
+        return None
+
+
+def partial_eval_eq(left, right, rte):
+    if isinstance(left, ast.Constant):
+        if isinstance(right, ast.Constant):
+            return ast.Constant(left.value == right.value)
+        else:
+            return partial_eval_eq(right, left, rte)
+    # Checks for division, a bint cannot be 0
+    elif is_always_python_numeric(right, 0, rte) and is_always_python_bint(left, rte) \
+         or is_always_python_numeric(left, 0, rte) and is_always_python_bint(right, rte):
+        return ast.Constant(False)
+    elif is_always_host_numeric(right, 0, rte) and is_always_host_bint(left, rte) \
+         or is_always_host_numeric(left, 0, rte) and is_always_host_bint(right, rte):
+        return host_bool(False)
+    # Special cases when either value is a bool
+    elif isinstance(left, PPYValue) and left.type is ppy_bool_class:
+        return partial_eval_eq_left_bool(left, right, rte)
+    elif isinstance(right, PPYValue) and right.type is ppy_bool_class:
+        return partial_eval_eq_left_bool(right, left, rte)
+    elif is_always_host_int_from_bool(left, rte):
+        return partial_eval_eq_left_host_int_from_bool(left, right, rte)
+    elif is_always_host_int_from_bool(right, rte):
+        return partial_eval_eq_left_host_int_from_bool(right, left, rte)
+
+    return None
+
+
+comparison_inverses = {
+    ast.Is: ast.IsNot,
+    ast.LtE: ast.Gt,
+    ast.Lt: ast.GtE,
+    ast.Eq: ast.NotEq
+}
+
+comparison_inverses.update({v: k for k, v in comparison_inverses.items()})
+
+
+def reverse_comparison(comparison, rte):
+    if len(comparison.ops) == 1:
+        left = comparison.left
+        right = comparison.comparators[0]
+
+        op_type = type(comparison.ops[0])
+        inverse_op = comparison_inverses[op_type]()
+
+        if is_always_python_bool(left, rte) and isinstance(right, ast.Constant):
+            if isinstance(inverse_op, ast.Is) and right.value is True:
+                return left
+            elif isinstance(inverse_op, ast.IsNot) and right.value is False:
+                return left
+
+        return ast.Compare(comparison.left, [inverse_op], comparison.comparators)
+    else:
+        raise NotImplementedError
+
+
+def partial_eval_ne(left, right, rte):
+    eq_res = partial_eval_eq(left, right, rte)
+    if isinstance(eq_res, ast.Constant):
+        if eq_res.value is True:
+            return ast.Constant(False)
+        elif eq_res.value is False:
+            return ast.Constant(True)
+    elif isinstance(eq_res, ast.UnaryOp) and isinstance(eq_res.op, ast.Not):
+        return eq_res.operand
+    elif isinstance(eq_res, ast.Call) and eq_res.func is ppy_intrinsic_py_bool_from_host_bool:
+        arg0 = eq_res.args[0]
+
+        if isinstance(arg0, ast.Compare):
+            return ast.Call(ppy_intrinsic_py_bool_to_host_bool, [reverse_comparison(arg0, rte)], [])
+    elif isinstance(eq_res, ast.Compare):
+        return reverse_comparison(eq_res, rte)
+
+
+    maybe_host_bool = get_host_bool(eq_res)
+
+    if maybe_host_bool is None:
+        return None
+    else:
+        return host_bool(not maybe_host_bool)
+
+
+def partial_eval_is_not(left, right, rte):
+    is_res = partial_eval_is(left, right, rte)
 
     if is_res:
-        # an evaluation of is should always yield a bool constant
+        # an evaluation of is should always yield a bool
         if isinstance(is_res, ast.Constant):
             return ast.Constant(not is_res.value)
         else:
@@ -816,223 +1517,109 @@ def partial_eval_is_not(left, right, ctx):
         return None
 
 
-def partial_eval_is(left, right, ctx):
-    if isinstance(left, ast.Name) and isinstance(right, ast.Name):
-        left_var = ctx.get(left.id)
-        right_var = ctx.get(right.id)
+def partial_eval_is(left, right, rte):
+    if left in (ppy_intrinsic_absent, ppy_NotImplemented) \
+            or right in (ppy_intrinsic_absent, ppy_NotImplemented):
+        # TODO: this assumption can be removed once we have more solid type-checking
+        # absent and NotImplemented are singletons which should always be resolvable statically
+        # if a type is unknown, we assume it was not absent or NotImplemented
+        # this assumption can hold here because absent and NotImplemented values being returned by a semantics
+        # or a dunder is never specific to a value, but always to a whole type
+        return ast.Constant(left is right)
 
-        if left_var and right_var:
-            left_type = left_var.type
-            right_type = right_var.type
-            if left_type in ("absent", "NotImplementedType") or right_type in ("absent", "NotImplementedType"):
-                # TODO: this assumption can be removed once we have more solid type-checking
-                # 'absent' and 'NotImplemented' are singletons which should always be resolvable statically
-                # if a type is unknown, we assume it was not absent or NotImplemented
-                # this assumption can hold here because absent and NotImplemented values being returned by a semantics
-                # or a dunder is never specific to a value, but always to a whole type
-                return ast.Constant(left_type == right_type)
-            if left_var.type != unknown != right_var.type and left_var.type != right_var.type:
-                return ast.Constant(False)
-            if isinstance(left_var.value, ast.Constant) and isinstance(right_var.value, ast.Constant):
-                return ast.Constant(left_var.value.value is right_var.value.value)
+    if isinstance(left, PPYClass) and isinstance(right, PPYClass):
+        return ast.Constant(left is right)
+
+    if isinstance(left, PPYValue) and isinstance(right, PPYValue):
+        left_type = left.type
+        right_type = right.type
+
+        if left_type is not None and right_type is not None and left_type != right_type:
+            return ast.Constant(False)
+        if isinstance(left.origin, ast.Constant) and isinstance(right.origin, ast.Constant):
+            return ast.Constant(left.value.value is right.value.value)
+
     # Unresolved
     return None
 
 
-def partial_eval_eq(left, right, ctx):
-    if isinstance(left, ast.Constant):
-        if isinstance(right, ast.Constant):
-            return ast.Constant(left.value == right.value)
+# ======================================================================================================================
+#  Evaluation of module top-level
+# ======================================================================================================================
+
+def load_module(name, module, sys_modules):
+    rte = RTE(sys_modules)
+    this_module = PPYModule(origin=module, context=rte)
+    sys_modules[name] = this_module
+    rte._globals = this_module
+
+    if name == "builtins":
+        # Load some extra builtin objects
+        populate_builtins(this_module)
+
+    for stmt in module.body:
+        if isinstance(stmt, ast.FunctionDef):
+            partial_eval_def(stmt, rte)
+        elif isinstance(stmt, ast.ClassDef):
+            partial_eval_class(stmt, rte)
+        elif isinstance(stmt, (ast.Import, ast.ImportFrom)):
+            partial_eval_import(stmt, rte)
         else:
-            return partial_eval_eq(right, left, ctx)
-    elif isinstance(right, ast.Constant):
-        if right.value == 0 and isinstance(left, ast.Name):
-            left_type = ctx.get(left.id).specialized_type
-            if left_type == 'bint':
-                return ast.Constant(False)
-            elif left_type == 'bool':
-                return ast.UnaryOp(ast.Not(), left)
-    return None
+            raise NotImplementedError("PPY: modules can only contain import or class and function definitions")
+
+    if name == "builtins":
+        # Load some builtins in global scope
+        bootstrap_builtins(this_module)
+    elif name == "semantics":
+        # Load semantics in __compiler_intrinsics__
+        bootstrap_semantics(this_module)
 
 
-def partial_eval_ne(left, right, ctx):
-    eq_res = partial_eval_eq(left, right, ctx)
-    if isinstance(eq_res, ast.Constant):
-        if eq_res.value is True:
-            return ast.Constant(False)
-        elif eq_res.value is False:
-            return ast.Constant(True)
-    elif isinstance(eq_res, ast.UnaryOp) and isinstance(eq_res.op, ast.Not):
-        return eq_res.operand
-    return None
+def partial_eval_def(func_def, rte):
+    decorators = func_def.decorator_list
+    decorators_values = [partial_eval_expr(d, rte) for d in decorators]
+    if ppy_intrinsic_define_semantics in decorators_values:
+        ppy_func = PPYSemantics(origin=func_def, context=rte)
+    elif rte.is_global():
+        ppy_func = PPYFunction(origin=func_def, context=rte)
+    else:
+        ppy_func = PPYClosure(origin=func_def, context=rte)
+
+    if any(not isinstance(d, PPYIntrinsic) for d in decorators_values):
+        raise NotImplementedError("PPY: non-intrinsic decorators not supported")
+
+    rte[func_def.name] = ppy_func
 
 
-def partial_eval_static_function_call(func_name, args, keywords, ctx):
-    # Assume here that builtins are called with the correct number of arguments
-    if func_name == "isinstance":
-        instance = args[0]
-        type_info = args[1]
+def partial_eval_class(class_def, rte):
+    this_class = PPYClass(origin=class_def, context=rte)
 
-        if isinstance(instance, ast.Name) and isinstance(type_info, ast.Name):
-            instance_name = instance.id
-            type_info_name = type_info.id
-
-            instance_ctx = ctx.get(instance_name)
-
-            if instance_ctx:
-                instance_actual_type = instance_ctx.type
-
-                if instance_actual_type is unknown:
-                    raise TypeError(f"partial_eval_static_function_call: type of '{instance_name}' is unknown")
-                elif type_info_name == "sint":
-                    # TODO: incorrect but temporarily works for index semantics
-                    return ast.Constant(True)
-                elif type_info_name == "bint":
-                    # TODO: incorrect but temporarily works for index semantics
-                    return ast.Constant(False)
-                elif issubclass(eval(instance_actual_type), eval(type_info_name)):
-                    return ast.Constant(True)
-                elif instance_actual_type in known_types:
-                    return ast.Constant(False)
-            else:
-                raise NameError(f"partial_eval_static_function_call: could not resolve name '{instance_name}'")
-
-    elif func_name == "type":
-        instance = args[0]
-
-        if isinstance(instance, ast.Name):
-            instance_name = instance.id
-
-            instance_ctx = ctx.get(instance_name)
-
-            if instance_ctx:
-                instance_actual_type = instance_ctx.type
-
-                if instance_actual_type is not unknown:
-                    return ast.Name(instance_actual_type, ast.Load())
-                else:
-                    raise TypeError(f"partial_eval_static_function_call: type of '{instance_name}' is unknown")
-
-            else:
-                raise NameError(f"partial_eval_static_function_call: could not resolve name '{instance_name}'")
-        elif isinstance(instance, ast.Constant):
-            instance_actual_type = partial_eval_resolve_type(instance, ctx)
-            return ast.Name(instance_actual_type, ast.Load())
+    for stmt in class_def.body:
+        if isinstance(stmt, ast.FunctionDef):
+            this_class[stmt.name] = PPYFunction(origin=stmt, context=rte)
+        elif isinstance(stmt, ast.Pass):
+            pass
         else:
-            raise NotImplementedError(f"partial_eval_static_function_call: could not resolve type of '{instance}'")
+            raise NotImplementedError("PPY: classes can only contain method definitions")
 
-    elif func_name in ctx:
-        return partial_eval_local_function_call(ctx[func_name], args, ctx)
+    rte[class_def.name] = this_class
+
+
+def partial_eval_import(import_stmt, rte):
+    if isinstance(import_stmt, ast.ImportFrom):
+        ppy_module = rte.modules[import_stmt.module]
+
+        for alias in import_stmt.names:
+            obj = ppy_module[alias.name]
+            name = alias.asname or alias.name
+            rte[name] = obj
     else:
-        return partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx)
+        raise NotImplementedError("import [module]")
 
 
-def partial_eval_resolved_function_call(fn_ast, args, ctx):
-    fn_args = fn_ast.args.args
-    name_table = {}
-
-    if len(args) == len(fn_args):
-        call_ctx = ctx.from_closure(fn_ast.closure) if isinstance(fn_ast, ClosureDef) else ctx.new()
-
-        for fn_arg, arg in zip(fn_args, args):
-            arg_name = fn_arg.arg
-
-            if isinstance(arg, ast.Name):
-                for ast_ctx in ["Load", "Store", "Del"]:
-                    name_table[(arg_name, ast_ctx)] = ast.Name(arg.id, ast_ctx)
-                call_ctx[arg_name] = ctx[arg.id]
-            elif isinstance(arg, ast.Constant):
-                call_ctx[arg_name] = VarContext(value=arg)
-            else:
-                raise NotImplementedError("partial_eval_local_function_call: non-name argument")
-
-        body = fn_ast.body
-
-        result_body = StmtSequence(partial_eval_body(body, call_ctx))
-
-        # Important to use a deepcopy of the ast so renaming does not affect called method variables
-        body_copy = copy.deepcopy(result_body)
-        AstNameInliner(name_table).visit(body_copy)
-        return body_copy
-
-    else:
-        raise TypeError("partial_eval_local_function_call: incorrect number of arguments")
-
-
-def partial_eval_local_function_call(func, args, ctx):
-    fn_ast = func.value
-
-    if isinstance(fn_ast, ast.FunctionDef):
-        return partial_eval_resolved_function_call(fn_ast, args, ctx)
-    else:
-        raise ValueError("partial evaluation call to non-function local object")
-
-
-def partial_eval_specialize_intrinsic_function(func_name, args, keywords, ctx):
-    # Assume here that builtins are called with the correct number of arguments
-    if func_name == "py_int_to_host":
-        self = args[0]
-        if isinstance(self, ast.Name):
-            name = self.id
-
-            name_ctx = ctx.get(name)
-
-            if name_ctx is not None:
-                type_ = name_ctx.specialized_type
-
-                if type_ == "sint":
-                    return ast.Call(ast.Name("py_sint_to_host", ast.Load()), args, [])
-                elif type_ == "bint":
-                    return ast.Call(ast.Name("py_bint_to_host", ast.Load()), args, [])
-                elif type_ == "bool":
-                    return ast.Call(ast.Name("py_bool_to_host_int", ast.Load()), args, [])
-                elif issubclass(eval(type_), int):
-                    return ast.Call(ast.Name("py_int_to_host", ast.Load()), args, [])
-    elif func_name == "class_getattr":
-        return partial_eval_class_getattr_call(args, ctx)
-    elif func_name == "alloc":
-        return partial_eval_alloc_call(args, keywords, ctx)
-
-    semantics = ctx.get_semantics(func_name)
-    if semantics:
-        return partial_eval_resolved_function_call(semantics, args, ctx)
-
-    # No specialization
-    return ast.Call(ast.Name(func_name, ast.Load()), args, [])
-
-
-def partial_eval_class_getattr_call(args, ctx):
-    # Assume correct arity
-    name = args[0]
-    attr = args[1]
-
-    if isinstance(name, ast.Name):
-        if isinstance(attr, ast.Constant) and isinstance(attr.value, str):
-            obj = ctx.get(name.id)
-
-            if obj is None:
-                raise NameError(f"partial_eval: could not resolve {name.id}")
-            elif obj.type is unknown:
-                raise NotImplementedError(f"partial_eval_class_getattr_call: could not resolve type of '{name.id}'")
-            else:
-                obj_type = obj.type
-                attr_name = attr.value
-
-                cls = ctx.classes[obj_type]
-                attr = cls.get(attr_name, StaticValue.absent())
-
-                return attr
-
-        else:
-            raise ValueError("partial_eval_class_getattr_call: second argument must be a string literal")
-    else:
-        raise NotImplementedError("partial_eval_class_getattr_call: first argument must have been resolved to a name")
-
-
-def partial_eval_alloc_call(args, keywords, ctx):
-    # TODO: partial eval of keywords
-    return ast.Call(ast.Name("alloc", ast.Load()), args, keywords)
-
+# ======================================================================================================================
+#  Behavior computation wrappers
+# ======================================================================================================================
 
 def convert_expr_to_return_host_bool(expr):
     if isinstance(expr, ast.Call):
@@ -1066,93 +1653,165 @@ def convert_body_to_return_host_bool(body):
         raise NotImplementedError("cannot convert body to a return-host-bool version due to len != 1")
 
 
-def make_ast_raise_with_msg(error_name, msg):
-    exc = ast.Call(ast.Name(error_name, ast.Load()), [ast.Constant(msg)], [])
-    return ast.Raise(exc, None)
+def type_name_to_ppy(name, ppy_sys_modules):
+    if name == "sint":
+        return ppy_intrinsic_sint
+    elif name == "bint":
+        return ppy_intrinsic_bint
+    elif name == "unknown":
+        return None
+    else:
+        return ppy_sys_modules["builtins"][name]
+
+
+def type_name_to_python(name):
+    if name == "sint":
+        return int
+    elif name == "bint":
+        return int
+    elif name == "function":
+        return types.FunctionType
+    elif name == "method":
+        return types.MethodType
+    elif name == "range_iterator":
+        return type(iter(range(42)))  # range_iterator
+    elif name == "NotImplementedType":
+        return type(NotImplemented)
+    else:
+        return eval(name)
 
 
 def make_ast_simple_arguments(*args_names, annotations=()):
-    return ast.arguments([], [ast.arg(n, t, None) for n, t in itertools.zip_longest(args_names, annotations)], None, [],
-                         [], None, [])
+    return ast.arguments([], [ast.arg(n, t, None) for n, t in zip(args_names, annotations)], None, [], [], None, [])
 
 
-def get_subtree_nested_item(tree, chain):
-    for x in chain:
-        tree = tree[x]
-    return tree
+def compute_single_behavior(behavior_name, module_name, callee_name, types, as_test, ppy_sys_modules):
+    module = ppy_sys_modules[module_name]
+    callee = module[callee_name]
+
+    rte = RTE(ppy_sys_modules, globals=module)
+
+    if isinstance(callee, PPYClass):
+        fn = callee["__new__"]
+        args = [callee,
+                *(PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)) for t in types)]
+        args_names = [a.arg for a in fn.origin.args.args][1:]
+    else:
+        fn = callee
+        args = [PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)) for t in types]
+        args_names = [a.arg for a in fn.origin.args.args]
+
+    result_body = list(partial_eval_function_call(fn, args, [], rte, toplevel=True))
+
+    annotations = [None if t == "unknown" else ast.Name(t, ast.Load()) for t in types]
+
+    annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
+
+    behavior = ast.FunctionDef(behavior_name,
+                               annotated_arguments,
+                               result_body,
+                               [ast.Name("define_behavior", ast.Load())],
+                               None,
+                               None)
+
+    # We apply post-processing to behaviors beautify the code and remove statements which were made obsolete
+    remove_extra_pass(behavior)
+    AssignmentRemover(behavior).apply()
+    DuplicateBranchingRemover(behavior).apply()
+    PPYValuesReplacer(behavior).apply()
+
+    if as_test:
+        behavior.body = convert_body_to_return_host_bool(behavior.body)
+
+    return behavior
 
 
-def build_semantics(semantics_file, builtins_file):
+# Bootstrap base types
+def dummy_class_def(name):
+    return ast.parse(f"class {name}: pass")
+
+
+ppy_type_class = PPYClass(context=None, origin=dummy_class_def("type").body[0], type="TMP", _mro=[])
+ppy_object_class = PPYClass(context=None, origin=dummy_class_def("object").body[0], _mro=PPYClass.MRO_SELF)
+ppy_module_class = PPYClass(context=None, origin=dummy_class_def("module").body[0], _mro=PPYClass.MRO_SELF_AND_OBJECT)
+ppy_function_class = PPYClass(context=None, origin=dummy_class_def("function").body[0],
+                              _mro=PPYClass.MRO_SELF_AND_OBJECT)
+ppy_NotImplementedType = PPYClass(context=None, origin=dummy_class_def("NotImplementedType").body[0],
+                                  _mro=PPYClass.MRO_SELF_AND_OBJECT)
+
+ppy_type_class.type = ppy_type_class
+
+ppy_NotImplemented = PPYSingleton(name="NotImplemented", type=ppy_NotImplementedType)
+ppy_isinstance = PPYBuiltin(name="isinstance")
+ppy_issubclass = PPYBuiltin(name="issubclass")
+# NOTE: it is not exactly correct to treat type as a function, but we do not intend on handling metaclass anyway
+ppy_type = PPYBuiltin(name="type")
+ppy_int_class = None
+ppy_bool_class = None
+ppy_float_class = None
+ppy_str_class = None
+
+
+def populate_builtins(ppy_builtin):
+    ppy_builtin["object"] = ppy_object_class
+    ppy_builtin["NotImplemented"] = ppy_NotImplemented
+    ppy_builtin["isinstance"] = ppy_isinstance
+    ppy_builtin["issubclass"] = ppy_issubclass
+    ppy_builtin["type"] = ppy_type
+
+
+def bootstrap_builtins(ppy_builtin):
+    global ppy_int_class, ppy_bool_class, ppy_float_class, ppy_str_class
+
+    ppy_int_class = ppy_builtin["int"]
+    ppy_bool_class = ppy_builtin["bool"]
+    ppy_float_class = ppy_builtin["float"]
+    ppy_str_class = ppy_builtin["str"]
+
+
+def bootstrap_semantics(ppy_semantics):
+    for name, item in ppy_semantics.items():
+        if isinstance(item, PPYSemantics):
+            intrinsic_name = f"semantics_{name}"
+            ppy__compiler_intrinsics__[intrinsic_name] = item
+
+
+def compute_behaviors(semantics_file, builtins_file):
+    # Builtin modules must be preloaded, there is no dynamic loading
+    ppy_sys_modules = PPYContainer(items={"__compiler_intrinsics__": ppy__compiler_intrinsics__})
+
     # Preload builtins and semantics
-    with open(builtins_file, 'r') as f:
-        builtins_ast = ast.parse(f.read())
-
     with open(semantics_file, 'r') as f:
         semantics_ast = ast.parse(f.read())
 
-    builtins_register = ClassRegister(builtins_ast)
-    semantics_register = SemanticsRegister(semantics_ast)
+    load_module("semantics", semantics_ast, ppy_sys_modules)
+
+    with open(builtins_file, 'r') as f:
+        builtins_ast = ast.parse(f.read())
+
+    load_module("builtins", builtins_ast, ppy_sys_modules)
 
     # Known intrinsics
     define_behavior = "define_behavior"
-    other_intrinsics = "py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
+    other_intrinsics = "sint, bint, py_int_to_float, py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
                        "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, " \
                        "py_bool_to_host_bool, py_str_from_host, py_str_to_host, py_str_len_to_host, alloc"
 
-    behavior_decorator_list = [ast.Name(f"{define_behavior}", ast.Load())]
-
-    behaviors = []
-
-    def register_behavior(name, module, function_name, types, as_test):
-        if module == "semantics":
-            fn = semantics_register[function_name]
-        elif module == "builtins":
-            fn = builtins_register[function_name]
-        else:
-            raise NotImplementedError("can only partially evaluate from semantics module")
-
-        if isinstance(fn, MethodRegister):
-            # The called object is a class
-            # We short-circuit the call protocol a little here by skipping the type.__call__ call
-            fn = fn["__new__"]
-            klass = eval(function_name)
-            result_body = partial_eval(fn, semantics_register, builtins_register,
-                                       VarContext(value=StaticValue(klass)),
-                                       *[VarContext(type=t) for t in types])
-        else:
-            # The called object is a function
-            result_body = partial_eval(fn, semantics_register, builtins_register,
-                                       *[VarContext(type=t) for t in types])
-
-        if as_test:
-            result_body = convert_body_to_return_host_bool(result_body)
-
-        args_names = [a.arg for a in fn.args.args]
-        annotations = [None if t is unknown else ast.Name(t, ast.Load()) for t in types]
-
-        annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
-
-        behavior_func = ast.FunctionDef(name, annotated_arguments, result_body,
-                                        behavior_decorator_list, None, None)
-
-        behaviors.append(behavior_func)
-
-    for specializations in config.get_specializations():
-        for name, types in specializations:
-            register_behavior(name,
-                              specializations.module,
-                              specializations.function,
-                              types,
-                              specializations.as_test)
-
     result = f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n\n"
 
-    for b in behaviors:
-        try:
-            ast.fix_missing_locations(b)
-            result += f"{ast.unparse(b)}\n\n"
-        except Exception:
-            logging.warning(f"ast.unparse failed to generate source for: {b.name}")
-            raise
+    for specializations in config.get_specializations():
+        for behavior_name, types in specializations:
+            behavior = compute_single_behavior(behavior_name,
+                                               specializations.module,
+                                               specializations.function,
+                                               types,
+                                               specializations.as_test,
+                                               ppy_sys_modules)
+            try:
+                ast.fix_missing_locations(behavior)
+                result += f"{ast.unparse(behavior)}\n\n"
+            except Exception:
+                logging.warning(f"ast.unparse failed to generate source for: {behavior.name}")
+                raise
 
     return result
