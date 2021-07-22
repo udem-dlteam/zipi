@@ -82,7 +82,7 @@
                (println "git branch: " (config-branch))))
           (else
 
-           (if reset (reset-cache))
+           (if (or reset expansion) (reset-cache))
 
            (if (not file)
                (if (not reset) (usage))
@@ -102,7 +102,8 @@ Options and arguments:
            debug       generate debugging information in compiled code
            flamegraph  generate statistical profile as a flamegraph
            profile     generate statistical profile as .html files
-           expansion   show Scheme code of module after expansion
+           expansion   show Scheme code of module after expansion. NOTE: this
+                           option will also reset the cache
            reset       reset the zipi module cache
 
 EOF
