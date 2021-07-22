@@ -70,18 +70,9 @@
   (define (append-strings str-lst rest)
     (if (pair? str-lst)
         (append-strings (cdr str-lst) (string-append rest (car str-lst)))
-        rest
-        ))
+        rest))
 
   (append-strings (map char-map (string->list path)) "%%"))
-
-
-#;(define (input-file->module-name path)
-   (let* ((dir (dirname path))
-	  (mod (prefix (basename path))))
-      (if (string=? dir ".")
-	  mod
-	  (format "%%~a_~a" dir mod))))
 
 ;*---------------------------------------------------------------------*/
 ;*    generate-bigloo ...                                              */

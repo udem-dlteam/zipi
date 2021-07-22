@@ -73,11 +73,8 @@
 	  vec)))
 
 (define (init-constants constants)
-  (print "init registering constants !")
   (vector-for-each
    (lambda (obj)
-     (print "for each : " obj)
-
       (case (type-name (structure-type obj))
         ((StaticPyObjectStr)
          (structure-type-set! obj (PyObjectStr-type-get)))

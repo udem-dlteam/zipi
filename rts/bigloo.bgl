@@ -368,6 +368,7 @@
     (define (last-ch str) (string-ref str (- (string-length str) 1)))
     (define (first-ch str) (string-ref str (- (string-length str) 1)))
 
+    ;; NOT COMPATIBLE WITH WINDOWS
     (if (eq? (last-ch path) #\/)
         (if (eq? (first-ch origin) #\/)
             (string-append origin (substring path 1 (string-length origin)))
@@ -381,9 +382,7 @@
         (new-origin (or origin (pwd))))
     (if (eq? (string-ref new-path 0) #\/)
         new-path
-        (merge-path new-path (expand~~ origin)))
-    ;; NOT COMPATIBLE WITH WINDOWS
-    ))
+        (merge-path new-path (expand~~ origin)))))
 
 (define (create-directory path)
    (make-directories path))
