@@ -152,7 +152,7 @@
                      (continuation-return abort #f)
                      (##repl-debug)))
              (lambda ()
-               (##demand-module sym)
+               (load-module sym)
                (let ((init (module-var-ref modref 'init)))
                  (if (procedure? init)
                      init
