@@ -4657,18 +4657,18 @@
 
 (define-rts (ordered-table-get-cell ordered-table key)
   (let* ((hash (py-subtype-of-int-to-scheme (py-hash key)))
-        (table (ordered-table-table ordered-table))
-        (size (vector-length table)))
+         (table (ordered-table-table ordered-table))
+         (size (vector-length table)))
     (let loop ((i (hash->cell hash size)))
       (let ((node (vector-ref table i)))
         (if (eq? node empty-table-cell)
-          empty-table-cell
-          (let* ((cell (doubly-linked-list-node-value node))
-                (cell-key (dict-cell-key cell))
-                (cell-hash (dict-cell-hash cell)))
-            (if (and (= hash cell-hash) (py-test (py-eq key cell-key)))
-              cell
-              (loop (cell-next i size)))))))))
+            empty-table-cell
+            (let* ((cell (doubly-linked-list-node-value node))
+                   (cell-key (dict-cell-key cell))
+                   (cell-hash (dict-cell-hash cell)))
+              (if (and (= hash cell-hash) (py-test (py-eq key cell-key)))
+                  cell
+                  (loop (cell-next i size)))))))))
 
 (define-rts (table-bucket-indices table size i)
   (let loop ((i i))
@@ -5491,17 +5491,19 @@
 ;; IMPORT SYSTEM
 ;; ===========================================
 
-(define-rts zipi-stdlib-dir (let ((default-dir
-                                (list (path-expand (path-expand "libs" "stdlib") (path-expand "~~zipiroot"))
-                                      (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
-                              (env-dir
-                                (list
-                                  (get-environment-variable "PYTHONPATH")
-                                  (get-environment-variable "ZIPIPATH"))))
-                          (fold (lambda (env r)
-                                  (if env (append (string-split env #\:) r) r))
-                                default-dir
-                                env-dir)))
+
+(define-rts zipi-stdlib-dir
+  (let ((default-dir
+          (list (path-expand (path-expand "libs" "stdlib") (path-expand "~~zipiroot"))
+                (path-expand "zipitestlib" (path-expand "~~zipiroot"))))
+        (env-dir
+         (list
+          (get-environment-variable "PYTHONPATH")
+          (get-environment-variable "ZIPIPATH"))))
+    (fold (lambda (env r)
+            (if env (append (string-split env #\:) r) r))
+          default-dir
+          env-dir)))
 
 ;; note here that we assume that the list is at least of size 1 and contains as first argument the filename
 (define-rts (command-line-argv-set! list-with-file-name)
@@ -5555,65 +5557,6 @@
 (define-rts (expansion-flag-set! value)
   (set! expansion-flag value))
 
-(define-rts (ensure-parent-dir-exists path)
-
-  (define (wind path todo)
-    (let* ((dir (path-strip-trailing-directory-separator
-                  (path-directory path)))
-           (fi (with-exception-handler
-                 (lambda (exc) #f)
-                 (lambda () (file-info dir)))))
-      (if fi
-          (if (eq? (file-info-type fi) 'directory)
-              (unwind todo)
-              (error (string-append "directory component can't be created: " fi)))
-          (wind dir (cons dir todo)))))
-
-  (define (unwind todo)
-    (if (pair? todo)
-        (begin
-          (create-directory (car todo))
-          (unwind (cdr todo)))))
-
-  (wind path '()))
-
-
-(define-rts (compile-to-cache path path-info path-in-cache)
-  (let* ((path-cache
-           (string-append
-             (cache-location-get)
-             "/"
-             path-in-cache
-             "/"
-             (path-strip-directory path-in-cache)
-             ".sld"))
-         (path-cache-info (file-info path-cache #t #f)))
-
-    (define (create-_must-build_)
-      ;; create empty "._must-build_" file
-      (if compile-flag
-          (let ((_must-build_-path
-                  (string-append (path-strip-extension path-cache) "._must-build_")))
-            (if compile-flag
-                (with-output-to-file _must-build_-path list)
-                (delete-file _must-build_-path)))))
-
-    ;; compile file and return #f if compilation failed
-    (define (compile)
-      (ensure-parent-dir-exists path-cache)
-      (create-_must-build_)
-      (fx= 0 (compile-source path path-cache)))
-
-    (if path-cache-info
-        ;; check according to modified date
-        (if (< (time->seconds (file-info-last-modification-time path-info))
-               (time->seconds (file-info-last-modification-time path-cache-info)))
-            (begin
-              (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
-              (create-_must-build_)
-              #t) ;; compilation "successful" (file already compiled)
-            (compile))
-        (compile)))) ;; compiled file does not exist (must compile)
 
 ;; mangle path of modules in cache to be valid scheme module names
 (define-rts (mangle-cache-path path)
@@ -5651,7 +5594,7 @@
             (compile-to-cache path path-info path-in-cache)
             ;; TODO : for windows user, the path is not formated with a / before
             (load-module-and-get-init path-in-cache))))
-    (if mod-init
+    (if (procedure? mod-init)
         (mod-init py-__name__ py-__package__ py-module.__path__)
         #f)))
 
@@ -5664,7 +5607,8 @@
                (path-mod-info (file-info path-mod #t #f)))
           (if path-mod-info
               (compile-and-get-mod path-mod path-mod-info py-__name__ py-__package__ #f)
-              #f)))))
+              #f
+              )))))
 
 (define-rts (import-from-sys.path sys.path __name__ py-__name__ py-__package__)
   (or (dict-get (sys.modules-get) py-__name__ #f)

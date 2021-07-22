@@ -130,6 +130,8 @@ distclean: clean
 	rm -f bin/zpc.bigloo.sh
 	rm -f bin/zpc.gambit
 	rm -f bin/zipi-compile-and-run.gambit
+	rm -f bin/zipi-compile-and-run.bigloo
+	rm -f bin/zipi-compile-and-run.bigloo.scm
 
 clean-dependencies:
 	rm -rf dependencies
