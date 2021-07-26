@@ -4094,7 +4094,7 @@ def py_pos_bintX(x: bint):
 
 @define_behavior
 def py_pos_boolX(x: bool):
-    return x
+    return py_int_from_host(py_int_to_host(x))
 
 @define_behavior
 def py_pos_floatX(x: float):

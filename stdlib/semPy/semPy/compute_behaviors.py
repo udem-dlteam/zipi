@@ -873,7 +873,14 @@ intrinsics_inverses = {
 }
 
 
-def simplify_intrinsic_call(fn, args, keywords):
+def maybe_simplify_intrinsic_call(node, rte):
+    if isinstance(node, ast.Call):
+        return simplify_intrinsic_call(node.func, node.args, node.keywords, rte)
+    else:
+        return node
+
+
+def simplify_intrinsic_call(fn, args, keywords, rte):
     if len(args) == 1 and not keywords:
         arg0 = args[0]
 
@@ -884,7 +891,14 @@ def simplify_intrinsic_call(fn, args, keywords):
             right_fn = arg0.func
 
             if (fn, right_fn) in intrinsics_inverses:
-                return arg0.args[0]
+                a = arg0.args[0]
+                if right_fn is ppy_intrinsic_py_int_to_host:
+                    # Check that the argument is indeed an int and not a bool
+                    # in which case intrinsics apply down casting
+                    if is_always_python_int(a, rte):
+                        return maybe_simplify_intrinsic_call(a, rte)
+                else:
+                    return maybe_simplify_intrinsic_call(a, rte)
 
     return ast.Call(fn, args, keywords)
 
@@ -894,7 +908,7 @@ def partial_eval_intrinsic_call(fn, args, keywords, rte, return_kind=ReturnKind.
         yield return_kind.do_return(intrinsic_eval_class_getattr_call(args, rte))
     elif isinstance(fn, PPYIntrinsic):
         # Cannot evaluate but can simplify
-        value = simplify_intrinsic_call(fn, args, keywords)
+        value = simplify_intrinsic_call(fn, args, keywords, rte)
         if isinstance(value, PPYValue):
             yield return_kind.do_return(value)
         else:
@@ -1368,6 +1382,28 @@ def is_always_host_bint(expr, rte):
 
         if isinstance(origin, ast.Call) and origin.func is ppy_intrinsic_py_int_to_host:
             return is_always_python_bint(origin.args[0], rte)
+    return False
+
+
+def is_always_python_int(expr, rte):
+    if isinstance(expr, PPYValue):
+        if expr.type in (ppy_intrinsic_bint, ppy_intrinsic_sint, ppy_int_class):
+            return True
+        origin = expr.origin
+
+        if isinstance(origin, ast.Call) and origin.func is ppy_intrinsic_py_int_from_host:
+            return True
+    return False
+
+
+def is_always_host_int(expr, rte):
+    if isinstance(expr, PPYValue):
+        if expr.type is ppy_intrinsic_bint:
+            return True
+        origin = expr.origin
+
+        if isinstance(origin, ast.Call) and origin.func is ppy_intrinsic_py_int_to_host:
+            return True
     return False
 
 

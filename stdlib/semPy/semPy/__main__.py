@@ -5,13 +5,13 @@ parser = argparse.ArgumentParser(description="Generate zipi decision tree and be
 parser.add_argument('semantics')
 parser.add_argument('builtins')
 parser.add_argument('-modules', nargs="+", default=[])
-parser.add_argument('-path', default=None)
+parser.add_argument('-o', default=None)
 parser.add_argument('--int-maxsize', dest='int_maxsize', type=int, default=-1)
 
 args = parser.parse_args()
 semantics_file = args.semantics
 builtins_file = args.builtins
-path = args.path
+path = args.o
 more_modules = args.modules
 int_maxsize = args.int_maxsize
 
