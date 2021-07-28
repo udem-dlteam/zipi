@@ -1204,10 +1204,9 @@
             (,$stop (vector-ref ,$indices 1))
             (,$step (vector-ref ,$indices 2))
             (,$res-len
-             (max 0 (ceiling (/ (- ,$stop ,$start) ,$step)))
-             #;(max 0 (quotient (+ (- ,$stop ,$start) ,$step 1) ,$step)))
+             (fxmax 0 (fx+ (fx- (fxquotient (fx- ,$start ,$stop) ,$step))
+                           (fxmin 1 (fxremainder (fx- ,$stop ,$start) ,$step)))))
             (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
-       (print "start " ,$start " " ,$stop " " ,$step)
        (let loop ((source ,$start) (target 0))
          (if (< target ,$res-len)
              (begin
@@ -1232,8 +1231,7 @@
   (let (($lst (gensym 'lst))
         ($len (gensym 'len))
         ($vec (gensym 'vec))
-        ($index (gensym 'index))
-        )
+        ($index (gensym 'index)))
     `(let* ((,$lst ,lst)
             (,$len (PyObjectList-len ,$lst))
             (,$vec (PyObjectList-vector ,$lst))
@@ -1270,9 +1268,7 @@
        (if (> ,$len ,$index)
            (py-str-from-string 1
                                (make-string 1 (string-ref ,$scheme-str ,$index)))
-           (py-throw-index-out-of-range "str")))
-
-    ))
+           (py-throw-index-out-of-range "str")))))
 
 (define-macro (py-getitem-strX-sliceY str slice)
   (let (($str (gensym 'str))
@@ -1291,7 +1287,9 @@
             (,$start (vector-ref ,$indices 0))
             (,$stop (vector-ref ,$indices 1))
             (,$step (vector-ref ,$indices 2))
-            (,$res-len (max 0 (quotient (+ (- ,$stop ,$start) ,$step 1) ,$step)))
+            (,$res-len
+             (fxmax 0 (fx+ (fx- (fxquotient (fx- ,$start ,$stop) ,$step))
+                           (fxmin 1 (fxremainder (fx- ,$stop ,$start) ,$step)))))
             (,$res-str (make-string ,$res-len #\0)))
        (let loop ((source ,$start) (target 0))
          (if (< target ,$res-len)
@@ -1318,7 +1316,9 @@
          (,$start (vector-ref ,$indices 0))
          (,$stop (vector-ref ,$indices 1))
          (,$step (vector-ref ,$indices 2))
-         (,$res-len (max 0 (quotient (+ (- ,$stop ,$start) ,$step 1) ,$step)))
+         (,$res-len
+          (fxmax 0 (fx+ (fx- (fxquotient (fx- ,$start ,$stop) ,$step))
+                        (fxmin 1 (fxremainder (fx- ,$stop ,$start) ,$step)))))
          (,$res-vec (make-vector ,$res-len #f)))
     (let loop ((source ,$start) (target 0))
       (if (< target ,$res-len)
