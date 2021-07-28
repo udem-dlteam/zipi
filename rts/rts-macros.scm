@@ -2725,7 +2725,6 @@
   `(py-setattribute-fallback ,obj ,attr ,val))
 
 (define-macro (py-getitem obj item)
-  #;`(py-getitem-fallback ,obj ,item)
   `(with-class-indices-info $py-getitem ,obj ,item))
 
 (define-macro ($py-getitem table-info obj item)
