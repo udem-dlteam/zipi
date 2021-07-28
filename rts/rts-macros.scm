@@ -1297,7 +1297,7 @@
                (string-set! ,$res-str target (string-ref ,$scheme-str source))
                (loop (+ source ,$step) (+ target 1)))
              (begin
-               (py-str-from-string ,$len ,$res-str)))))))
+               (py-str-from-string ,$res-len ,$res-str)))))))
 
 (define-macro (py-getitem-tupleX-sliceY tuple slice)
   (let (($tuple (gensym 'tuple))
@@ -2725,6 +2725,7 @@
   `(py-setattribute-fallback ,obj ,attr ,val))
 
 (define-macro (py-getitem obj item)
+  #;`(py-getitem-fallback ,obj ,item)
   `(with-class-indices-info $py-getitem ,obj ,item))
 
 (define-macro ($py-getitem table-info obj item)
