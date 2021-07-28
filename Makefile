@@ -45,7 +45,7 @@ install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi-$(PYTHONVERSION)
 
 install-bin: zipi-dirs
-	for file in zipi zipi.gambit zipi-compile-and-run.gambit zipi-compile-and-run.bigloo zipi.bigloo zpc zpc.gambit pysexp_script.py; \
+	for file in zipi zipi.gambit zipi-compile-and-run.gambit zipi.bigloo zpc zpc.gambit pysexp_script.py; \
 		do \
 		cat $(BUILDBINDIR)/$$file.in \
 			| sed -e "s|@RELEASE@|$(ZIPIRELEASE)|g" \
@@ -74,6 +74,9 @@ install-bin: zipi-dirs
 	  rm -rf $(ZIPIDEPDIR); \
 	  cp -r $(BUILDDEPDIR) $(ZIPIDEPDIR); \
 	fi
+	if [ -f $(BUILDBINDIR)/zipi-compile-and-run.bigloo ]; then \
+		cp $(BUILDBINDIR)/zipi-compile-and-run.bigloo $(ZIPIBINDIR); \
+  fi
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
 

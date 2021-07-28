@@ -503,6 +503,61 @@
                 py-builtin-Warning
                 py-builtin-ZeroDivisionError
 
+                (fl+ x y)
+                (fl* x y)
+                (fl/ x y)
+                (fl> x y)
+                (fl= x y)
+                (fl>= x y)
+                (fl< x y)
+                (fl<= x y)
+                (flexpt x y)
+                (flround x)
+                (flfloor x)
+                (flceiling x)
+                (fltruncate x)
+                (flexp x)
+                (fllog x #!optional y)
+                (flsqrt x)
+                (flnan? x)
+
+                (expm1 x)
+                (log1p x)
+                (flexpm1 x)
+                (fllog1p x)
+
+                (flcos x)
+                (flsin x)
+                (fltan x)
+                (flacos x)
+                (flasin x)
+                (flatan x #!optional y)
+                (flacosh x)
+                (flasinh x)
+                (flatanh x)
+                (flcosh x)
+                (flsinh x)
+                (fltanh x)
+
+                (acoshfl x)
+                (asinhfl x)
+                (atanhfl x)
+                (coshfl x)
+                (sinhfl x)
+                (tanhfl x)
+
+                (tanh x)
+                (cosh x)
+                (sinh x)
+                (atanh x)
+                (acosh x)
+                (asinh x)
+
+                (flcopysign x y)
+
+                (inline exact x)
+                #;(inline inexact x)
+
                 (native-builtin-__import__ ::bstring)
                 (py-throw-exception-with-message exc . msg)
 
@@ -580,8 +635,42 @@
 ;*    bigloo-compatibility                                             */
 ;*---------------------------------------------------------------------*/
 (define-macro (define-flop op x . y)
-   `(define-inline (,(symbol-append 'fl op) ,x ,@y)
+   `(define (,(symbol-append 'fl op) ,x ,@y)
        (,(symbol-append op 'fl) ,x ,@y)))
+
+(define (flcopysign x y)
+  (if (signbitfl y)
+      (abs x)
+      (- (abs x))))
+
+(define (expm1 x) (- (exp x) 1))
+(define (log1p x) (log (+ 1 x)))
+(define (flexpm1 x) (- (expfl x) 1))
+(define (fllog1p x) (logfl (+fl 1.0 x)))
+
+(define (sinh x) (/ (- (exp x) (exp (- x))) 2))
+(define (cosh x) (/ (+ (exp x) (exp (- x))) 2))
+(define (tanh x) (- 1 (/ 2 (+ 1 (exp (* 2 x))))))
+
+(define (sinhfl x) (/fl (-fl (expfl x) (expfl (negfl x))) 2.0))
+(define (coshfl x) (/fl (+fl (expfl x) (expfl (negfl x))) 2.0))
+(define (tanhfl x) (-fl 1.0 (/fl 2.0 (+fl 1.0 (expfl (*fl 2.0 x))))))
+
+(define (asinh x) (log (+ x (sqrt (+ (* x x) 1)))))
+(define (acosh x) (log (+ x (sqrt (- (* x x) 1)))))
+(define (atanh x) (* (/ 1 2) (log (/ (+ 1 x) (- 1 x)))))
+
+(define (asinhfl x) (logfl (+fl x (sqrtfl (+fl (*fl x x) 1.0)))))
+(define (acoshfl x) (logfl (+fl x (sqrtfl (-fl (*fl x x) 1.0)))))
+(define (atanhfl x) (*fl 0.5 (logfl (/fl (+fl 1.0 x) (-fl 1.0 x)))))
+
+(define (fllog x #!optional y)
+  (if y
+      (/ (log x)
+         (log y))
+      (log x)))
+
+(define flnan? nanfl?)
 
 (define-flop + x y)
 (define-flop * x y)
@@ -593,9 +682,34 @@
 (define-flop <= x y)
 (define-flop expt x y)
 (define-flop round x)
-(define-flop truncate x)
 (define-flop floor x)
 (define-flop ceiling x)
+(define-flop truncate x)
+(define-flop exp x)
+(define-flop sqrt x)
+(define-flop cos x)
+(define-flop sin x)
+(define-flop tan x)
+
+(define-flop acos x)
+(define-flop asin x)
+
+(define-flop atanh x)
+(define-flop acosh x)
+(define-flop asinh x)
+
+(define-flop cosh x)
+(define-flop sinh x)
+(define-flop tanh x)
+
+(define (flatan x #!optional y) (atanfl x y))
+
+
+
+#;(define-inline (exact x)
+  (inexact->exact x))
+#;(define-inline (inexact x)
+  (exact->inexact x))
 
 (define-macro (current-directory) (pwd))
 
