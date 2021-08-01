@@ -1185,6 +1185,9 @@
             (,$res-len (- ,$stop ,$start)))
        (py-list-from-scheme (vector-copy ,$vec ,$start ,$stop) ,res-len))))
 
+(define-macro (length-from-tuple start stop step)
+  `(max 0 (quotient (+ (- ,stop ,start) ,step (if (< ,step 0) 1 -1)) ,step)))
+
 (define-macro (py-getitem-listX-sliceY lst slice)
   (let (($list (gensym 'list))
         ($len (gensym 'len))
@@ -1203,16 +1206,18 @@
             (,$start (vector-ref ,$indices 0))
             (,$stop (vector-ref ,$indices 1))
             (,$step (vector-ref ,$indices 2))
-            (,$res-len
-             (fxmax 0 (fx+ (fx- (fxquotient (fx- ,$start ,$stop) ,$step))
-                           (fxmin 1 (fxremainder (fx- ,$stop ,$start) ,$step)))))
+            (,$res-len (length-from-tuple ,$start ,$stop ,$step))
             (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
+       #;(step)
        (let loop ((source ,$start) (target 0))
          (if (< target ,$res-len)
              (begin
                (vector-set! ,$res-vec target (vector-ref ,$vec source))
                (loop (+ source ,$step) (+ target 1)))
              (py-list-from-scheme ,$res-vec ,$res-len))))))
+
+(define-macro (index-in-length-range-inline index len)
+  `(and (< ,index ,len) (>= ,index (- ,len))) )
 
 (define-macro (py-getitem-listX-intY lst item)
   (let (($lst (gensym 'list))
@@ -1222,9 +1227,9 @@
     `(let* ((,$lst ,lst)
             (,$len (PyObjectList-len ,$lst))
             (,$vec (PyObjectList-vector ,$lst))
-            (,$i (py-int-to-scheme ,item)))
-      (if (index-in-length-range ,$i ,$len)
-        (vector-ref ,$vec (modulo ,$i ,$len))
+            (,$i (py-sint-to-scheme ,item)))
+      (if (index-in-length-range-inline ,$i ,$len)
+        (vector-ref ,$vec (if (##fx>= ,$i 0) ,$i (##fx+ ,$i ,$len)))
         (py-throw-index-out-of-range "list")))))
 
 (define-macro (py-getitem-listX-boolY lst bool)
@@ -1287,9 +1292,7 @@
             (,$start (vector-ref ,$indices 0))
             (,$stop (vector-ref ,$indices 1))
             (,$step (vector-ref ,$indices 2))
-            (,$res-len
-             (fxmax 0 (fx+ (fx- (fxquotient (fx- ,$start ,$stop) ,$step))
-                           (fxmin 1 (fxremainder (fx- ,$stop ,$start) ,$step)))))
+            (,$res-len (length-from-tuple ,$start ,$stop ,$step))
             (,$res-str (make-string ,$res-len #\0)))
        (let loop ((source ,$start) (target 0))
          (if (< target ,$res-len)
@@ -1316,9 +1319,7 @@
          (,$start (vector-ref ,$indices 0))
          (,$stop (vector-ref ,$indices 1))
          (,$step (vector-ref ,$indices 2))
-         (,$res-len
-          (fxmax 0 (fx+ (fx- (fxquotient (fx- ,$start ,$stop) ,$step))
-                        (fxmin 1 (fxremainder (fx- ,$stop ,$start) ,$step)))))
+         (,$res-len (length-from-tuple ,$start ,$stop ,$step))
          (,$res-vec (make-vector ,$res-len #f)))
     (let loop ((source ,$start) (target 0))
       (if (< target ,$res-len)
@@ -1821,7 +1822,7 @@
 
             ;; name   class-index  has-arithmetic-behavior   can-have-getter
           '((default        0               #t                   #t) ;; reserved spot for default semantics
-            (sint           1               #t                   #f)
+            (sint           1               #t                   #f) ;; some optimisations assume sint is at position 1
             (bint           2               #t                   #f)
             (bool           3               #t                   #f)
             (float          4               #t                   #f)
@@ -2724,19 +2725,116 @@
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
 
+
+
+
+
+
+
 (define-macro (py-getitem obj item)
   `(with-class-indices-info $py-getitem ,obj ,item))
 
-(define-macro ($py-getitem table-info obj item)
+(define-macro ($py-getitem indices-info obj item)
+  (define (type-index type)
+    (cadr (assq type indices-info)))
 
-  (let (($obj (gensym 'obj))
-        ($item (gensym 'item)))
+  (define (binary-switch var lst default)
+    (define (list-head ls n)
+      (if (= n 0)
+          '()
+          (cons (car ls) (list-head (cdr ls) (- n 1)))))
+
+    (if (<= (length lst) 3)
+        `(begin
+
+           (cond
+               ,@(map (lambda (x) `((##fx= ,var ,(car x))
+                                    ,(cadr x)
+                                    )) lst)
+             (else ,default)
+
+             )
+           )
+        (let* ((mid-length (quotient (length lst) 2))
+               (first-half (list-head lst mid-length))
+               (second-half (list-tail lst mid-length))
+               )
+          `(if (##fx< ,var ,(caar second-half))
+               ,(binary-switch var first-half default)
+
+               ,(binary-switch var second-half default)
+
+               )
+
+          )
+
+        ))
+
+
+  (let* (($obj (gensym 'obj))
+         ($item (gensym 'item))
+         ($index (gensym 'index))
+         (dispatch-list-info
+          '(
+            ((list sint) py-getitem-listX-intY-fallback)
+            ((list slice) py-getitem-listX-sliceY-fallback)
+            ((list bool) py-getitem-listX-boolY-fallback)
+
+
+            ((tuple sint) py-getitem-tupleX-intY-fallback)
+            ((tuple slice) py-getitem-tupleX-sliceY-fallback)
+            ((tuple bool) py-getitem-tupleX-boolY-fallback)
+
+            ((str sint) py-getitem-strX-intY-fallback)
+            ((str slice) py-getitem-strX-sliceY-fallback)
+            ((str bool) py-getitem-strX-boolY-fallback)
+            )
+          )
+         (dispatch-list
+          (map
+           (lambda (x)
+             (let ((type-obj (caar x))
+                   (type-item (cadar x))
+                   (func (cadr x)))
+               `(,(+
+                   (* (length indices-info)
+                      (type-index type-item))
+                   (type-index type-obj))
+
+                 (,func ,$obj ,$item))))
+           dispatch-list-info))
+         )
+
+
     `(let* ((,$obj ,obj)
-            (,$item ,item))
-       ((vector-ref getitem-behavior-dispatch-vector
-                    (+ (* ,(length table-info) (py-obj-class-index ,$obj)) (py-obj-class-index ,$item)))
-        ,$obj
-        ,$item))))
+            (,$item ,item)
+            (,$index (##fx+
+                      (if (##fixnum? ,$item)
+                          ,(* (type-index 'sint) (length indices-info))
+                          (if (##flonum? ,$item)
+                              ,(* (type-index 'float) (length indices-info))
+                              (##fx*
+                               ,(length indices-info)
+                               (py-obj-class-index-general ,$item)
+                               )
+                              ))
+
+                      (if (##fixnum? ,$obj)
+                          ,(type-index 'sint)
+                          (if (##flonum? ,$obj)
+                              ,(type-index 'float)
+                               (py-obj-class-index-general ,$obj)))))
+            )
+       ,(binary-switch
+         $index
+         (list-sort (lambda (x y) (< (car x) (car y))) dispatch-list)
+         `(py-getitem-fallback ,$obj ,$item)
+         )
+
+       )))
+
+
+
 
 (define-macro (py-setitem obj item value)
   `(py-setitem-fallback ,obj ,item ,value))

@@ -147,6 +147,8 @@
     py-to-float
     py-maybe-to-float
     py-index
+    index-in-length-range
+    index-in-length-range-inline
     py-maybe-index
     py-big-index
     py-maybe-big-index
@@ -164,6 +166,15 @@
     py-getitem-listX-intY-fallback
     py-getitem-listX-boolY-fallback
     py-getitem-listX-sliceY-fallback
+    py-getitem-strX-intY
+    py-getitem-strX-boolY
+    py-getitem-strX-sliceY
+    py-getitem-tupleX-intY
+    py-getitem-tupleX-boolY
+    py-getitem-tupleX-sliceY
+    py-getitem-listX-intY
+    py-getitem-listX-boolY
+    py-getitem-listX-sliceY
     getitem-behavior-dispatch-vector
     py-setitem
     py-delitem

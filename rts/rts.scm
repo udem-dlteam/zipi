@@ -2673,6 +2673,7 @@
 (bootstrap-type-hierarchy-phase1)
 
 (define-rts (py-getitem-listX-intY-fallback obj item)
+  (step)
   (py-getitem-listX-intY obj item))
 
 (define-rts (py-getitem-listX-boolY-fallback obj item)
