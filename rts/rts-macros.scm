@@ -1219,7 +1219,7 @@
 (define-macro (index-in-length-range-inline index len)
   `(and (< ,index ,len) (>= ,index (- ,len))) )
 
-(define-macro (py-getitem-listX-intY lst item)
+(define-macro (py-getitem-listX-sintY lst item)
   (let (($lst (gensym 'list))
         ($len (gensym 'len))
         ($vec (gensym 'vec))
@@ -1245,7 +1245,7 @@
            (vector-ref ,$vec ,$index)
            (py-throw-index-out-of-range "list")))))
 
-(define-macro (py-getitem-strX-intY str int)
+(define-macro (py-getitem-strX-sintY str int)
   (let (($str (gensym 'str))
         ($len (gensym 'len))
         ($scheme-str (gensym 'scheme-str))
@@ -1253,8 +1253,8 @@
     `(let* ((,$str ,str)
             (,$len (PyObjectStr-len ,$str))
             (,$scheme-str (py-str-to-scheme ,$str))
-            (,$i (py-int-to-scheme ,int)))
-       (if (index-in-length-range ,$i ,$len)
+            (,$i (py-sint-to-scheme ,int)))
+       (if (index-in-length-range-inline ,$i ,$len)
            (py-str-from-string 1
                                (make-string 1 (string-ref ,$scheme-str (modulo ,$i ,$len))))
            (py-throw-index-out-of-range "str")))))
@@ -1328,7 +1328,7 @@
           (loop (+ source ,$step) (+ target 1)))
         (py-tuple-from-scheme ,$res-vec))))))
 
-(define-macro (py-getitem-tupleX-intY tuple item)
+(define-macro (py-getitem-tupleX-sintY tuple item)
   (let (($tuple (gensym 'tuple))
         ($len (gensym 'len))
         ($vec (gensym 'vec))
@@ -1336,7 +1336,7 @@
     `(let* ((,$tuple ,tuple)
             (,$vec (PyObjectTuple-value ,$tuple))
             (,$len (vector-length ,$vec))
-            (,$i (py-int-to-scheme ,item)))
+            (,$i (py-sint-to-scheme ,item)))
       (if (index-in-length-range ,$i ,$len)
         (vector-ref ,$vec (modulo ,$i ,$len))
         (py-throw-index-out-of-range "tuple")))))
@@ -1838,8 +1838,7 @@
             (list_iterator  13              #f                   #f)
             (range          14              #f                   #f)
             (range_iterator 15              #f                   #f)
-            (slice          16              #f                   #f)
-            (dict           17              #f                   #f))))
+            (slice          16              #f                   #f))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -1953,18 +1952,15 @@
      (define-rts getitem-behavior-dispatch-vector
        (make-vector ,(expt (length indices-info) 2) py-getitem-fallback))
 
-     ,(add-case 'list 'sint 'py-getitem-listX-intY-fallback)
-     ,(add-case 'list 'bint 'py-getitem-listX-intY-fallback)
+     ,(add-case 'list 'sint 'py-getitem-listX-sintY-fallback)
      ,(add-case 'list 'slice 'py-getitem-listX-sliceY-fallback)
      ,(add-case 'list 'bool 'py-getitem-listX-boolY-fallback)
 
-     ,(add-case 'tuple 'sint 'py-getitem-tupleX-intY-fallback)
-     ,(add-case 'tuple 'bint 'py-getitem-tupleX-intY-fallback)
+     ,(add-case 'tuple 'sint 'py-getitem-tupleX-sintY-fallback)
      ,(add-case 'tuple 'slice 'py-getitem-tupleX-sliceY-fallback)
      ,(add-case 'tuple 'bool 'py-getitem-tupleX-boolY-fallback)
 
-     ,(add-case 'str 'sint 'py-getitem-strX-intY-fallback)
-     ,(add-case 'str 'bint 'py-getitem-strX-intY-fallback)
+     ,(add-case 'str 'sint 'py-getitem-strX-sintY-fallback)
      ,(add-case 'str 'slice 'py-getitem-strX-sliceY-fallback)
      ,(add-case 'str 'bool 'py-getitem-strX-boolY-fallback)
      ))
@@ -2776,16 +2772,16 @@
          ($index (gensym 'index))
          (dispatch-list-info
           '(
-            ((list sint) py-getitem-listX-intY-fallback)
+            ((list sint) py-getitem-listX-sintY-fallback)
             ((list slice) py-getitem-listX-sliceY-fallback)
             ((list bool) py-getitem-listX-boolY-fallback)
 
 
-            ((tuple sint) py-getitem-tupleX-intY-fallback)
+            ((tuple sint) py-getitem-tupleX-sintY-fallback)
             ((tuple slice) py-getitem-tupleX-sliceY-fallback)
             ((tuple bool) py-getitem-tupleX-boolY-fallback)
 
-            ((str sint) py-getitem-strX-intY-fallback)
+            ((str sint) py-getitem-strX-sintY-fallback)
             ((str slice) py-getitem-strX-sliceY-fallback)
             ((str bool) py-getitem-strX-boolY-fallback)
             )
