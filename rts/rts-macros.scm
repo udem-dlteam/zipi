@@ -1185,7 +1185,7 @@
             (,$res-len (- ,$stop ,$start)))
        (py-list-from-scheme (vector-copy ,$vec ,$start ,$stop) ,res-len))))
 
-(define-macro (length-from-tuple start stop step)
+(define-macro (get-slice-length start stop step)
   `(max 0 (quotient (+ (- ,stop ,start) ,step (if (< ,step 0) 1 -1)) ,step)))
 
 (define-macro (py-getitem-listX-sliceY lst slice)
@@ -1206,7 +1206,7 @@
             (,$start (vector-ref ,$indices 0))
             (,$stop (vector-ref ,$indices 1))
             (,$step (vector-ref ,$indices 2))
-            (,$res-len (length-from-tuple ,$start ,$stop ,$step))
+            (,$res-len (get-slice-length ,$start ,$stop ,$step))
             (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
        #;(step)
        (let loop ((source ,$start) (target 0))
@@ -1292,7 +1292,7 @@
             (,$start (vector-ref ,$indices 0))
             (,$stop (vector-ref ,$indices 1))
             (,$step (vector-ref ,$indices 2))
-            (,$res-len (length-from-tuple ,$start ,$stop ,$step))
+            (,$res-len (get-slice-length ,$start ,$stop ,$step))
             (,$res-str (make-string ,$res-len #\0)))
        (let loop ((source ,$start) (target 0))
          (if (< target ,$res-len)
@@ -1319,7 +1319,7 @@
          (,$start (vector-ref ,$indices 0))
          (,$stop (vector-ref ,$indices 1))
          (,$step (vector-ref ,$indices 2))
-         (,$res-len (length-from-tuple ,$start ,$stop ,$step))
+         (,$res-len (get-slice-length ,$start ,$stop ,$step))
          (,$res-vec (make-vector ,$res-len #f)))
     (let loop ((source ,$start) (target 0))
       (if (< target ,$res-len)
@@ -1945,8 +1945,8 @@
     `(vector-set! getitem-behavior-dispatch-vector
                  ,(+
                   (* (length indices-info)
-                     (type-index type-obj))
-                  (type-index type-item))
+                     (type-index type-item))
+                  (type-index type-obj))
                  ,func))
   `(begin
      (define-rts getitem-behavior-dispatch-vector
@@ -2824,7 +2824,8 @@
                               ,(type-index 'float)
                                (py-obj-class-index-general ,$obj)))))
             )
-       ,(binary-switch
+       ((##vector-ref getitem-behavior-dispatch-vector ,$index) ,$obj ,$item)
+       #;,(binary-switch
          $index
          (list-sort (lambda (x y) (< (car x) (car y))) dispatch-list)
          `(py-getitem-fallback ,$obj ,$item)

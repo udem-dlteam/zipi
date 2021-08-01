@@ -2145,7 +2145,7 @@
                (start (vector-ref slice-indices 0))
                (stop (vector-ref slice-indices 1))
                (step (vector-ref slice-indices 2))
-               (slice-len (max 0 (ceiling (/ (- stop start) step))))
+               (slice-len (get-slice-length start stop step))
                (slice-string (make-string slice-len)))
           (let loop ((source start) (target 0))
             (if (< target slice-len)
@@ -3212,7 +3212,8 @@
 
 (define-rts (list-set-extended-slice! lst start stop step vec len)
   (let ((self-vec (PyObjectList-vector lst))
-         (slice-len (max 0 (ceiling (/ (- stop start) step)))))
+         (slice-len (get-slice-length start stop step)))
+
     (if (= len slice-len)
       (let loop ((source 0) (target start))
         (if (< source len)
@@ -3362,7 +3363,7 @@
 (define-rts (list-del-extended-slice! lst start stop step)
   (let* ((len (PyObjectList-len lst))
         (vec (PyObjectList-vector lst))
-        (slice-len (max 0 (ceiling (/ (- stop start) step))))
+        (slice-len (get-slice-length start stop step))
         (abs-step (abs step))
         (first
           (if (> step 0)
@@ -3832,7 +3833,7 @@
     (make-signature posonlyargs: (self))))
 
 (define-rts (vector-slice vec start stop step)
-  (let* ((len (max 0 (ceiling (/ (- stop start) step))))
+  (let* ((len (get-slice-length start stop step))
         (out (make-vector len #f)))
     (let loop ((source start) (target 0))
       (if (< target len)
@@ -4030,7 +4031,7 @@
 
 (define-macro (define-slice-dynamic-vector name vref vset vmake vlist-empty)
   `(define-rts (,name vec start stop step)
-  (let* ((len (max 0 (ceiling (/ (- stop start) step))))
+  (let* ((len (get-slice-length start stop step))
         (inner-len (list-get-inner-len len))
         (out (,vmake inner-len ,vlist-empty)))
     (let loop ((source start) (target 0))
@@ -4087,7 +4088,7 @@
 (define-macro (define-set-extended-dynamic-vector name vref vset)
   `(define-rts (,name dvec start stop step vec len)
   (let ((self-vec (cdr dvec))
-        (slice-len (max 0 (ceiling (/ (- stop start) step)))))
+        (slice-len (get-slice-length start stop step)))
     (if (= len slice-len)
       (let loop ((src-index 0) (tgt-index start))
         (if (< src-index len)
