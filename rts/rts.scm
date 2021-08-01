@@ -2145,7 +2145,7 @@
                (start (vector-ref slice-indices 0))
                (stop (vector-ref slice-indices 1))
                (step (vector-ref slice-indices 2))
-               (slice-len (max 0 (ceiling (/ (- stop start) step))))
+               (slice-len (get-slice-length start stop step))
                (slice-string (make-string slice-len)))
           (let loop ((source start) (target 0))
             (if (< target slice-len)
@@ -2672,6 +2672,32 @@
 
 (bootstrap-type-hierarchy-phase1)
 
+(define-rts (py-getitem-listX-sintY-fallback obj item)
+  (py-getitem-listX-sintY obj item))
+
+(define-rts (py-getitem-listX-boolY-fallback obj item)
+  (py-getitem-listX-boolY obj item))
+
+(define-rts (py-getitem-listX-sliceY-fallback obj item)
+  (py-getitem-listX-sliceY obj item))
+
+(define-rts (py-getitem-tupleX-sintY-fallback obj item)
+  (py-getitem-tupleX-sintY obj item))
+
+(define-rts (py-getitem-tupleX-boolY-fallback obj item)
+  (py-getitem-tupleX-boolY obj item))
+
+(define-rts (py-getitem-tupleX-sliceY-fallback obj item)
+  (py-getitem-tupleX-sliceY obj item))
+
+(define-rts (py-getitem-strX-sintY-fallback obj item)
+  (py-getitem-strX-sintY obj item))
+
+(define-rts (py-getitem-strX-boolY-fallback obj item)
+  (py-getitem-strX-boolY obj item))
+
+(define-rts (py-getitem-strX-sliceY-fallback obj item)
+  (py-getitem-strX-sliceY obj item))
 ;; adds top-level behavior tables
 (init-behavior-dispatch-vector)
 
@@ -3155,7 +3181,7 @@
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-subtype-of-int? item)
-        (py-getitem-listX-intY self item))
+        (py-getitem-listX-sintY self item))
       ((py-isinstance? item py-slice-class)
         (py-getitem-listX-sliceY self item))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
@@ -3165,6 +3191,7 @@
   (procedure->py-function
     list-getitem
     (make-signature posonlyargs: (self item))))
+
 
 (define-rts (list-set-simple-slice! lst start stop vec len)
   (let* ((self-vec (PyObjectList-vector lst))
@@ -3185,7 +3212,8 @@
 
 (define-rts (list-set-extended-slice! lst start stop step vec len)
   (let ((self-vec (PyObjectList-vector lst))
-         (slice-len (max 0 (ceiling (/ (- stop start) step)))))
+         (slice-len (get-slice-length start stop step)))
+
     (if (= len slice-len)
       (let loop ((source 0) (target start))
         (if (< source len)
@@ -3335,7 +3363,7 @@
 (define-rts (list-del-extended-slice! lst start stop step)
   (let* ((len (PyObjectList-len lst))
         (vec (PyObjectList-vector lst))
-        (slice-len (max 0 (ceiling (/ (- stop start) step))))
+        (slice-len (get-slice-length start stop step))
         (abs-step (abs step))
         (first
           (if (> step 0)
@@ -3805,7 +3833,7 @@
     (make-signature posonlyargs: (self))))
 
 (define-rts (vector-slice vec start stop step)
-  (let* ((len (max 0 (ceiling (/ (- stop start) step))))
+  (let* ((len (get-slice-length start stop step))
         (out (make-vector len #f)))
     (let loop ((source start) (target 0))
       (if (< target len)
@@ -4003,7 +4031,7 @@
 
 (define-macro (define-slice-dynamic-vector name vref vset vmake vlist-empty)
   `(define-rts (,name vec start stop step)
-  (let* ((len (max 0 (ceiling (/ (- stop start) step))))
+  (let* ((len (get-slice-length start stop step))
         (inner-len (list-get-inner-len len))
         (out (,vmake inner-len ,vlist-empty)))
     (let loop ((source start) (target 0))
@@ -4060,7 +4088,7 @@
 (define-macro (define-set-extended-dynamic-vector name vref vset)
   `(define-rts (,name dvec start stop step vec len)
   (let ((self-vec (cdr dvec))
-        (slice-len (max 0 (ceiling (/ (- stop start) step)))))
+        (slice-len (get-slice-length start stop step)))
     (if (= len slice-len)
       (let loop ((src-index 0) (tgt-index start))
         (if (< src-index len)
