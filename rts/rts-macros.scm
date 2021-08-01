@@ -2750,17 +2750,17 @@
          ($item (gensym 'item)))
     `(let* ((,$obj ,obj)
             (,$item ,item))
-       ((##vector-ref
+       ((vector-ref
          getitem-behavior-dispatch-vector
          ;; calculating the index for the vector
-         (##fx+
+         (fx+
           ;; here we dont use directly py-obj-class-index because we can calculate
           ;; at compile time the multiplication in some cases
-          (if (##fixnum? ,$item)
+          (if (fixnum? ,$item)
               ,(* (type-index 'sint) (length indices-info))
-              (if (##flonum? ,$item)
+              (if (flonum? ,$item)
                   ,(* (type-index 'float) (length indices-info))
-                  (##fx*
+                  (fx*
                    ,(length indices-info)
                    (py-obj-class-index-general ,$item))))
           (py-obj-class-index ,$obj)))
