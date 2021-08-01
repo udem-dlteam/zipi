@@ -311,7 +311,8 @@
 
                 (py-make-module name package #!optional (path #f))
 
-                ;; (py-getitem ::PyObject ::obj ::obj)
+                ;;(py-getitem ::PyObject ::obj ::obj)
+                getitem-behavior-dispatch-vector
                 ;; (py-delitem ::PyObject ::obj ::obj)
                 ;; (py-setitem ::PyObject ::obj ::obj ::obj)
 

@@ -1232,7 +1232,7 @@
            (if (fx< ,$i ,$len)
                (vector-ref ,$vec ,$i)
                (py-throw-index-out-of-range "list"))
-           (if (fx>= ,$i (fx- ,$len))
+           (if (fx>= ,$i (fx- 0 ,$len))
                (vector-ref ,$vec (fx+ ,$i ,$len))
                (py-throw-index-out-of-range "list")))
        )))
@@ -1265,7 +1265,7 @@
                 1
                 (make-string 1 (string-ref ,$scheme-str ,$i)))
                (py-throw-index-out-of-range "str"))
-           (if (fx>= ,$i (fx- ,$len))
+           (if (fx>= ,$i (fx- 0 ,$len))
                (py-str-from-string
                 1
                 (make-string 1 (string-ref ,$scheme-str (fx+ ,$i ,$len))))
@@ -1353,7 +1353,7 @@
            (if (fx< ,$i ,$len)
                (vector-ref ,$vec ,$i)
                (py-throw-index-out-of-range "tuple"))
-           (if (fx>= ,$i (fx- ,$len))
+           (if (fx>= ,$i (fx- 0 ,$len))
                (vector-ref ,$vec (fx+ ,$i ,$len))
                (py-throw-index-out-of-range "tuple"))))))
 
