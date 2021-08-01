@@ -1952,6 +1952,8 @@
      (define-rts getitem-behavior-dispatch-vector
        (make-vector ,(expt (length indices-info) 2) py-getitem-fallback))
 
+     ;; TODO : bint should be added with indexError throws
+
      ,(add-case 'list 'sint 'py-getitem-listX-sintY-fallback)
      ,(add-case 'list 'slice 'py-getitem-listX-sliceY-fallback)
      ,(add-case 'list 'bool 'py-getitem-listX-boolY-fallback)
@@ -2772,6 +2774,7 @@
          ($index (gensym 'index))
          (dispatch-list-info
           '(
+            ;; bint should be added with indexError throws
             ((list sint) py-getitem-listX-sintY-fallback)
             ((list slice) py-getitem-listX-sliceY-fallback)
             ((list bool) py-getitem-listX-boolY-fallback)
