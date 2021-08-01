@@ -2739,12 +2739,6 @@
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
 
-
-
-
-
-
-
 (define-macro (py-getitem obj item)
   `(with-class-indices-info $py-getitem ,obj ,item))
 
@@ -2752,102 +2746,26 @@
   (define (type-index type)
     (cadr (assq type indices-info)))
 
-  (define (binary-switch var lst default)
-    (define (list-head ls n)
-      (if (= n 0)
-          '()
-          (cons (car ls) (list-head (cdr ls) (- n 1)))))
-
-    (if (<= (length lst) 3)
-        `(begin
-
-           (cond
-               ,@(map (lambda (x) `((##fx= ,var ,(car x))
-                                    ,(cadr x)
-                                    )) lst)
-             (else ,default)
-
-             )
-           )
-        (let* ((mid-length (quotient (length lst) 2))
-               (first-half (list-head lst mid-length))
-               (second-half (list-tail lst mid-length))
-               )
-          `(if (##fx< ,var ,(caar second-half))
-               ,(binary-switch var first-half default)
-
-               ,(binary-switch var second-half default)
-
-               )
-
-          )
-
-        ))
-
-
   (let* (($obj (gensym 'obj))
-         ($item (gensym 'item))
-         ($index (gensym 'index))
-         (dispatch-list-info
-          '(
-            ;; bint should be added with indexError throws
-            ((list sint) py-getitem-listX-sintY-fallback)
-            ((list slice) py-getitem-listX-sliceY-fallback)
-            ((list bool) py-getitem-listX-boolY-fallback)
-
-
-            ((tuple sint) py-getitem-tupleX-sintY-fallback)
-            ((tuple slice) py-getitem-tupleX-sliceY-fallback)
-            ((tuple bool) py-getitem-tupleX-boolY-fallback)
-
-            ((str sint) py-getitem-strX-sintY-fallback)
-            ((str slice) py-getitem-strX-sliceY-fallback)
-            ((str bool) py-getitem-strX-boolY-fallback)
-            )
-          )
-         (dispatch-list
-          (map
-           (lambda (x)
-             (let ((type-obj (caar x))
-                   (type-item (cadar x))
-                   (func (cadr x)))
-               `(,(+
-                   (* (length indices-info)
-                      (type-index type-item))
-                   (type-index type-obj))
-
-                 (,func ,$obj ,$item))))
-           dispatch-list-info))
-         )
-
-
+         ($item (gensym 'item)))
     `(let* ((,$obj ,obj)
-            (,$item ,item)
-            (,$index (##fx+
-                      ;; here we dont use directly py-obj-class-index because we can calculate
-                      ;; at compile time the multiplication in some cases
-                      (if (##fixnum? ,$item)
-                          ,(* (type-index 'sint) (length indices-info))
-                          (if (##flonum? ,$item)
-                              ,(* (type-index 'float) (length indices-info))
-                              (##fx*
-                               ,(length indices-info)
-                               (py-obj-class-index-general ,$item)
-                               )
-                              ))
-                      (py-obj-class-index ,$obj)))
-            )
-       ((##vector-ref getitem-behavior-dispatch-vector ,$index) ,$obj ,$item)
-       #;,(binary-switch
-         $index
-         (list-sort (lambda (x y) (< (car x) (car y))) dispatch-list)
-         `(py-getitem-fallback ,$obj ,$item)
-         )
-
-       )))
-
-
-
+            (,$item ,item))
+       ((##vector-ref
+         getitem-behavior-dispatch-vector
+         ;; calculating the index for the vector
+         (##fx+
+          ;; here we dont use directly py-obj-class-index because we can calculate
+          ;; at compile time the multiplication in some cases
+          (if (##fixnum? ,$item)
+              ,(* (type-index 'sint) (length indices-info))
+              (if (##flonum? ,$item)
+                  ,(* (type-index 'float) (length indices-info))
+                  (##fx*
+                   ,(length indices-info)
+                   (py-obj-class-index-general ,$item))))
+          (py-obj-class-index ,$obj)))
+        ,$obj
+        ,$item))))
 
 (define-macro (py-setitem obj item value)
   `(py-setitem-fallback ,obj ,item ,value))
