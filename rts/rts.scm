@@ -2672,9 +2672,8 @@
 
 (bootstrap-type-hierarchy-phase1)
 
-(define-rts (py-getitem-listX-intY-fallback obj item)
-  (step)
-  (py-getitem-listX-intY obj item))
+(define-rts (py-getitem-listX-sintY-fallback obj item)
+  (py-getitem-listX-sintY obj item))
 
 (define-rts (py-getitem-listX-boolY-fallback obj item)
   (py-getitem-listX-boolY obj item))
@@ -2682,8 +2681,8 @@
 (define-rts (py-getitem-listX-sliceY-fallback obj item)
   (py-getitem-listX-sliceY obj item))
 
-(define-rts (py-getitem-tupleX-intY-fallback obj item)
-  (py-getitem-tupleX-intY obj item))
+(define-rts (py-getitem-tupleX-sintY-fallback obj item)
+  (py-getitem-tupleX-sintY obj item))
 
 (define-rts (py-getitem-tupleX-boolY-fallback obj item)
   (py-getitem-tupleX-boolY obj item))
@@ -2691,8 +2690,8 @@
 (define-rts (py-getitem-tupleX-sliceY-fallback obj item)
   (py-getitem-tupleX-sliceY obj item))
 
-(define-rts (py-getitem-strX-intY-fallback obj item)
-  (py-getitem-strX-intY obj item))
+(define-rts (py-getitem-strX-sintY-fallback obj item)
+  (py-getitem-strX-sintY obj item))
 
 (define-rts (py-getitem-strX-boolY-fallback obj item)
   (py-getitem-strX-boolY obj item))
@@ -3182,7 +3181,7 @@
   (if (py-isinstance? self py-list-class)
     (cond
       ((py-subtype-of-int? item)
-        (py-getitem-listX-intY self item))
+        (py-getitem-listX-sintY self item))
       ((py-isinstance? item py-slice-class)
         (py-getitem-listX-sliceY self item))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))

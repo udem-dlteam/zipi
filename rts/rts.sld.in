@@ -157,22 +157,22 @@
 
     $py-getitem
     py-getitem
-    py-getitem-strX-intY-fallback
+    py-getitem-strX-sintY-fallback
     py-getitem-strX-boolY-fallback
     py-getitem-strX-sliceY-fallback
-    py-getitem-tupleX-intY-fallback
+    py-getitem-tupleX-sintY-fallback
     py-getitem-tupleX-boolY-fallback
     py-getitem-tupleX-sliceY-fallback
-    py-getitem-listX-intY-fallback
+    py-getitem-listX-sintY-fallback
     py-getitem-listX-boolY-fallback
     py-getitem-listX-sliceY-fallback
-    py-getitem-strX-intY
+    py-getitem-strX-sintY
     py-getitem-strX-boolY
     py-getitem-strX-sliceY
-    py-getitem-tupleX-intY
+    py-getitem-tupleX-sintY
     py-getitem-tupleX-boolY
     py-getitem-tupleX-sliceY
-    py-getitem-listX-intY
+    py-getitem-listX-sintY
     py-getitem-listX-boolY
     py-getitem-listX-sliceY
     getitem-behavior-dispatch-vector
