@@ -1228,9 +1228,14 @@
             (,$len (PyObjectList-len ,$lst))
             (,$vec (PyObjectList-vector ,$lst))
             (,$i (py-sint-to-scheme ,item)))
-      (if (index-in-length-range-inline ,$i ,$len)
-        (vector-ref ,$vec (if (##fx>= ,$i 0) ,$i (##fx+ ,$i ,$len)))
-        (py-throw-index-out-of-range "list")))))
+       (if (fx>= ,$i 0)
+           (if (fx< ,$i ,$len)
+               (vector-ref ,$vec ,$i)
+               (py-throw-index-out-of-range "list"))
+           (if (fx>= ,$i (fx- ,$len))
+               (vector-ref ,$vec (fx+ ,$i ,$len))
+               (py-throw-index-out-of-range "list")))
+       )))
 
 (define-macro (py-getitem-listX-boolY lst bool)
   (let (($lst (gensym 'lst))
@@ -1254,10 +1259,17 @@
             (,$len (PyObjectStr-len ,$str))
             (,$scheme-str (py-str-to-scheme ,$str))
             (,$i (py-sint-to-scheme ,int)))
-       (if (index-in-length-range-inline ,$i ,$len)
-           (py-str-from-string 1
-                               (make-string 1 (string-ref ,$scheme-str (modulo ,$i ,$len))))
-           (py-throw-index-out-of-range "str")))))
+       (if (fx>= ,$i 0)
+           (if (fx< ,$i ,$len)
+               (py-str-from-string
+                1
+                (make-string 1 (string-ref ,$scheme-str ,$i)))
+               (py-throw-index-out-of-range "str"))
+           (if (fx>= ,$i (fx- ,$len))
+               (py-str-from-string
+                1
+                (make-string 1 (string-ref ,$scheme-str (fx+ ,$i ,$len))))
+               (py-throw-index-out-of-range "str"))))))
 
 (define-macro (py-getitem-strX-boolY str bool)
   (let (($str (gensym 'str))
@@ -1337,9 +1349,13 @@
             (,$vec (PyObjectTuple-value ,$tuple))
             (,$len (vector-length ,$vec))
             (,$i (py-sint-to-scheme ,item)))
-      (if (index-in-length-range ,$i ,$len)
-        (vector-ref ,$vec (modulo ,$i ,$len))
-        (py-throw-index-out-of-range "tuple")))))
+       (if (fx>= ,$i 0)
+           (if (fx< ,$i ,$len)
+               (vector-ref ,$vec ,$i)
+               (py-throw-index-out-of-range "tuple"))
+           (if (fx>= ,$i (fx- ,$len))
+               (vector-ref ,$vec (fx+ ,$i ,$len))
+               (py-throw-index-out-of-range "tuple"))))))
 
 (define-macro (py-getitem-tupleX-boolY tuple bool)
   (let (($tuple (gensym 'tuple))
