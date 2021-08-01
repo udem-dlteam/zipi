@@ -1838,7 +1838,7 @@
 
             ;; name   class-index  has-arithmetic-behavior   can-have-getter
           '((default        0               #t                   #t) ;; reserved spot for default semantics
-            (sint           1               #t                   #f) 
+            (sint           1               #t                   #f)
             (bint           2               #t                   #f)
             (bool           3               #t                   #f)
             (float          4               #t                   #f)
@@ -2824,6 +2824,8 @@
     `(let* ((,$obj ,obj)
             (,$item ,item)
             (,$index (##fx+
+                      ;; here we dont use directly py-obj-class-index because we can calculate
+                      ;; at compile time the multiplication in some cases
                       (if (##fixnum? ,$item)
                           ,(* (type-index 'sint) (length indices-info))
                           (if (##flonum? ,$item)
@@ -2833,12 +2835,7 @@
                                (py-obj-class-index-general ,$item)
                                )
                               ))
-
-                      (if (##fixnum? ,$obj)
-                          ,(type-index 'sint)
-                          (if (##flonum? ,$obj)
-                              ,(type-index 'float)
-                               (py-obj-class-index-general ,$obj)))))
+                      (py-obj-class-index ,$obj)))
             )
        ((##vector-ref getitem-behavior-dispatch-vector ,$index) ,$obj ,$item)
        #;,(binary-switch
