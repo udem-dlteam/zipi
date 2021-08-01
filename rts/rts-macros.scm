@@ -1838,7 +1838,7 @@
 
             ;; name   class-index  has-arithmetic-behavior   can-have-getter
           '((default        0               #t                   #t) ;; reserved spot for default semantics
-            (sint           1               #t                   #f) ;; some optimisations assume sint is at position 1
+            (sint           1               #t                   #f) 
             (bint           2               #t                   #f)
             (bool           3               #t                   #f)
             (float          4               #t                   #f)
