@@ -31,6 +31,7 @@
 
 ;; mark-body-usage* annotates PycRef which can be accessed without checking if the variable is referenced before assignment
 ;; it returns a list of references (PycVar) which can be accessed directly after the given statement
+;; TODO: whenever there is a possible call to 'exec' we must drop all names which can be direct accessed
 (define-walk-method (mark-body-usage* this::PycNode locals-can-direct-access conf)
   (call-default-walker))
 
