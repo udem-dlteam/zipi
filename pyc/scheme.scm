@@ -1569,9 +1569,14 @@
   	    ,(pyc-propname (PycAccess-field this))))))
 
 (define-walk-method (scheme this::PycSubscript conf)
-   (epairify this
-      `(py-getitem ,(scheme (PycSubscript-obj this) conf)
-	  ,(scheme (PycSubscript-index this) conf))))
+  (epairify
+   this
+   (let ((obj (PycSubscript-obj this))
+         (index (PycSubscript-index this)))
+     `(py-getitem ,(scheme obj conf)
+                  ,(PycExpr-type obj)
+                  ,(scheme index conf)
+                  ,(PycExpr-type index)))))
 
 (define-walk-method (scheme this::PycSlice conf)
   (let ((lower (PycSlice-lower this))
