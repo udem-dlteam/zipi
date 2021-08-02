@@ -26,12 +26,15 @@
   (call-default-walker))
 
 (define-walk-method (mark-global-functions-usage! this::PycFun conf)
-  (mark-body-usage! this '() conf))
+  (mark-body-usage* this '() conf)
+  this)
 
-(define-walk-method (mark-body-usage! this::PycNode locals-can-direct-access conf)
+;; mark-body-usage* annotates PycRef which can be accessed without checking if the variable is referenced before assignment
+;; it returns a list of references (PycVar) which can be accessed directly after the given statement
+(define-walk-method (mark-body-usage* this::PycNode locals-can-direct-access conf)
   (call-default-walker))
 
-(define-walk-method (mark-body-usage! this::PycFun locals-can-direct-access conf)
+(define-walk-method (mark-body-usage* this::PycFun locals-can-direct-access conf)
   (let ((arg-vars
           (append
             (PycFun-posonlyargs this)
@@ -40,46 +43,77 @@
             (let ((vararg (PycFun-vararg this))) (if vararg (list vararg) '()))
             (let ((kwarg (PycFun-kwarg this))) (if kwarg (list kwarg) '()))
             )))
-    (PycFun-decorators-set!
-      this
-      (map (lambda (d) (mark-body-usage! d locals-can-direct-access conf)) (PycFun-decorators this)))
-    (PycFun-defaults-set!
-      this
-      (map (lambda (d) (mark-body-usage! d locals-can-direct-access conf)) (PycFun-defaults this)))
-    (PycFun-kw-defaults-set!
-      this
-      (map (lambda (d) (mark-body-usage! d locals-can-direct-access conf)) (PycFun-kw-defaults this)))
-    (PycFun-body-set!
-      this
-      (mark-body-usage! (PycFun-body this) arg-vars conf))
-    this))
+    (for-each (lambda (d) (mark-body-usage* d locals-can-direct-access conf)) (PycFun-decorators this))
+    (for-each (lambda (d) (mark-body-usage* d locals-can-direct-access conf)) (PycFun-defaults this))
+    (for-each (lambda (d) (mark-body-usage* d locals-can-direct-access conf)) (PycFun-kw-defaults this))
+    (mark-body-usage* (PycFun-body this) arg-vars conf)
+    locals-can-direct-access))
 
-(define-walk-method (mark-body-usage! this::PycSeq locals-can-direct-access conf)
+(define-walk-method (mark-body-usage* this::PycSeq locals-can-direct-access conf)
   (let loop ((nodes (PycSeq-nodes this))
              (locals-can-direct-access locals-can-direct-access))
-    (cond
-      ((null? nodes)
-        this)
-      ((isa? (car nodes) PycAssig)
-        (let ((lhs (PycAssig-lhs (car nodes)))
-              (rhs (PycAssig-rhs (car nodes))))
-          (if (and (isa? lhs PycRef)
-                   (eq? (PycVar-scope (PycRef-decl lhs)) 'local))
-            (begin
-              (PycAssig-rhs-set! (car nodes) (mark-body-usage! rhs locals-can-direct-access conf))
-              (loop (cdr nodes) (cons (PycRef-decl lhs) locals-can-direct-access)))
-            (loop (cdr nodes) locals-can-direct-access))))
-      (else
-        (begin
-          (set-car! nodes (mark-body-usage! (car nodes) locals-can-direct-access conf))
-          (loop (cdr nodes) locals-can-direct-access))))))
+    (if (null? nodes)
+      locals-can-direct-access
+      (loop (cdr nodes) (mark-body-usage* (car nodes) locals-can-direct-access conf)))))
 
-(define-walk-method (mark-body-usage! this::PycRef locals-can-direct-access conf)
-  (if (and (eq? (PycRef-ctx this) 'Load)
-           (not (PycVar-can-be-deleted (PycRef-decl this)))
+(define-walk-method (mark-body-usage* this::PycAssig locals-can-direct-access conf)
+  (let ((lhs (PycAssig-lhs this))
+        (rhs (PycAssig-rhs this)))
+    (mark-body-usage* lhs locals-can-direct-access conf)
+    (mark-body-usage* rhs locals-can-direct-access conf)
+    (if (and (isa? lhs PycRef)
+             (eq? (PycVar-scope (PycRef-decl lhs)) 'local))
+      (cons (PycRef-decl lhs) locals-can-direct-access)
+      locals-can-direct-access)))
+
+(define-walk-method (mark-body-usage* this::PycWhile locals-can-direct-access conf)
+  (let ((test (PycWhile-test this))
+        (body (PycLoop-body this))
+        (orelse (PycLoop-else this)))
+    (mark-body-usage* test locals-can-direct-access conf)
+    (mark-body-usage* body locals-can-direct-access conf)
+    (mark-body-usage* orelse locals-can-direct-access conf)
+  locals-can-direct-access))
+
+(define-walk-method (mark-body-usage* this::PycFor locals-can-direct-access conf)
+  (let ((iter (PycFor-iter this))
+        (target (PycFor-target this))
+        (body (PycLoop-body this))
+        (orelse (PycLoop-else this)))
+    (mark-body-usage* target locals-can-direct-access conf)
+    (mark-body-usage* iter locals-can-direct-access conf)
+    (mark-body-usage*
+      body
+      (if (and (isa? target PycRef)
+               (eq? (PycVar-scope (PycRef-decl target)) 'local))
+          (cons (PycRef-decl target) locals-can-direct-access)
+          locals-can-direct-access)
+      conf)
+    (mark-body-usage* orelse locals-can-direct-access conf)
+  locals-can-direct-access))
+
+(define (list-intersection l1 l2)
+  (cond
+    ((null? l1) '())
+    ((memq (car l1) l2)
+      (cons (car l1)
+            (list-intersection (cdr l1) l2)))
+    (else (list-intersection (cdr l1) l2))))
+
+(define-walk-method (mark-body-usage* this::PycIf locals-can-direct-access conf)
+  (let ((test (PycIf-test this))
+        (then (PycIf-then this))
+        (orelse (PycIf-else this)))
+    (mark-body-usage* test locals-can-direct-access conf)
+    (list-intersection
+      (mark-body-usage* then locals-can-direct-access conf)
+      (mark-body-usage* orelse locals-can-direct-access conf))))
+
+(define-walk-method (mark-body-usage* this::PycRef locals-can-direct-access conf)
+  (if (and (not (PycVar-can-be-deleted (PycRef-decl this)))
            (memq (PycRef-decl this) locals-can-direct-access))
     (PycRef-can-direct-access-set! this #t))
-  this)
+  locals-can-direct-access)
 
 (define-walk-method (mark-assig! this::PycNode conf)
   (call-default-walker))
