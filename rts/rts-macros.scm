@@ -1264,12 +1264,12 @@
                (py-str-from-string
                 1
                 (make-string 1 (string-ref ,$scheme-str ,$i)))
-               (py-throw-index-out-of-range "str"))
+               (py-throw-index-out-of-range "string"))
            (if (fx>= ,$i (fx- 0 ,$len))
                (py-str-from-string
                 1
                 (make-string 1 (string-ref ,$scheme-str (fx+ ,$i ,$len))))
-               (py-throw-index-out-of-range "str"))))))
+               (py-throw-index-out-of-range "string"))))))
 
 (define-macro (py-getitem-strX-boolY str bool)
   (let (($str (gensym 'str))
@@ -1285,7 +1285,7 @@
        (if (> ,$len ,$index)
            (py-str-from-string 1
                                (make-string 1 (string-ref ,$scheme-str ,$index)))
-           (py-throw-index-out-of-range "str")))))
+           (py-throw-index-out-of-range "string")))))
 
 (define-macro (py-getitem-strX-sliceY str slice)
   (let (($str (gensym 'str))
