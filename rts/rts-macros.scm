@@ -2739,33 +2739,71 @@
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
 
-(define-macro (py-getitem obj item)
-  `(with-class-indices-info $py-getitem ,obj ,item))
+(define-macro (py-getitem obj item . args)
+  (let* ((types (memq types: args))
+         (obj-type (and types (caadr types)))
+         (item-type (and types (cadadr types))))
+    `(with-class-indices-info $py-getitem ,obj ,item ,obj-type ,item-type)))
 
-(define-macro ($py-getitem indices-info obj item)
+(define-macro ($py-getitem indices-info obj item obj-type item-type)
   (define (type-index type)
-    (cadr (assq type indices-info)))
+    (let ((type (assq type indices-info)))
+      (if type
+          (cadr type)
+          (cadr type))))
 
   (let* (($obj (gensym 'obj))
-         ($item (gensym 'item)))
+         ($item (gensym 'item))
+         ($index (gensym 'index))
+         ;; types that can be inlined, else its gonna be py-getitem-fallback that will be inlined
+         (allowed-types '((list sint)
+                          (list slice)
+                          (list bool)
+
+                          (tuple sint)
+                          (tuple slice)
+                          (tuple bool)
+
+                          (str sint)
+                          (str slice)
+                          (str bool)
+                          )))
     `(let* ((,$obj ,obj)
-            (,$item ,item))
-       ((vector-ref
-         getitem-behavior-dispatch-vector
-         ;; calculating the index for the vector
-         (fx+
-          ;; here we dont use directly py-obj-class-index because we can calculate
-          ;; at compile time the multiplication in some cases
-          (if (fixnum? ,$item)
-              ,(* (type-index 'sint) (length indices-info))
-              (if (flonum? ,$item)
-                  ,(* (type-index 'float) (length indices-info))
-                  (fx*
-                   ,(length indices-info)
-                   (py-obj-class-index-general ,$item))))
-          (py-obj-class-index ,$obj)))
-        ,$obj
-        ,$item))))
+            (,$item ,item)
+            (,$index (fx+
+                      ;; here we dont use directly py-obj-class-index because we can calculate
+                      ;; at compile time the multiplication in some cases
+                      (if (fixnum? ,$item)
+                          ,(* (type-index 'sint) (length indices-info))
+                          (if (flonum? ,$item)
+                              ,(* (type-index 'float) (length indices-info))
+                              (fx*
+                               ,(length indices-info)
+                               (py-obj-class-index-general ,$item))))
+                      (py-obj-class-index ,$obj))))
+       ,(if (and obj-type
+                 item-type
+                 (member (list obj-type item-type) allowed-types))
+            `(if (fx= ,$index ,(+ (* (type-index item-type) (length indices-info)) (type-index obj-type)))
+                 (,(string->symbol
+                    (string-append
+                     "py-getitem-"
+                     (symbol->string obj-type)
+                     "X-"
+                     (symbol->string item-type)
+                     "Y"))
+                  ,$obj
+                  ,$item)
+                 ((vector-ref
+                   getitem-behavior-dispatch-vector
+                   ,$index)
+                  ,$obj
+                  ,$item))
+            `((vector-ref
+               getitem-behavior-dispatch-vector
+               ,$index)
+              ,$obj
+              ,$item)))))
 
 (define-macro (py-setitem obj item value)
   `(py-setitem-fallback ,obj ,item ,value))

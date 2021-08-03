@@ -1568,10 +1568,30 @@
         ,(scheme (PycAccess-obj this) conf)
   	    ,(pyc-propname (PycAccess-field this))))))
 
+(define (infer-type conf func . args)
+  (define (any lst)
+    (if (pair? lst)
+        (if (car lst)
+            #t
+            (any (cdr lst)))
+        #f))
+
+  (let ((type-list (map PycExpr-type args))
+        (args (map (lambda (x) (scheme x conf)) args)))
+    (if (any type-list)
+        `(,func
+          ,@args
+          types: (,@type-list))
+        `(,func ,@args)
+        )))
+
 (define-walk-method (scheme this::PycSubscript conf)
-   (epairify this
-      `(py-getitem ,(scheme (PycSubscript-obj this) conf)
-	  ,(scheme (PycSubscript-index this) conf))))
+  (epairify
+   this
+   (infer-type conf
+               'py-getitem
+               (PycSubscript-obj this)
+               (PycSubscript-index this))))
 
 (define-walk-method (scheme this::PycSlice conf)
   (let ((lower (PycSlice-lower this))

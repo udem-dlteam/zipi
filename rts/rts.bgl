@@ -346,6 +346,7 @@
 
                 (py-throw ::obj)
                 (py-throw-with-values exc . values)
+                (py-throw-index-out-of-range type)
                 (inline py-try-except-else handler body orelse)
                 (inline py-try-except handler body)
                 (inline py-throw-unsafe exc)

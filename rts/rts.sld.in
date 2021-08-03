@@ -157,6 +157,7 @@
 
     $py-getitem
     py-getitem
+    py-getitem-type
     py-getitem-strX-sintY-fallback
     py-getitem-strX-boolY-fallback
     py-getitem-strX-sliceY-fallback
