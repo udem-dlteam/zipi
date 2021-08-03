@@ -1576,21 +1576,24 @@
             (any (cdr lst)))
         #f))
 
-  (let ((type-list (map PycExpr-type args)))
-    (if (any type-list) ;; possible flag to disable infered types
+  (let ((type-list (map PycExpr-type args))
+        (args (map (lambda (x) (scheme x conf)) args)))
+    (if (any type-list)
         `(,(string->symbol (string-append (symbol->string func) "-type"))
-          ,@(map (lambda (x) (scheme x conf)) args)
+          ,@args
           ,@type-list)
-        `(func ,@args)
+        `(,func ,@args)
         )))
 
 (define-walk-method (scheme this::PycSubscript conf)
   (epairify
    this
-   (infer-type conf
-               'py-getitem
-               (PycSubscript-obj this)
-               (PycSubscript-index this))
+   `(begin
+      ,(infer-type conf
+                  'py-getitem
+                  (PycSubscript-obj this)
+                  (PycSubscript-index this))
+      )
    #;`(infer-type py-getitem
                 ,(scheme (PycSubscript-obj this) conf)
                 ,(scheme (PycSubscript-index this) conf))))

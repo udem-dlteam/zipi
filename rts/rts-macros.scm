@@ -2805,16 +2805,9 @@
                ,$index
                )
               ,$obj
-              ,$item)
+              ,$item
+              )
             )
-       ((vector-ref
-         getitem-behavior-dispatch-vector
-         ,$index
-         )
-        ,$obj
-        ,$item)
-
-
        )))
 
 (define-macro (py-setitem obj item value)
