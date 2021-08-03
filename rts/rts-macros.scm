@@ -2743,8 +2743,7 @@
   `(with-class-indices-info $py-getitem ,obj ,item #f #f))
 
 (define-macro (py-getitem-type obj item obj-type item-info)
-  `(with-class-indices-info $py-getitem ,obj ,item ,obj-type ,item-info)
-  )
+  `(with-class-indices-info $py-getitem ,obj ,item ,obj-type ,item-info))
 
 (define-macro ($py-getitem indices-info obj item obj-type item-type)
   (define (type-index type)
@@ -2758,8 +2757,7 @@
   (let* (($obj (gensym 'obj))
          ($item (gensym 'item))
          ($index (gensym 'index))
-         ;; types qui peuvent être inliné (sinon c'est py-getitem-fallback)
-         ;; qui va prendre le dessus
+         ;; types that can be inlined, else its gonna be py-getitem-fallback that will be inlined
          (allowed-types '((list sint)
                           (list slice)
                           (list bool)
@@ -2771,7 +2769,6 @@
                           (str sint)
                           (str slice)
                           (str bool)
-
                           )))
     `(let* ((,$obj ,obj)
             (,$item ,item)
@@ -2795,20 +2792,14 @@
                   ,$item)
                  ((vector-ref
                    getitem-behavior-dispatch-vector
-                   ,$index
-                   )
+                   ,$index)
                   ,$obj
-                  ,$item)
-                 )
+                  ,$item))
             `((vector-ref
                getitem-behavior-dispatch-vector
-               ,$index
-               )
+               ,$index)
               ,$obj
-              ,$item
-              )
-            )
-       )))
+              ,$item)))))
 
 (define-macro (py-setitem obj item value)
   `(py-setitem-fallback ,obj ,item ,value))
