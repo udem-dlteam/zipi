@@ -1588,11 +1588,10 @@
 (define-walk-method (scheme this::PycSubscript conf)
   (epairify
    this
-   `(begin
-      ,(infer-type conf
-                  'py-getitem
-                  (PycSubscript-obj this)
-                  (PycSubscript-index this))))
+   (infer-type conf
+               'py-getitem
+               (PycSubscript-obj this)
+               (PycSubscript-index this))))
 
 (define-walk-method (scheme this::PycSlice conf)
   (let ((lower (PycSlice-lower this))
