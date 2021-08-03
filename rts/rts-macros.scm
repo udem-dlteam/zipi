@@ -2739,11 +2739,11 @@
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
 
-(define-macro (py-getitem obj item)
-  `(with-class-indices-info $py-getitem ,obj ,item #f #f))
-
-(define-macro (py-getitem-type obj item obj-type item-info)
-  `(with-class-indices-info $py-getitem ,obj ,item ,obj-type ,item-info))
+(define-macro (py-getitem obj item . args)
+  (let* ((types (memq types: args))
+         (obj-type (and types (caadr types)))
+         (item-type (and types (cadadr types))))
+    `(with-class-indices-info $py-getitem ,obj ,item ,obj-type ,item-type)))
 
 (define-macro ($py-getitem indices-info obj item obj-type item-type)
   (define (type-index type)

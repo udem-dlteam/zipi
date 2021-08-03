@@ -1579,9 +1579,9 @@
   (let ((type-list (map PycExpr-type args))
         (args (map (lambda (x) (scheme x conf)) args)))
     (if (any type-list)
-        `(,(string->symbol (string-append (symbol->string func) "-type"))
+        `(,func
           ,@args
-          ,@type-list)
+          types: (,@type-list))
         `(,func ,@args)
         )))
 
