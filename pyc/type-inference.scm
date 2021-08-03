@@ -8,7 +8,7 @@
 (define (append-type table var type)
   (list (cons var type)))
 
-(define (combine-types type1 type2)
+(define (combine-types type1 type2 op)
   (if type1
       (if type2
           type1 ;; for now we default to taking the first one
@@ -38,6 +38,7 @@
 (define-literal-type-inference this::PycTuple  'tuple)
 (define-literal-type-inference this::PycDict   'dict)
 (define-literal-type-inference this::PycSet    'set)
+(define-literal-type-inference this::PycSlice  'slice)
 
 (define-walk-method (type-inference* this::PycNumber table)
   (let ((val (PycLiteralValue-val this)))
@@ -54,7 +55,7 @@
          (type-rhs (PycExpr-type rhs))
          (type-lhs (PycExpr-type lhs)))
 
-    (type-set! this (combine-types type-rhs type-lhs))
+    (type-set! this (combine-types type-rhs type-lhs (PycBinary-op this)))
     (list-union table-rhs table-lhs)))
 
 

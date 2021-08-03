@@ -2781,17 +2781,17 @@
                                ,(length indices-info)
                                (py-obj-class-index-general ,$item))))
                       (py-obj-class-index ,$obj))))
-       ,(if (and obj-type item-type)
+       ,(if (and obj-type
+                 item-type
+                 (member (list obj-type item-type) allowed-types))
             `(if (fx= ,$index ,(+ (* (type-index item-type) (length indices-info)) (type-index obj-type)))
-                 (,(if (member (list obj-type item-type) allowed-types)
-                       (string->symbol
-                        (string-append
-                         "py-getitem-"
-                         (symbol->string obj-type)
-                         "X-"
-                         (symbol->string item-type)
-                         "Y"))
-                       'py-getitem-fallback)
+                 (,(string->symbol
+                    (string-append
+                     "py-getitem-"
+                     (symbol->string obj-type)
+                     "X-"
+                     (symbol->string item-type)
+                     "Y"))
                   ,$obj
                   ,$item)
                  ((vector-ref
