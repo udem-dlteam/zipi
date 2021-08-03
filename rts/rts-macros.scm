@@ -2750,9 +2750,7 @@
     (let ((type (assq type indices-info)))
       (if type
           (cadr type)
-          (cadr type))
-      )
-    )
+          (cadr type))))
 
   (let* (($obj (gensym 'obj))
          ($item (gensym 'item))
@@ -2786,7 +2784,13 @@
        ,(if (and obj-type item-type)
             `(if (fx= ,$index ,(+ (* (type-index item-type) (length indices-info)) (type-index obj-type)))
                  (,(if (member (list obj-type item-type) allowed-types)
-                       (string->symbol (string-append "py-getitem-" (symbol->string obj-type) "X-" (symbol->string item-type) "Y"))
+                       (string->symbol
+                        (string-append
+                         "py-getitem-"
+                         (symbol->string obj-type)
+                         "X-"
+                         (symbol->string item-type)
+                         "Y"))
                        'py-getitem-fallback)
                   ,$obj
                   ,$item)
