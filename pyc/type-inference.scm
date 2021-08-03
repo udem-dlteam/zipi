@@ -27,9 +27,7 @@
       (if type2
           type1 ;; for now we default to taking the first one
           type1)
-      type2
-      )
-  )
+      type2))
 
 (define-macro (define-literal-type-inference node type)
   `(define-walk-method (type-inference* ,node table)
@@ -52,15 +50,16 @@
 
 (define-walk-method (type-inference* this::PycBinary table)
   (let* ((rhs (PycBinary-rhs this))
-         (lhs (PycBinary-lhs this))
-         (_ (type-inference* rhs table))
-         (__ (type-inference* lhs table)))
+         (lhs (PycBinary-lhs this)))
+
+    (type-inference* rhs table)
+    (type-inference* lhs table)
+
     (let ((type-rhs (PycExpr-type rhs))
           (type-lhs (PycExpr-type lhs)))
+
       (type-set! this (combine-types type-rhs type-lhs))
-      table
-    )
-    ))
+      table)))
 
 (define-walk-method (type-inference* this::PycAssig table)
   (let* ((lhs (PycAssig-lhs this))
@@ -71,10 +70,7 @@
         (if type
             (append-type table (PycRef-decl lhs) type)
             table)
-        table
-        )
-
-    ))
+        table)))
 
 (define-walk-method (type-inference* this::PycSeq table)
   (let loop ((nodes (PycSeq-nodes this))
@@ -115,6 +111,4 @@
     (type-inference* test table)
     (list-union
      (type-inference* then table)
-     (type-inference* orelse table)))
-
-  )
+     (type-inference* orelse table))))
