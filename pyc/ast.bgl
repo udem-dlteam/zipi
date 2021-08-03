@@ -156,7 +156,7 @@
 
          ;; expressions
          (class PycExpr::PycNode
-                (type::symbol (default 'unknown)))
+                (type (default #f)))
 
          ;; starred expressions
          (class PycStarredExpr::PycExpr

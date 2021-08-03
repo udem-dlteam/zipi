@@ -2748,7 +2748,12 @@
 
 (define-macro ($py-getitem indices-info obj item obj-type item-type)
   (define (type-index type)
-    (cadr (assq type indices-info)))
+    (let ((type (assq type indices-info)))
+      (if type
+          (cadr type)
+          (cadr type))
+      )
+    )
 
   (let* (($obj (gensym 'obj))
          ($item (gensym 'item))
@@ -2782,21 +2787,32 @@
                                (py-obj-class-index-general ,$item))))
                       (py-obj-class-index ,$obj))))
        ,(if (and obj-type item-type)
-             `(if (fx= ,$index ,(+ (* (type-index item-type) (length indices-info)) (type-index obj-type)))
-                   (,(if (member (list obj-type item-type) allowed-types)
-                         (string->symbol (string-append "py-getitem-" (symbol->string obj-type) "X-" (symbol->string item-type) "Y"))
-                         'py-getitem-fallback)
-                    ,$obj
-                    ,$item)
-                   ((vector-ref
-                     getitem-behavior-dispatch-vector
-                     ,$index
-                     )
-                    ,$obj
-                    ,$item)
+            `(if (fx= ,$index ,(+ (* (type-index item-type) (length indices-info)) (type-index obj-type)))
+                 (,(if (member (list obj-type item-type) allowed-types)
+                       (string->symbol (string-append "py-getitem-" (symbol->string obj-type) "X-" (symbol->string item-type) "Y"))
+                       'py-getitem-fallback)
+                  ,$obj
+                  ,$item)
+                 ((vector-ref
+                   getitem-behavior-dispatch-vector
+                   ,$index
                    )
-             `(py-getitem-listX-intY ,$obj ,$item)
-             )
+                  ,$obj
+                  ,$item)
+                 )
+            `((vector-ref
+               getitem-behavior-dispatch-vector
+               ,$index
+               )
+              ,$obj
+              ,$item)
+            )
+       ((vector-ref
+         getitem-behavior-dispatch-vector
+         ,$index
+         )
+        ,$obj
+        ,$item)
 
 
        )))
