@@ -2740,32 +2740,66 @@
   `(py-setattribute-fallback ,obj ,attr ,val))
 
 (define-macro (py-getitem obj item)
-  `(with-class-indices-info $py-getitem ,obj ,item))
+  `(with-class-indices-info $py-getitem ,obj ,item #f #f))
 
-(define-macro ($py-getitem indices-info obj item)
+(define-macro (py-getitem-type obj item obj-type item-info)
+  `(with-class-indices-info $py-getitem ,obj ,item ,obj-type ,item-info)
+  )
+
+(define-macro ($py-getitem indices-info obj item obj-type item-type)
   (define (type-index type)
     (cadr (assq type indices-info)))
 
   (let* (($obj (gensym 'obj))
-         ($item (gensym 'item)))
+         ($item (gensym 'item))
+         ($index (gensym 'index))
+         ;; types qui peuvent être inliné (sinon c'est py-getitem-fallback)
+         ;; qui va prendre le dessus
+         (allowed-types '((list sint)
+                          (list slice)
+                          (list bool)
+
+                          (tuple sint)
+                          (tuple slice)
+                          (tuple bool)
+
+                          (str sint)
+                          (str slice)
+                          (str bool)
+
+                          )))
     `(let* ((,$obj ,obj)
-            (,$item ,item))
-       ((vector-ref
-         getitem-behavior-dispatch-vector
-         ;; calculating the index for the vector
-         (fx+
-          ;; here we dont use directly py-obj-class-index because we can calculate
-          ;; at compile time the multiplication in some cases
-          (if (fixnum? ,$item)
-              ,(* (type-index 'sint) (length indices-info))
-              (if (flonum? ,$item)
-                  ,(* (type-index 'float) (length indices-info))
-                  (fx*
-                   ,(length indices-info)
-                   (py-obj-class-index-general ,$item))))
-          (py-obj-class-index ,$obj)))
-        ,$obj
-        ,$item))))
+            (,$item ,item)
+            (,$index (fx+
+                      ;; here we dont use directly py-obj-class-index because we can calculate
+                      ;; at compile time the multiplication in some cases
+                      (if (fixnum? ,$item)
+                          ,(* (type-index 'sint) (length indices-info))
+                          (if (flonum? ,$item)
+                              ,(* (type-index 'float) (length indices-info))
+                              (fx*
+                               ,(length indices-info)
+                               (py-obj-class-index-general ,$item))))
+                      (py-obj-class-index ,$obj))))
+       ,(if (and obj-type item-type)
+             `(if (fx= ,$index ,(+ (* (type-index item-type) (length indices-info)) (type-index obj-type)))
+                   (,(if (member (list obj-type item-type) allowed-types)
+                         (string->symbol (string-append "py-getitem-" (symbol->string obj-type) "X-" (symbol->string item-type) "Y"))
+                         'py-getitem-fallback)
+                    ,$obj
+                    ,$item)
+                   ((vector-ref
+                     getitem-behavior-dispatch-vector
+                     ,$index
+                     )
+                    ,$obj
+                    ,$item)
+                   )
+             `(py-getitem-listX-intY ,$obj ,$item)
+             )
+
+
+       )))
 
 (define-macro (py-setitem obj item value)
   `(py-setitem-fallback ,obj ,item ,value))

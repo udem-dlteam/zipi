@@ -1568,15 +1568,32 @@
         ,(scheme (PycAccess-obj this) conf)
   	    ,(pyc-propname (PycAccess-field this))))))
 
+(define (infer-type conf func . args)
+  (define (any lst)
+    (if (pair? lst)
+        (if (car lst)
+            #t
+            (any (cdr lst)))
+        #f))
+
+  (let ((type-list (map PycExpr-type args)))
+    (if (any type-list) ;; possible flag to disable infered types
+        `(,(string->symbol (string-append (symbol->string func) "-type"))
+          ,@(map (lambda (x) (scheme x conf)) args)
+          ,@type-list)
+        `(func ,@args)
+        )))
+
 (define-walk-method (scheme this::PycSubscript conf)
   (epairify
    this
-   (let ((obj (PycSubscript-obj this))
-         (index (PycSubscript-index this)))
-     `(py-getitem ,(scheme obj conf)
-                  ,(PycExpr-type obj)
-                  ,(scheme index conf)
-                  ,(PycExpr-type index)))))
+   (infer-type conf
+               'py-getitem
+               (PycSubscript-obj this)
+               (PycSubscript-index this))
+   #;`(infer-type py-getitem
+                ,(scheme (PycSubscript-obj this) conf)
+                ,(scheme (PycSubscript-index this) conf))))
 
 (define-walk-method (scheme this::PycSlice conf)
   (let ((lower (PycSlice-lower this))
