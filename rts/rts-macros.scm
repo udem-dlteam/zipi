@@ -2755,55 +2755,67 @@
   (let* (($obj (gensym 'obj))
          ($item (gensym 'item))
          ($index (gensym 'index))
-         ;; types that can be inlined, else its gonna be py-getitem-fallback that will be inlined
-         (allowed-types '((list sint)
-                          (list slice)
-                          (list bool)
-
-                          (tuple sint)
-                          (tuple slice)
-                          (tuple bool)
-
-                          (str sint)
-                          (str slice)
-                          (str bool)
-                          )))
+         (indices-info-length (length indices-info))
+         ;; We use this table to map partial types to a pair of expected types
+         (type-extrapolation-table
+           '(;; list-sint
+             ((list sint) . (list sint))
+             ((list #f)   . (list sint))
+             ((#f sint)   . (list sint))
+             ((#f #f)     . (list sint))
+             ;; list-slice
+             ((list slice) . (list slice))
+             ((#f slice)   . (list slice))
+             ;; list-bool
+             ((list bool) . (list bool))
+             ;; tuple-sint
+             ((tuple sint) . (tuple sint))
+             ((tuple #f)   . (tuple sint))
+             ;; tuple-slice
+             ((tuple slice) . (tuple slice))
+             ;; tuple-bool
+             ((tuple bool) . (tuple bool))
+             ;; str-sint
+             ((str sint) . (str sint))
+             ((str #f)   . (str sint))
+             ;; str-slice
+             ((str slice) . (str slice))
+             ;; str-bool
+             ((str bool) . (str bool))))
+         ;; This should always return a type combination for which a behavior exists
+         (expected-types
+           (let ((pair (assoc (list obj-type item-type) type-extrapolation-table)))
+            (if pair (cdr pair) '(list sint))))
+         (obj-expected-type (car expected-types))
+         (item-expected-type (cadr expected-types))
+         (obj-expected-index (type-index obj-expected-type))
+         (item-expected-index (type-index item-expected-type))
+         (expected-index (+ (* item-expected-index indices-info-length) obj-expected-index))
+         (inline-behavior
+           (string->symbol
+            (string-append
+              "py-getitem-"
+              (symbol->string obj-expected-type)
+              "X-"
+              (symbol->string item-expected-type)
+              "Y"))))
     `(let* ((,$obj ,obj)
             (,$item ,item)
             (,$index (fx+
                       ;; here we dont use directly py-obj-class-index because we can calculate
                       ;; at compile time the multiplication in some cases
-                      (if (fixnum? ,$item)
-                          ,(* (type-index 'sint) (length indices-info))
-                          (if (flonum? ,$item)
-                              ,(* (type-index 'float) (length indices-info))
-                              (fx*
-                               ,(length indices-info)
-                               (py-obj-class-index-general ,$item))))
+                      (cond
+                        ((fixnum? ,$item) ,(* (type-index 'sint) indices-info-length))
+                        ((flonum? ,$item) ,(* (type-index 'float) indices-info-length))
+                        (else (fx* ,indices-info-length (py-obj-class-index-general ,$item))))
                       (py-obj-class-index ,$obj))))
-       ,(if (and obj-type
-                 item-type
-                 (member (list obj-type item-type) allowed-types))
-            `(if (fx= ,$index ,(+ (* (type-index item-type) (length indices-info)) (type-index obj-type)))
-                 (,(string->symbol
-                    (string-append
-                     "py-getitem-"
-                     (symbol->string obj-type)
-                     "X-"
-                     (symbol->string item-type)
-                     "Y"))
-                  ,$obj
-                  ,$item)
-                 ((vector-ref
-                   getitem-behavior-dispatch-vector
-                   ,$index)
-                  ,$obj
-                  ,$item))
-            `((vector-ref
-               getitem-behavior-dispatch-vector
-               ,$index)
-              ,$obj
-              ,$item)))))
+      `(if (fx= ,$index ,expected-index)
+           (,inline-behavior ,$obj ,$item)
+           ((vector-ref
+             getitem-behavior-dispatch-vector
+             ,$index)
+            ,$obj
+            ,$item)))))
 
 (define-macro (py-setitem obj item value)
   `(py-setitem-fallback ,obj ,item ,value))
