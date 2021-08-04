@@ -178,6 +178,9 @@
     py-getitem-listX-boolY
     py-getitem-listX-sliceY
     getitem-behavior-dispatch-vector
+    getitem-behavior-dispatch-vector-calculate-index-macro 
+    vector-type-inference
+    $vector-type-inference
     py-setitem
     py-delitem
 

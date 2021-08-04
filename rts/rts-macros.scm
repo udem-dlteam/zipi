@@ -2739,11 +2739,124 @@
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
 
+(define-macro (getitem-behavior-dispatch-vector-calculate-index-macro indices-info $obj $item)
+  (define (type-index type) (cadr (assq type indices-info)))
+
+  (let ((indices-info-length (length indices-info)))
+    `(fx+
+      ;; here we dont use directly py-obj-class-index because we can calculate
+      ;; at compile time the multiplication in some cases
+      (cond
+       ((fixnum? ,$item) ,(* (type-index 'sint) indices-info-length))
+       ((flonum? ,$item) ,(* (type-index 'float) indices-info-length))
+       (else (fx* ,indices-info-length (py-obj-class-index-general ,$item))))
+      (py-obj-class-index ,$obj))
+    )
+  )
+
+
 (define-macro (py-getitem obj item . args)
-  (let* ((types (memq types: args))
+  (define (getitem-behavior-dispatch-vector-calculate-index indices-info-length obj-index item-index)
+    (+ (* item-index indices-info-length ) obj-index))
+
+  `(vector-type-inference
+    py-getitem
+
+    (;; list-sint
+      ((list sint) . (list sint))
+      ((list #f)   . (list sint))
+      ((#f sint)   . (list sint))
+      ((#f #f)     . (list sint))
+      ;; list-slice
+      ((list slice) . (list slice))
+      ((#f slice)   . (list slice))
+      ;; list-bool
+      ((list bool) . (list bool))
+      ((#f bool) . (list bool))
+      ;; tuple-sint
+      ((tuple sint) . (tuple sint))
+      ((tuple #f)   . (tuple sint))
+      ;; tuple-slice
+      ((tuple slice) . (tuple slice))
+      ;; tuple-bool
+      ((tuple bool) . (tuple bool))
+      ;; str-sint
+      ((str sint) . (str sint))
+      ((str #f)   . (str sint))
+      ;; str-slice
+      ((str slice) . (str slice))
+      ;; str-bool
+      ((str bool) . (str bool)))
+    (list sint)
+    getitem-behavior-dispatch-vector
+    ,getitem-behavior-dispatch-vector-calculate-index
+    getitem-behavior-dispatch-vector-calculate-index-macro
+
+    ,obj
+    ,item
+    ,@args
+
+    )
+  #;(let* ((types (memq types: args))
          (obj-type (and types (caadr types)))
          (item-type (and types (cadadr types))))
     `(with-class-indices-info $py-getitem ,obj ,item ,obj-type ,item-type)))
+
+
+(define-macro (vector-type-inference func type-extrapolation-table default-behavior vector calculate-index calculate-index-macro . args)
+  `(with-class-indices-info $vector-type-inference ,func ,type-extrapolation-table ,default-behavior ,vector ,calculate-index ,calculate-index-macro ,@args))
+
+
+(define-macro ($vector-type-inference indices-info func type-extrapolation-table default-behavior behavior-vector calculate-index calculate-index-macro . args)
+  (define (type-index type) (cadr (assq type indices-info)))
+
+  (define (list-until lst obj)
+    (if (or (not (pair? lst)) (eq? obj (car lst)))
+        '()
+        (cons (car lst) (list-until (cdr lst) obj))))
+
+  (define (generate-func-name func type-args indices)
+    (if (pair? indices)
+        (if (pair? type-args)
+            (generate-func-name
+             (string-append
+              func
+              "-"
+              (symbol->string (car type-args))
+              (car indices))
+             (cdr type-args)
+             (cdr indices))
+            (string->symbol func))
+        (error "vector-type-inference used with function with more then 3 args, change indices argument to allow more")))
+
+  (let* (($index (gensym 'index))
+         (types (memq types: args))
+         (type-args (if types (cadr types) default-behavior))
+         (behavior-args (list-until args types:))
+         (sym-behavior-args (map (lambda (n)
+                                   (gensym 'behavior-arg))
+                                 (iota (length behavior-args))))
+
+         (indices-info-length (length indices-info))
+         ;; This should always return a type combination for which a behavior exists
+         (expected-types
+          (let ((pair (assoc type-args type-extrapolation-table)))
+            (if pair (cdr pair) default-behavior)))
+         (expected-index-args (map type-index expected-types))
+         (expected-index (apply calculate-index indices-info-length expected-index-args))
+         (inline-behavior
+          (generate-func-name
+           (symbol->string func)
+           expected-types
+           '("X" "Y" "Z"))))
+    `(let* (,@(map (lambda (sym behavior) `(,sym ,behavior)) sym-behavior-args behavior-args)
+            (,$index (,calculate-index-macro ,indices-info ,@sym-behavior-args)))
+       (if (fx= ,$index ,expected-index)
+           (,inline-behavior ,@sym-behavior-args)
+           ((vector-ref
+             ,behavior-vector
+             ,$index)
+            ,@sym-behavior-args)))))
 
 (define-macro ($py-getitem indices-info obj item obj-type item-type)
   (define (type-index type) (cadr (assq type indices-info)))
@@ -2814,7 +2927,7 @@
               ,$obj
               ,$item)))))
 
-(define-macro (py-setitem obj item value)
+(define-macro (py-setitem obj item value . args)
   `(py-setitem-fallback ,obj ,item ,value))
 
 (define-macro (py-delitem obj item)
