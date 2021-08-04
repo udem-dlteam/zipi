@@ -62,6 +62,7 @@
     py-throw-unsafe
     py-throw-with-values
     py-throw-exception-with-message
+    py-throw-index-out-of-range
 
     py-try-except
     py-try-except-else
