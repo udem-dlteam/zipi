@@ -2768,6 +2768,7 @@
              ((#f slice)   . (list slice))
              ;; list-bool
              ((list bool) . (list bool))
+             ((#f bool) . (list bool))
              ;; tuple-sint
              ((tuple sint) . (tuple sint))
              ((tuple #f)   . (tuple sint))
@@ -2809,7 +2810,7 @@
                         ((flonum? ,$item) ,(* (type-index 'float) indices-info-length))
                         (else (fx* ,indices-info-length (py-obj-class-index-general ,$item))))
                       (py-obj-class-index ,$obj))))
-      `(if (fx= ,$index ,expected-index)
+      (if (fx= ,$index ,expected-index)
            (,inline-behavior ,$obj ,$item)
            ((vector-ref
              getitem-behavior-dispatch-vector
