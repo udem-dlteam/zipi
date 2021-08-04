@@ -2746,7 +2746,7 @@
     `(with-class-indices-info $py-getitem ,obj ,item ,obj-type ,item-type)))
 
 (define-macro ($py-getitem indices-info obj item obj-type item-type)
-  (define (type-index type) (cadr (type (assq type indices-info))))
+  (define (type-index type) (cadr (assq type indices-info)))
 
   (let* (($obj (gensym 'obj))
          ($item (gensym 'item))
