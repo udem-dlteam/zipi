@@ -2809,10 +2809,10 @@
       (if (fx= ,$index ,expected-index)
            (,inline-behavior ,$obj ,$item)
            ((vector-ref
-             getitem-behavior-dispatch-vector
-             ,$index)
-            ,$obj
-            ,$item)))))
+              getitem-behavior-dispatch-vector
+              ,$index)
+              ,$obj
+              ,$item)))))
 
 (define-macro (py-setitem obj item value)
   `(py-setitem-fallback ,obj ,item ,value))
