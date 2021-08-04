@@ -48,24 +48,26 @@
     (for-each (lambda (d) (mark-body-usage* d locals-can-direct-access conf)) (PycFun-defaults this))
     (for-each (lambda (d) (mark-body-usage* d locals-can-direct-access conf)) (PycFun-kw-defaults this))
     (mark-body-usage* (PycFun-body this) arg-vars conf)
-    locals-can-direct-access))
+    '()))
 
 (define-walk-method (mark-body-usage* this::PycSeq locals-can-direct-access conf)
   (let loop ((nodes (PycSeq-nodes this))
              (locals-can-direct-access locals-can-direct-access))
     (if (null? nodes)
       locals-can-direct-access
-      (loop (cdr nodes) (mark-body-usage* (car nodes) locals-can-direct-access conf)))))
+      (let ((stmt-locals-can-direct-access (mark-body-usage* (car nodes) locals-can-direct-access conf)))
+        (loop (cdr nodes) (append stmt-locals-can-direct-access locals-can-direct-access))))))
 
 (define-walk-method (mark-body-usage* this::PycAssig locals-can-direct-access conf)
   (let ((lhs (PycAssig-lhs this))
         (rhs (PycAssig-rhs this)))
+    ;; also mark lhs since it could be an AugAssig in which case we want to know if we can directly access the variable
     (mark-body-usage* lhs locals-can-direct-access conf)
     (mark-body-usage* rhs locals-can-direct-access conf)
     (if (and (isa? lhs PycRef)
              (eq? (PycVar-scope (PycRef-decl lhs)) 'local))
-      (cons (PycRef-decl lhs) locals-can-direct-access)
-      locals-can-direct-access)))
+      (list (PycRef-decl lhs))
+      '())))
 
 (define-walk-method (mark-body-usage* this::PycWhile locals-can-direct-access conf)
   (let ((test (PycWhile-test this))
@@ -74,7 +76,7 @@
     (mark-body-usage* test locals-can-direct-access conf)
     (mark-body-usage* body locals-can-direct-access conf)
     (mark-body-usage* orelse locals-can-direct-access conf)
-  locals-can-direct-access))
+  '()))
 
 (define-walk-method (mark-body-usage* this::PycFor locals-can-direct-access conf)
   (let ((iter (PycFor-iter this))
@@ -91,7 +93,7 @@
           locals-can-direct-access)
       conf)
     (mark-body-usage* orelse locals-can-direct-access conf)
-  locals-can-direct-access))
+  '()))
 
 (define (list-intersection l1 l2)
   (cond
@@ -114,7 +116,7 @@
   (if (and (not (PycVar-can-be-deleted (PycRef-decl this)))
            (memq (PycRef-decl this) locals-can-direct-access))
     (PycRef-can-direct-access-set! this #t))
-  locals-can-direct-access)
+  '())
 
 (define-walk-method (mark-assig! this::PycNode conf)
   (call-default-walker))
