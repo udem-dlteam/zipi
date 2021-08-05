@@ -2595,7 +2595,7 @@
 (define-macro (py-test-isnot x y)
   `(not (py-test-is ,x ,y)))
 
-(define-macro (py-test x)
+(define-macro (py-test x . params)
 
   (define cmp-operator-test-version
     '((py-eq py-test-eq)
@@ -2607,16 +2607,40 @@
       (py-is py-test-is)
       (py-isnot py-test-isnot)))
 
-  (if (pair? x)
-      (let ((test-version (assq (car x) cmp-operator-test-version)))
-        (cond
-          (test-version
-            `(,(cadr test-version) ,@(cdr x)))
-          ((eq? (car x) 'py-bool-from-scheme-bool)
-            (cadr x))
-          (else
-            `(py-specialized-unop-dispatch test ,x))))
-      `(py-specialized-unop-dispatch test ,x)))
+  (let* ((type (memq type: params))
+         (obj-type (and type (cadr type))))
+      (if (pair? x)
+          (let ((test-version (assq (car x) cmp-operator-test-version)))
+            (cond
+              (test-version
+                `(,(cadr test-version) ,@(cdr x)))
+              ((eq? (car x) 'py-bool-from-scheme-bool)
+                (cadr x))
+              (else
+                `($py-test ,x ,obj-type))))
+          `($py-test ,x ,obj-type))))
+
+(define-macro ($py-test obj obj-type)
+  (let (($obj (gensym 'obj))
+        ($obj-index (gensym 'obj-index)))
+    (case (or obj-type 'bool)
+      ((bool)
+        `(let ((,$obj ,obj))
+          (or (eq? ,$obj py-True)
+              (and
+                (not (eq? ,$obj py-False))
+                (py-specialized-unop-dispatch test ,$obj)))))
+      ((str)
+        `(let* ((,$obj ,obj)
+               (,$obj-index (py-obj-class-index ,$obj)))
+          (if (fx= ,$obj-index (get-behavior-type-index str))
+            (py-test-strX-inline ,$obj)
+            ((py-unary-behavior-ref
+              test
+              ,$obj-index)
+              ,$obj))))
+      (else
+        `(py-specialized-unop-dispatch test ,obj)))))
 
 (define-macro (py-truth obj)
   `(py-specialized-unop-dispatch truth ,obj))

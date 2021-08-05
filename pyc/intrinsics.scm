@@ -754,7 +754,7 @@
   ;; binary
   (sint sint) (float float) (sint float) (float sint)
   ;;unary
-  (sint) (float)
+  (sint) (float) (str)
   ;; descriptor
   (sint #f #f) (float #f #f) (function #f #f)))
 

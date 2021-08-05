@@ -182,6 +182,7 @@
     py-delitem
 
     py-test
+    $py-test
     py-test-from-scheme
     py-truth
 
@@ -468,6 +469,7 @@
     py-bint-to-scheme-float
     py-bool-to-scheme
     py-bool-from-scheme-bool
+    py-bool-to-scheme-bool
 
     py-float-from-scheme
     py-float-from-scheme-fallback
