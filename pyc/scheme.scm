@@ -318,10 +318,10 @@
    (scheme (PycStmtExpr-expr this) conf))
 
 (define (pyc-test this conf)
-  (define (py-test? e)
+  (define (py-test? e type)
     (if (and (pair? e) (eq? (car e) 'py-test-from-scheme))
       e
-      `(py-test ,e)))
+      `(py-test ,e type: ,type)))
 
    (epairify this
      (if (eq? (PycExpr-type this) 'Ubool)
@@ -335,7 +335,7 @@
             (case unop
               ((not)
                 `(not ,(pyc-test expr conf)))
-              (else (py-test? (scheme this conf))))))
+              (else (py-test? (scheme this conf) (PycExpr-type this))))))
         ((isa? this PycBoolOp)
           (let ((op (PycBoolOp-op this))
                 (args (PycBoolOp-args this)))
@@ -366,7 +366,7 @@
                             (,res-symbol (py-test (,(symbol-append 'py- (car ops)) ,left ,chain-symbol))))
                       (and ,res-symbol
                           ,(loop chain-symbol (cdr rights) (cdr ops))))))))))
-	      (else (py-test? (scheme this conf)))))))
+	      (else (py-test? (scheme this conf) (PycExpr-type this)))))))
 
 (define-walk-method (scheme this::PycWhile conf)
 
@@ -1051,7 +1051,7 @@
       (scheme (car args) conf)
       (let ((sym (my-gensym 'or-arg)))
         `(let ((,sym ,(scheme (car args) conf)))
-            (if (py-test ,sym)
+            (if (py-test ,sym type: ,(PycExpr-type (car args)))
               ,sym
               ,(scheme-or (cdr args) conf))))))
 
@@ -1060,7 +1060,7 @@
       (scheme (car args) conf)
       (let ((sym (my-gensym 'and-arg)))
         `(let ((,sym ,(scheme (car args) conf)))
-            (if (py-test ,sym)
+            (if (py-test ,sym type: ,(PycExpr-type (car args)))
               ,(scheme-and (cdr args) conf)
               ,sym)))))
 

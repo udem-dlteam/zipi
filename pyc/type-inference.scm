@@ -9,11 +9,9 @@
   (list (cons var type)))
 
 (define (combine-types type1 type2 op)
-  (if type1
-      (if type2
-          type1 ;; for now we default to taking the first one
-          type1)
-      type2))
+  (if (memq op '(lt le gt ge eq ne is isnot in notin))
+    'bool
+    (or type1 type2))) ;; for now we default on asuuming the result has same type as operands
 
 (define (list-union l1 l2)
   (cond
