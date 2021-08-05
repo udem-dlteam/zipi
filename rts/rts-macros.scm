@@ -1789,11 +1789,12 @@
            ((vector-ref
              ,behavior-vector
              ,$index)
-            ,@sym-behavior-args)))))
+            ,@sym-behavior-args)
+           ))))
 
 (define-macro (init-behavior-dispatch-vector)
 
-  (define (getitem-behavior-dispatch-vector-calculate-index indices-info-length obj-index item-index)
+  (define (getitem-behavior-dispatch-vector-calculate-index indices-info-length obj-index item-index . vals)
     (+ (* item-index indices-info-length ) obj-index))
 
  `(begin
@@ -1815,13 +1816,25 @@
       (py-getitem-strX-sliceY-fallback   str   slice)
       (py-getitem-strX-boolY-fallback    str   bool)
       )
+     py-getitem-fallback
      ,getitem-behavior-dispatch-vector-calculate-index
-     )))
+     )
 
-(define-macro (define-behavior-dispatch-vector name type-definition calculate-index)
-  `(with-class-indices-info $define-behavior-dispatch-vector ,name ,type-definition ,calculate-index))
+   (define-behavior-dispatch-vector
+     setitem-behavior-dispatch-vector
+     (
+      (py-setitem-listX-sintY-fallback   list  sint)
+      )
+     py-setitem-fallback
+     ,getitem-behavior-dispatch-vector-calculate-index
+     )
 
-(define-macro ($define-behavior-dispatch-vector indices-info name type-definition calculate-index)
+   ))
+
+(define-macro (define-behavior-dispatch-vector name type-definition default-fallback calculate-index)
+  `(with-class-indices-info $define-behavior-dispatch-vector ,name ,type-definition ,default-fallback ,calculate-index))
+
+(define-macro ($define-behavior-dispatch-vector indices-info name type-definition default-fallback calculate-index)
   (define (type-index type)
     (cadr (assq type indices-info)))
 
@@ -1832,7 +1845,7 @@
 
   `(begin
      (define-rts ,name
-       (make-vector ,(expt (length indices-info) (- (length (car type-definition)) 1)) py-getitem-fallback))
+       (make-vector ,(expt (length indices-info) (- (length (car type-definition)) 1)) ,default-fallback))
 
      ,@(map (lambda (x) (apply add-case x)) type-definition)))
 
@@ -2793,8 +2806,7 @@
     `(let* ((,$tuple ,tuple)
             (,$vec (PyObjectTuple-value ,$tuple))
             (,$len (vector-length ,$vec))
-            (,$index (if (eq? ,bool py-True) 1 0))
-            )
+            (,$index (if (eq? ,bool py-True) 1 0)))
 
        (if (> ,$len ,$index)
            (vector-ref ,$vec ,$index)
@@ -2858,8 +2870,60 @@
     ,@args))
 
 
+(define-macro (py-setitem-listX-sintY lst item value)
+  (let (($lst (gensym 'list))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($i (gensym 'i)))
+    `(let* ((,$lst ,lst)
+            (,$len (PyObjectList-len ,$lst))
+            (,$vec (PyObjectList-vector ,$lst))
+            (,$i (py-sint-to-scheme ,item)))
+       (if (fx>= ,$i 0)
+           (if (fx< ,$i ,$len)
+               (vector-set! ,$vec ,$i ,value)
+               (py-throw-assignment-index-out-of-range "list"))
+           (if (fx>= ,$i (fx- 0 ,$len))
+               (vector-set! ,$vec (fx+ ,$i ,$len) ,value)
+               (py-throw-assignment-index-out-of-range "list"))))))
+
+(define-macro (setitem-behavior-dispatch-vector-calculate-index-macro indices-info $obj $item $value)
+  (define (type-index type) (cadr (assq type indices-info)))
+
+  (let ((indices-info-length (length indices-info)))
+    `(fx+
+      ;; here we dont use directly py-obj-class-index because we can calculate
+      ;; at compile time the multiplication in some cases
+      (cond
+       ((fixnum? ,$item) ,(* (type-index 'sint) indices-info-length))
+       ((flonum? ,$item) ,(* (type-index 'float) indices-info-length))
+       (else (fx* ,indices-info-length (py-obj-class-index-general ,$item))))
+      (py-obj-class-index ,$obj))
+    )
+  )
+
 (define-macro (py-setitem obj item value . args)
-  `(py-setitem-fallback ,obj ,item ,value))
+  (define (setitem-behavior-dispatch-vector-calculate-index indices-info-length obj-index item-index . args)
+    (+ (* item-index indices-info-length ) obj-index))
+
+  `(vector-type-inference
+    py-setitem
+
+    (;; list-sint
+     ((list sint) . (list sint))
+     ((list #f)   . (list sint))
+     ((#f sint)     . (list sint))
+     ((#f #f)     . (list sint))
+     )
+    (list sint)
+    setitem-behavior-dispatch-vector
+    ,setitem-behavior-dispatch-vector-calculate-index
+    setitem-behavior-dispatch-vector-calculate-index-macro
+
+    ,obj
+    ,item
+    ,value
+    ,@args))
 
 (define-macro (py-delitem obj item)
   `(py-delitem-fallback ,obj ,item))

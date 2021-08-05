@@ -1194,6 +1194,14 @@
           type
           " index out of range")))))
 
+(define-rts (py-throw-assignment-index-out-of-range type)
+  (py-throw
+   (py-call py-builtin-IndexError
+            (py-str-from-scheme
+             (string-append
+              type
+              " assignment index out of range")))))
+
 (define-rts (py-throw-action-out-of-range type action)
   (py-throw
     (py-call py-builtin-IndexError
@@ -2698,6 +2706,13 @@
 
 (define-rts (py-getitem-strX-sliceY-fallback obj item)
   (py-getitem-strX-sliceY obj item))
+
+(define-rts (py-setitem-listX-sintY-fallback obj item value)
+  (py-setitem-listX-sintY obj item value))
+
+(define-rts (py-setitem-tupleX-sintY-fallback obj item value)
+  (py-setitem-tupleX-sintY obj item value))
+
 ;; adds top-level behavior tables
 (init-behavior-dispatch-vector)
 

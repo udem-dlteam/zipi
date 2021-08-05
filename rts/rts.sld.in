@@ -63,6 +63,7 @@
     py-throw-with-values
     py-throw-exception-with-message
     py-throw-index-out-of-range
+    py-throw-assignment-index-out-of-range 
 
     py-try-except
     py-try-except-else
@@ -179,6 +180,14 @@
     py-getitem-listX-sliceY
     getitem-behavior-dispatch-vector
     getitem-behavior-dispatch-vector-calculate-index-macro 
+
+    setitem-behavior-dispatch-vector
+    setitem-behavior-dispatch-vector-calculate-index-macro 
+    py-setitem-listX-sintY-fallback
+    py-setitem-tupleX-sintY-fallback
+    py-setitem-listX-sintY
+    py-setitem-tupleX-sintY
+
     vector-type-inference
     $vector-type-inference
     py-setitem
