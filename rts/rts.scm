@@ -3276,7 +3276,7 @@
                (i (py-subtype-of-int-to-scheme item)))
           (if (index-in-length-range i len)
             (vector-set! vec (modulo i len) value)
-            (py-throw-action-out-of-range "list" "assignment"))))
+            (py-throw-assignment-index-out-of-range "list"))))
       ((py-isinstance? item py-slice-class)
         (list-set-slice self item value))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))

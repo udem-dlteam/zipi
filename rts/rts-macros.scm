@@ -1737,8 +1737,8 @@
       `(py-make-builtin-class-with-class-info ,@class-info ,name ,module ,bases ,hclass-of-instances ,@attrs))
     (error "py-make-builtin-class" "name argument must be a static PyObjectStr" name)))
 
-(define-macro (vector-type-inference func type-extrapolation-table default-behavior vector calculate-index calculate-index-macro . args)
-  `(with-class-indices-info $vector-type-inference ,func ,type-extrapolation-table ,default-behavior ,vector ,calculate-index ,calculate-index-macro ,@args))
+(define-macro (define-demantics-body func type-extrapolation-table default-behavior vector calculate-index calculate-index-macro . args)
+  `(with-class-indices-info $define-demantics-body ,func ,type-extrapolation-table ,default-behavior ,vector ,calculate-index ,calculate-index-macro ,@args))
 
 (define-macro ($calculate-behavior-table-index indices-info $obj $item . args)
   (define (type-index type) (cadr (assq type indices-info)))
@@ -1756,7 +1756,7 @@
 (define-macro ($calculate-behavior-table-index-flipped indices-info $obj $item . args)
   `($calculate-behavior-table-index ,indices-info ,$item ,$obj ,@args))
 
-(define-macro ($vector-type-inference indices-info func type-extrapolation-table default-behavior behavior-vector flipped-indices . args)
+(define-macro ($define-demantics-body indices-info func type-extrapolation-table default-behavior behavior-vector flipped-indices . args)
   (define (calculate-index indices-info-length obj-index item-index)
     (+ (* obj-index indices-info-length) item-index))
 
@@ -2874,7 +2874,7 @@
 
 
 (define-macro (py-getitem obj item . args)
-  `(vector-type-inference
+  `(define-demantics-body
     py-getitem
 
     (;; list-sint
@@ -2928,7 +2928,7 @@
                (py-throw-assignment-index-out-of-range "list"))))))
 
 (define-macro (py-setitem obj item value . args)
-  `(vector-type-inference
+  `(define-demantics-body
     py-setitem
 
     (;; list-sint
