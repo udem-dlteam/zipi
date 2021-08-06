@@ -1809,8 +1809,8 @@
           (generate-func-name
            (symbol->string func)
            expected-types
-           (length behavior-args)
-           )))
+           (length behavior-args))))
+
     `(let* (,@(map (lambda (sym behavior) `(,sym ,behavior)) sym-behavior-args behavior-args)
             (,$index (,(if flipped-indices
                            '$calculate-behavior-table-index-flipped
@@ -1822,19 +1822,16 @@
            ((vector-ref
              ,behavior-vector
              ,$index)
-            ,@sym-behavior-args)
-           ))))
+            ,@sym-behavior-args)))))
 
 (define-macro (init-behavior-dispatch-vector)
-
-
  `(begin
    (with-class-indices-info $init-arithmetic-behavior-dispatch-vector)
    (with-class-indices-info $init-iteration-behavior-dispatch-vector)
 
    (define-behavior-dispatch-vector
      py-getitem-behavior-table
-     (;; table of set indices
+     (;; table of function <-> type
       (py-getitem-listX-sintY-fallback   list  sint)
       (py-getitem-listX-sliceY-fallback  list  slice)
       (py-getitem-listX-boolY-fallback   list  bool)
@@ -1852,7 +1849,7 @@
 
    (define-behavior-dispatch-vector
      py-setitem-behavior-table
-     (;; table of set indices
+     (;; table of function <-> type
       (py-setitem-listX-sintY-Z-fallback   list  sint)
       )
      py-setitem-fallback
@@ -2733,8 +2730,7 @@
                (py-throw-index-out-of-range "list"))
            (if (fx>= ,$i (fx- 0 ,$len))
                (vector-ref ,$vec (fx+ ,$i ,$len))
-               (py-throw-index-out-of-range "list")))
-       )))
+               (py-throw-index-out-of-range "list"))))))
 
 (define-macro (py-getitem-listX-boolY lst bool)
   (let (($lst (gensym 'lst))
@@ -2774,13 +2770,13 @@
   (let (($str (gensym 'str))
         ($len (gensym 'len))
         ($scheme-str (gensym 'scheme-str))
-        ($index (gensym 'index))
-        )
+        ($index (gensym 'index)))
+
     `(let* ((,$str ,str)
             (,$len (PyObjectStr-len ,$str))
             (,$scheme-str (py-str-to-scheme ,$str))
-            (,$index (if (eq? ,bool py-True) 1 0))
-            )
+            (,$index (if (eq? ,bool py-True) 1 0)))
+
        (if (> ,$len ,$index)
            (py-str-from-string 1
                                (make-string 1 (string-ref ,$scheme-str ,$index)))
@@ -2860,8 +2856,8 @@
   (let (($tuple (gensym 'tuple))
         ($len (gensym 'len))
         ($vec (gensym 'vec))
-        ($index (gensym 'index))
-        )
+        ($index (gensym 'index)))
+
     `(let* ((,$tuple ,tuple)
             (,$vec (PyObjectTuple-value ,$tuple))
             (,$len (vector-length ,$vec))
