@@ -2707,8 +2707,8 @@
 (define-rts (py-getitem-strX-sliceY-fallback obj item)
   (py-getitem-strX-sliceY obj item))
 
-(define-rts (py-setitem-listX-sintY-fallback obj item value)
-  (py-setitem-listX-sintY obj item value))
+(define-rts (py-setitem-listX-sintY-Z-fallback obj item value)
+  (py-setitem-listX-sintY-Z obj item value))
 
 (define-rts (py-setitem-tupleX-sintY-fallback obj item value)
   (py-setitem-tupleX-sintY obj item value))

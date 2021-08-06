@@ -1740,7 +1740,29 @@
 (define-macro (vector-type-inference func type-extrapolation-table default-behavior vector calculate-index calculate-index-macro . args)
   `(with-class-indices-info $vector-type-inference ,func ,type-extrapolation-table ,default-behavior ,vector ,calculate-index ,calculate-index-macro ,@args))
 
-(define-macro ($vector-type-inference indices-info func type-extrapolation-table default-behavior behavior-vector calculate-index calculate-index-macro . args)
+(define-macro ($calculate-behavior-table-index indices-info $obj $item . args)
+  (define (type-index type) (cadr (assq type indices-info)))
+
+  (let ((indices-info-length (length indices-info)))
+    `(fx+
+      ;; here we dont use directly py-obj-class-index because we can calculate
+      ;; at compile time the multiplication in some cases
+      (cond
+       ((fixnum? ,$obj) ,(* (type-index 'sint) indices-info-length))
+       ((flonum? ,$obj) ,(* (type-index 'float) indices-info-length))
+       (else (fx* ,indices-info-length (py-obj-class-index-general ,$obj))))
+      (py-obj-class-index ,$item))))
+
+(define-macro ($calculate-behavior-table-index-flipped indices-info $obj $item . args)
+  `($calculate-behavior-table-index ,indices-info ,$item ,$obj ,@args))
+
+(define-macro ($vector-type-inference indices-info func type-extrapolation-table default-behavior behavior-vector flipped-indices . args)
+  (define (calculate-index indices-info-length obj-index item-index)
+    (+ (* obj-index indices-info-length) item-index))
+
+  (define (calculate-index-flipped indices-info-length obj-index item-index)
+    (+ (* item-index indices-info-length) obj-index))
+
   (define (type-index type) (cadr (assq type indices-info)))
 
   (define (list-until lst obj)
@@ -1748,19 +1770,25 @@
         '()
         (cons (car lst) (list-until (cdr lst) obj))))
 
-  (define (generate-func-name func type-args indices)
-    (if (pair? indices)
-        (if (pair? type-args)
-            (generate-func-name
-             (string-append
-              func
-              "-"
-              (symbol->string (car type-args))
-              (car indices))
-             (cdr type-args)
-             (cdr indices))
-            (string->symbol func))
-        (error "vector-type-inference used with function with more then 3 args, change indices argument to allow more")))
+  (define post-fix-indices '#("X" "Y" "Z"))
+
+  (define (generate-func-name func type-args indices-count #!optional (indice 0))
+    (if (fx= indices-count indice)
+        (string->symbol func)
+        (let* ((sym-name (if (pair? type-args)
+                             (symbol->string (car type-args))
+                             ""))
+               (post-fix-index (vector-ref post-fix-indices indice)))
+          (generate-func-name
+           (string-append
+            func
+            "-"
+            sym-name
+            post-fix-index)
+           (if (pair? type-args) (cdr type-args)
+               type-args)
+           indices-count
+           (+ 1 indice)))))
 
   (let* (($index (gensym 'index))
          (types (memq types: args))
@@ -1776,14 +1804,19 @@
           (let ((pair (assoc type-args type-extrapolation-table)))
             (if pair (cdr pair) default-behavior)))
          (expected-index-args (map type-index expected-types))
-         (expected-index (apply calculate-index indices-info-length expected-index-args))
+         (expected-index (apply (if flipped-indices calculate-index-flipped calculate-index) indices-info-length expected-index-args))
          (inline-behavior
           (generate-func-name
            (symbol->string func)
            expected-types
-           '("X" "Y" "Z"))))
+           (length behavior-args)
+           )))
     `(let* (,@(map (lambda (sym behavior) `(,sym ,behavior)) sym-behavior-args behavior-args)
-            (,$index (,calculate-index-macro ,indices-info ,@sym-behavior-args)))
+            (,$index (,(if flipped-indices
+                           '$calculate-behavior-table-index-flipped
+                           '$calculate-behavior-table-index)
+                      ,indices-info
+                      ,@sym-behavior-args)))
        (if (fx= ,$index ,expected-index)
            (,inline-behavior ,@sym-behavior-args)
            ((vector-ref
@@ -1794,8 +1827,6 @@
 
 (define-macro (init-behavior-dispatch-vector)
 
-  (define (getitem-behavior-dispatch-vector-calculate-index indices-info-length obj-index item-index . vals)
-    (+ (* item-index indices-info-length ) obj-index))
 
  `(begin
    (with-class-indices-info $init-arithmetic-behavior-dispatch-vector)
@@ -1803,7 +1834,7 @@
 
    (define-behavior-dispatch-vector
      getitem-behavior-dispatch-vector
-     (
+     (;; table of set indices
       (py-getitem-listX-sintY-fallback   list  sint)
       (py-getitem-listX-sliceY-fallback  list  slice)
       (py-getitem-listX-boolY-fallback   list  bool)
@@ -1817,32 +1848,36 @@
       (py-getitem-strX-boolY-fallback    str   bool)
       )
      py-getitem-fallback
-     ,getitem-behavior-dispatch-vector-calculate-index
-     )
+     #t)
 
    (define-behavior-dispatch-vector
      setitem-behavior-dispatch-vector
-     (
-      (py-setitem-listX-sintY-fallback   list  sint)
+     (;; table of set indices
+      (py-setitem-listX-sintY-Z-fallback   list  sint)
       )
      py-setitem-fallback
-     ,getitem-behavior-dispatch-vector-calculate-index
-     )
-
-   ))
+     #t)))
 
 (define-macro (define-behavior-dispatch-vector name type-definition default-fallback calculate-index)
   `(with-class-indices-info $define-behavior-dispatch-vector ,name ,type-definition ,default-fallback ,calculate-index))
 
-(define-macro ($define-behavior-dispatch-vector indices-info name type-definition default-fallback calculate-index)
+;; defines a behavior-dispatch-vector according to the size of the type-definition. You should need only 2
+(define-macro ($define-behavior-dispatch-vector indices-info name type-definition default-fallback flip-index)
   (define (type-index type)
     (cadr (assq type indices-info)))
 
+  (define (calculate-index indices-info-length obj-index item-index)
+    (+ (* obj-index indices-info-length) item-index))
+
+  (define (calculate-index-flipped indices-info-length obj-index item-index)
+    (+ (* item-index indices-info-length) obj-index))
+
   (define (add-case func . args)
     `(vector-set! ,name
-                  ,(apply calculate-index (length indices-info) (map type-index args))
+                  ,(apply
+                    (if flip-index calculate-index-flipped calculate-index)
+                    (length indices-info) (map type-index args))
                   ,func))
-
   `(begin
      (define-rts ,name
        (make-vector ,(expt (length indices-info) (- (length (car type-definition)) 1)) ,default-fallback))
@@ -2886,15 +2921,13 @@
       ((str bool) . (str bool)))
     (list sint)
     getitem-behavior-dispatch-vector
-    ,getitem-behavior-dispatch-vector-calculate-index
-    getitem-behavior-dispatch-vector-calculate-index-macro
-
+    #t
     ,obj
     ,item
     ,@args))
 
 
-(define-macro (py-setitem-listX-sintY lst item value)
+(define-macro (py-setitem-listX-sintY-Z lst item value)
   (let (($lst (gensym 'list))
         ($len (gensym 'len))
         ($vec (gensym 'vec))
@@ -2941,8 +2974,7 @@
      )
     (list sint)
     setitem-behavior-dispatch-vector
-    ,setitem-behavior-dispatch-vector-calculate-index
-    setitem-behavior-dispatch-vector-calculate-index-macro
+    #t
 
     ,obj
     ,item
