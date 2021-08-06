@@ -160,6 +160,7 @@
     $py-getitem
     py-getitem
     py-getitem-type
+    py-getitem-behavior-table
     py-getitem-strX-sintY-fallback
     py-getitem-strX-boolY-fallback
     py-getitem-strX-sliceY-fallback
@@ -179,8 +180,7 @@
     py-getitem-listX-boolY
     py-getitem-listX-sliceY
 
-    $calculate-behavior-table-index
-    $calculate-behavior-table-index-flipped
+    py-setitem-behavior-table
     py-setitem-listX-sintY-Z-fallback
     py-setitem-tupleX-sintY-fallback
     py-setitem-listX-sintY-Z
@@ -188,6 +188,8 @@
 
     vector-type-inference
     $vector-type-inference
+    $calculate-behavior-table-index
+    $calculate-behavior-table-index-flipped
     py-setitem
     py-delitem
 

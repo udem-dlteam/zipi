@@ -1833,7 +1833,7 @@
    (with-class-indices-info $init-iteration-behavior-dispatch-vector)
 
    (define-behavior-dispatch-vector
-     getitem-behavior-dispatch-vector
+     py-getitem-behavior-table
      (;; table of set indices
       (py-getitem-listX-sintY-fallback   list  sint)
       (py-getitem-listX-sliceY-fallback  list  slice)
@@ -1851,7 +1851,7 @@
      #t)
 
    (define-behavior-dispatch-vector
-     setitem-behavior-dispatch-vector
+     py-setitem-behavior-table
      (;; table of set indices
       (py-setitem-listX-sintY-Z-fallback   list  sint)
       )
@@ -2871,26 +2871,9 @@
            (vector-ref ,$vec ,$index)
            (py-throw-index-out-of-range "tuple")))))
 
-(define-macro (getitem-behavior-dispatch-vector-calculate-index-macro indices-info $obj $item)
-  (define (type-index type) (cadr (assq type indices-info)))
-
-  (let ((indices-info-length (length indices-info)))
-    `(fx+
-      ;; here we dont use directly py-obj-class-index because we can calculate
-      ;; at compile time the multiplication in some cases
-      (cond
-       ((fixnum? ,$item) ,(* (type-index 'sint) indices-info-length))
-       ((flonum? ,$item) ,(* (type-index 'float) indices-info-length))
-       (else (fx* ,indices-info-length (py-obj-class-index-general ,$item))))
-      (py-obj-class-index ,$obj))
-    )
-  )
 
 
 (define-macro (py-getitem obj item . args)
-  (define (getitem-behavior-dispatch-vector-calculate-index indices-info-length obj-index item-index)
-    (+ (* item-index indices-info-length ) obj-index))
-
   `(vector-type-inference
     py-getitem
 
@@ -2920,7 +2903,7 @@
       ;; str-bool
       ((str bool) . (str bool)))
     (list sint)
-    getitem-behavior-dispatch-vector
+    py-getitem-behavior-table
     #t
     ,obj
     ,item
@@ -2944,25 +2927,7 @@
                (vector-set! ,$vec (fx+ ,$i ,$len) ,value)
                (py-throw-assignment-index-out-of-range "list"))))))
 
-(define-macro (setitem-behavior-dispatch-vector-calculate-index-macro indices-info $obj $item $value)
-  (define (type-index type) (cadr (assq type indices-info)))
-
-  (let ((indices-info-length (length indices-info)))
-    `(fx+
-      ;; here we dont use directly py-obj-class-index because we can calculate
-      ;; at compile time the multiplication in some cases
-      (cond
-       ((fixnum? ,$item) ,(* (type-index 'sint) indices-info-length))
-       ((flonum? ,$item) ,(* (type-index 'float) indices-info-length))
-       (else (fx* ,indices-info-length (py-obj-class-index-general ,$item))))
-      (py-obj-class-index ,$obj))
-    )
-  )
-
 (define-macro (py-setitem obj item value . args)
-  (define (setitem-behavior-dispatch-vector-calculate-index indices-info-length obj-index item-index . args)
-    (+ (* item-index indices-info-length ) obj-index))
-
   `(vector-type-inference
     py-setitem
 
@@ -2973,7 +2938,7 @@
      ((#f #f)     . (list sint))
      )
     (list sint)
-    setitem-behavior-dispatch-vector
+    py-setitem-behavior-table
     #t
 
     ,obj
