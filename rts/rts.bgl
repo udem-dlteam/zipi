@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Jul 13 15:09:38 2021 (serrano)                */
+;*    Last change :  Mon Aug  9 15:09:25 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -535,7 +535,7 @@
                 (fltan x)
                 (flacos x)
                 (flasin x)
-                (flatan x #!optional y)
+                (flatan x #!optional (y 1.0))
                 (flacosh x)
                 (flasinh x)
                 (flatanh x)
@@ -643,9 +643,9 @@
        (,(symbol-append op 'fl) ,x ,@y)))
 
 (define (flcopysign x y)
-  (if (signbitfl y)
-      (abs x)
-      (- (abs x))))
+   (if (signbitfl y)
+       (abs x)
+       (- (abs x))))
 
 (define (expm1 x) (- (exp x) 1))
 (define (log1p x) (log (+ 1 x)))
@@ -669,10 +669,9 @@
 (define (atanhfl x) (*fl 0.5 (logfl (/fl (+fl 1.0 x) (-fl 1.0 x)))))
 
 (define (fllog x #!optional y)
-  (if y
-      (/ (log x)
-         (log y))
-      (log x)))
+   (if y
+       (/ (log x) (log y))
+       (log x)))
 
 (define flnan? nanfl?)
 
@@ -706,7 +705,7 @@
 (define-flop sinh x)
 (define-flop tanh x)
 
-(define (flatan x #!optional y) (atanfl x y))
+(define (flatan x #!optional (y 1.0)) (atanfl x y))
 
 
 
