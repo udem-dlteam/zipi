@@ -18,11 +18,15 @@ jobs:
         with:
           path: zipi
           fetch-depth: 0 # Checkout history and tags
-      - name: Compiling Zipi
+      - name: Setup path
         run: |
           echo "/Users/Shared/zipi/bigloo-install/bigloo/bin" >> $GITHUB_PATH
+      - name: Configure Zipi and install depedencies
+        run: |
           cd zipi
           ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo
+      - name: Compile Zipi
+        run: |
           make
       - name: Gambit tests
         run: |
