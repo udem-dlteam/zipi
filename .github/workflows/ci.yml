@@ -27,10 +27,13 @@ jobs:
           ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo
       - name: Compile Zipi
         run: |
+          cd zipi
           make
       - name: Gambit tests
         run: |
+          cd zipi
           make test-gambit
       - name: Bigloo tests
         run: |
+          cd zipi
           make test-bigloo
