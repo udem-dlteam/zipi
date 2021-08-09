@@ -1773,7 +1773,7 @@
   (define post-fix-indices '#("X" "Y" "Z"))
 
   (define (generate-func-name func type-args indices-count #!optional (indice 0))
-    (if (fx= indices-count indice)
+    (if (eqv? indices-count indice)
         (string->symbol func)
         (let* ((sym-name (if (pair? type-args)
                              (symbol->string (car type-args))

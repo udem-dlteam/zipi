@@ -186,8 +186,8 @@
     py-setitem-listX-sintY-Z
     py-setitem-tupleX-sintY
 
-    vector-type-inference
-    $vector-type-inference
+    define-semantics-body
+    $define-semantics-body
     $calculate-behavior-table-index
     $calculate-behavior-table-index-flipped
     py-setitem

@@ -312,9 +312,9 @@
                 (py-make-module name package #!optional (path #f))
 
                 ;;(py-getitem ::PyObject ::obj ::obj)
-                getitem-behavior-dispatch-vector
+                py-getitem-behavior-table
+                py-setitem-behavior-table
                 ;; (py-delitem ::PyObject ::obj ::obj)
-                ;; (py-setitem ::PyObject ::obj ::obj ::obj)
 
                 (py-getattribute-cached-fallback obj hclass name cache)
                 (py-getattribute-cached-fallback/no-object obj hclass name cache)
@@ -347,6 +347,7 @@
                 (py-throw ::obj)
                 (py-throw-with-values exc . values)
                 (py-throw-index-out-of-range type)
+                (py-throw-assignment-index-out-of-range type)
                 (inline py-try-except-else handler body orelse)
                 (inline py-try-except handler body)
                 (inline py-throw-unsafe exc)
@@ -378,6 +379,7 @@
                 (py-isinstance? ::obj ::PyObject)
 
                 (py-slice-from-scheme ::obj ::obj ::obj)
+                (py-slice-indices ::PyObject ::obj)
 
                 (py-make-set elements)
 

@@ -2710,9 +2710,6 @@
 (define-rts (py-setitem-listX-sintY-Z-fallback obj item value)
   (py-setitem-listX-sintY-Z obj item value))
 
-(define-rts (py-setitem-tupleX-sintY-fallback obj item value)
-  (py-setitem-tupleX-sintY obj item value))
-
 ;; adds top-level behavior tables
 (init-behavior-dispatch-vector)
 
