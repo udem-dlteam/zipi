@@ -130,12 +130,15 @@
             (expansion-flag-set! expansion)
             (command-line-argv-set! argv)
 
-            (run-as-main (path-normalize file) cache-location)))
+            (let ((file-name (path-normalize file)))
+              (if (file-exists? file-name)
+                  (run-as-main file-name cache-location)
+                  (error "run-main" "file doesn't exist" file-name)))))
    file
    zipi-lib-path
    cache-location
-    argv
-    compile
-    debug
-    profile
-    expansion))
+   argv
+   compile
+   debug
+   profile
+   expansion))
