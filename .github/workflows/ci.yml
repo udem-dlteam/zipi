@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0 # Checkout history and tags
       - name: Compiling Zipi
         run: |
-          echo "/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo" >> $GITHUB_PATH
+          echo "/Users/Shared/zipi/bigloo-install/bigloo/bin" >> $GITHUB_PATH
           cd zipi
           ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo
           make
