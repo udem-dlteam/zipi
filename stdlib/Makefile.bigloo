@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  manuel serrano                                    */
 #*    Creation    :  Sun May 16 15:36:08 2021                          */
-#*    Last change :                                                    */
+#*    Last change :  Mon Aug  9 14:35:29 2021 (serrano)                */
 #*    Copyright   :  2021 manuel serrano                               */
 #*    -------------------------------------------------------------    */
 #*    The Bigloo specific Makefile to install the zipi stdlib          */
@@ -36,7 +36,7 @@ behaviors.bgl: behaviors.py
 behaviors.sch: behaviors.py
 	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_behaviors --semantics-macros --bin-dir=$(BUILDBINDIR)
 
-clean.bigloo:
+clean.bigloo: clean.library
 
 distclean.bigloo:
 	rm -f zemantics.bgl

@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Wed Mar 15 07:22:39 2006                          */
-#*    Last change :  Sun May 16 16:12:44 2021 (serrano)                */
+#*    Last change :  Mon Aug  9 14:35:49 2021 (serrano)                */
 #*    Copyright   :  2006-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The common Makefile for building libraries                       */
@@ -197,7 +197,7 @@ $(BUILDLIBDIR)/lib$(TARGETNAME)_eu-$(BGLZIPIRELEASE).a: \
 #*---------------------------------------------------------------------*/
 #*    stdclean                                                         */
 #*---------------------------------------------------------------------*/
-stdclean:
+stdclean.library:
 	$(RM) -f $(OBJECTS) $(_BGL_OBJECTS:%=%.c)
 	$(RM) -f $(EOBJECTS)
 	$(RM) -f $(BUILDLIBDIR)/lib$(TARGETNAME)_s-$(BGLZIPIRELEASE).a
@@ -217,20 +217,20 @@ stdclean:
 	$(RM) -f *.mco
 	$(RM) -f *.ast
 
-udeclean:
+udeclean.library:
 	$(RM) -f .afile .etags
 
-devclean: cleanall
+devclean.library: cleanall.library
 
 #*---------------------------------------------------------------------*/
 #*    clean                                                            */
 #*---------------------------------------------------------------------*/
-clean: stdclean
+clean.library: stdclean.library
 	$(RM) -rf o
 
-cleanall: stdclean udeclean
+cleanall.library: stdclean.libraty udeclean.library
 
-distclean: cleanall
+distclean.library: cleanall.library
 
 #*---------------------------------------------------------------------*/
 #*    Installation                                                     */
