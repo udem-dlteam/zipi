@@ -20,7 +20,7 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    build                                                            */
 #*---------------------------------------------------------------------*/
-.PHONY: build clean distclean cleanall
+.PHONY: build clean distclean cleanall test test-gambit test-bigloo
 
 build:
 	mkdir -p bin
@@ -143,6 +143,12 @@ cleanall: distclean
 
 test:
 	@cd tests; $(BUILDPYTHON) run.py
+
+test-gambit:
+	@cd tests; $(BUILDPYTHON) run.py --zipi $(ZIPIBINDIR)/zipi.gambit
+
+test-bigloo:
+	@cd tests; $(BUILDPYTHON) run.py --zipi $(ZIPIBINDIR)/zipi.bigloo
 
 unittest:
 	@cd unittest; make unittest
