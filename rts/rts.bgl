@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Aug 10 08:44:24 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 09:41:45 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -911,11 +911,15 @@
 	     (lambda (a b c) (init a b c #t))))))
 
 (define loaded-modules
-   (create-hashtable
-      :weak 'open-string
-      :size 128
-      :max-length 4096
-      :max-bucket-length 10))
+   (cond-expand
+      (bigloo4.4b
+       (make-hashtable))
+      (else
+       (create-hashtable
+	  :weak 'open-string
+	  :size 128
+	  :max-length 4096
+	  :max-bucket-length 10))))
 
 ;*     ;; should be changed                                            */
 ;*     #;(let ((dlsym (dynamic-load-symbol libname "init" module-name))) */
