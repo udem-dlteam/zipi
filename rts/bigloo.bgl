@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/bigloo.bgl                         */
+;*    serrano/prgm/project/zipi/zipi/rts/bigloo.bgl                    */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Mon Aug  9 12:18:59 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 08:54:56 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -104,6 +104,12 @@
 	   
 	   (inline get-environment-variable ::bstring)
 	   (fold ::procedure ::obj ::pair-nil)))
+
+;*---------------------------------------------------------------------*/
+;*    ZIPITRACE ...                                                    */
+;*---------------------------------------------------------------------*/
+(define ZIPITRACE (or (getenv "ZIPITRACE") ""))
+(define ZIPIBIGLOOOPTS (or (getenv "ZIPIBIGLOOOPTS") "-Ox"))
 
 ;*---------------------------------------------------------------------*/
 ;*    let-values ...                                                   */
@@ -477,8 +483,16 @@
 ;*    compile-source ...                                               */
 ;*---------------------------------------------------------------------*/
 (define (compile-source source target)
-   (system
-      (format "~a/zpc.bigloo --no-py-module-main ~a -o ~a -y -t ~a" (zipi-bin-dir) source target (string-append target ".scm"))))
+   (let ((cmd (format "~a/zpc.bigloo --no-py-module-main ~a -o ~a -y -t ~a ~a"
+		 (zipi-bin-dir) source target (string-append target ".scm")
+		 ZIPIBIGLOOOPTS)))
+      (if (string-contains ZIPITRACE "zipi:compile")
+	  (begin
+	     (display* "compiling \"" cmd "\"... ")
+	     (let ((res (system cmd)))
+		(print res)
+		res))
+	  (system cmd))))
 
 ;*---------------------------------------------------------------------*/
 ;*    get-environment-variable ...                                     */

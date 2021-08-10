@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/rts.bgl                            */
+;*    serrano/prgm/project/zipi/zipi/rts/rts.bgl                       */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Mon Aug  9 15:09:25 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 08:44:24 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -866,62 +866,61 @@
   (wind path '()))
 
 
-(define-rts (compile-to-cache path path-info path-in-cache)
-  (let* ((path-cache
-           (string-append
-             (cache-location-get)
-             "/"
-             path-in-cache
-             "/"
-             (path-strip-directory path-in-cache)
-             ".so"))
-         )
+;*---------------------------------------------------------------------*/
+;*    path-cache ...                                                   */
+;*---------------------------------------------------------------------*/
+(define (path-cache path-in-cache)
+   (make-file-path (cache-location-get) path-in-cache
+      (string-append (path-strip-directory path-in-cache)
+	 "." (shared-library-suffix))))
 
-    ;; compile file and return #f if compilation failed
-    (define (compile)
-      (ensure-parent-dir-exists path-cache)
-      (and (file-exists? path)
-           (fx= 0 (compile-source path path-cache))))
+;*---------------------------------------------------------------------*/
+;*    compile-to-cache ...                                             */
+;*---------------------------------------------------------------------*/
+(define (compile-to-cache path path-info path-in-cache)
+   (let ((libname (path-cache path-in-cache)))
 
-
-    (if (file-exists? path-cache)
-        ;; check according to modified date
-        (if (< (time->seconds (file-modification-time path-info))
-               (time->seconds (file-modification-time path-cache)))
-            (begin
-              (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " path-cache "\n")
-              #t) ;; compilation "successful" (file already compiled)
-            (compile))
-        (compile)))) ;; compiled file does not exist (must compile)
+      (define (compile)
+	 (ensure-parent-dir-exists libname)
+	 (when (file-exists? path)
+	    (=fx 0 (compile-source path libname))))
+      
+      (if (file-exists? libname)
+	  ;; check according to modified date
+	  (if (<elong (time->seconds (file-modification-time path-info))
+		 (time->seconds (file-modification-time libname)))
+	      (begin
+		 (possible-error 1 "skipping compilation of unmodified file at " path ", compiled file found : " libname "\n")
+		 #t) ;; compilation "successful" (file already compiled)
+	      (compile))
+	  (compile)))) ;; compiled file does not exist (must compile)
 
 ;*---------------------------------------------------------------------*/
 ;*    load-module-and-get-init ...                                     */
 ;*---------------------------------------------------------------------*/
-
-(define loaded-modules (make-hashtable))
-
-(define-rts (load-module-and-get-init path-in-cache)
-  (let* ((libname
-          (string-append
-           (cache-location-get)
-           "/"
-           path-in-cache
-           "/"
-           (path-strip-directory path-in-cache)
-           ".so"))
-         (module-name
-          (string-append "%%/" path-in-cache)))
-
-    (let ((preloaded-init (hashtable-get loaded-modules libname)))
+(define (load-module-and-get-init path-in-cache)
+   (let* ((libname (path-cache path-in-cache))
+	  (module-name (make-file-name "%%" path-in-cache))
+	  (preloaded-init (hashtable-get loaded-modules libname)))
       (or preloaded-init
-          (let ((init (dynamic-load libname)))
-            (hashtable-put! loaded-modules libname (lambda (a b c d) (init a b c #f)))
-            (lambda (a b c) (init a b c #t))))
-    ;; should be changed
-    #;init
-    #;(let ((dlsym (dynamic-load-symbol libname "init" module-name)))
-      (when dlsym
-        (dynamic-load-symbol-get dlsym))))))
+	  (let ((init (dynamic-load libname)))
+	     (unless (and (procedure? init) (correct-arity? init 4))
+		(error (format "zipi(~a)" libname) "wrong library init"init))
+	     (hashtable-put! loaded-modules libname
+		(lambda (a b c d) (init a b c #f)))
+	     (lambda (a b c) (init a b c #t))))))
+
+(define loaded-modules
+   (create-hashtable
+      :weak 'open-string
+      :size 128
+      :max-length 4096
+      :max-bucket-length 10))
+
+;*     ;; should be changed                                            */
+;*     #;(let ((dlsym (dynamic-load-symbol libname "init" module-name))) */
+;*       (when dlsym                                                   */
+;*         (dynamic-load-symbol-get dlsym)))))                         */
 
 ;*---------------------------------------------------------------------*/
 ;*    PCache-set! ...                                                  */

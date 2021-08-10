@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Tue Aug 10 08:01:58 2021 (serrano)                */
+#*    Last change :  Tue Aug 10 09:02:14 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    Zipi autoconfiguration                                           */
@@ -131,6 +131,8 @@ function parseArg() {
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
       echo "   --zipicache=path............ location of compiled .py files ($zipicache)" >&2;
+      echo "" >&2;
+      echo "ZIPICONFIGUREOPTS=opt1 opt2..." >&2;
       exit 255;
   esac
 }
