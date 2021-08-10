@@ -88,7 +88,7 @@
 
            (if (not file)
                (if (not reset) (usage))
-               (run-as-main file argv compile debug profile expansion))))))
+               (run-main file argv compile debug profile expansion))))))
 
 (define (usage)
   (print (string-append "usage: zipi"
@@ -114,7 +114,7 @@
 
 
 
-(define (run-as-main file argv compile debug profile expansion)
+(define (run-main file argv compile debug profile expansion)
   (bigloo-library-path-set!
    (cons "@BIGLOOLIBPATH@"
          (bigloo-library-path)))
@@ -130,12 +130,15 @@
             (expansion-flag-set! expansion)
             (command-line-argv-set! argv)
 
-            (run-as-main (path-normalize file) cache-location)))
+            (let ((file-name (path-normalize file)))
+              (if (file-exists? file-name)
+                  (run-as-main file-name cache-location)
+                  (error "run-main" "file doesn't exist" file-name)))))
    file
    zipi-lib-path
    cache-location
-    argv
-    compile
-    debug
-    profile
-    expansion))
+   argv
+   compile
+   debug
+   profile
+   expansion))

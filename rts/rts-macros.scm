@@ -67,7 +67,13 @@
                   ',(|##source-strip| (cadr form)))))))))
   (else
    (define-macro (define-rts pattern . body)
-     `(define ,pattern ,@body))))
+     (if (pair? pattern)
+         `(define ,pattern
+            ;; uncomment to print each call in bigloo
+            ;#(print ',pattern)
+            ,@body)
+         `(define ,pattern ,@body)))))
+
 
 ;; inline c code
 

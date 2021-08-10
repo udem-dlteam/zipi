@@ -900,7 +900,7 @@
 
 (define loaded-modules (make-hashtable))
 
-(define (load-module-and-get-init path-in-cache)
+(define-rts (load-module-and-get-init path-in-cache)
   (let* ((libname
           (string-append
            (cache-location-get)
