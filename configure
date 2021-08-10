@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 #*=====================================================================*/
-#*    serrano/prgm/project/zipi/configure                              */
+#*    serrano/prgm/project/zipi/zipi/configure                         */
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Tue Jul 13 08:09:36 2021 (serrano)                */
+#*    Last change :  Tue Aug 10 08:01:58 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    Zipi autoconfiguration                                           */
@@ -20,8 +20,8 @@ default_scheme_system="no_default_scheme_system_currently_set"
 #*    Bigloo configuration                                             */
 #*---------------------------------------------------------------------*/
 bigloo=bigloo
-if [ "$HOPBIGLOO " != " " ]; then
-  bigloo=$HOPBIGLOO
+if [ "$ZIPIBIGLOO " != " " ]; then
+  bigloo=$ZIPIBIGLOO
 fi
 
 #*---------------------------------------------------------------------*/
@@ -55,35 +55,30 @@ zipicache=~/.zipicache
 branch=`git rev-parse --abbrev-ref HEAD`
 date=`date +"%d %B %Y"`
 
-# Argument parsing
-while : ; do
+#*---------------------------------------------------------------------*/
+#*    parseArg ...                                                     */
+#*---------------------------------------------------------------------*/
+function parseArg() {
   case $1 in
-    "")
-      break;;
-
     --prefix=*)
       prefix="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --bigloo-only)
       systems=bigloo
-      default_scheme_system=bigloo
-      ;;
+      default_scheme_system=bigloo;;
 
     --gambit-only)
       systems=gambit
-      default_scheme_system=gambit
-      ;;
+      default_scheme_system=gambit;;
 
     --default=*)
       default_scheme_system="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --gambitroot=*)
-      gambitroot="`echo $1 | sed 's/^[^=]*=//'`";
-      ;;
+      gambitroot="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --bigloo=*)
-      bigloo="`echo $1 | sed 's/^[^=]*=//'`";
-      ;;
+      bigloo="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --bigloolibdir=*)
       bigloolibdir="`echo $1 | sed 's/^[^=]*=//'`";;
@@ -92,8 +87,7 @@ while : ; do
       bigloobindir="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --python=*)
-      python="`echo $1 | sed 's/^[^=]*=//'`";
-      ;;
+      python="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --install=*)
       install="`echo $1 | sed 's/^[^=]*=//'`";;
@@ -139,7 +133,24 @@ while : ; do
       echo "   --zipicache=path............ location of compiled .py files ($zipicache)" >&2;
       exit 255;
   esac
+}
+
+echo "configuring with [$*]..." > config.status
+echo "ZIPICONFIGUREOPTS=$ZIPICONFIGUREOPTS" >> config.status
+
+# Argument parsing
+while : ; do
+  case $1 in
+    "")
+      break;;
+    *)
+      parseArg $1;;
+  esac
   shift
+done
+
+for p in $ZIPICONFIGUREOPTS; do
+  parseArg $p
 done
 
 versiondash=`echo $version | sed 's/[.]/-/g'`
@@ -358,3 +369,4 @@ mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
 
 rm -rf $buildbindir/pysexp
 cp -r $buildetcdir/pysexp $buildbindir/pysexp
+

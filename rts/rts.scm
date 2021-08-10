@@ -5760,7 +5760,8 @@
   (let ((sys.modules (sys.modules-get)))
     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
     (py-try-except
-     (lambda (e)
+       (lambda (e)
+	  (exception-notify e)
        (print-exception e (current-error-port))
        (exit 1))
      (lambda ()
