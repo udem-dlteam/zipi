@@ -11,7 +11,7 @@ on:
 jobs:
   MacOs:
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v2
