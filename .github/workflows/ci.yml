@@ -21,6 +21,7 @@ jobs:
       - name: Setup path
         run: |
           echo "/Users/Shared/zipi/bigloo-install/bigloo/bin" >> $GITHUB_PATH
+          echo "CC=gcc-9" >> $GITHUB_ENV 
       - name: Configure Zipi and install depedencies
         run: |
           cd zipi
