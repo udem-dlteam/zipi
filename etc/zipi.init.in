@@ -1,11 +1,11 @@
 ;; -*-bee-*-
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/etc/zipi.init.in                       */
+;*    serrano/prgm/project/zipi/zipi/etc/zipi.init.in                  */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 15:20:22 2019                          */
-;*    Last change :  Mon May 25 18:12:40 2020 (serrano)                */
-;*    Copyright   :  2019-20 Manuel Serrano                            */
+;*    Last change :  Tue Aug 10 10:43:28 2021 (serrano)                */
+;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    ZIPI init file.                                                  */
 ;*=====================================================================*/
@@ -17,6 +17,24 @@
 		  :version "@RELEASE@"
 		  :module-init '__py_bigloo
 		  :module-eval '__py_make_lib)
+
+;*---------------------------------------------------------------------*/
+;*    gambit minimal compatibility kit                                 */
+;*---------------------------------------------------------------------*/
+(define-macro (fx+ x y) `(+fx ,x ,y))
+(define-macro (fx- x y) `(-fx ,x ,y))
+(define-macro (fx* x y) `(*fx ,x ,y))
+(define-macro (fx/ x y) `(/fx ,x ,y))
+(define-macro (fx= x y) `(=fx ,x ,y))
+(define-macro (fx< x y) `(<fx ,x ,y))
+(define-macro (fx> x y) `(>fx ,x ,y))
+(define-macro (fx<= x y) `(<=fx ,x ,y))
+(define-macro (fx>= x y) `(>=fx ,x ,y))
+(define-macro (fxwrap* x y) `(*fx ,x ,y))
+(define-macro (fxand x y) `(bit-and ,x ,y))
+(define-macro (fxxor x y) `(bit-xor ,x ,y))
+(define-macro (fxarithmetic-shift-left x y) `(bit-lsh ,x ,y))
+(define-macro (fxarithmetic-shift-right x y) `(bit-rsh ,x ,y))
 
 ;*---------------------------------------------------------------------*/
 ;*    Link option                                                      */

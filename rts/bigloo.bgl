@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Tue Aug 10 08:54:56 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 13:27:55 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -484,7 +484,7 @@
 ;*---------------------------------------------------------------------*/
 (define (compile-source source target)
    (let ((cmd (format "~a/zpc.bigloo --no-py-module-main ~a -o ~a -y -t ~a ~a"
-		 (zipi-bin-dir) source target (string-append target ".scm")
+		 (zipi-bin-dir) source target (string-append (prefix target) ".scm")
 		 ZIPIBIGLOOOPTS)))
       (if (string-contains ZIPITRACE "zipi:compile")
 	  (begin

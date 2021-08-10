@@ -1,5 +1,5 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/bigloo/constants.sch               */
+;*    serrano/prgm/project/zipi/zipi/rts/bigloo/constants.sch          */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Sat Nov 22 06:35:05 2014                          */

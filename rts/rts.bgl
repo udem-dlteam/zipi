@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Aug 10 09:41:45 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 11:02:25 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -331,6 +331,7 @@
                 (py-callX-fallback min-neg-arity fun . args)
                 (py-call-generic ::obj ::obj)
                 (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
+		(py-call-generic/*args obj args *args-lst)
                 (py-call-hashed-kwargs obj args *args-lst kwargs-table)
 
                 (py-call-wrong-arity arity nargs nargs-string)
@@ -422,7 +423,7 @@
                 (inline PCache-set! ::PCache ::HClass ::long)
                 (inline HClass-last-index::long ::HClass)
 
-                (&pystring-init str)
+                (&py-constants-init str)
                 (py-init-registered-constants strings)
 
                 (py-make-tuple . els)
@@ -560,7 +561,6 @@
                 (flcopysign x y)
 
                 (inline exact x)
-                #;(inline inexact x)
 
                 (native-builtin-__import__ ::bstring)
                 (py-throw-exception-with-message exc . msg)
@@ -990,9 +990,9 @@
    registered-constants-table)
 
 ;*---------------------------------------------------------------------*/
-;*    &pystring-init ...                                               */
+;*    &py-constants-init ...                                           */
 ;*---------------------------------------------------------------------*/
-(define (&pystring-init str)
+(define (&py-constants-init str)
    (string->obj str))
 
 ;*---------------------------------------------------------------------*/
@@ -1007,7 +1007,24 @@
 ;*---------------------------------------------------------------------*/
 ;*    py-init-registered-constants ...                                 */
 ;*---------------------------------------------------------------------*/
-(define (py-init-registered-constants strings)
+(define (py-init-registered-constants constants)
+   
+   (define (constant-string str)
+      (or (table-ref (get-registered-constants-table) str)
+	  (let ((o (instantiate::PyObjectStrRep
+		      (len (string-length str))
+		      (part1-or-string str)
+		      (part2-or-rep #f)
+		      (hash 0)
+		      (magic-index #f)
+		      (hclass py-str-hclass-of-instances)
+		      (class py-str-class))))
+	     (with-access::PyObjectStrRep o (part2-or-rep)
+		(set! part2-or-rep o))
+	     (table-set! (get-registered-constants-table)
+		str o)
+	     o)))
+   
    (cond
       ((not py-str-class)
        (error "py-init-registered-constants"
@@ -1017,23 +1034,22 @@
 	  "py-str-class not inialized"
 	  py-str-hclass-of-instances))
       (else
-       (vector-map! (lambda (s)
-		       (let ((str (vector-ref s 1)))
-			  (or (table-ref (get-registered-constants-table) str)
-			      (let ((o (instantiate::PyObjectStrRep
-					  (len (string-length str))
-					  (part1-or-string str)
-					  (part2-or-rep #f)
-					  (hash 0)
-					  (magic-index #f)
-					  (hclass py-str-hclass-of-instances)
-					  (class py-str-class))))
-				 (with-access::PyObjectStrRep o (part2-or-rep)
-				    (set! part2-or-rep o))
-				 (table-set! (get-registered-constants-table)
-				    str o)
-				 o))))
-	  strings))))
+       (vector-map! (lambda (k)
+		       (case (vector-ref k 0)
+			  ((&ascii &string)
+			   (constant-string (vector-ref k 1)))
+			  ((&hash)
+		       (tprint "k=" k)
+			   (vector-map (lambda (e)
+					  (if (string? e)
+					      (constant-string e)
+					      e))
+			      (vector-ref k 1)))
+			  (else
+			   (error "py-init-registered-constants"
+			      "illegal constant"
+			      k))))
+	  constants))))
 
 ;*---------------------------------------------------------------------*/
 ;*    string-split ...                                                 */

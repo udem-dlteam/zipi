@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/bigloo/constants_expd.sch          */
+;*    serrano/prgm/project/zipi/zipi/rts/bigloo/constants_expd.sch     */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Mar 28 15:09:08 2019                          */
-;*    Last change :  Tue May 25 14:51:00 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 13:10:33 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    HopScript constant expanders                                     */
@@ -90,7 +90,7 @@
       ((&begin!)
        (thread-parameter-set! '&cnsts '())
        (thread-parameter-set! '&x-cnsts x)
-       ;; must be #f as Scheme files use (vector? __py_strings) to test init
+       ;; must be #f as Scheme files use (vector? __py_constants) to test init
        `(let () ,x))
       (else
        (error "&begin!" "Illegal form" x))))
@@ -119,7 +119,7 @@
       ((&end!)
        (let* ((xbeg (thread-parameter '&x-cnsts))
 	      (cnsts (map cadr (reverse! (thread-parameter '&cnsts))))
-	      (newx `(&pystring-init ,(obj->string (apply vector cnsts)))))
+	      (newx `(&py-constants-init ,(obj->string (apply vector cnsts)))))
 	  (if xbeg
 	      (begin
 		 (set-car! xbeg (car newx))
@@ -142,18 +142,28 @@
 		  (py-str-from-scheme-fallback ,str))
 	      (let ((old (assoc str &cnsts)))
 		 (if (pair? old)
-		     (e `(vector-ref __py_strings ,(cddr old)) e)
+		     (e `(vector-ref __py_constants ,(cddr old)) e)
 		     (let ((cnst (&name-expander x e)))
 			(if (vector? cnst)
 			    (let ((len (length &cnsts)))
 			       (thread-parameter-set! '&cnsts
 				  (cons (cons str (cons cnst len)) &cnsts))
-			       (e `(vector-ref __py_strings ,len) e))
+			       (e `(vector-ref __py_constants ,len) e))
 			    cnst)))))))
       ((& (and ?str (? string?)) ?idx)
-       (e `(vector-ref __py_strings ,idx) e))
+       (e `(vector-ref __py_constants ,idx) e))
       ((& strings)
        (&name-expander x e))
+      ((& (and (? vector?) ?val))
+       (let* ((&cnsts (thread-parameter '&cnsts))
+	      (old (assoc val &cnsts)))
+	  (if (pair? old)
+	      (e `(vector-ref __py_constants ,(cddr old)) e)
+	      (let ((cnst (vector '&hash val)))
+		 (let ((len (length &cnsts)))
+		    (thread-parameter-set! '&cnsts
+		       (cons (cons val (cons cnst len)) &cnsts))
+		    (e `(vector-ref __py_constants ,len) e))))))
       (else
        (error "&" "bad form" x))))
 
@@ -171,7 +181,7 @@
 ;*    start-registering-constants-expander ...                         */
 ;*---------------------------------------------------------------------*/
 (define (start-registering-constants-expander x e)
-   (e '(define __py_strings (&begin!)) e))
+   (e '(define __py_constants (&begin!)) e))
 
 ;*---------------------------------------------------------------------*/
 ;*    end-registering-constants-expander ...                           */
@@ -183,7 +193,7 @@
 ;*    init-registered-constants-expander ...                           */
 ;*---------------------------------------------------------------------*/
 (define (init-registered-constants-expander x e)
-   (e '(py-init-registered-constants __py_strings) e))
+   (e '(py-init-registered-constants __py_constants) e))
    
 ;*---------------------------------------------------------------------*/
 ;*    &name-expander ...                                               */
@@ -234,23 +244,21 @@
 	   (let ((n (string->number val)))
 	      (cond
 		 ((not (fixnum? n))
-		  (vector 0 val))
+		  (vector '&ascii val))
 		 ((string=? val "-0")
-		  (vector 0 val))
+		  (vector '&ascii val))
 		 ((char=? (string-ref val 0) #\+)
-		  (vector 0 val))
+		  (vector '&ascii val))
 		 ((=fx (string-length val) 1)
-		  ;;(vector 2 n)
-		  (vector 0 val))
+		  (vector '&ascii val))
 		 ((and (char=? (string-ref val 0) #\0) (not (=fx n 0)))
-		  (vector 0 val))
+		  (vector '&ascii val))
 		 (else
-		  ;;(vector 2 n)
-		  (vector 0 val)))))
+		  (vector '&ascii val)))))
 	  ((eq? (string-minimal-charset val) 'ascii)
-	   (vector 0 val))
+	   (vector '&ascii val))
 	  (else
-	   (vector 1 val))))
+	   (vector '&string val))))
       (else
        (error "&name" "bad syntax" x))))
 
