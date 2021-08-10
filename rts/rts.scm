@@ -1035,7 +1035,6 @@
                   (loop (+ i 1))
                   (cons el (loop (+ i 1)))))
               '()))))
-     (tprint "table=" kwargs-table " " kwarg)
     (if kwarg
       (list (py-dict-from-scheme unused-kwargs))
       (if (null? unused-kwargs)
