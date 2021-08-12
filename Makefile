@@ -1,9 +1,9 @@
 #*=====================================================================*/
-#*    serrano/prgm/project/zipi/Makefile                               */
+#*    serrano/prgm/project/zipi/zipi/Makefile                          */
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Sun May 16 15:46:17 2021 (serrano)                */
+#*    Last change :  Tue Aug 10 08:14:43 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -135,6 +135,7 @@ distclean: clean
 	rm -f bin/zipi-compile-and-run.gambit
 	rm -f bin/zipi-compile-and-run.bigloo
 	rm -f bin/zipi-compile-and-run.bigloo.scm
+	rm -f config.status
 
 clean-dependencies:
 	rm -rf dependencies

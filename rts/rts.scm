@@ -1194,6 +1194,14 @@
           type
           " index out of range")))))
 
+(define-rts (py-throw-assignment-index-out-of-range type)
+  (py-throw
+   (py-call py-builtin-IndexError
+            (py-str-from-scheme
+             (string-append
+              type
+              " assignment index out of range")))))
+
 (define-rts (py-throw-action-out-of-range type action)
   (py-throw
     (py-call py-builtin-IndexError
@@ -2698,6 +2706,10 @@
 
 (define-rts (py-getitem-strX-sliceY-fallback obj item)
   (py-getitem-strX-sliceY obj item))
+
+(define-rts (py-setitem-listX-sintY-Z-fallback obj item value)
+  (py-setitem-listX-sintY-Z obj item value))
+
 ;; adds top-level behavior tables
 (init-behavior-dispatch-vector)
 
@@ -3261,7 +3273,7 @@
                (i (py-subtype-of-int-to-scheme item)))
           (if (index-in-length-range i len)
             (vector-set! vec (modulo i len) value)
-            (py-throw-action-out-of-range "list" "assignment"))))
+            (py-throw-assignment-index-out-of-range "list"))))
       ((py-isinstance? item py-slice-class)
         (list-set-slice self item value))
       (else (py-throw-wrong-index-type "list" "integers or slices" item)))
@@ -5748,7 +5760,8 @@
   (let ((sys.modules (sys.modules-get)))
     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
     (py-try-except
-     (lambda (e)
+       (lambda (e)
+	  (exception-notify e)
        (print-exception e (current-error-port))
        (exit 1))
      (lambda ()

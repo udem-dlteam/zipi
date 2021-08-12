@@ -9,7 +9,7 @@ magic_methods: out/magic_methods.txt
 behaviors: out/behaviors.py
 
 clean:
-	rm out/*.py
+	touch out/__dummy.py; rm out/*.py
 
 out/builtins.py: semPy/code_generation/__main__.py semPy/code_generation/templates.py
 	$(PYTHON3) -m semPy.code_generation builtins -o out/builtins.py

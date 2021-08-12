@@ -67,7 +67,13 @@
                   ',(|##source-strip| (cadr form)))))))))
   (else
    (define-macro (define-rts pattern . body)
-     `(define ,pattern ,@body))))
+     (if (pair? pattern)
+         `(define ,pattern
+            ;; uncomment to print each call in bigloo
+            ;#(print ',pattern)
+            ,@body)
+         `(define ,pattern ,@body)))))
+
 
 ;; inline c code
 
@@ -1164,215 +1170,6 @@
             (loop (+ i ,$len)))
           (py-list-from-scheme ,$res-vec ,$res-len))))))
 
-;; TODO : The case of having a step of 1 in the slice could be optimized with
-;;        a vector-copy directly. This is curently pending and not used (need testing)
-;;        See https://github.com/udem-dlteam/zipi/pull/518#discussion_r669576132
-(define-macro (py-getitem-listX-sliceY-step1 lst slice)
-  (let (($list (gensym 'list))
-        ($len (gensym 'len))
-        ($vec (gensym 'vec))
-        ($indices (gensym 'indices))
-        ($start (gensym 'start))
-        ($stop (gensym 'stop))
-        ($res-len (gensym 'len))
-        ($res-vec (gensym 'vec)))
-    `(let* ((,$list ,lst)
-            (,$len (PyObjectList-len ,$list))
-            (,$vec (PyObjectList-vector ,$list))
-            (,$indices (py-slice-indices ,slice ,$len))
-            (,$start (vector-ref ,$indices 0))
-            (,$stop (vector-ref ,$indices 1))
-            (,$res-len (- ,$stop ,$start)))
-       (py-list-from-scheme (vector-copy ,$vec ,$start ,$stop) ,res-len))))
-
-(define-macro (get-slice-length start stop step)
-  `(max 0 (quotient (+ (- ,stop ,start) ,step (if (< ,step 0) 1 -1)) ,step)))
-
-(define-macro (py-getitem-listX-sliceY lst slice)
-  (let (($list (gensym 'list))
-        ($len (gensym 'len))
-        ($vec (gensym 'vec))
-        ($indices (gensym 'indices))
-        ($start (gensym 'start))
-        ($stop (gensym 'stop))
-        ($step (gensym 'step))
-        ($quot (gensym 'diff))
-        ($res-len (gensym 'res-len))
-        ($res-vec (gensym 'vec)))
-    `(let* ((,$list ,lst)
-            (,$len (PyObjectList-len ,$list))
-            (,$vec (PyObjectList-vector ,$list))
-            (,$indices (py-slice-indices ,slice ,$len))
-            (,$start (vector-ref ,$indices 0))
-            (,$stop (vector-ref ,$indices 1))
-            (,$step (vector-ref ,$indices 2))
-            (,$res-len (get-slice-length ,$start ,$stop ,$step))
-            (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
-       #;(step)
-       (let loop ((source ,$start) (target 0))
-         (if (< target ,$res-len)
-             (begin
-               (vector-set! ,$res-vec target (vector-ref ,$vec source))
-               (loop (+ source ,$step) (+ target 1)))
-             (py-list-from-scheme ,$res-vec ,$res-len))))))
-
-(define-macro (index-in-length-range-inline index len)
-  `(and (< ,index ,len) (>= ,index (- ,len))) )
-
-(define-macro (py-getitem-listX-sintY lst item)
-  (let (($lst (gensym 'list))
-        ($len (gensym 'len))
-        ($vec (gensym 'vec))
-        ($i (gensym 'i)))
-    `(let* ((,$lst ,lst)
-            (,$len (PyObjectList-len ,$lst))
-            (,$vec (PyObjectList-vector ,$lst))
-            (,$i (py-sint-to-scheme ,item)))
-       (if (fx>= ,$i 0)
-           (if (fx< ,$i ,$len)
-               (vector-ref ,$vec ,$i)
-               (py-throw-index-out-of-range "list"))
-           (if (fx>= ,$i (fx- 0 ,$len))
-               (vector-ref ,$vec (fx+ ,$i ,$len))
-               (py-throw-index-out-of-range "list")))
-       )))
-
-(define-macro (py-getitem-listX-boolY lst bool)
-  (let (($lst (gensym 'lst))
-        ($len (gensym 'len))
-        ($vec (gensym 'vec))
-        ($index (gensym 'index)))
-    `(let* ((,$lst ,lst)
-            (,$len (PyObjectList-len ,$lst))
-            (,$vec (PyObjectList-vector ,$lst))
-            (,$index (if (eq? ,bool py-True) 1 0)))
-       (if (> ,$len ,$index)
-           (vector-ref ,$vec ,$index)
-           (py-throw-index-out-of-range "list")))))
-
-(define-macro (py-getitem-strX-sintY str int)
-  (let (($str (gensym 'str))
-        ($len (gensym 'len))
-        ($scheme-str (gensym 'scheme-str))
-        ($i (gensym 'i)))
-    `(let* ((,$str ,str)
-            (,$len (PyObjectStr-len ,$str))
-            (,$scheme-str (py-str-to-scheme ,$str))
-            (,$i (py-sint-to-scheme ,int)))
-       (if (fx>= ,$i 0)
-           (if (fx< ,$i ,$len)
-               (py-str-from-string
-                1
-                (make-string 1 (string-ref ,$scheme-str ,$i)))
-               (py-throw-index-out-of-range "string"))
-           (if (fx>= ,$i (fx- 0 ,$len))
-               (py-str-from-string
-                1
-                (make-string 1 (string-ref ,$scheme-str (fx+ ,$i ,$len))))
-               (py-throw-index-out-of-range "string"))))))
-
-(define-macro (py-getitem-strX-boolY str bool)
-  (let (($str (gensym 'str))
-        ($len (gensym 'len))
-        ($scheme-str (gensym 'scheme-str))
-        ($index (gensym 'index))
-        )
-    `(let* ((,$str ,str)
-            (,$len (PyObjectStr-len ,$str))
-            (,$scheme-str (py-str-to-scheme ,$str))
-            (,$index (if (eq? ,bool py-True) 1 0))
-            )
-       (if (> ,$len ,$index)
-           (py-str-from-string 1
-                               (make-string 1 (string-ref ,$scheme-str ,$index)))
-           (py-throw-index-out-of-range "string")))))
-
-(define-macro (py-getitem-strX-sliceY str slice)
-  (let (($str (gensym 'str))
-        ($len (gensym 'len))
-        ($scheme-str (gensym 'scheme-str))
-        ($indices (gensym 'indices))
-        ($start (gensym 'start))
-        ($stop (gensym 'stop))
-        ($step (gensym 'step))
-        ($res-len (gensym 'len))
-        ($res-str (gensym 'res-str)))
-    `(let* ((,$str ,str)
-            (,$len (PyObjectStr-len ,$str))
-            (,$scheme-str (py-str-to-scheme ,$str))
-            (,$indices (py-slice-indices ,slice ,$len))
-            (,$start (vector-ref ,$indices 0))
-            (,$stop (vector-ref ,$indices 1))
-            (,$step (vector-ref ,$indices 2))
-            (,$res-len (get-slice-length ,$start ,$stop ,$step))
-            (,$res-str (make-string ,$res-len #\0)))
-       (let loop ((source ,$start) (target 0))
-         (if (< target ,$res-len)
-             (begin
-               (string-set! ,$res-str target (string-ref ,$scheme-str source))
-               (loop (+ source ,$step) (+ target 1)))
-             (begin
-               (py-str-from-string ,$res-len ,$res-str)))))))
-
-(define-macro (py-getitem-tupleX-sliceY tuple slice)
-  (let (($tuple (gensym 'tuple))
-        ($len (gensym 'len))
-        ($vec (gensym 'vec))
-        ($indices (gensym 'indices))
-        ($start (gensym 'start))
-        ($stop (gensym 'stop))
-        ($step (gensym 'step))
-        ($res-len (gensym 'len))
-        ($res-vec (gensym 'vec)))
-  `(let* ((,$tuple ,tuple)
-         (,$vec (PyObjectTuple-value ,$tuple))
-         (,$len (vector-length ,$vec))
-         (,$indices (py-slice-indices ,slice ,$len))
-         (,$start (vector-ref ,$indices 0))
-         (,$stop (vector-ref ,$indices 1))
-         (,$step (vector-ref ,$indices 2))
-         (,$res-len (get-slice-length ,$start ,$stop ,$step))
-         (,$res-vec (make-vector ,$res-len #f)))
-    (let loop ((source ,$start) (target 0))
-      (if (< target ,$res-len)
-        (begin
-          (vector-set! ,$res-vec target (vector-ref ,$vec source))
-          (loop (+ source ,$step) (+ target 1)))
-        (py-tuple-from-scheme ,$res-vec))))))
-
-(define-macro (py-getitem-tupleX-sintY tuple item)
-  (let (($tuple (gensym 'tuple))
-        ($len (gensym 'len))
-        ($vec (gensym 'vec))
-        ($i (gensym 'i)))
-    `(let* ((,$tuple ,tuple)
-            (,$vec (PyObjectTuple-value ,$tuple))
-            (,$len (vector-length ,$vec))
-            (,$i (py-sint-to-scheme ,item)))
-       (if (fx>= ,$i 0)
-           (if (fx< ,$i ,$len)
-               (vector-ref ,$vec ,$i)
-               (py-throw-index-out-of-range "tuple"))
-           (if (fx>= ,$i (fx- 0 ,$len))
-               (vector-ref ,$vec (fx+ ,$i ,$len))
-               (py-throw-index-out-of-range "tuple"))))))
-
-(define-macro (py-getitem-tupleX-boolY tuple bool)
-  (let (($tuple (gensym 'tuple))
-        ($len (gensym 'len))
-        ($vec (gensym 'vec))
-        ($index (gensym 'index))
-        )
-    `(let* ((,$tuple ,tuple)
-            (,$vec (PyObjectTuple-value ,$tuple))
-            (,$len (vector-length ,$vec))
-            (,$index (if (eq? ,bool py-True) 1 0))
-            )
-
-       (if (> ,$len ,$index)
-           (vector-ref ,$vec ,$index)
-           (py-throw-index-out-of-range "tuple")))))
-
 (define-macro (py-EQUAL?-listX-listY list1 list2 yes no)
   (let (($list1 (gensym 'list))
         ($list2 (gensym 'list))
@@ -1946,42 +1743,150 @@
       `(py-make-builtin-class-with-class-info ,@class-info ,name ,module ,bases ,hclass-of-instances ,@attrs))
     (error "py-make-builtin-class" "name argument must be a static PyObjectStr" name)))
 
+(define-macro (define-semantics-body func type-extrapolation-table default-behavior vector calculate-index calculate-index-macro . args)
+  `(with-class-indices-info $define-semantics-body ,func ,type-extrapolation-table ,default-behavior ,vector ,calculate-index ,calculate-index-macro ,@args))
+
+(define-macro ($calculate-behavior-table-index indices-info $obj $item . args)
+  (define (type-index type) (cadr (assq type indices-info)))
+
+  (let ((indices-info-length (length indices-info)))
+    `(fx+
+      ;; here we dont use directly py-obj-class-index because we can calculate
+      ;; at compile time the multiplication in some cases
+      (cond
+       ((fixnum? ,$obj) ,(* (type-index 'sint) indices-info-length))
+       ((flonum? ,$obj) ,(* (type-index 'float) indices-info-length))
+       (else (fx* ,indices-info-length (py-obj-class-index-general ,$obj))))
+      (py-obj-class-index ,$item))))
+
+(define-macro ($calculate-behavior-table-index-flipped indices-info $obj $item . args)
+  `($calculate-behavior-table-index ,indices-info ,$item ,$obj ,@args))
+
+(define-macro ($define-semantics-body indices-info func type-extrapolation-table default-behavior behavior-vector flipped-indices . args)
+  (define (calculate-index indices-info-length obj-index item-index)
+    (+ (* obj-index indices-info-length) item-index))
+
+  (define (calculate-index-flipped indices-info-length obj-index item-index)
+    (+ (* item-index indices-info-length) obj-index))
+
+  (define (type-index type) (cadr (assq type indices-info)))
+
+  (define (list-until lst obj)
+    (if (or (not (pair? lst)) (eq? obj (car lst)))
+        '()
+        (cons (car lst) (list-until (cdr lst) obj))))
+
+  (define post-fix-indices '#("X" "Y" "Z"))
+
+  (define (generate-func-name func type-args indices-count #!optional (indice 0))
+    (if (eqv? indices-count indice)
+        (string->symbol func)
+        (let* ((sym-name (if (pair? type-args)
+                             (symbol->string (car type-args))
+                             ""))
+               (post-fix-index (vector-ref post-fix-indices indice)))
+          (generate-func-name
+           (string-append
+            func
+            "-"
+            sym-name
+            post-fix-index)
+           (if (pair? type-args) (cdr type-args)
+               type-args)
+           indices-count
+           (+ 1 indice)))))
+
+  (let* (($index (gensym 'index))
+         (types (memq types: args))
+         (type-args (if types (cadr types) default-behavior))
+         (behavior-args (list-until args types:))
+         (sym-behavior-args (map (lambda (n)
+                                   (gensym 'behavior-arg))
+                                 (iota (length behavior-args))))
+
+         (indices-info-length (length indices-info))
+         ;; This should always return a type combination for which a behavior exists
+         (expected-types
+          (let ((pair (assoc type-args type-extrapolation-table)))
+            (if pair (cdr pair) default-behavior)))
+         (expected-index-args (map type-index expected-types))
+         (expected-index (apply (if flipped-indices calculate-index-flipped calculate-index) indices-info-length expected-index-args))
+         (inline-behavior
+          (generate-func-name
+           (symbol->string func)
+           expected-types
+           (length behavior-args))))
+
+    `(let* (,@(map (lambda (sym behavior) `(,sym ,behavior)) sym-behavior-args behavior-args)
+            (,$index (,(if flipped-indices
+                           '$calculate-behavior-table-index-flipped
+                           '$calculate-behavior-table-index)
+                      ,indices-info
+                      ,@sym-behavior-args)))
+       (if (fx= ,$index ,expected-index)
+           (,inline-behavior ,@sym-behavior-args)
+           ((vector-ref
+             ,behavior-vector
+             ,$index)
+            ,@sym-behavior-args)))))
+
 (define-macro (init-behavior-dispatch-vector)
  `(begin
    (with-class-indices-info $init-arithmetic-behavior-dispatch-vector)
    (with-class-indices-info $init-iteration-behavior-dispatch-vector)
-   (with-class-indices-info $init-getitem-behavior-dispatch-vector)
-   ))
 
-(define-macro ($init-getitem-behavior-dispatch-vector indices-info)
+   (define-behavior-dispatch-vector
+     py-getitem-behavior-table
+     (;; table of function <-> type
+      (py-getitem-listX-sintY-fallback   list  sint)
+      (py-getitem-listX-sliceY-fallback  list  slice)
+      (py-getitem-listX-boolY-fallback   list  bool)
+
+      (py-getitem-tupleX-sintY-fallback  tuple sint)
+      (py-getitem-tupleX-sliceY-fallback tuple slice )
+      (py-getitem-tupleX-boolY-fallback  tuple bool)
+
+      (py-getitem-strX-sintY-fallback    str   sint)
+      (py-getitem-strX-sliceY-fallback   str   slice)
+      (py-getitem-strX-boolY-fallback    str   bool)
+      )
+     py-getitem-fallback
+     #t)
+
+   (define-behavior-dispatch-vector
+     py-setitem-behavior-table
+     (;; table of function <-> type
+      (py-setitem-listX-sintY-Z-fallback   list  sint)
+      )
+     py-setitem-fallback
+     #t)))
+
+(define-macro (define-behavior-dispatch-vector name type-definition default-fallback calculate-index)
+  `(with-class-indices-info $define-behavior-dispatch-vector ,name ,type-definition ,default-fallback ,calculate-index))
+
+;; defines a behavior-dispatch-vector according to the size of the type-definition. You should need only 2
+(define-macro ($define-behavior-dispatch-vector indices-info name type-definition default-fallback flip-index)
   (define (type-index type)
     (cadr (assq type indices-info)))
 
-  (define (add-case type-obj type-item func)
-    `(vector-set! getitem-behavior-dispatch-vector
-                 ,(+
-                  (* (length indices-info)
-                     (type-index type-item))
-                  (type-index type-obj))
-                 ,func))
+  (define (calculate-index indices-info-length obj-index item-index)
+    (+ (* obj-index indices-info-length) item-index))
+
+  (define (calculate-index-flipped indices-info-length obj-index item-index)
+    (+ (* item-index indices-info-length) obj-index))
+
+  (define (add-case func . args)
+    `(vector-set! ,name
+                  ,(apply
+                    (if flip-index calculate-index-flipped calculate-index)
+                    (length indices-info) (map type-index args))
+                  ,func))
   `(begin
-     (define-rts getitem-behavior-dispatch-vector
-       (make-vector ,(expt (length indices-info) 2) py-getitem-fallback))
+     (define-rts ,name
+       (make-vector ,(expt (length indices-info) (- (length (car type-definition)) 1)) ,default-fallback))
 
-     ;; TODO : bint should be added with indexError throws
+     ,@(map (lambda (x) (apply add-case x)) type-definition)))
 
-     ,(add-case 'list 'sint 'py-getitem-listX-sintY-fallback)
-     ,(add-case 'list 'slice 'py-getitem-listX-sliceY-fallback)
-     ,(add-case 'list 'bool 'py-getitem-listX-boolY-fallback)
-
-     ,(add-case 'tuple 'sint 'py-getitem-tupleX-sintY-fallback)
-     ,(add-case 'tuple 'slice 'py-getitem-tupleX-sliceY-fallback)
-     ,(add-case 'tuple 'bool 'py-getitem-tupleX-boolY-fallback)
-
-     ,(add-case 'str 'sint 'py-getitem-strX-sintY-fallback)
-     ,(add-case 'str 'slice 'py-getitem-strX-sliceY-fallback)
-     ,(add-case 'str 'bool 'py-getitem-strX-boolY-fallback)
-     ))
 
 (define-macro ($init-arithmetic-behavior-dispatch-vector indices-info)
   (define types-with-specialized-behaviors
@@ -2763,83 +2668,285 @@
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
 
+
+;; TODO : The case of having a step of 1 in the slice could be optimized with
+;;        a vector-copy directly. This is curently pending and not used (need testing)
+;;        See https://github.com/udem-dlteam/zipi/pull/518#discussion_r669576132
+(define-macro (py-getitem-listX-sliceY-step1 lst slice)
+  (let (($list (gensym 'list))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($indices (gensym 'indices))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($res-len (gensym 'len))
+        ($res-vec (gensym 'vec)))
+    `(let* ((,$list ,lst)
+            (,$len (PyObjectList-len ,$list))
+            (,$vec (PyObjectList-vector ,$list))
+            (,$indices (py-slice-indices ,slice ,$len))
+            (,$start (vector-ref ,$indices 0))
+            (,$stop (vector-ref ,$indices 1))
+            (,$res-len (- ,$stop ,$start)))
+       (py-list-from-scheme (vector-copy ,$vec ,$start ,$stop) ,res-len))))
+
+(define-macro (get-slice-length start stop step)
+  `(max 0 (quotient (+ (- ,stop ,start) ,step (if (< ,step 0) 1 -1)) ,step)))
+
+(define-macro (py-getitem-listX-sliceY lst slice)
+  (let (($list (gensym 'list))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($indices (gensym 'indices))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($quot (gensym 'diff))
+        ($res-len (gensym 'res-len))
+        ($res-vec (gensym 'vec)))
+    `(let* ((,$list ,lst)
+            (,$len (PyObjectList-len ,$list))
+            (,$vec (PyObjectList-vector ,$list))
+            (,$indices (py-slice-indices ,slice ,$len))
+            (,$start (vector-ref ,$indices 0))
+            (,$stop (vector-ref ,$indices 1))
+            (,$step (vector-ref ,$indices 2))
+            (,$res-len (get-slice-length ,$start ,$stop ,$step))
+            (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
+       #;(step)
+       (let loop ((source ,$start) (target 0))
+         (if (< target ,$res-len)
+             (begin
+               (vector-set! ,$res-vec target (vector-ref ,$vec source))
+               (loop (+ source ,$step) (+ target 1)))
+             (py-list-from-scheme ,$res-vec ,$res-len))))))
+
+(define-macro (py-getitem-listX-sintY lst item)
+  (let (($lst (gensym 'list))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($i (gensym 'i)))
+    `(let* ((,$lst ,lst)
+            (,$len (PyObjectList-len ,$lst))
+            (,$vec (PyObjectList-vector ,$lst))
+            (,$i (py-sint-to-scheme ,item)))
+       (if (fx>= ,$i 0)
+           (if (fx< ,$i ,$len)
+               (vector-ref ,$vec ,$i)
+               (py-throw-index-out-of-range "list"))
+           (if (fx>= ,$i (fx- 0 ,$len))
+               (vector-ref ,$vec (fx+ ,$i ,$len))
+               (py-throw-index-out-of-range "list"))))))
+
+(define-macro (py-getitem-listX-boolY lst bool)
+  (let (($lst (gensym 'lst))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($index (gensym 'index)))
+    `(let* ((,$lst ,lst)
+            (,$len (PyObjectList-len ,$lst))
+            (,$vec (PyObjectList-vector ,$lst))
+            (,$index (if (eq? ,bool py-True) 1 0)))
+       (if (> ,$len ,$index)
+           (vector-ref ,$vec ,$index)
+           (py-throw-index-out-of-range "list")))))
+
+(define-macro (py-getitem-strX-sintY str int)
+  (let (($str (gensym 'str))
+        ($len (gensym 'len))
+        ($scheme-str (gensym 'scheme-str))
+        ($i (gensym 'i)))
+    `(let* ((,$str ,str)
+            (,$len (PyObjectStr-len ,$str))
+            (,$scheme-str (py-str-to-scheme ,$str))
+            (,$i (py-sint-to-scheme ,int)))
+       (if (fx>= ,$i 0)
+           (if (fx< ,$i ,$len)
+               (py-str-from-string
+                1
+                (make-string 1 (string-ref ,$scheme-str ,$i)))
+               (py-throw-index-out-of-range "string"))
+           (if (fx>= ,$i (fx- 0 ,$len))
+               (py-str-from-string
+                1
+                (make-string 1 (string-ref ,$scheme-str (fx+ ,$i ,$len))))
+               (py-throw-index-out-of-range "string"))))))
+
+(define-macro (py-getitem-strX-boolY str bool)
+  (let (($str (gensym 'str))
+        ($len (gensym 'len))
+        ($scheme-str (gensym 'scheme-str))
+        ($index (gensym 'index)))
+
+    `(let* ((,$str ,str)
+            (,$len (PyObjectStr-len ,$str))
+            (,$scheme-str (py-str-to-scheme ,$str))
+            (,$index (if (eq? ,bool py-True) 1 0)))
+
+       (if (> ,$len ,$index)
+           (py-str-from-string 1
+                               (make-string 1 (string-ref ,$scheme-str ,$index)))
+           (py-throw-index-out-of-range "string")))))
+
+(define-macro (py-getitem-strX-sliceY str slice)
+  (let (($str (gensym 'str))
+        ($len (gensym 'len))
+        ($scheme-str (gensym 'scheme-str))
+        ($indices (gensym 'indices))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($res-len (gensym 'len))
+        ($res-str (gensym 'res-str)))
+    `(let* ((,$str ,str)
+            (,$len (PyObjectStr-len ,$str))
+            (,$scheme-str (py-str-to-scheme ,$str))
+            (,$indices (py-slice-indices ,slice ,$len))
+            (,$start (vector-ref ,$indices 0))
+            (,$stop (vector-ref ,$indices 1))
+            (,$step (vector-ref ,$indices 2))
+            (,$res-len (get-slice-length ,$start ,$stop ,$step))
+            (,$res-str (make-string ,$res-len #\0)))
+       (let loop ((source ,$start) (target 0))
+         (if (< target ,$res-len)
+             (begin
+               (string-set! ,$res-str target (string-ref ,$scheme-str source))
+               (loop (+ source ,$step) (+ target 1)))
+             (begin
+               (py-str-from-string ,$res-len ,$res-str)))))))
+
+(define-macro (py-getitem-tupleX-sliceY tuple slice)
+  (let (($tuple (gensym 'tuple))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($indices (gensym 'indices))
+        ($start (gensym 'start))
+        ($stop (gensym 'stop))
+        ($step (gensym 'step))
+        ($res-len (gensym 'len))
+        ($res-vec (gensym 'vec)))
+  `(let* ((,$tuple ,tuple)
+         (,$vec (PyObjectTuple-value ,$tuple))
+         (,$len (vector-length ,$vec))
+         (,$indices (py-slice-indices ,slice ,$len))
+         (,$start (vector-ref ,$indices 0))
+         (,$stop (vector-ref ,$indices 1))
+         (,$step (vector-ref ,$indices 2))
+         (,$res-len (get-slice-length ,$start ,$stop ,$step))
+         (,$res-vec (make-vector ,$res-len #f)))
+    (let loop ((source ,$start) (target 0))
+      (if (< target ,$res-len)
+        (begin
+          (vector-set! ,$res-vec target (vector-ref ,$vec source))
+          (loop (+ source ,$step) (+ target 1)))
+        (py-tuple-from-scheme ,$res-vec))))))
+
+(define-macro (py-getitem-tupleX-sintY tuple item)
+  (let (($tuple (gensym 'tuple))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($i (gensym 'i)))
+    `(let* ((,$tuple ,tuple)
+            (,$vec (PyObjectTuple-value ,$tuple))
+            (,$len (vector-length ,$vec))
+            (,$i (py-sint-to-scheme ,item)))
+       (if (fx>= ,$i 0)
+           (if (fx< ,$i ,$len)
+               (vector-ref ,$vec ,$i)
+               (py-throw-index-out-of-range "tuple"))
+           (if (fx>= ,$i (fx- 0 ,$len))
+               (vector-ref ,$vec (fx+ ,$i ,$len))
+               (py-throw-index-out-of-range "tuple"))))))
+
+(define-macro (py-getitem-tupleX-boolY tuple bool)
+  (let (($tuple (gensym 'tuple))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($index (gensym 'index)))
+
+    `(let* ((,$tuple ,tuple)
+            (,$vec (PyObjectTuple-value ,$tuple))
+            (,$len (vector-length ,$vec))
+            (,$index (if (eq? ,bool py-True) 1 0)))
+
+       (if (> ,$len ,$index)
+           (vector-ref ,$vec ,$index)
+           (py-throw-index-out-of-range "tuple")))))
+
+
+
 (define-macro (py-getitem obj item . args)
-  (let* ((types (memq types: args))
-         (obj-type (and types (caadr types)))
-         (item-type (and types (cadadr types))))
-    `(with-class-indices-info $py-getitem ,obj ,item ,obj-type ,item-type)))
+  `(define-semantics-body
+    py-getitem
 
-(define-macro ($py-getitem indices-info obj item obj-type item-type)
-  (define (type-index type) (cadr (assq type indices-info)))
+    (;; list-sint
+      ((list sint) . (list sint))
+      ((list #f)   . (list sint))
+      ((#f sint)   . (list sint))
+      ((#f #f)     . (list sint))
+      ;; list-slice
+      ((list slice) . (list slice))
+      ((#f slice)   . (list slice))
+      ;; list-bool
+      ((list bool) . (list bool))
+      ((#f bool) . (list bool))
+      ;; tuple-sint
+      ((tuple sint) . (tuple sint))
+      ((tuple #f)   . (tuple sint))
+      ;; tuple-slice
+      ((tuple slice) . (tuple slice))
+      ;; tuple-bool
+      ((tuple bool) . (tuple bool))
+      ;; str-sint
+      ((str sint) . (str sint))
+      ((str #f)   . (str sint))
+      ;; str-slice
+      ((str slice) . (str slice))
+      ;; str-bool
+      ((str bool) . (str bool)))
+    (list sint)
+    py-getitem-behavior-table
+    #t
+    ,obj
+    ,item
+    ,@args))
 
-  (let* (($obj (gensym 'obj))
-         ($item (gensym 'item))
-         ($index (gensym 'index))
-         (indices-info-length (length indices-info))
-         ;; We use this table to map partial types to a pair of expected types
-         (type-extrapolation-table
-           '(;; list-sint
-             ((list sint) . (list sint))
-             ((list #f)   . (list sint))
-             ((#f sint)   . (list sint))
-             ((#f #f)     . (list sint))
-             ;; list-slice
-             ((list slice) . (list slice))
-             ((#f slice)   . (list slice))
-             ;; list-bool
-             ((list bool) . (list bool))
-             ((#f bool) . (list bool))
-             ;; tuple-sint
-             ((tuple sint) . (tuple sint))
-             ((tuple #f)   . (tuple sint))
-             ;; tuple-slice
-             ((tuple slice) . (tuple slice))
-             ;; tuple-bool
-             ((tuple bool) . (tuple bool))
-             ;; str-sint
-             ((str sint) . (str sint))
-             ((str #f)   . (str sint))
-             ;; str-slice
-             ((str slice) . (str slice))
-             ;; str-bool
-             ((str bool) . (str bool))))
-         ;; This should always return a type combination for which a behavior exists
-         (expected-types
-           (let ((pair (assoc (list obj-type item-type) type-extrapolation-table)))
-            (if pair (cdr pair) '(list sint))))
-         (obj-expected-type (car expected-types))
-         (item-expected-type (cadr expected-types))
-         (obj-expected-index (type-index obj-expected-type))
-         (item-expected-index (type-index item-expected-type))
-         (expected-index (+ (* item-expected-index indices-info-length) obj-expected-index))
-         (inline-behavior
-           (string->symbol
-            (string-append
-              "py-getitem-"
-              (symbol->string obj-expected-type)
-              "X-"
-              (symbol->string item-expected-type)
-              "Y"))))
-    `(let* ((,$obj ,obj)
-            (,$item ,item)
-            (,$index (fx+
-                      ;; here we dont use directly py-obj-class-index because we can calculate
-                      ;; at compile time the multiplication in some cases
-                      (cond
-                        ((fixnum? ,$item) ,(* (type-index 'sint) indices-info-length))
-                        ((flonum? ,$item) ,(* (type-index 'float) indices-info-length))
-                        (else (fx* ,indices-info-length (py-obj-class-index-general ,$item))))
-                      (py-obj-class-index ,$obj))))
-      (if (fx= ,$index ,expected-index)
-           (,inline-behavior ,$obj ,$item)
-           ((vector-ref
-              getitem-behavior-dispatch-vector
-              ,$index)
-              ,$obj
-              ,$item)))))
 
-(define-macro (py-setitem obj item value)
-  `(py-setitem-fallback ,obj ,item ,value))
+(define-macro (py-setitem-listX-sintY-Z lst item value)
+  (let (($lst (gensym 'list))
+        ($len (gensym 'len))
+        ($vec (gensym 'vec))
+        ($i (gensym 'i)))
+    `(let* ((,$lst ,lst)
+            (,$len (PyObjectList-len ,$lst))
+            (,$vec (PyObjectList-vector ,$lst))
+            (,$i (py-sint-to-scheme ,item)))
+       (if (fx>= ,$i 0)
+           (if (fx< ,$i ,$len)
+               (vector-set! ,$vec ,$i ,value)
+               (py-throw-assignment-index-out-of-range "list"))
+           (if (fx>= ,$i (fx- 0 ,$len))
+               (vector-set! ,$vec (fx+ ,$i ,$len) ,value)
+               (py-throw-assignment-index-out-of-range "list"))))))
+
+(define-macro (py-setitem obj item value . args)
+  `(define-semantics-body
+    py-setitem
+
+    (;; list-sint
+     ((list sint) . (list sint))
+     ((list #f)   . (list sint))
+     ((#f sint)     . (list sint))
+     ((#f #f)     . (list sint))
+     )
+    (list sint)
+    py-setitem-behavior-table
+    #t
+
+    ,obj
+    ,item
+    ,value
+    ,@args))
 
 (define-macro (py-delitem obj item)
   `(py-delitem-fallback ,obj ,item))

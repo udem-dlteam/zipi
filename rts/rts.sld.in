@@ -63,6 +63,7 @@
     py-throw-with-values
     py-throw-exception-with-message
     py-throw-index-out-of-range
+    py-throw-assignment-index-out-of-range 
 
     py-try-except
     py-try-except-else
@@ -159,6 +160,7 @@
     $py-getitem
     py-getitem
     py-getitem-type
+    py-getitem-behavior-table
     py-getitem-strX-sintY-fallback
     py-getitem-strX-boolY-fallback
     py-getitem-strX-sliceY-fallback
@@ -177,7 +179,17 @@
     py-getitem-listX-sintY
     py-getitem-listX-boolY
     py-getitem-listX-sliceY
-    getitem-behavior-dispatch-vector
+
+    py-setitem-behavior-table
+    py-setitem-listX-sintY-Z-fallback
+    py-setitem-tupleX-sintY-fallback
+    py-setitem-listX-sintY-Z
+    py-setitem-tupleX-sintY
+
+    define-semantics-body
+    $define-semantics-body
+    $calculate-behavior-table-index
+    $calculate-behavior-table-index-flipped
     py-setitem
     py-delitem
 

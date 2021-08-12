@@ -10,7 +10,7 @@
 #*    Bigloo specific configuration                                    */
 #*=====================================================================*/
 
-echo "configure bigloo..."
+echo "*** Configuring Bigloo"
 
 mode=$mode || "optimization"
 
@@ -81,8 +81,8 @@ if [ "$ccflags " = " " ]; then
 fi
 
 if [ ! -f $bigloolibdir/Makefile.config ]; then
-  echo "Bigloo not properly installed, file missing:" >&2;
-  echo "  $bigloolibdir/Makefile.config" >&2;
+  echo "***   Bigloo not properly installed, file missing:" >&2;
+  echo "***     $bigloolibdir/Makefile.config" >&2;
   exit -1;
 fi
 

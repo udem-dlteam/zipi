@@ -10,22 +10,32 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    Semantics generation                                             */
 #*---------------------------------------------------------------------*/
-update-semPy:
-	cd semPy; $(MAKE) clean; $(MAKE) PYTHON3=$(BUILDPYTHON)
+#* update-semPy:                                                       */
+#* 	cd semPy; $(MAKE) clean; $(MAKE) PYTHON3=$(BUILDPYTHON)        */
 
-builtins.py: update-semPy
-	cp semPy/out/builtins.py builtins.py
+#* builtins.py: semPy/out/builtins.py                                  */
+#* 	cp semPy/out/builtins.py builtins.py                           */
+#*                                                                     */
+#* zemantics.py: semPy/out/semantics.py                                */
+#* 	cp semPy/out/semantics.py zemantics.py                         */
+#*                                                                     */
+#* behaviors.py: semPy/out/behaviors.py                                */
+#* 	cp semPy/out/behaviors.py behaviors.py                         */
 
-zemantics.py: update-semPy
-	cp semPy/out/semantics.py zemantics.py
+builtins.py: semPy/semPy/code_generation/__main__.py semPy/semPy/code_generation/templates.py
+	(cd semPy; $(BUILDPYTHON) -m semPy.code_generation builtins -o ../builtins.py)
 
-behaviors.py: update-semPy
-	cp semPy/out/behaviors.py behaviors.py
+zemantics.py: semPy/semPy/code_generation/__main__.py semPy/semPy/code_generation/templates.py
+	(cd semPy; $(BUILDPYTHON) -m semPy.code_generation semantics -o ../zemantics.py)
+
+behaviors.py: builtins.py zemantics.py
+	(cd semPy; cp ../zemantics.py out/semantics.py; $(BUILDPYTHON) -m semPy out/semantics.py ../builtins.py -o ../behaviors.py; rm out/semantics.py)
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */
 #*---------------------------------------------------------------------*/
 build: builtins.py zemantics.py behaviors.py $(ZIPISYSTEMS:%=do.%)
+
 install: $(ZIPISYSTEMS:%=install.%)
 	rm -rf $(ZIPISTDLIBDIR)/libs
 	cp -r $(BUILDSTDLIBDIR)/libs $(ZIPISTDLIBDIR)/libs

@@ -708,10 +708,12 @@
     ((isa? lhs PycSubscript)
       (let* ((obj (PycSubscript-obj lhs))
              (index (PycSubscript-index lhs)))
-      `(py-setitem
-        ,(scheme obj conf)
-        ,(scheme index conf)
-        ,(scheme rhs conf))))
+        (infer-type
+         conf
+         'py-setitem
+         obj
+         index
+         rhs)))
     ;; error
     (else
       (error "scheme-simple-assig" "unknown assignment type" lhs))))

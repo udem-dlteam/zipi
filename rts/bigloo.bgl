@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/bigloo.bgl                         */
+;*    serrano/prgm/project/zipi/zipi/rts/bigloo.bgl                    */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Tue Jul 13 09:22:55 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 08:54:56 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -104,6 +104,12 @@
 	   
 	   (inline get-environment-variable ::bstring)
 	   (fold ::procedure ::obj ::pair-nil)))
+
+;*---------------------------------------------------------------------*/
+;*    ZIPITRACE ...                                                    */
+;*---------------------------------------------------------------------*/
+(define ZIPITRACE (or (getenv "ZIPITRACE") ""))
+(define ZIPIBIGLOOOPTS (or (getenv "ZIPIBIGLOOOPTS") "-Ox"))
 
 ;*---------------------------------------------------------------------*/
 ;*    let-values ...                                                   */
@@ -349,40 +355,47 @@
         name)))
 
 (define (path-expand path #!optional origin)
-  (define ~~reg "~~([[:alnum:]]*)")
+   (define ~~reg "~~([[:alnum:]]*)")
 
-  (define (expand~~ path)
-
-    (let ((match (pregexp-match ~~reg path)))
-      (if match
-          (let* ((fullmatch (car match))
-                 (keyword (cadr match))
-                 (env (getenv (string-upcase keyword))))
-            (if env
-                (expand~~ (pregexp-replace* fullmatch path env))
-                (error "path-expand" "environnement variable is not defined" (string-upcase keyword))))
-
-          path)))
-
-  (define (merge-path path origin)
-    (define (last-ch str) (string-ref str (- (string-length str) 1)))
-    (define (first-ch str) (string-ref str (- (string-length str) 1)))
-
-    ;; NOT COMPATIBLE WITH WINDOWS
-    (if (eq? (last-ch path) #\/)
-        (if (eq? (first-ch origin) #\/)
-            (string-append origin (substring path 1 (string-length origin)))
-            (string-append origin path)
-            )
-        (if (eq? (first-ch origin) #\/)
-            (string-append origin path)
-            (string-append origin "/" path))))
-
-  (let* ((new-path (expand~~ path))
-        (new-origin (or origin (pwd))))
-    (if (eq? (string-ref new-path 0) #\/)
-        new-path
-        (merge-path new-path (expand~~ origin)))))
+   (define (expand~ path)
+      (if (string-prefix? "~/" path)
+	  (make-file-path (or (getenv "ZIPIHOME") (getenv "HOME"))
+	     (substring path 2))
+	  path))
+   
+   (define (expand~~ path)
+      
+      (let ((match (pregexp-match ~~reg path)))
+	 (if match
+	     (let* ((fullmatch (car match))
+		    (keyword (cadr match))
+		    (env (getenv (string-upcase keyword))))
+		(if env
+		    (expand~~ (pregexp-replace* fullmatch path env))
+		    (error "path-expand" "environnement variable is not defined" (string-upcase keyword))))
+	     
+	     path)))
+   
+   (define (merge-path path origin)
+      (define (last-ch str) (string-ref str (- (string-length str) 1)))
+      (define (first-ch str) (string-ref str (- (string-length str) 1)))
+      
+      ;; NOT COMPATIBLE WITH WINDOWS
+      (if (eq? (last-ch path) #\/)
+	  (if (eq? (first-ch origin) #\/)
+	      (string-append origin (substring path 1 (string-length origin)))
+	      (string-append origin path)
+	      )
+	  (if (eq? (first-ch origin) #\/)
+	      (string-append origin path)
+	      (string-append origin "/" path))))
+   
+   (let* ((path (expand~ path))
+	  (new-path (expand~~ path))
+	  (new-origin (or origin (pwd))))
+      (if (eq? (string-ref new-path 0) #\/)
+	  new-path
+	  (merge-path new-path (expand~~ origin)))))
 
 (define (create-directory path)
    (make-directories path))
@@ -470,8 +483,16 @@
 ;*    compile-source ...                                               */
 ;*---------------------------------------------------------------------*/
 (define (compile-source source target)
-   (system
-      (format "~a/zpc.bigloo --no-py-module-main ~a -o ~a -y -t ~a" (zipi-bin-dir) source target (string-append target ".scm"))))
+   (let ((cmd (format "~a/zpc.bigloo --no-py-module-main ~a -o ~a -y -t ~a ~a"
+		 (zipi-bin-dir) source target (string-append target ".scm")
+		 ZIPIBIGLOOOPTS)))
+      (if (string-contains ZIPITRACE "zipi:compile")
+	  (begin
+	     (display* "compiling \"" cmd "\"... ")
+	     (let ((res (system cmd)))
+		(print res)
+		res))
+	  (system cmd))))
 
 ;*---------------------------------------------------------------------*/
 ;*    get-environment-variable ...                                     */

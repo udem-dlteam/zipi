@@ -3,7 +3,7 @@
 #*---------------------------------------------------------------------*/
 #*    Gambit configuration                                             */
 #*---------------------------------------------------------------------*/
-echo "configure Gambit"
+echo "*** Configuring Gambit"
 
 if [ -z "$gambitroot" ]; then
   buildgambitversion=4.9.3-1380
@@ -16,10 +16,22 @@ if [ -z "$gambitroot" ]; then
   gambit=$gambitroot/bin/gsi
   gambitcompiler=$gambitroot/bin/gsc
   if [ "$skipdependencies" = false ]; then
-    echo "Installing Gambit $buildgambitversion for Zipi in $builddepdir"
-    mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-gambit v$buildgambitversion; cd $builddir;
+    if [ -e $buildgambit ]; then
+      echo "***   Gambit $buildgambitversion is already installed in $buildgambit so installation was skipped"
+    else
+      echo "***   Installing Gambit $buildgambitversion for Zipi in $builddepdir"
+      #SPECIAL_CONFIGURE_OPTIONS="--enable-multiple-hosts"
+      if gcc-9 -v > /dev/null 2>&1 ; then
+        export CC="gcc-9 -fno-tree-fre"
+      else
+        if gcc -v > /dev/null 2>&1 ; then
+          export CC="gcc -fno-tree-fre"
+        fi
+      fi
+      mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-gambit v$buildgambitversion $SPECIAL_CONFIGURE_OPTIONS; cd $builddir;
+    fi
   else
-    echo "WARNING: Gambit was configured, but its installation was skipped"
+    echo "***   WARNING: Gambit was configured, but its installation was skipped"
   fi
 else
   buildgambitroot=$gambitroot
@@ -29,6 +41,6 @@ else
   gambitroot=$gambitroot
   gambit=$gambitroot/bin/gsi
   gambitcompiler=$gambitroot/bin/gsc
-  echo "Using gsi at '$gambit' (we recommend letting Zipi install its own Gambit version)"
-  echo "Using gsc at '$gambitcompiler' (we recommend letting Zipi install its own Gambit version)"
+  echo "***   Using gsi at '$gambit' (we recommend letting Zipi install its own Gambit version)"
+  echo "***   Using gsc at '$gambitcompiler' (we recommend letting Zipi install its own Gambit version)"
 fi

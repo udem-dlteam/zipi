@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
-;*    Last change :  Wed May 26 15:56:31 2021 (serrano)                */
+;*    Last change :  Mon Aug  9 12:24:48 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Scheme code generation                                           */
@@ -129,16 +129,14 @@
 (define (pyc-scheme-bigloo-ast ast conf)
   (let* ((file (config-get conf file:))
          (path (config-get conf dir:))
-         (global-funs
-          (if (config-get conf optim-globals:)
-              (let ((defs (PycModule-global-defs ast)))
-                (set-procedure-names! defs conf)
-                defs)
-              '()))
-         (global-refs
-          (if (config-get conf optim-globals:)
-              (collect-globals* ast)
-              '()))
+         (global-funs (if (config-get conf optim-globals:)
+                          (let ((defs (PycModule-global-defs ast)))
+                            (set-procedure-names! defs conf)
+                            defs)
+                          '()))
+         (global-refs (if (config-get conf optim-globals:)
+                          (collect-globals* ast)
+                          '()))
          (globals (if (config-get conf optim-globals:)
                       (collect-globals* ast)
                       '()))
@@ -148,7 +146,7 @@
          (mod (if (config-get conf :bootstrap)
                   (pyc-scheme-bigloo-ast-bootstrap-module ast conf)
                   (pyc-scheme-bigloo-ast-module conf))))
-
+    
     `(;; module declaration
       ,mod
       (start-registering-constants)
@@ -173,8 +171,8 @@
              (cons ,(config-get conf lib-dir:) (bigloo-library-path)))
             ;; (build-builtins)
             (init-registered-constants)
-            (run-as-main (car argv) "~/.zipicache/cache@zipi-bigloo-0.0.1-python3.9")
-            #;(with-handler
+            ;; (run-as-main (car argv) "~/.zipicache/cache@zipi-bigloo-0.0.1-python3.9")
+            (with-handler
              (lambda (e)
                (if (PyObject? e)
                    (exception-notify e)
@@ -198,7 +196,7 @@
               (py-module module caches)
               module))))
       (end-registering-constants)
-      init)))
+      ,(if (not (config-get conf main:)) 'init))))
 
 ;*---------------------------------------------------------------------*/
 ;*    pyc-scheme-bigloo-ast-module ...                                 */

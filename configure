@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 #*=====================================================================*/
-#*    serrano/prgm/project/zipi/configure                              */
+#*    serrano/prgm/project/zipi/zipi/configure                         */
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Tue Jul 13 08:09:36 2021 (serrano)                */
+#*    Last change :  Tue Aug 10 09:02:14 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    Zipi autoconfiguration                                           */
@@ -20,8 +20,8 @@ default_scheme_system="no_default_scheme_system_currently_set"
 #*    Bigloo configuration                                             */
 #*---------------------------------------------------------------------*/
 bigloo=bigloo
-if [ "$HOPBIGLOO " != " " ]; then
-  bigloo=$HOPBIGLOO
+if [ "$ZIPIBIGLOO " != " " ]; then
+  bigloo=$ZIPIBIGLOO
 fi
 
 #*---------------------------------------------------------------------*/
@@ -55,35 +55,30 @@ zipicache=~/.zipicache
 branch=`git rev-parse --abbrev-ref HEAD`
 date=`date +"%d %B %Y"`
 
-# Argument parsing
-while : ; do
+#*---------------------------------------------------------------------*/
+#*    parseArg ...                                                     */
+#*---------------------------------------------------------------------*/
+function parseArg() {
   case $1 in
-    "")
-      break;;
-
     --prefix=*)
       prefix="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --bigloo-only)
       systems=bigloo
-      default_scheme_system=bigloo
-      ;;
+      default_scheme_system=bigloo;;
 
     --gambit-only)
       systems=gambit
-      default_scheme_system=gambit
-      ;;
+      default_scheme_system=gambit;;
 
     --default=*)
       default_scheme_system="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --gambitroot=*)
-      gambitroot="`echo $1 | sed 's/^[^=]*=//'`";
-      ;;
+      gambitroot="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --bigloo=*)
-      bigloo="`echo $1 | sed 's/^[^=]*=//'`";
-      ;;
+      bigloo="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --bigloolibdir=*)
       bigloolibdir="`echo $1 | sed 's/^[^=]*=//'`";;
@@ -92,8 +87,7 @@ while : ; do
       bigloobindir="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --python=*)
-      python="`echo $1 | sed 's/^[^=]*=//'`";
-      ;;
+      python="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --install=*)
       install="`echo $1 | sed 's/^[^=]*=//'`";;
@@ -137,9 +131,28 @@ while : ; do
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
       echo "   --zipicache=path............ location of compiled .py files ($zipicache)" >&2;
+      echo "" >&2;
+      echo "ZIPICONFIGUREOPTS=opt1 opt2..." >&2;
       exit 255;
   esac
+}
+
+echo "configuring with [$*]..." > config.status
+echo "ZIPICONFIGUREOPTS=$ZIPICONFIGUREOPTS" >> config.status
+
+# Argument parsing
+while : ; do
+  case $1 in
+    "")
+      break;;
+    *)
+      parseArg $1;;
+  esac
   shift
+done
+
+for p in $ZIPICONFIGUREOPTS; do
+  parseArg $p
 done
 
 versiondash=`echo $version | sed 's/[.]/-/g'`
@@ -159,23 +172,29 @@ depdir=$zipiroot/dependencies
 #*                    Install cPython                                  */
 #*---------------------------------------------------------------------*/
 
+echo "*** Configuring Python"
+
 if [ -z $python ]; then
   buildpythonversion=3.9.4
   buildpython=$builddepdir/cpython-$buildpythonversion/bin/python3
   python=$depdir/cpython-$buildpythonversion/bin/python3
   if [ "$skipdependencies" = false ]; then
-    echo "Installing Python $buildpythonversion for Zipi in $builddepdir"
-    mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-cpython v$buildpythonversion; cd $builddir;
+    if [ -e $buildpython ]; then
+      echo "***   Python $buildpythonversion is already installed in $buildpython so installation was skipped"
+    else
+      echo "***   Installing Python $buildpythonversion for Zipi in $builddepdir"
+      mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-cpython v$buildpythonversion; cd $builddir;
+    fi
   else
-    echo "WARNING: cPython was configured, but its installation was skipped"
+    echo "***   WARNING: cPython was configured, but its installation was skipped"
   fi
 else
   if [ $($python -c "import sys; print(sys.version_info>=(3,9))") = "True" ]; then
-    echo "Using cPython at '$python' for Zipi (we recommend letting Zipi install its own cPython version)"
+    echo "***   Using cPython at '$python' for Zipi (we recommend letting Zipi install its own cPython version)"
     # If a python executable is given, use the same for build and runtime
     buildpython=$python
   else
-    echo "Zipi requires python>=3.9 (version $($python -c "import sys; print(sys.version.split()[0])") was provided)"
+    echo "***   Zipi requires python>=3.9 (version $($python -c "import sys; print(sys.version.split()[0])") was provided)"
     exit 1
   fi
 fi
@@ -204,8 +223,8 @@ if test "${systems#*gambit}" != "$systems"; then
 fi
 
 if [ "$default_scheme_system " = "no_default_scheme_system_currently_set " ]; then
-  echo "WARNING: no default scheme system has been set..." 1>&2;
-  echo "         use --default=[gambit|bigloo] or --bigloo-only or --gambit-only" 1>&2;
+  echo "*** WARNING: no default scheme system has been set..." 1>&2;
+  echo "             use --default=[gambit|bigloo] or --bigloo-only or --gambit-only" 1>&2;
 fi
 
 #*---------------------------------------------------------------------*/
@@ -358,3 +377,4 @@ mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
 
 rm -rf $buildbindir/pysexp
 cp -r $buildetcdir/pysexp $buildbindir/pysexp
+
