@@ -1462,8 +1462,8 @@
 (define-macro (py-cls-own-attr-ref-2cont cls attr succeed fail)
   `(let* (($cls ,cls)
           ($attr ,attr)
-          ($succeed ,succeed)
-          ($fail ,fail)
+;*           ($succeed ,succeed)                                       */
+;*           ($fail ,fail)                                             */
           ($attr-representative (py-str-representative $attr))
           ($magic-index (PyObjectStrRep-magic-index $attr-representative)))
     (if $magic-index
@@ -1471,19 +1471,19 @@
             (magic-attr-ref
               $obj
               $magic-index)))
-        (if $val ($succeed $val) ($fail)))
+        (if $val (,succeed $val) (,fail)))
       (py-own-attr-index-2cont-from-representative
         $obj
         $attr-representative
         (lambda ($attr-index)
-          ($succeed (PyObject-elements-ref $obj $attr-index)))
-        $fail))))
+          (,succeed (PyObject-elements-ref $obj $attr-index)))
+        ,fail))))
 
 (define-macro (py-cls-own-attr-index/ref-2cont cls attr succeed fail)
   `(let* (($cls ,cls)
           ($attr ,attr)
-          ($succeed ,succeed)
-          ($fail ,fail)
+;*           ($succeed ,succeed)                                       */
+;*           ($fail ,fail)                                             */
           ($attr-representative (py-str-representative $attr))
           ($magic-index (PyObjectStrRep-magic-index $attr-representative)))
     (if $magic-index
@@ -1491,41 +1491,43 @@
             (magic-attr-ref
               $obj
               $magic-index)))
-        (if $val ($succeed -1 $val) ($fail)))
+        (if $val (,succeed -1 $val) (,fail)))
       (py-own-attr-index-2cont-from-representative
         $obj
         $attr-representative
         (lambda ($attr-index)
-          ($succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
-        $fail))))
+          (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+        ,fail))))
 
 (define-macro (py-own-attr-ref-2cont obj attr succeed fail)
   ;; TODO: fix case when obj is not represented with a PyObject
   `(let* (($obj ,obj)
           ($attr ,attr)
-          ($succeed ,succeed)
-          ($fail ,fail))
+;*           ($succeed ,succeed)                                       */
+;*           ($fail ,fail)                                             */
+	  )
       (if (PyObjectType? $obj)
-        (py-cls-own-attr-ref-2cont $obj $attr $succeed $fail)
+        (py-cls-own-attr-ref-2cont $obj $attr ,succeed ,fail)
         (py-own-attr-index-2cont
          $obj
          $attr
-         (lambda ($attr-index) ($succeed (PyObject-elements-ref $obj $attr-index)))
-         $fail))))
+         (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index)))
+         ,fail))))
 
 (define-macro (py-own-attr-index/ref-2cont obj attr succeed fail)
  ;; TODO: fix case when obj is not represented with a PyObject
  `(let* (($obj ,obj)
          ($attr ,attr)
-         ($succeed ,succeed)
-         ($fail ,fail))
+;*          ($succeed ,succeed)                                        */
+;*          ($fail ,fail))                                             */
+	 )
      (if (PyObjectType? $obj)
-       (py-cls-own-attr-index/ref-2cont $obj $attr $succeed $fail)
+       (py-cls-own-attr-index/ref-2cont $obj $attr ,succeed ,fail)
        (py-own-attr-index-2cont
         $obj
         $attr
-        (lambda ($attr-index) ($succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
-        $fail))))
+        (lambda ($attr-index) (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+        ,fail))))
 
 (define-macro (magic-attr-set! cls attr-index val)
  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))

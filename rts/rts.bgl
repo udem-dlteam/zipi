@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Aug 10 14:39:02 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 15:43:13 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -329,7 +329,7 @@
 
                 (py-call0-fallback fun)
                 (py-callX-fallback min-neg-arity fun . args)
-                (py-call-generic ::obj ::obj)
+                (py-call-generic ::obj args::pair-nil)
                 (py-call-generic-kwargs obj args *args-lst kwargs **kwargs-lst)
 		(py-call-generic/*args obj args *args-lst)
                 (py-call-hashed-kwargs obj args *args-lst kwargs-table)
@@ -577,6 +577,8 @@
 
                 (py-make-dict key-value-pairs))
 
+	(pragma (py-call-generic (args-noescape args)))
+	
         (eval   (export-all)))
 
 (include "rts-macros.scm")
@@ -904,12 +906,14 @@
 	  (preloaded-init (hashtable-get loaded-modules libname)))
       (or preloaded-init
 	  (let ((init (dynamic-load libname)))
-	     (unless (and (procedure? init) (correct-arity? init 4))
+	     (unless (and (procedure? init) (correct-arity? init 3))
 		(error (format "zipi(~a)" libname) "wrong library init"init))
-	     (hashtable-put! loaded-modules libname
-		(lambda (a b c d) (init a b c #f)))
-	     (lambda (a b c) (init a b c #t))))))
+	     (hashtable-put! loaded-modules libname init)
+	     init))))
 
+;*---------------------------------------------------------------------*/
+;*    loaded-modules ...                                               */
+;*---------------------------------------------------------------------*/
 (define loaded-modules
    (cond-expand
       (bigloo4.4b
@@ -1033,9 +1037,14 @@
        (error "py-init-registered-constants"
 	  "py-str-class not inialized"
 	  py-str-hclass-of-instances))
+      ((vector-ref (vector-ref constants 0) 1)
+       ;; already initialized
+       constants)
       (else
        (vector-map! (lambda (k)
 		       (case (vector-ref k 0)
+			  ((&init)
+			   (vector-set! k 1 #t))
 			  ((&ascii &string)
 			   (constant-string (vector-ref k 1)))
 			  ((&hash)
@@ -1064,13 +1073,8 @@
 ;*    native-builtin-__import__ ...                                    */
 ;*---------------------------------------------------------------------*/
 (define (native-builtin-__import__ name)
-  (if (string=? name "builtins")
-      ((@ init __stdlib_builtins)
-       (& "builtins")
-       (& "")
-       #f
-       #t)
-      #f))
+  (when (string=? name "builtins")
+     ((@ init __stdlib_builtins) (& "builtins") (& "") #f)))
 
 ;*---------------------------------------------------------------------*/
 ;*    constants                                                        */

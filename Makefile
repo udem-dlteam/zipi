@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Tue Aug 10 08:14:43 2021 (serrano)                */
+#*    Last change :  Thu Aug 12 09:43:35 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -29,6 +29,7 @@ build:
 	$(MAKE) -C zpc
 	$(MAKE) -C stdlib
 	$(MAKE) -C rts
+	$(MAKE) -C zipi
 
 #*---------------------------------------------------------------------*/
 #*    install                                                          */
@@ -40,6 +41,7 @@ install-unsafe: zipi-dirs install-bin $(ZIPISYSTEMS:%=install.%)
 	$(MAKE) -C zpc install
 	$(MAKE) -C stdlib install
 	$(MAKE) -C rts install
+	$(MAKE) -C zipi install
 	$(MAKE) install.systems
 	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi
 	$(INSTALL) $(ZIPIBINDIR)/zipi $(INSTALLBINDIR)/zipi-$(PYTHONVERSION)
@@ -74,9 +76,6 @@ install-bin: zipi-dirs
 	  rm -rf $(ZIPIDEPDIR); \
 	  cp -r $(BUILDDEPDIR) $(ZIPIDEPDIR); \
 	fi
-	if [ -f $(BUILDBINDIR)/zipi-compile-and-run.bigloo ]; then \
-		cp $(BUILDBINDIR)/zipi-compile-and-run.bigloo $(ZIPIBINDIR); \
-  fi
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)
 
@@ -116,12 +115,14 @@ clean:
 	$(MAKE) -C zpc clean
 	$(MAKE) -C rts clean
 	$(MAKE) -C stdlib clean
+	$(MAKE) -C zipi clean
 
 distclean: clean
 	$(MAKE) -C pyc distclean
 	$(MAKE) -C zpc distclean
 	$(MAKE) -C rts distclean
 	$(MAKE) -C stdlib distclean
+	$(MAKE) -C zipi distclean
 	rm -rf lib
 	rm -f etc/Makefile.zipiconfig
 	rm -f bin/pysexp_script.py
@@ -133,8 +134,6 @@ distclean: clean
 	rm -f bin/zpc.bigloo.sh
 	rm -f bin/zpc.gambit
 	rm -f bin/zipi-compile-and-run.gambit
-	rm -f bin/zipi-compile-and-run.bigloo
-	rm -f bin/zipi-compile-and-run.bigloo.scm
 	rm -f config.status
 
 clean-dependencies:

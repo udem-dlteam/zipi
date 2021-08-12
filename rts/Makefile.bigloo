@@ -1,9 +1,9 @@
 #*=====================================================================*/
-#*    serrano/prgm/project/zipi/rts/Makefile.bigloo                    */
+#*    serrano/prgm/project/zipi/zipi/rts/Makefile.bigloo               */
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Mon Jul  1 13:14:30 2019                          */
-#*    Last change :  Tue Jul 13 08:40:12 2021 (serrano)                */
+#*    Last change :  Tue Aug 10 16:45:58 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The makefile to build the ZIPI rts library                       */
@@ -104,6 +104,7 @@ builtins.bgl: ../stdlib/builtins.py
 	$(BUILDBINDIR)/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_builtins --bootstrap --bin-dir=$(BUILDBINDIR)
 
 zemantics.bgl: ../stdlib/zemantics.py
+	cp $< $@
 	$(BUILDBINDIR)/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_zemantics --semantics --bin-dir=$(BUILDBINDIR)
 
 zemantics.sch: ../stdlib/zemantics.py

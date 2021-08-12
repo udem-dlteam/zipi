@@ -685,7 +685,7 @@
 
 (define-rts (py-call-generic/*args obj args *args-lst)
   (let ((unpacked-args (iterables*->list *args-lst)))
-    (py-call-generic obj (append args unpacked-args))))
+     (py-call-generic obj (append args unpacked-args))))
 
 (define-rts (py-call-generic obj args)
   (let ((obj-type (py-type obj)))
@@ -3285,10 +3285,14 @@
     list-setitem
     (make-signature posonlyargs: (self item value))))
 
+(define k 0)
+
 (define-rts (list-shrink! list)
+   (set! k (+ k 1))
   (let* ((len (PyObjectList-len list))
         (vec (PyObjectList-vector list))
         (new-inner-len (list-get-inner-len len))
+	(_ (tprint k " v=" (vector-length vec) " nil=" new-inner-len " len=" len))
         (new-vector (subvector vec 0 new-inner-len)))
     (PyObjectList-vector-set! list new-vector)
     new-vector))
@@ -3310,13 +3314,13 @@
   (let ((len (PyObjectList-len lst))
         (vec (PyObjectList-vector lst)))
     (let loop ((i index))
-      (if (< i len)
+      (if (fx< i len)
         (begin
-          (vector-set! vec (- i 1) (vector-ref vec i))
-          (loop (+ i 1)))))
-    (vector-set! vec (- len 1) #f)
-    (PyObjectList-len-set! lst (- len 1))
-    (if (< len (list-get-shrink-threshold (vector-length vec)))
+          (vector-set! vec (fx- i 1) (vector-ref vec i))
+          (loop (fx+ i 1)))))
+    (vector-set! vec (fx- len 1) #f)
+    (PyObjectList-len-set! lst (fx- len 1))
+    (if (fx< len (list-get-shrink-threshold (vector-length vec)))
       (list-shrink! lst))))
 
 (define-rts (list-shift-left-by! lst index amount)
@@ -5758,21 +5762,20 @@
   (module-search-order-add! (cache-location-get))
 
   (let ((sys.modules (sys.modules-get)))
-    (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
-    (py-try-except
-       (lambda (e)
-	  (exception-notify e)
-       (print-exception e (current-error-port))
-       (exit 1))
-     (lambda ()
-
-       (if profile-flag
-           (statprof-begin profile-flag))
-
-       (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
-
-       (if profile-flag
-           (statprof-end path))))))
+     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+     (py-try-except
+	(lambda (e)
+	   (print-exception e (current-error-port))
+	   (exit 1))
+	(lambda ()
+	   
+	   (if profile-flag
+	       (statprof-begin profile-flag))
+	   
+	   (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
+	   
+	   (if profile-flag
+	       (statprof-end path))))))
 
 (define-rts py-import-root (current-directory))
 

@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Tue Aug 10 13:27:55 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 15:39:13 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -39,7 +39,7 @@
 	   (inline fx<::bool ::long ::long)
 	   (inline fx<=::bool ::long ::long)
 	   (inline fx>::bool ::long ::long)
-	   (inline fxmax::bool ::long ::long)
+	   (inline fxmax::long ::long ::long)
 	   (inline fxquotient::long ::long ::long)
 	   
 	   (inline u8+::uint8 ::uint8 ::uint8)

@@ -1,0 +1,67 @@
+;*=====================================================================*/
+;*    serrano/prgm/project/zipi/zipi/zipi/zipi.bgl                     */
+;*    -------------------------------------------------------------    */
+;*    Author      :  Manuel Serrano                                    */
+;*    Creation    :  Thu Aug 12 09:28:46 2021                          */
+;*    Last change :  Thu Aug 12 10:20:04 2021 (serrano)                */
+;*    Copyright   :  2021 Manuel Serrano                               */
+;*    -------------------------------------------------------------    */
+;*    Bigloo zipi launcher                                             */
+;*=====================================================================*/
+
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
+(module zipi
+   (library zipi)
+   (main zipi-main))
+
+;*---------------------------------------------------------------------*/
+;*    zipi-main ...                                                    */
+;*---------------------------------------------------------------------*/
+(define (zipi-main args)
+   (apply main (cdr args)))
+
+;*---------------------------------------------------------------------*/
+;*    delete-path ...                                                  */
+;*---------------------------------------------------------------------*/
+(define (delete-path path)
+   (cond
+      ((not (file-exists? path))
+       #t)
+      ((directory? path)
+       (when (every delete-path (directory->path-list path))
+	  (delete-directory path)
+	  #t))
+      (else
+       (delete-file path))))
+
+;*---------------------------------------------------------------------*/
+;*    reset-cache ...                                                  */
+;*---------------------------------------------------------------------*/
+(define (reset-cache)
+   (let ((cache-location (zipi-cache-location)))
+      (if (directory? cache-location)
+	  (begin
+	     (delete-path cache-location)
+	     (print "*** Cache has been deleted : " cache-location))
+	  (print "*** WARNING CACHE NOT FOUND : " cache-location))))
+
+;*---------------------------------------------------------------------*/
+;*    run ...                                                          */
+;*---------------------------------------------------------------------*/
+(define (run file argv compile debug profile expansion)
+   (let ((zipi-lib-path (make-file-path (zipi-lib-dir) (zipi-version))))
+      (bigloo-library-path-set! (cons zipi-lib-path (bigloo-library-path))))
+
+   (compile-flag-set! compile)
+   (debug-flag-set! debug)
+   (profile-flag-set! profile)
+   (expansion-flag-set! expansion)
+   
+   (command-line-argv-set! argv)
+	    
+   (let ((file-name (path-normalize file)))
+      (if (file-exists? file-name)
+	  (run-as-main file-name (zipi-cache-location))
+	  (error "run-main" "file doesn't exist" file-name))))

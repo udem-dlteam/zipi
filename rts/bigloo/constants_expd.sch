@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Mar 28 15:09:08 2019                          */
-;*    Last change :  Tue Aug 10 13:10:33 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 15:46:18 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    HopScript constant expanders                                     */
@@ -62,33 +62,13 @@
        (error "js-cnst-table-ref" "bad syntax" x))))
 
 ;*---------------------------------------------------------------------*/
-;*    &with! ...                                                       */
-;*---------------------------------------------------------------------*/
-(define (&with!-expander x e)
-   (match-case x
-      ((&with! . ?body)
-       (let ((o (thread-parameter '&cnsts)))
-	  (thread-parameter-set! '&cnsts '())
-	  (thread-parameter-set! '&x-cnsts x)
-	  (unwind-protect
-	     (let* ((nbody (map (lambda (x) (e x e)) body))
-		    (cnsts (map cadr (reverse! (thread-parameter '&cnsts)))))
-		(e `(let* ((__js_strings (&jsstring-init ,(obj->string (apply vector cnsts))))
-			   (js-string-names (js-get-js-string-names))
-			   (js-integer-names (js-get-js-integer-names)))
-		       ,@nbody)
-		   e))
-	     (thread-parameter-set! '&cnsts o))))
-      (else
-       (error "&with!" "Illegal form" x))))
-       
-;*---------------------------------------------------------------------*/
 ;*    &begin!-expander ...                                             */
 ;*---------------------------------------------------------------------*/
 (define (&begin!-expander x e)
    (match-case x
       ((&begin!)
-       (thread-parameter-set! '&cnsts '())
+       (thread-parameter-set! '&cnsts
+	  (list (cons #f (cons (vector '&init #f) 0))))
        (thread-parameter-set! '&x-cnsts x)
        ;; must be #f as Scheme files use (vector? __py_constants) to test init
        `(let () ,x))

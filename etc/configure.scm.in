@@ -1,8 +1,18 @@
 ;; -*-bee-*-
 (define (zipi-release) "@RELEASE@")
+(define (zipi-version) "@VERSION@")
+(define (zipi-branch) "@BRANCH@")
 (define (zipi-bin-dir) "@BINDIR@")
 (define (zipi-lib-dir) "@LIBDIR@")
 (define (zipi-etc-dir) "@ETCDIR@")
 (define (zipi-rts-dir) "@RTSDIR@")
 
-(define (zipi-srfis) (list-copy '(@ZIPISRFIS@ zipi zipi-@BRANCH@ zipi-@VERSION@)))
+(define (zipi-srfis)
+   (list-copy '(@ZIPISRFIS@ zipi zipi-@BRANCH@ zipi-@VERSION@)))
+
+(define (zipi-python-version) "@PYTHONVERSION@")
+
+(define (zipi-cache-location)
+   (make-file-path (or (getenv "ZIPICACHE") "@ZIPICACHE@")
+      "cache@zipi-bigloo@VERSION@-@PYTHONVERSION@"
+      "@BUILDTAG@"))

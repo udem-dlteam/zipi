@@ -1,9 +1,9 @@
 #*=====================================================================*/
-#*    serrano/prgm/project/zipi/etc/Makefile.library                   */
+#*    serrano/prgm/project/zipi/zipi/etc/Makefile.library              */
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Wed Mar 15 07:22:39 2006                          */
-#*    Last change :  Mon Aug  9 14:35:49 2021 (serrano)                */
+#*    Last change :  Thu Aug 12 09:55:33 2021 (serrano)                */
 #*    Copyright   :  2006-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The common Makefile for building libraries                       */
@@ -33,12 +33,6 @@ o/%.o: %.bgl %.scm
 
 o/%.o: %.scm
 	@ $(call compile2,$(BIGLOO),$(BCFLAGS),$(BLFLAGS),-c,$< -o $@)
-
-%.scm: %.hop
-	@ $(call compile3,$(BGLZIPIC),$(HFLAGS),$(BCFLAGS),$(BLFLAGS),-s,$< -o $@)
-
-o/%.o: %.js
-	@ $(call compile3,$(BGLZIPIC),$(HFLAGS),$(BCFLAGS),$(BLFLAGS),$(BZIPICFLAGS) -c --js-module-name __nodejs_$* --js-module-path $*,$< -o $@)
 
 #*---------------------------------------------------------------------*/
 #*    The heap construction                                            */
