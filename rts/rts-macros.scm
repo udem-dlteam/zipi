@@ -117,6 +117,12 @@
   `(with-specialized-PyObjectFunction-args-limit $py-callX ,X ,fun ,@args))
 
 (define-macro ($py-callX specialized-args-limit X fun . args)
+   (define (fallback sz)
+      (case sz
+	 ((1) 'py-call1-fallback)
+	 ((2) 'py-call2-fallback)
+	 ((3) 'py-call3-fallback)
+	 (else 'py-callX-fallback)))
   (cond
     ((= X 0) `(py-call0 ,fun))
     ((<= X specialized-args-limit)
@@ -128,9 +134,9 @@
                 ,@(map list args-names args))
           (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
             ((PyObjectFunction-procedure $fun) ,@args-names)
-            (py-callX-fallback ,min-neg-arity $fun ,@args-names)))))
+            (,(fallback (length args)) ,min-neg-arity $fun ,@args-names)))))
     (else
-      (py-callX-fallback ,(- 0 X 1) ,fun ,@args))))
+      (,(fallback (length args)) ,(- 0 X 1) ,fun ,@args))))
 
 (define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
   `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,signature))

@@ -6,6 +6,7 @@
 (define (zipi-lib-dir) "@LIBDIR@")
 (define (zipi-etc-dir) "@ETCDIR@")
 (define (zipi-rts-dir) "@RTSDIR@")
+(define (zipi-root-dir) "@ZIPIROOT@")
 
 (define (zipi-srfis)
    (list-copy '(@ZIPISRFIS@ zipi zipi-@BRANCH@ zipi-@VERSION@)))

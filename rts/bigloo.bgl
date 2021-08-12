@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Tue Aug 10 15:39:13 2021 (serrano)                */
+;*    Last change :  Thu Aug 12 13:12:35 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -369,7 +369,8 @@
 	 (if match
 	     (let* ((fullmatch (car match))
 		    (keyword (cadr match))
-		    (env (getenv (string-upcase keyword))))
+		    (env (or (getenv (string-upcase keyword))
+			     (zipi-root-dir))))
 		(if env
 		    (expand~~ (pregexp-replace* fullmatch path env))
 		    (error "path-expand" "environnement variable is not defined" (string-upcase keyword))))

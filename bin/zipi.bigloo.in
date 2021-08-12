@@ -1,3 +1,19 @@
 #!/bin/sh
 
-ZIPIROOT="@ZIPIROOT@" ZIPICACHE="@ZIPICACHE@" @ZIPIROOT@/bin/zipi-compile-and-run.bigloo "$@"
+if [ "$ZIPIROOT " = " " ]; then
+  zipiroot="@ZIPIROOT@"
+else
+  zipiroot="$ZIPIROOT"
+fi
+
+if [ "$ZIPICACHE " = " " ]; then
+  zipicache="@ZIPICACHE@"
+else
+  zipicache="$ZIPICACHE"
+fi
+
+if [ "$ZIPIGDB" != "true" ]; then
+  ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" gdb --args $zipiroot/bin/zipi-compile-and-run.bigloo "$@"
+else  
+  ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" $zipiroot/bin/zipi-compile-and-run.bigloo "$@"
+fi

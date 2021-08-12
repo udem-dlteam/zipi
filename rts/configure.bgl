@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 13:04:14 2019                          */
-;*    Last change :  Thu Aug 12 09:26:37 2021 (serrano)                */
+;*    Last change :  Thu Aug 12 13:15:42 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Zipi configuration                                               */
@@ -21,6 +21,7 @@
 	   (zipi-lib-dir)
 	   (zipi-etc-dir)
 	   (zipi-rts-dir)
+	   (zipi-root-dir)
 
 	   (zipi-srfis)
 

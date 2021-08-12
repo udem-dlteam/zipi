@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Mon Jun 17 07:40:23 2019                          */
-;*    Last change :  Tue Aug 10 15:57:14 2021 (serrano)                */
+;*    Last change :  Thu Aug 12 12:58:20 2021 (serrano)                */
 ;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Scheme code generation                                           */
@@ -166,20 +166,32 @@
 	     `(define py-module ,prog))
 	,(cond
 	    ((config-get conf main:)
-	     `(define (main argv)
-		 (bigloo-library-path-set!
-		    (cons ,(config-get conf lib-dir:) (bigloo-library-path)))
-		 ;; (build-builtins)
-		 (init-registered-constants)
-		 ;; (run-as-main (car argv) "~/.zipicache/cache@zipi-bigloo-0.0.1-python3.9")
-		 (with-handler
-		    (lambda (e)
-		       (if (PyObject? e)
-			   (exception-notify e)
-			   (raise e)))
-		    (py-module
-		       (py-make-global)
-		       ,(scheme-make-caches ast)))))
+	     `(begin
+		 (define (init name package path)
+		    (init-registered-constants)
+		    (let ((caches ,(scheme-make-caches ast))
+			  (module (py-make-module
+				     name
+				     package
+				     path)))
+		       ,@(if full-path
+			     `((py-own-attr-set!
+				  module (& "__file__") (& ,full-path)))
+			     '())
+		       (py-module module caches)
+		       module))
+		 (define (main argv)
+		    (bigloo-library-path-set!
+		       (cons ,(config-get conf lib-dir:
+				 (make-file-path (zipi-lib-dir) (zipi-version)))
+			  (bigloo-library-path)))
+		    (with-handler
+		       (lambda (e)
+			  (if (isa? e &exception)
+			      (exception-notify e)
+			      (raise e)))
+		       (run-as-module ,(config-get conf :src)
+			  (zipi-cache-location) init)))))
 	    (else
 	     `(define (init name package path)
 		 (init-registered-constants)
