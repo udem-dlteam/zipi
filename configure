@@ -172,23 +172,29 @@ depdir=$zipiroot/dependencies
 #*                    Install cPython                                  */
 #*---------------------------------------------------------------------*/
 
+echo "*** Configuring Python"
+
 if [ -z $python ]; then
   buildpythonversion=3.9.4
   buildpython=$builddepdir/cpython-$buildpythonversion/bin/python3
   python=$depdir/cpython-$buildpythonversion/bin/python3
   if [ "$skipdependencies" = false ]; then
-    echo "Installing Python $buildpythonversion for Zipi in $builddepdir"
-    mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-cpython v$buildpythonversion; cd $builddir;
+    if [ -e $buildpython ]; then
+      echo "***   Python $buildpythonversion is already installed in $buildpython so installation was skipped"
+    else
+      echo "***   Installing Python $buildpythonversion for Zipi in $builddepdir"
+      mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-cpython v$buildpythonversion; cd $builddir;
+    fi
   else
-    echo "WARNING: cPython was configured, but its installation was skipped"
+    echo "***   WARNING: cPython was configured, but its installation was skipped"
   fi
 else
   if [ $($python -c "import sys; print(sys.version_info>=(3,9))") = "True" ]; then
-    echo "Using cPython at '$python' for Zipi (we recommend letting Zipi install its own cPython version)"
+    echo "***   Using cPython at '$python' for Zipi (we recommend letting Zipi install its own cPython version)"
     # If a python executable is given, use the same for build and runtime
     buildpython=$python
   else
-    echo "Zipi requires python>=3.9 (version $($python -c "import sys; print(sys.version.split()[0])") was provided)"
+    echo "***   Zipi requires python>=3.9 (version $($python -c "import sys; print(sys.version.split()[0])") was provided)"
     exit 1
   fi
 fi
@@ -217,8 +223,8 @@ if test "${systems#*gambit}" != "$systems"; then
 fi
 
 if [ "$default_scheme_system " = "no_default_scheme_system_currently_set " ]; then
-  echo "WARNING: no default scheme system has been set..." 1>&2;
-  echo "         use --default=[gambit|bigloo] or --bigloo-only or --gambit-only" 1>&2;
+  echo "*** WARNING: no default scheme system has been set..." 1>&2;
+  echo "             use --default=[gambit|bigloo] or --bigloo-only or --gambit-only" 1>&2;
 fi
 
 #*---------------------------------------------------------------------*/
