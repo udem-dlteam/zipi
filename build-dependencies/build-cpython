@@ -26,7 +26,11 @@ build_system()
   fi
 
   case "$(uname -s)" in
-    Darwin*) CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-universalsdk=$(xcodebuild -version -sdk macosx Path) --with-universal-archs=intel-64";;
+    Darwin*) CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS --enable-universalsdk=$(xcodebuild -version -sdk macosx Path) --with-universal-archs=intel-64"
+             CC="clang"
+             CPP="clang -E"
+             CXX="clang"
+             ;;
   esac
 
   touch ./configure

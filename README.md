@@ -91,4 +91,13 @@ Executes `thunk` and prints the name of the Python exception, if one is thrown
 
 ## CI
 
-Here is some information about self-hosted runner. On the Gambit server, all files concerning the runner are located inside the `/Users/Shared/zipi` folder. All files concerning the github action runner are inside `actions-runner`. The python version used by the runner is located inside the `lib` folder.  The Makefile in this folder can recompile the python version (with a compiled version of openssl). The runner will expect the folder `/Users/Shared/zipi/lib/python` to exist and append to its path the python binaries from the `/Users/Shared/zipi/lib/python/bin` folder. If the python version needs to change, recompiling another version of python in this folder is probably the simplest way.
+Here is some information about self-hosted runner. On the Gambit server, all files concerning the runner are located inside the `/Users/Shared/zipi` folder. There are three subfolders : 
+- `dependencies` : this folder is used as dependency folder when configuring zipi (see --dependencies-dir option of `./configure`)
+- `bigloo-*` : this folder contains the installation of bigloo. Should be moved to the dependencies soon...
+- `action-runner` : this folder contains all the info about the github self-hosted runner. 
+
+Here are some usefull commands (need sudo): 
+Start the runner service : `sudo launchctl start /Users/oestolel/Library/LaunchAgents/actions.runner.udem-dlteam-zipi.gambit.plist`
+Stop the runner service : `sudo launchctl stop /Users/oestolel/Library/LaunchAgents/actions.runner.udem-dlteam-zipi.gambit.plist`
+
+Note the `./svc.sh` in `action-runner` command to setup the service doesnt work for some reason. This is why we use sudo and the plist directly. Note that the plist file must have well-defined permissions to be used with `sudo` and `launchctl`. For more information on self-hosted runner, see github documentation for more info

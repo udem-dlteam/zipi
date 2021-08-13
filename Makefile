@@ -20,7 +20,7 @@ do: build
 #*---------------------------------------------------------------------*/
 #*    build                                                            */
 #*---------------------------------------------------------------------*/
-.PHONY: build clean distclean cleanall
+.PHONY: build clean distclean cleanall test test-gambit test-bigloo
 
 build:
 	mkdir -p bin
@@ -69,8 +69,8 @@ install-bin: zipi-dirs
 		done;
 	rm -rf $(ZIPIBINDIR)/pysexp
 	cp -r $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
-	chmod a+rx -R $(ZIPIBINDIR)/pysexp
-	if [ -d $(BUILDDEPDIR) ]; then \
+	chmod -R a+rx $(ZIPIBINDIR)/pysexp
+	if [ -d $(BUILDDEPDIR)  ] && [ $(BUILDDEPDIR) != $(ZIPIDEPDIR) ]; then \
 	  rm -rf $(ZIPIDEPDIR); \
 	  cp -r $(BUILDDEPDIR) $(ZIPIDEPDIR); \
 	fi
@@ -144,6 +144,12 @@ cleanall: distclean
 
 test:
 	@cd tests; $(BUILDPYTHON) run.py
+
+test-gambit:
+	@cd tests; $(BUILDPYTHON) run.py --zipi $(ZIPIBINDIR)/zipi.gambit
+
+test-bigloo:
+	@cd tests; $(BUILDPYTHON) run.py --zipi $(ZIPIBINDIR)/zipi.bigloo
 
 unittest:
 	@cd unittest; make unittest

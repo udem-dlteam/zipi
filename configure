@@ -133,7 +133,7 @@ function parseArg() {
       echo "Misc:" >&2;
       echo "   --install................... the installer ($install)" >&2;
       echo "   --skip-dependencies......... skip the installation of dependencies (only use if dependencies were already configured)" >&2;
-      echo "   --dependencies-dir=path..... location of the dependency directory (default ./dependency)" >&2;
+      echo "   --dependencies-dir=path..... location of the dependency directory (default ./dependencies)" >&2;
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
       echo "   --zipicache=path............ location of compiled .py files ($zipicache)" >&2;
