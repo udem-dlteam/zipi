@@ -28,7 +28,7 @@ jobs:
       - name: Configure Zipi and install depedencies
         run: |
           cd zipi
-          ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo --depdendencies-dir=/Users/Shared/zipi/dependencies
+          ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo --dependencies-dir=/Users/Shared/zipi/dependencies
       - name: Compile Zipi
         run: |
           cd zipi
