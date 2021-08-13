@@ -40,7 +40,7 @@ jobs:
           make test-gambit
         if: always()
       - name: Bigloo tests
-        timeout-minute: 10
+        timeout-minutes: 10
         run: |
           cd zipi
           make test-bigloo
