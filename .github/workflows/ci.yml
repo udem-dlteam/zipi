@@ -28,7 +28,7 @@ jobs:
       - name: Configure Zipi and install depedencies
         run: |
           cd zipi
-          ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo
+          ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo --depdendencies-dir=/Users/Shared/zipi/dependencies
       - name: Compile Zipi
         run: |
           cd zipi
@@ -37,6 +37,7 @@ jobs:
         run: |
           cd zipi
           make test-gambit
+        if: always()
       - name: Bigloo tests
         run: |
           cd zipi
