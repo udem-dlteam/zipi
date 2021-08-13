@@ -100,4 +100,4 @@ Here are some usefull commands (need sudo):
 Start the runner service : `sudo launchctl start /Users/oestolel/Library/LaunchAgents/actions.runner.udem-dlteam-zipi.gambit.plist`
 Stop the runner service : `sudo launchctl stop /Users/oestolel/Library/LaunchAgents/actions.runner.udem-dlteam-zipi.gambit.plist`
 
-Note the `./svc.sh` in `action-runner` command to setup the service doesnt work for some reason. This is why we use sudo and the plist directly. Note that the plist file must have well-defined permissions to be used with `sudo` and `launchctl`. See github documentation on self-hosted runner for more info
+Note the `./svc.sh` in `action-runner` command to setup the service doesnt work for some reason. This is why we use sudo and the plist directly. Note that the plist file must have well-defined permissions to be used with `sudo` and `launchctl`. For more information on self-hosted runner, see github documentation for more info
