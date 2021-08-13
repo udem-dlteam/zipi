@@ -69,7 +69,7 @@ install-bin: zipi-dirs
 		done;
 	rm -rf $(ZIPIBINDIR)/pysexp
 	cp -r $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
-	chmod a+rx -R $(ZIPIBINDIR)/pysexp
+	chmod -R a+rx $(ZIPIBINDIR)/pysexp
 	if [ -d $(BUILDDEPDIR) ]; then \
 	  rm -rf $(ZIPIDEPDIR); \
 	  cp -r $(BUILDDEPDIR) $(ZIPIDEPDIR); \
