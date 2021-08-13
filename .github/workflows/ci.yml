@@ -28,11 +28,12 @@ jobs:
       - name: Configure Zipi and install dependencies
         run: |
           cd zipi
-          ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo --dependencies-dir=/Users/Shared/zipi/dependencies
+          ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo --dependencies-dir=/Users/Shared/zipi/dependencies --prefix="$GITHUB_WORKSPACE/zipi-install"
       - name: Compile Zipi
         run: |
           cd zipi
           make
+          make install
       - name: Gambit tests
         run: |
           cd zipi
