@@ -19,13 +19,13 @@ jobs:
         with:
           path: zipi
           fetch-depth: 0 # Checkout history and tags
-      - name: Setup path
+      - name: Setup path and env variables
         run: |
           echo "/Users/Shared/zipi/bigloo-install/bigloo/bin" >> $GITHUB_PATH
           echo "CC=/usr/local/bin/gcc-9" >> $GITHUB_ENV 
-          echo "CPP=/usr/local/bin/gcc-9 -E" >> $GITHUB_ENV 
+          echo "CPP=\"/usr/local/bin/gcc-9 -E\"" >> $GITHUB_ENV 
           echo "CXX=/usr/local/bin/gcc-9" >> $GITHUB_ENV 
-      - name: Configure Zipi and install depedencies
+      - name: Configure Zipi and install dependencies
         run: |
           cd zipi
           ./configure --bigloo=/Users/Shared/zipi/bigloo-install/bigloo/bin/bigloo --dependencies-dir=/Users/Shared/zipi/dependencies
