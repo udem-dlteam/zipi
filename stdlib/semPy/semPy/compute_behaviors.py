@@ -1862,7 +1862,7 @@ def compute_behaviors(semantics_file, builtins_file, more_modules):
 
     # Known intrinsics
     define_behavior = "define_behavior"
-    other_intrinsics = "sint, bint, py_int_to_float, py_int_from_host, py_int_to_host, py_bool_to_host_int, py_float_from_host, " \
+    other_intrinsics = "sint, bint, py_int_to_float, py_int_from_host, py_int_to_host, py_float_from_host, " \
                        "py_float_to_host, py_sint_to_host, py_bint_to_host, py_bool_from_host_bool, " \
                        "py_bool_to_host_bool, py_str_from_host, py_str_to_host, py_str_len_to_host, alloc"
 
