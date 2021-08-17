@@ -119,7 +119,7 @@
 (define-macro ($py-callX specialized-args-limit X fun . args)
    (define (fallback sz)
       (case sz
-	 ((1) 'py-call1-fallback)
+ 	 ((1) 'py-call1-fallback)
 	 ((2) 'py-call2-fallback)
 	 ((3) 'py-call3-fallback)
 	 (else 'py-callX-fallback)))

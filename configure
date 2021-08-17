@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Thu Aug 12 09:10:00 2021 (serrano)                */
+#*    Last change :  Tue Aug 17 12:12:46 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    Zipi autoconfiguration                                           */
@@ -118,6 +118,9 @@ function parseArg() {
 
     --debug*)
       mode=debug;;
+
+    --devel*)
+      mode=devel;;
 
     --zipicache=*)
       zipicache="`echo $1 | sed 's/^[^=]*=//'`";;

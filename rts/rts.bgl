@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Thu Aug 12 10:41:21 2021 (serrano)                */
+;*    Last change :  Tue Aug 17 11:43:17 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -1348,22 +1348,32 @@
 ;; homebrewed "Ask Permission not Forgiveness" exception handling
 ;; TODO: not implemented in APNF for bigloo
 
+;* (define-inline (py-try-except-else handler body orelse)             */
+;*   (let ((exception-was-raised #f))                                  */
+;*     (let ((result                                                   */
+;*           (with-exception-handler                                   */
+;*             (lambda (raised-exception)                              */
+;*               (set! exception-was-raised #t)                        */
+;*               (handler raised-exception))                           */
+;*             body)))                                                 */
+;*     (if (not exception-was-raised)                                  */
+;*         (orelse result)                                             */
+;*         result))))                                                  */
+;*                                                                     */
+;* (define-inline (py-try-except handler body)                         */
+;*   (with-handler                                                     */
+;*     handler                                                         */
+;*     body))                                                          */
+
 (define-inline (py-try-except-else handler body orelse)
-  (let ((exception-was-raised #f))
-    (let ((result
-          (with-exception-handler
-            (lambda (raised-exception)
-              (set! exception-was-raised #t)
-              (handler raised-exception))
-            body)))
-    (if (not exception-was-raised)
-        (orelse result)
-        result))))
+   (with-handler
+      handler
+      (orelse (body))))
 
 (define-inline (py-try-except handler body)
-  (with-exception-handler
+  (with-handler
     handler
-    body))
+    (body)))
 
 ;; throw an exception without checking it is an instance of BaseException
 (define-inline (py-throw-unsafe exc)

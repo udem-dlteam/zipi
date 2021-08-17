@@ -122,7 +122,7 @@
   (py-getattribute-cached-fallback-body obj hclass name cache #t #t #t #f))
 
 (define-rts (py-getattribute-cached-modular-fallback obj hclass name cache
-                                                 include-object include-mro include-type include-module)
+	       include-object include-mro include-type include-module)
   (cond
     ((and include-object
           (eq? hclass (AttributeCache-object-hclass cache)))
@@ -670,7 +670,7 @@
 	  (let* ((func (PyObjectMethod-method fun))
 		 (__self__ (PyObjectMethod-self fun))
 		 (arity (PyObjectFunction-arity func)))
-	     (if (=fx arity 1)
+	     (if (eq? arity 1)
 		 ((PyObjectFunction-procedure func) __self__)
 		 (py-call-generic func (cons __self__ '())))))
 	 (else
@@ -695,7 +695,7 @@
 	 (let* ((func (PyObjectMethod-method fun))
 		(__self__ (PyObjectMethod-self fun))
 		(arity (PyObjectFunction-arity func)))
-	    (if (fx= arity 2)
+	    (if (eq? arity 2)
 		((PyObjectFunction-procedure func) __self__ a0)
 		(py-call-generic func (cons __self__ (cons a0 '()))))))
 	(else
@@ -715,12 +715,12 @@
 		   (pack-extra-args arity (cons* a0 a1 '()))))
 	       (else
 		;; Error messages
-		(py-call-wrong-arity arity 1 "1")))))
+		(py-call-wrong-arity arity 2 "2")))))
 	((eq? fun-type py-method-class)
 	 (let* ((func (PyObjectMethod-method fun))
 		(__self__ (PyObjectMethod-self fun))
 		(arity (PyObjectFunction-arity func)))
-	    (if (fx= arity 3)
+	    (if (eq? arity 3)
 		((PyObjectFunction-procedure func) __self__ a0 a1)
 		(py-call-generic func
 		   (cons __self__ (cons* a0 a1 '()))))))
@@ -741,13 +741,13 @@
 		   (pack-extra-args arity (cons* a0 a1 a2 '()))))
 	       (else
 		;; Error messages
-		(py-call-wrong-arity arity 1 "1")))))
+		(py-call-wrong-arity arity 3 "3")))))
 	((eq? fun-type py-method-class)
 	 (let* ((func (PyObjectMethod-method fun))
 		(__self__ (PyObjectMethod-self fun))
 		(arity (PyObjectFunction-arity func)))
-	    (if (fx= arity 4)
-		(func __self__ a0 a1 a2)
+	    (if (eq? arity 4)
+		((PyObjectFunction-procedure func) __self__ a0 a1 a2)
 		(py-call-generic func
 		   (cons __self__ (cons* a0 a1 a2 '()))))))
 	(else
@@ -784,7 +784,6 @@
       ((eq? obj-type py-method-class)
         (let* ((func (PyObjectMethod-method obj))
                (__self__ (PyObjectMethod-self obj)))
-	   (tprint "LEN=" (length args))
           (py-call-generic func (cons __self__ args))))
       ;; initialization of instances from type with no special metaclass
       ((eq? obj-type py-type-class)

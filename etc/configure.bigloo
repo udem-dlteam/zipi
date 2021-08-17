@@ -1,10 +1,10 @@
 #!/bin/sh
 #*=====================================================================*/
-#*    serrano/prgm/project/zipi/etc/configure.bigloo                   */
+#*    serrano/prgm/project/zipi/zipi/etc/configure.bigloo              */
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Tue Jul  2 07:46:27 2019                          */
-#*    Last change :  Wed May  5 09:56:24 2021 (serrano)                */
+#*    Last change :  Tue Aug 17 12:13:10 2021 (serrano)                */
 #*    Copyright   :  2019-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    Bigloo specific configuration                                    */
@@ -32,6 +32,9 @@ if [ "$mode " = "debug " ]; then
   bcflags="-O2 -fsharing -L \$(BUILDLIBDIR) -srfi bigloo-compile"
   bcflagsrts="-safee -g"
   debug=yes
+elif [ "$mode " = "devel " ]; then
+  bcflags="-O2 -fsharing -L \$(BUILDLIBDIR) -srfi bigloo-compile"
+  bcflagsrts="-cg"
 fi
 
 bcflagsdev=""
