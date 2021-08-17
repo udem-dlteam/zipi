@@ -70,11 +70,12 @@ install-bin: zipi-dirs
 		chmod a+xr $(ZIPIBINDIR)/$$file; \
 		done;
 	rm -rf $(ZIPIBINDIR)/pysexp
-	cp -r $(BUILDBINDIR)/pysexp $(ZIPIBINDIR)/pysexp
-	chmod a+rx -R $(ZIPIBINDIR)/pysexp
+	(cd $(BUILDBINDIR) && tar cf - pysexp | (cd $(ZIPIBINDIR) && tar xvf -))
+	chmod -R a+rx $(ZIPIBINDIR)/pysexp
 	if [ -d $(BUILDDEPDIR) ]; then \
 	  rm -rf $(ZIPIDEPDIR); \
-	  cp -r $(BUILDDEPDIR) $(ZIPIDEPDIR); \
+	  mkdir $(ZIPIDEPDIR); \
+	  (cd $(BUILDDEPDIR) && tar cf - . | (cd $(ZIPIDEPDIR) && tar xvf -)); \
 	fi
 
 install.systems: $(ZIPISYSTEMS:%=install.system.%)

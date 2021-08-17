@@ -40,8 +40,9 @@ buildrtsdir=$PWD/rts
 buildpycdir=$PWD/pyc
 buildzpcdir=$PWD/zpc
 buildstdlibdir=$PWD/stdlib
-builddepdir=$PWD/dependencies
-buildbuilddepdir=$PWD/build-dependencies
+depdirname=dependencies
+builddepdir=$PWD/$depdirname
+buildbuilddepdir=$PWD/build-$depdirname
 
 install="install -m a+rx,u+rx"
 
@@ -52,7 +53,7 @@ mode=optim
 
 zipicache=~/.zipicache
 
-branch=`git rev-parse --abbrev-ref HEAD`
+branch=`git describe --tag --always`
 date=`date +"%d %B %Y"`
 
 if [ -e .git ]; then
@@ -182,7 +183,7 @@ libdir=$zipiroot/lib
 pycdir=$zipiroot/pyc
 zpcdir=$zipiroot/zpc
 stdlibdir=$zipiroot/stdlib
-depdir=$zipiroot/dependencies
+depdir=$zipiroot/$depdirname
 
 #*---------------------------------------------------------------------*/
 #*                    Install cPython                                  */
@@ -306,6 +307,7 @@ for file in Makefile.zipiconfig  configure.scm zpc.bigloo.sh; do
           -e "s|@PYCDIR@|$pycdir|" \
           -e "s|@ZPCDIR@|$zpcdir|" \
           -e "s|@STDLIBDIR@|$stdlibdir|" \
+          -e "s|@DEPDIRNAME@|$depdirname|" \
           -e "s|@DEPDIR@|$depdir|" \
           -e "s|@BUILDID@|$buildid|" \
           -e "s|@BUILDTAG@|$buildtag|" \

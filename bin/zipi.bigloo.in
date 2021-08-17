@@ -12,8 +12,8 @@ else
   zipicache="$ZIPICACHE"
 fi
 
-if [ "$ZIPIGDB" != "true" ]; then
-  ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" gdb --args $zipiroot/bin/zipi-compile-and-run.bigloo "$@"
-else  
+if [ "$ZIPIDBG " = " " ]; then
   ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" $zipiroot/bin/zipi-compile-and-run.bigloo "$@"
+else
+  ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" $ZIPIDBG --args $zipiroot/bin/zipi-compile-and-run.bigloo "$@"
 fi
