@@ -1,9 +1,9 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/bigloo/call_expd.sch               */
+;*    serrano/prgm/project/zipi/zipi/rts/bigloo/call_expd.sch          */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Nov  5 10:30:55 2020                          */
-;*    Last change :  Tue Mar 23 08:41:11 2021 (serrano)                */
+;*    Last change :  Tue Aug 10 11:43:31 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Macros for Python calls                                          */
@@ -131,10 +131,7 @@
 (define (register-constants-perfect-hashtable-expander x e)
    (match-case x
       ((register-constants-perfect-hashtable ?table)
-       (vector-map
-	  (lambda (e) (if (string? e) (get-PyStaticStr e) e))
-	  table)
-       #unspecified)
+       (e `(& ,table) e))
       (else
        (error "register-constants-perfect-hashtable" "bad syntax" x))))
 

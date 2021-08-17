@@ -655,37 +655,123 @@
         " required positional argument"))))
 
 (define-rts (py-call0-fallback fun)
+   (let ((fun-type (py-obj-cls fun)))
+      (cond
+	 ((eq? fun-type py-function-class)
+	  (let ((arity (PyObjectFunction-arity fun)))
+	     (cond
+		((eqv? arity -1)
+		 ((PyObjectFunction-procedure fun)
+		  (py-tuple-from-scheme '#())))
+		((not arity) (py-call-generic fun '()))
+		(else
+		 (py-call-wrong-arity arity 0 "0")))))
+	 ((eq? fun-type py-method-class)
+	  (let* ((func (PyObjectMethod-method fun))
+		 (__self__ (PyObjectMethod-self fun))
+		 (arity (PyObjectFunction-arity func)))
+	     (if (=fx arity 1)
+		 ((PyObjectFunction-procedure func) __self__)
+		 (py-call-generic func (cons __self__ '())))))
+	 (else
+	  (py-call-generic fun '())))))
+
+(define-rts (py-call1-fallback min-neg-arity fun a0)
   (let ((fun-type (py-obj-cls fun)))
-    (if (eq? fun-type py-function-class)
-      (let ((arity (PyObjectFunction-arity fun)))
-        (cond
-          ((eqv? arity -1)
-            ((PyObjectFunction-procedure fun)
-              (py-tuple-from-scheme '#())))
-          ((not arity) (py-call-generic fun '()))
-          (else
-            (py-call-wrong-arity arity 0 "0"))))
-      (py-call-generic fun '()))))
+     (cond
+	((eq? fun-type py-function-class)
+	 (let ((arity (PyObjectFunction-arity fun)))
+	    (cond
+	       ((not arity)
+		(py-call-generic fun (cons a0 '())))
+	       ((and (fx< arity 0) (fx>= arity min-neg-arity))
+		(apply
+		   (PyObjectFunction-procedure fun)
+		   (pack-extra-args arity (cons a0 '()))))
+	       (else
+		;; Error messages
+		(py-call-wrong-arity arity 1 "1")))))
+	((eq? fun-type py-method-class)
+	 (let* ((func (PyObjectMethod-method fun))
+		(__self__ (PyObjectMethod-self fun))
+		(arity (PyObjectFunction-arity func)))
+	    (if (fx= arity 2)
+		((PyObjectFunction-procedure func) __self__ a0)
+		(py-call-generic func (cons __self__ (cons a0 '()))))))
+	(else
+	 (py-call-generic fun (cons a0 '()))))))
+
+(define-rts (py-call2-fallback min-neg-arity fun a0 a1)
+  (let ((fun-type (py-obj-cls fun)))
+     (cond
+	((eq? fun-type py-function-class)
+	 (let ((arity (PyObjectFunction-arity fun)))
+	    (cond
+	       ((not arity)
+		(py-call-generic fun (cons* a0 a1 '())))
+	       ((and (fx< arity 0) (fx>= arity min-neg-arity))
+		(apply
+		   (PyObjectFunction-procedure fun)
+		   (pack-extra-args arity (cons* a0 a1 '()))))
+	       (else
+		;; Error messages
+		(py-call-wrong-arity arity 1 "1")))))
+	((eq? fun-type py-method-class)
+	 (let* ((func (PyObjectMethod-method fun))
+		(__self__ (PyObjectMethod-self fun))
+		(arity (PyObjectFunction-arity func)))
+	    (if (fx= arity 3)
+		((PyObjectFunction-procedure func) __self__ a0 a1)
+		(py-call-generic func
+		   (cons __self__ (cons* a0 a1 '()))))))
+	(else
+	 (py-call-generic fun (cons* a0 a1 '()))))))
+
+(define-rts (py-call3-fallback min-neg-arity fun a0 a1 a2)
+  (let ((fun-type (py-obj-cls fun)))
+     (cond
+	((eq? fun-type py-function-class)
+	 (let ((arity (PyObjectFunction-arity fun)))
+	    (cond
+	       ((not arity)
+		(py-call-generic fun (cons* a0 a1 a2 '())))
+	       ((and (fx< arity 0) (fx>= arity min-neg-arity))
+		(apply
+		   (PyObjectFunction-procedure fun)
+		   (pack-extra-args arity (cons* a0 a1 a2 '()))))
+	       (else
+		;; Error messages
+		(py-call-wrong-arity arity 1 "1")))))
+	((eq? fun-type py-method-class)
+	 (let* ((func (PyObjectMethod-method fun))
+		(__self__ (PyObjectMethod-self fun))
+		(arity (PyObjectFunction-arity func)))
+	    (if (fx= arity 4)
+		(func __self__ a0 a1 a2)
+		(py-call-generic func
+		   (cons __self__ (cons* a0 a1 a2 '()))))))
+	(else
+	 (py-call-generic fun (cons* a0 a1 a2 '()))))))
 
 (define-rts (py-callX-fallback min-neg-arity fun . args)
   (let ((fun-type (py-obj-cls fun)))
-    (if (eq? fun-type py-function-class)
-      (let ((arity (PyObjectFunction-arity fun)))
-        (cond
-           ((not arity)
-            (py-call-generic fun args))
-           ((and (fx< arity 0) (fx>= arity min-neg-arity))
-            (apply
-             (PyObjectFunction-procedure fun)
-             (pack-extra-args arity args)))
-           (else
-            ;; Error messages
-            (py-call-wrong-arity arity (length args) (number->string (length args))))))
-      (py-call-generic fun args))))
+     (if (eq? fun-type py-function-class)
+	 (let ((arity (PyObjectFunction-arity fun)))
+	    (cond
+	       ((not arity)
+		(py-call-generic fun args))
+	       ((and (fx< arity 0) (fx>= arity min-neg-arity))
+		(apply
+		   (PyObjectFunction-procedure fun)
+		   (pack-extra-args arity args)))
+	       (else
+		;; Error messages
+		(py-call-wrong-arity arity (length args) (number->string (length args))))))
+	 (py-call-generic fun args))))
 
 (define-rts (py-call-generic/*args obj args *args-lst)
   (let ((unpacked-args (iterables*->list *args-lst)))
-    (py-call-generic obj (append args unpacked-args))))
+     (py-call-generic obj (append args unpacked-args))))
 
 (define-rts (py-call-generic obj args)
   (let ((obj-type (py-type obj)))
@@ -698,6 +784,7 @@
       ((eq? obj-type py-method-class)
         (let* ((func (PyObjectMethod-method obj))
                (__self__ (PyObjectMethod-self obj)))
+	   (tprint "LEN=" (length args))
           (py-call-generic func (cons __self__ args))))
       ;; initialization of instances from type with no special metaclass
       ((eq? obj-type py-type-class)
@@ -732,28 +819,28 @@
           (args-len (vector-length args))
           (posonlyargs-len (vector-length posonlyargs))
           (default-len (vector-length defaults))
-          (total-args-len (+ args-len posonlyargs-len)))
+          (total-args-len (fx+ args-len posonlyargs-len)))
       (cond
-        ((= caller-args-len total-args-len)
+        ((fx= caller-args-len total-args-len)
           (if vararg
             (append
               caller-args
               (cons (py-tuple-from-scheme '#()) '())
               (vector->list kw-defaults)
               (if kwarg (cons (py-make-empty-dict) '()) '()))
-            (if (or kwarg (> (vector-length kw-defaults) 0))
+            (if (or kwarg (fx> (vector-length kw-defaults) 0))
               (append
                 caller-args
                 (vector->list kw-defaults)
                 (if kwarg (cons (py-make-empty-dict) '()) '()))
               caller-args)))
-        ((< caller-args-len total-args-len)
-          (let ((missing-args-len (- total-args-len caller-args-len)))
-            (if (>= default-len missing-args-len)
+        ((fx< caller-args-len total-args-len)
+          (let ((missing-args-len (fx- total-args-len caller-args-len)))
+            (if (fx>= default-len missing-args-len)
               (append
                 caller-args
                 (vector->list
-                  (subvector defaults (- default-len missing-args-len) default-len))
+                  (subvector defaults (fx- default-len missing-args-len) default-len))
                 (vector->list kw-defaults)
                 (if kwarg (cons (py-make-empty-dict) '()) '()))
               (py-throw-exception-with-message
@@ -762,14 +849,14 @@
                 (number->string (- missing-args-len default-len))
                 " required positional argument"))))
         (vararg
-          (if (or kwarg (> (vector-length kw-defaults) 0))
+          (if (or kwarg (fx> (vector-length kw-defaults) 0))
             (append
-              (pack-extra-args (- 0 1 total-args-len) caller-args)
+              (pack-extra-args (fx- 0 (fx+ 1 total-args-len)) caller-args)
               (vector->list kw-defaults)
               (if kwarg (cons (py-make-empty-dict) '()) '()))
-            (pack-extra-args (- 0 1 total-args-len) caller-args)))
+            (pack-extra-args (fx- 0 (fx+ 1 total-args-len)) caller-args)))
         (else
-          (if (= default-len 0)
+          (if (fx= default-len 0)
             (py-throw-exception-with-message
               py-builtin-TypeError
               "function takes "
@@ -777,7 +864,7 @@
               " arguments but "
               (number->string caller-args-len)
               " were given")
-            (let ((min-pos-arguments (- total-args-len default-len)))
+            (let ((min-pos-arguments (fx- total-args-len default-len)))
               (py-throw-exception-with-message
                 py-builtin-TypeError
                 "function takes from "
@@ -1517,7 +1604,7 @@
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
 (define-rts (object-getattribute obj name #!optional (raise? #t) (cache #f))
-  (define (getattribute-from-mro #!optional (index-hit-on-object-hclass #f))
+  (define (getattribute-from-mro index-hit-on-object-hclass)
     (getattribute-from-obj-mro-with-index/owner-2cont
       obj
       name
@@ -1551,7 +1638,7 @@
         (begin
           (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
           val)))
-    getattribute-from-mro))
+    (lambda () (getattribute-from-mro #f))))
 
 (define-rts object.__getattribute__
   (procedure->py-function
@@ -3286,12 +3373,12 @@
     (make-signature posonlyargs: (self item value))))
 
 (define-rts (list-shrink! list)
-  (let* ((len (PyObjectList-len list))
-        (vec (PyObjectList-vector list))
-        (new-inner-len (list-get-inner-len len))
-        (new-vector (subvector vec 0 new-inner-len)))
-    (PyObjectList-vector-set! list new-vector)
-    new-vector))
+   (let* ((len (PyObjectList-len list))
+	  (vec (PyObjectList-vector list))
+	  (new-inner-len (list-get-inner-len len)))
+      (when (fx< new-inner-len (vector-length vec))
+	 (vector-shrink! vec new-inner-len))
+      vec))
 
 (define-rts (list-grow! list)
   (list-grow-by! list 1))
@@ -3310,13 +3397,13 @@
   (let ((len (PyObjectList-len lst))
         (vec (PyObjectList-vector lst)))
     (let loop ((i index))
-      (if (< i len)
+      (if (fx< i len)
         (begin
-          (vector-set! vec (- i 1) (vector-ref vec i))
-          (loop (+ i 1)))))
-    (vector-set! vec (- len 1) #f)
-    (PyObjectList-len-set! lst (- len 1))
-    (if (< len (list-get-shrink-threshold (vector-length vec)))
+          (vector-set! vec (fx- i 1) (vector-ref vec i))
+          (loop (fx+ i 1)))))
+    (vector-set! vec (fx- len 1) #f)
+    (PyObjectList-len-set! lst (fx- len 1))
+    (if (fx< len (list-get-shrink-threshold (vector-length vec)))
       (list-shrink! lst))))
 
 (define-rts (list-shift-left-by! lst index amount)
@@ -5758,21 +5845,35 @@
   (module-search-order-add! (cache-location-get))
 
   (let ((sys.modules (sys.modules-get)))
-    (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
-    (py-try-except
-       (lambda (e)
-	  (exception-notify e)
-       (print-exception e (current-error-port))
-       (exit 1))
-     (lambda ()
+     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+     (py-try-except
+	(lambda (e)
+	   (print-exception e (current-error-port))
+	   (exit 1))
+	(lambda ()
+	   
+	   (if profile-flag
+	       (statprof-begin profile-flag))
+	   
+	   (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
+	   
+	   (if profile-flag
+	       (statprof-end path))))))
 
-       (if profile-flag
-           (statprof-begin profile-flag))
+(define-rts (run-as-module path zipicache mod-init)
+  (cache-location-set! zipicache)
+  (module-search-order-add! (cache-location-get))
 
-       (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
+  (let ((sys.modules (sys.modules-get)))
+     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+	   
+     (if profile-flag
+	 (statprof-begin profile-flag))
 
-       (if profile-flag
-           (statprof-end path))))))
+     (mod-init (& "__main__") py-None #f)
+	   
+     (if profile-flag
+	 (statprof-end path))))
 
 (define-rts py-import-root (current-directory))
 

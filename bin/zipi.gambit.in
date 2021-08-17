@@ -1,2 +1,19 @@
 #!/bin/sh
-@GAMBIT@ -:=@GAMBITROOT@,~~zipicache=@ZIPICACHE@,~~zipiroot=@ZIPIROOT@,search=@ZIPIROOT@ @ZIPIBIN@/zipi-compile-and-run.gambit "$@"
+
+if [ "$ZIPIROOT " = " " ]; then
+  zipiroot="@ZIPIROOT@"
+else
+  zipiroot="$ZIPIROOT"
+fi
+
+if [ "$ZIPICACHE " = " " ]; then
+  zipicache="@ZIPICACHE@"
+else
+  zipicache="$ZIPICACHE"
+fi
+
+if [ "$ZIPIDBG " = " " ]; then
+  ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" @GAMBIT@ -:=@GAMBITROOT@,~~zipicache=@ZIPICACHE@,~~zipiroot=@ZIPIROOT@,search=@ZIPIROOT@ @ZIPIBIN@/zipi-compile-and-run.gambit "$@"
+else
+  ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" $ZIPIDBG --args @GAMBIT@ -:=@GAMBITROOT@,~~zipicache=@ZIPICACHE@,~~zipiroot=@ZIPIROOT@,search=@ZIPIROOT@ @ZIPIBIN@/zipi-compile-and-run.gambit "$@"
+fi

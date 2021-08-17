@@ -1,0 +1,87 @@
+#*=====================================================================*/
+#*    serrano/prgm/project/zipi/zipi/zipi/Makefile.bigloo              */
+#*    -------------------------------------------------------------    */
+#*    Author      :  Manuel Serrano                                    */
+#*    Creation    :  Mon Jul  1 13:14:30 2019                          */
+#*    Last change :  Thu Aug 12 10:18:24 2021 (serrano)                */
+#*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
+#*    -------------------------------------------------------------    */
+#*    The makefile to build the ZPC compiler library                   */
+#*=====================================================================*/
+.phony: do.bigloo build.bigloo install.bigloo
+
+do.bigloo: build.bigloo
+install.bigloo:
+	cp $(BUILDBINDIR)/zipi-compile-and-run.bigloo $(ZIPIBINDIR)
+	chmod a+rx  $(ZIPIBINDIR)/zipi-compile-and-run.bigloo
+
+#*---------------------------------------------------------------------*/
+#*    Common Makefile                                                  */
+#*---------------------------------------------------------------------*/
+-include $(BUILDETCDIR)/Makefile.bigloo
+-include $(BIGLOOLIBDIR)/Makefile.config
+
+#*---------------------------------------------------------------------*/
+#*    SOURCES                                                          */
+#*---------------------------------------------------------------------*/
+SOURCES = zpi.bgl
+
+#*---------------------------------------------------------------------*/
+#*    Compilers, Tools and Destinations                                */
+#*---------------------------------------------------------------------*/
+# the library name
+TARGETNAME = zipi.bigloo
+ZIPIAPPLIBS =
+
+BLIBFLAGS = $(BCFLAGSRTS)
+
+#*---------------------------------------------------------------------*/
+#*    Scheme extended objects                                          */
+#*---------------------------------------------------------------------*/
+OBJECTS = zipi
+
+
+#*---------------------------------------------------------------------*/
+#*    all                                                              */
+#*---------------------------------------------------------------------*/
+.PHONY: build.bigloo
+
+build.bigloo: ../bin/zipi-compile-and-run.bigloo
+
+../bin/zipi-compile-and-run.bigloo: zipi.bgl zipi.scm
+	$(BIGLOO) -O3 -unsafe -L $(BUILDLIBDIR) -rpath $(BGLZIPILIBDIR)/$(BGLZIPIFILDIR) $^ -o $@
+
+#*---------------------------------------------------------------------*/
+#*    ude                                                              */
+#*---------------------------------------------------------------------*/
+.PHONY: ude
+ude:
+	$(MAKE) .afile .etags
+	$(MAKE) dep
+
+.afile: $(SOURCES)
+	$(AFILE) -o .afile $(SOURCES)
+
+.etags: $(SOURCES) $(INCLUDES)
+	$(BTAGS) -o .etags $(SOURCES) $(INCLUDES)
+
+#*---------------------------------------------------------------------*/
+#*    clean                                                            */
+#*---------------------------------------------------------------------*/
+.PHONY: clean.bigloo
+
+clean.bigloo:
+	rm -f .afile
+	rm -rf zipi.o
+
+#*---------------------------------------------------------------------*/
+#*    Explicit dependencies                                            */
+#*---------------------------------------------------------------------*/
+
+#bdepend start (don't edit)
+#*---------------------------------------------------------------------*/
+#*    Dependencies ...                                                 */
+#*---------------------------------------------------------------------*/
+
+
+#bdepend stop

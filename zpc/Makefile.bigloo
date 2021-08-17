@@ -1,10 +1,10 @@
 #*=====================================================================*/
-#*    serrano/prgm/project/zipi/zpc/Makefile.bigloo                    */
+#*    serrano/prgm/project/zipi/zipi/zpc/Makefile.bigloo               */
 #*    -------------------------------------------------------------    */
 #*    Author      :  Manuel Serrano                                    */
 #*    Creation    :  Tue Jul  2 10:46:47 2019                          */
-#*    Last change :  Thu Jun 11 07:27:15 2020 (serrano)                */
-#*    Copyright   :  2019-20 Manuel Serrano                            */
+#*    Last change :  Thu Aug 12 12:55:22 2021 (serrano)                */
+#*    Copyright   :  2019-21 Manuel Serrano                            */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to built the zpc Bigloo version                     */
 #*=====================================================================*/
@@ -96,9 +96,9 @@ dep:
 #*    install                                                          */
 #*---------------------------------------------------------------------*/
 install.bigloo:
-	$(INSTALL) $(BUILDBINDIR)/$(EXEC) $(DESTDIR)$(ZIPIBINDIR)/$(EXEC)-$(ZIPIRELEASE)
-	chmod $(MODEXE) $(DESTDIR)$(ZIPIBINDIR)/$(EXEC)-$(ZIPIRELEASE)
-	(cd $(DESTDIR)$(ZIPIBINDIR) && $(RM) -f $(EXEC) && ln $(EXEC)-$(ZIPIRELEASE) $(EXEC))
+	$(INSTALL) $(BUILDBINDIR)/$(EXEC) $(DESTDIR)$(INSTALLBINDIR)/$(EXEC)-$(ZIPIRELEASE)
+	chmod $(MODEXE) $(DESTDIR)$(INSTALLBINDIR)/$(EXEC)-$(ZIPIRELEASE)
+	(cd $(DESTDIR)$(INSTALLBINDIR) && $(RM) -f $(EXEC) && ln $(EXEC)-$(ZIPIRELEASE) $(EXEC))
 
 #*---------------------------------------------------------------------*/
 #*    uninstall                                                        */

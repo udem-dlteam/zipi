@@ -1,10 +1,10 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/configure.bgl                      */
+;*    serrano/prgm/project/zipi/zipi/rts/configure.bgl                 */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Jul  2 13:04:14 2019                          */
-;*    Last change :  Tue Jul  2 13:44:35 2019 (serrano)                */
-;*    Copyright   :  2019-20 Manuel Serrano                            */
+;*    Last change :  Thu Aug 12 13:15:42 2021 (serrano)                */
+;*    Copyright   :  2019-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Zipi configuration                                               */
 ;*=====================================================================*/
@@ -14,7 +14,17 @@
 ;*---------------------------------------------------------------------*/
 (module __py_configure
    (export (zipi-release)
+	   (zipi-version)
+	   (zipi-branch)
+	   
 	   (zipi-bin-dir)
 	   (zipi-lib-dir)
 	   (zipi-etc-dir)
-	   (zipi-rts-dir)))
+	   (zipi-rts-dir)
+	   (zipi-root-dir)
+
+	   (zipi-srfis)
+
+	   (zipi-python-version)
+
+	   (zipi-cache-location)))

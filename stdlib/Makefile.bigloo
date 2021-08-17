@@ -1,16 +1,16 @@
 #*=====================================================================*/
-#*    serrano/prgm/project/zipi/stdlib/Makefile.bigloo                 */
+#*    serrano/prgm/project/zipi/zipi/stdlib/Makefile.bigloo            */
 #*    -------------------------------------------------------------    */
 #*    Author      :  manuel serrano                                    */
 #*    Creation    :  Sun May 16 15:36:08 2021                          */
-#*    Last change :  Mon Aug  9 14:35:29 2021 (serrano)                */
+#*    Last change :  Tue Aug 10 16:46:13 2021 (serrano)                */
 #*    Copyright   :  2021 manuel serrano                               */
 #*    -------------------------------------------------------------    */
 #*    The Bigloo specific Makefile to install the zipi stdlib          */
 #*=====================================================================*/
 .phony: do.bigloo build.bigloo install.bigloo
 
-do.bigloo: builtins.bgl zemantics.bgl behaviors.bgl
+do.bigloo: # builtins.bgl zemantics.bgl behaviors.bgl
 install.bigloo: install-library
 
 #*---------------------------------------------------------------------*/
@@ -23,18 +23,18 @@ TARGETNAME = zipi
 
 -include $(BUILDETCDIR)/Makefile.library
 
-builtins.bgl: ./builtins.py
-	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_builtins --bootstrap --bin-dir=$(BUILDBINDIR)
-
-zemantics.bgl: zemantics.py
-	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_zemantics --semantics --bin-dir=$(BUILDBINDIR)
-zemantics.sch: zemantics.py
-	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_zemantics --semantics-macros --bin-dir=$(BUILDBINDIR)
-
-behaviors.bgl: behaviors.py
-	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_behaviors --semantics --bin-dir=$(BUILDBINDIR)
-behaviors.sch: behaviors.py
-	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_behaviors --semantics-macros --bin-dir=$(BUILDBINDIR)
+#* builtins.bgl: ./builtins.py                                         */
+#* 	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_builtins --bootstrap --bin-dir=$(BUILDBINDIR) */
+#*                                                                     */
+#* zemantics.bgl: zemantics.py                                         */
+#* 	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_zemantics --semantics --bin-dir=$(BUILDBINDIR) */
+#* zemantics.sch: zemantics.py                                         */
+#* 	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_zemantics --semantics-macros --bin-dir=$(BUILDBINDIR) */
+#*                                                                     */
+#* behaviors.bgl: behaviors.py                                         */
+#* 	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_behaviors --semantics --bin-dir=$(BUILDBINDIR) */
+#* behaviors.sch: behaviors.py                                         */
+#* 	../bin/zpc.bigloo.sh -s -fglobals -o $@ $< -m __stdlib_behaviors --semantics-macros --bin-dir=$(BUILDBINDIR) */
 
 clean.bigloo: clean.library
 

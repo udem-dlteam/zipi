@@ -16,22 +16,23 @@ builtins: ../stdlib/builtins.sld
 	cp ../stdlib/builtins.sld ./builtins/builtins.sld
 
 zipi-build-symlink:
-	cd $(BUILDDIR); rm -f zipi; ln -s . zipi
+	rm -f $(BUILDRTSDIR)/../zipi/rts; ln -s $(BUILDRTSDIR) $(BUILDRTSDIR)/../zipi/rts
 
 zipi-install-symlink:
 	cd $(ZIPIROOT); rm -f zipi; ln -s . zipi
 
 build.gambit: zipi-build-symlink rts.sld rts.sld.in builtins
-	$(BUILDGAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts/hash
-	$(BUILDGAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts/builtins
-	$(BUILDGAMBITCOMPILER) -:search=$(BUILDDIR) zipi/rts
+	$(BUILDGAMBITCOMPILER) .. zipi/rts/hash
+	$(BUILDGAMBITCOMPILER) .. zipi/rts/builtins
+	$(BUILDGAMBITCOMPILER) .. zipi/rts
 
 install.gambit: zipi-install-symlink
 	rm -rf $(ZIPIRTSDIR)
-	cp -r $(BUILDRTSDIR) $(ZIPIRTSDIR)
+	mkdir $(ZIPIRTSDIR)
+	cd $(BUILDRTSDIR) && tar cf - . | (cd $(ZIPIRTSDIR) && tar xvf -)
 
 clean.gambit:
 	rm -rf hash/hash\@gambit*@C
 	rm -rf rts\@gambit*@C
 	rm -rf builtins
-	rm -f $(BUILDDIR)/zipi
+	rm -f rts/zipi

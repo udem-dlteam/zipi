@@ -4,7 +4,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Jul 31 06:49:37 2004                          */
-#*    Last change :  Tue Aug 10 09:02:14 2021 (serrano)                */
+#*    Last change :  Thu Aug 12 09:10:00 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    Zipi autoconfiguration                                           */
@@ -40,8 +40,9 @@ buildrtsdir=$PWD/rts
 buildpycdir=$PWD/pyc
 buildzpcdir=$PWD/zpc
 buildstdlibdir=$PWD/stdlib
-builddepdir=$PWD/dependencies
-buildbuilddepdir=$PWD/build-dependencies
+depdirname=dependencies
+builddepdir=$PWD/$depdirname
+buildbuilddepdir=$PWD/build-$depdirname
 
 install="install -m a+rx,u+rx"
 
@@ -53,8 +54,24 @@ mode=optim
 zipicache=~/.zipicache
 depdir=$zipiroot/dependencies
 
-branch=`git rev-parse --abbrev-ref HEAD`
+branch=`git describe --tag --always`
 date=`date +"%d %B %Y"`
+
+if [ -e .git ]; then
+  buildtag=`git log -1 --abbrev-commit --pretty="%h"`
+
+  git status -s | grep M > /dev/null
+  
+  if [ "$? " = "0 " ]; then
+    buildtag="$buildtag+"
+  fi
+else
+  if [ -f .buildtag ]; then
+    buildtag=`cat .buildtag`
+  else
+    buildtag=0
+  fi
+fi  
 
 #*---------------------------------------------------------------------*/
 #*    parseArg ...                                                     */
@@ -172,6 +189,7 @@ libdir=$zipiroot/lib
 pycdir=$zipiroot/pyc
 zpcdir=$zipiroot/zpc
 stdlibdir=$zipiroot/stdlib
+depdir=$zipiroot/$depdirname
 
 #*---------------------------------------------------------------------*/
 #*                    Install cPython                                  */
@@ -301,6 +319,7 @@ for file in Makefile.zipiconfig  configure.scm zpc.bigloo.sh; do
           -e "s|@PYCDIR@|$pycdir|" \
           -e "s|@ZPCDIR@|$zpcdir|" \
           -e "s|@STDLIBDIR@|$stdlibdir|" \
+          -e "s|@DEPDIRNAME@|$depdirname|" \
           -e "s|@DEPDIR@|$depdir|" \
           -e "s|@BUILDID@|$buildid|" \
           -e "s|@BUILDTAG@|$buildtag|" \
@@ -346,7 +365,7 @@ for file in configure.scm; do
 done
 
 
-for file in bin/zipi bin/zipi.gambit bin/zipi.bigloo bin/zipi-compile-and-run.gambit bin/zipi-compile-and-run.bigloo.scm bin/zipi.bigloo bin/zpc bin/zpc.gambit bin/pysexp_script.py zpc/main-gambit.scm; do
+for file in bin/zipi bin/zipi.gambit bin/zipi.bigloo bin/zipi-compile-and-run.gambit bin/zipi.bigloo bin/zpc bin/zpc.gambit bin/pysexp_script.py zpc/main-gambit.scm; do
   cat $file.in \
     | sed -e "s|@RELEASE@|$version|g" \
           -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|g" \
@@ -366,17 +385,10 @@ for file in bin/zipi bin/zipi.gambit bin/zipi.bigloo bin/zipi-compile-and-run.ga
           -e "s|@ZIPICACHE@|$zipicache|g" \
           -e "s|@ZIPIROOT@|$builddir|g" \
           -e "s|@BIGLOOLIBPATH@|$zipiroot|g"\
+          -e "s|@BUILDTAG@|$buildtag|g"\
     > $file
   chmod +x $file
 done
-
-if test "${systems#*bigloo}" != "$systems"; then
-    $bigloo $buildbindir/zipi-compile-and-run.bigloo.scm -o $buildbindir/zipi-compile-and-run.bigloo
-    #if [ -f $buildbindir/zipi.bigloo ]; then
-    #    rm -f $buildbindir/zipi.bigloo
-    #fi
-    #ln -s $buildbindir/zipi-compile-and-run.bigloo $buildbindir/zipi.bigloo
-fi
 
 mv etc/zpc.bigloo.sh bin && chmod a+rx bin/zpc.bigloo.sh
 
