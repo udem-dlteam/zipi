@@ -2,6 +2,7 @@
 
 (define (config-version) "@VERSION@")
 (define (config-branch) "@BRANCH@")
+(define (config-buildtag) "@BUILDTAG@")
 
 (define cache-location (path-expand "cache@zipi-gambit@VERSION@-@PYTHONVERSION@" (path-expand "~~zipicache")))
 
@@ -79,7 +80,9 @@
           ((>= version 1)
            (println "Zipi " (config-version))
            (if (>= version 2)
-               (println "git branch: " (config-branch))))
+               (begin
+                 (println "git branch: " (config-branch))
+                 (println "git tag   : " (config-buildtag)))))
           (else
 
            (if (or reset expansion) (reset-cache))

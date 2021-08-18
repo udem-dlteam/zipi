@@ -226,6 +226,13 @@
     py-getattribute-from-mro-cache
     py-getattribute-from-type-cache
     py-getattribute-from-module-cache
+    py-getattribute-and-callX
+    py-getattribute-and-callX-cached
+    py-getattribute-and-callX-from-mro-cache
+    py-getattribute-and-callX-from-type-cache
+    py-descriptor-get-and-callX
+    py-callMethodX
+    $py-callMethodX
 
     AttributeCache-object-hclass
     AttributeCache-mro-hclass
@@ -776,6 +783,7 @@
 
     py-function-class
     PyObjectFunction-arity
+    PyObjectFunction-scheme-arity
     PyObjectFunction-procedure
     PyObjectFunction?
 

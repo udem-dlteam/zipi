@@ -264,6 +264,7 @@
   ;; attrs
   procedure
   arity
+  scheme-arity
   signature)
 
 (define-type-of-PyObjectFunction PyObjectFunctionArity0
@@ -675,6 +676,10 @@
           (cond
             ((not (null? *args))
               `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
+            ((and (pair? f)
+                  (eq? (car f) 'py-getattribute)
+                  (>= (length f) 3))
+             `(py-getattribute-and-callX ,nargs ,(cadr f) ,(caddr f) ,pos-args ,@(cdddr f)))
             (else
               `(py-callX ,nargs ,f ,@pos-args))))))))
 
