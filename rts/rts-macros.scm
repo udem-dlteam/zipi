@@ -160,7 +160,11 @@
 	 (else 'py-callX-fallback)))
   (cond
      ((= X 0)
-      `(py-call0 ,(gen-method)))
+      `(let (($func ,attr))
+	  (if (eq? (PyObjectFunction-scheme-arity $func) 1)
+	      (let (($self ,instance))
+		 ((PyObjectFunction-procedure $func) $self))
+	      (py-call0-fallback ,(gen-method)))))
     ((<= X specialized-args-limit)
      (let ((min-neg-arity (- 0 X 1))
 	   (args-names (map
@@ -2759,7 +2763,6 @@
 			     ,(gen-py-callX `(py-getattribute-from-module-cache $OBJ $cache))
 			     ,(loop (cdr inlines))))
 		       (else (error "py-getattribute-and-callX-cached" "unknown inlining priority" (car inlines)))))))))
-
 
 
 (define-macro (py-getattribute-from-module-cache obj cache)

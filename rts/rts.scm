@@ -723,6 +723,8 @@
      (cond
 	((eq? fun-type py-function-class)
 	 (let ((arity (PyObjectFunction-arity fun)))
+;* 	    (tprint "######.py-call2-fallback.1 call2-fallback arity=" arity " " */
+;* 	       (PyObjectFunction-procedure fun))                       */
 	    (cond
 	       ((not arity)
 		(py-call-generic fun (cons* a0 a1 '())))
@@ -741,7 +743,14 @@
 		((PyObjectFunction-procedure func) __self__ a0 a1)
 		(py-call-generic func
 		   (cons __self__ (cons* a0 a1 '()))))))
+;* 	((eq? fun-type py-type-class)                                  */
+;* 	 (let ((__call__ (getattribute-from-obj-mro fun (& "__call__")))) */
+;* 	    (tprint "######.py-call2-fallback..3 call2-fallback " (typeof fun) " " (typeof __call__)) */
+;* 	    (if (eq? __call__ py-absent)                               */
+;* 		(py-throw-not-callable fun)                            */
+;* 		(py-call3-fallback min-neg-arity __call__ fun a0 a1)))) */
 	(else
+;* 	 (tprint "######.py-call2-fallback..4 call2-fallback " (typeof fun)) */
 	 (py-call-generic fun (cons* a0 a1 '()))))))
 
 (define-rts (py-call3-fallback min-neg-arity fun a0 a1 a2)
@@ -749,6 +758,8 @@
      (cond
 	((eq? fun-type py-function-class)
 	 (let ((arity (PyObjectFunction-arity fun)))
+;* 	    (tprint "######.py-call3-fallback.1 call2-fallback arity=" arity " " */
+;* 	       (PyObjectFunction-procedure fun))                       */
 	    (cond
 	       ((not arity)
 		(py-call-generic fun (cons* a0 a1 a2 '())))
@@ -791,12 +802,14 @@
      (py-call-generic obj (append args unpacked-args))))
 
 (define-rts (py-call-generic obj args)
-  (let ((obj-type (py-type obj)))
+   (let ((obj-type (py-type obj)))
     (cond
       ((eq? obj-type py-function-class)
         (let* ((procedure (PyObjectFunction-procedure obj))
                (signature (PyObjectFunction-signature obj))
                (aligned-args (align-args-with-signature args signature)))
+;* 	   (tprint "py-call-generic obj=" (typeof obj) " " procedure " " (length args) */
+;* 	      " " (length aligned-args) " " signature)                 */
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
         (let* ((func (PyObjectMethod-method obj))
