@@ -727,7 +727,7 @@
 ;* 	       (PyObjectFunction-procedure fun))                       */
 	    (cond
 	       ((not arity)
-		(py-call-generic fun (cons* a0 a1 '())))
+		(py-call-generic2 fun a0 a1))
 	       ((and (fx< arity 0) (fx>= arity min-neg-arity))
 		(apply
 		   (PyObjectFunction-procedure fun)
@@ -741,17 +741,9 @@
 		(arity (PyObjectFunction-scheme-arity func)))
 	    (if (eq? arity 3)
 		((PyObjectFunction-procedure func) __self__ a0 a1)
-		(py-call-generic func
-		   (cons __self__ (cons* a0 a1 '()))))))
-;* 	((eq? fun-type py-type-class)                                  */
-;* 	 (let ((__call__ (getattribute-from-obj-mro fun (& "__call__")))) */
-;* 	    (tprint "######.py-call2-fallback..3 call2-fallback " (typeof fun) " " (typeof __call__)) */
-;* 	    (if (eq? __call__ py-absent)                               */
-;* 		(py-throw-not-callable fun)                            */
-;* 		(py-call3-fallback min-neg-arity __call__ fun a0 a1)))) */
+		(py-call-generic3 func __self__ a0 a1))))
 	(else
-;* 	 (tprint "######.py-call2-fallback..4 call2-fallback " (typeof fun)) */
-	 (py-call-generic fun (cons* a0 a1 '()))))))
+	 (py-call-generic2 fun a0 a1)))))
 
 (define-rts (py-call3-fallback min-neg-arity fun a0 a1 a2)
   (let ((fun-type (py-obj-cls fun)))
@@ -835,6 +827,74 @@
           (if (eq? __call__ py-absent)
             (py-throw-not-callable obj)
             (py-call-generic __call__ (cons obj args))))))))
+
+(define-rts (py-call-generic2 obj a0 a1)
+   (let ((obj-type (py-type obj)))
+      (cond
+	 ((eq? obj-type py-function-class)
+	  (let* ((procedure (PyObjectFunction-procedure obj))
+		 (signature (PyObjectFunction-signature obj))
+		 (aligned-args (align-args-with-signature (cons* a0 a1 '()) signature)))
+;* 	   (tprint "py-call-generic obj=" (typeof obj) " " procedure " " (length args) */
+;* 	      " " (length aligned-args) " " signature)                 */
+	     (apply procedure aligned-args)))
+	 ((eq? obj-type py-method-class)
+	  (let* ((func (PyObjectMethod-method obj))
+		 (__self__ (PyObjectMethod-self obj)))
+	     (py-call-generic3 func __self__ a0 a1)))
+	 ;; initialization of instances from type with no special metaclass
+	 ((eq? obj-type py-type-class)
+	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
+	     (if (eq? __new__ object.__new__)
+		 (if (eq? obj py-object-class)
+		     (py-throw-exception-with-message
+			py-builtin-TypeError
+			"object() takes no arguments")
+		     (let ((instance (py-obj-alloc obj)))
+			(type-call-from-instance obj instance (cons instance (cons* a0 a1 '())))))
+		 (type-call-from-new-method-fallback obj (cons* a0 a1 '()) __new__))))
+	 (else
+	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
+	     (if (eq? __call__ py-absent)
+		 (py-throw-not-callable obj)
+		 (py-call-generic3 __call__ obj a0 a1)))))))
+
+(define-rts (py-call-generic3 obj a0 a1 a2)
+   (let ((obj-type (py-type obj))
+	 (args (list a0 a1 a2)))
+      (py-call-generic obj args)))
+;*     (cond                                                           */
+;*       ((eq? obj-type py-function-class)                             */
+;*         (let* ((procedure (PyObjectFunction-procedure obj))         */
+;*                (signature (PyObjectFunction-signature obj))         */
+;*                (aligned-args (align-args-with-signature args signature))) */
+;* {* 	   (tprint "py-call-generic obj=" (typeof obj) " " procedure " " (length args) *} */
+;* {* 	      " " (length aligned-args) " " signature)                 *} */
+;*           (apply procedure aligned-args)))                          */
+;*       ((eq? obj-type py-method-class)                               */
+;*         (let* ((func (PyObjectMethod-method obj))                   */
+;*                (__self__ (PyObjectMethod-self obj)))                */
+;*           (py-call-generic func (cons __self__ args))))             */
+;*       ;; initialization of instances from type with no special metaclass */
+;*       ((eq? obj-type py-type-class)                                 */
+;*         (let ((__new__ (getattribute-from-cls-mro obj (& "__new__")))) */
+;*           (if (eq? __new__ object.__new__)                          */
+;*             (if (eq? obj py-object-class)                           */
+;*               (if (null? args)                                      */
+;*                 ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int) */
+;*                 ;; this should be done concurrently in object-new   */
+;*                 (py-obj-alloc py-object-class)                      */
+;*                 (py-throw-exception-with-message                    */
+;*                   py-builtin-TypeError                              */
+;*                   "object() takes no arguments"))                   */
+;*               (let ((instance (py-obj-alloc obj)))                  */
+;*                 (type-call-from-instance obj instance (cons instance args)))) */
+;*             (type-call-from-new-method-fallback obj args __new__)))) */
+;*       (else                                                         */
+;*         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__")))) */
+;*           (if (eq? __call__ py-absent)                              */
+;*             (py-throw-not-callable obj)                             */
+;*             (py-call-generic __call__ (cons obj args))))))))        */
 
 (define-rts (align-args-with-signature caller-args signature)
   (let ((args (vector-ref signature 0))

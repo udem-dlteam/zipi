@@ -3,7 +3,7 @@
 #*    -------------------------------------------------------------    */
 #*    Author      :  Marc Feeley & Manuel Serrano                      */
 #*    Creation    :  Sat Feb 19 12:25:16 2000                          */
-#*    Last change :  Thu Aug 12 09:43:35 2021 (serrano)                */
+#*    Last change :  Wed Aug 18 14:58:33 2021 (serrano)                */
 #*    Copyright   :  2019-21 Marc Feeley & Manuel Serrano              */
 #*    -------------------------------------------------------------    */
 #*    The Makefile to build Zipi.                                      */
@@ -135,6 +135,7 @@ distclean: clean
 	rm -f bin/zpc.bigloo.sh
 	rm -f bin/zpc.gambit
 	rm -f bin/zipi-compile-and-run.gambit
+	rm -f bin/zipi-compile-and-run.bigloo
 	rm -f config.status
 
 clean-dependencies:
