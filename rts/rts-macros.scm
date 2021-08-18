@@ -2682,47 +2682,6 @@
                        ,(loop (cdr inlines))))
                 (else (error "py-getattribute-cached" "unknown inlining priority" (car inlines)))))))))
 
-(define-macro (py-getattribute-and-callX-cached-dbg obj attr X args cache inline-priorities)
-   (define (gen-py-callX expr)
-      `(py-callX ,X ,expr ,@args))
-   ;; attr should always be a string literal
-   `(py-specialized-sint-float-dispatch-let
-       $OBJ
-       ,obj
-       ;; TODO: use macro to determine exact attribute in case of
-       ;; int and float, those can be determined statically
-       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
-       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
-       ,(let loop ((inlines inline-priorities))
-	   (if (null? inlines)
-	       (gen-py-callX
-		  `(py-getattribute-cached-modular-fallback
-		      $OBJ (py-obj-hclass-general $OBJ) ,attr ,cache
-		      ,(not (not (memq 'object inline-priorities)))
-		      ,(not (not (memq 'mro inline-priorities)))
-		      ,(not (not (memq 'type inline-priorities)))
-		      ,(not (not (memq 'module inline-priorities)))))
-	       `(let (($cache ,cache)
-		      ($hclass (py-obj-hclass-general $OBJ)))
-		   ,(case (car inlines)
-		       ((object)
-			`(if (eq? $hclass (AttributeCache-object-hclass $cache))
-			     ,(gen-py-callX `(py-getattribute-from-object-cache $OBJ $cache))
-			     ,(loop (cdr inlines))))
-		       ((mro)
-			`(if (eq? $hclass (AttributeCache-mro-hclass $cache))
-			     ,(gen-py-callX `(py-getattribute-from-mro-cache $OBJ $cache))
-			     ,(loop (cdr inlines))))
-		       ((type)
-			`(if (eq? $hclass (AttributeCache-type-hclass $cache))
-			     ,(gen-py-callX `(py-getattribute-from-type-cache $OBJ $cache))
-			     ,(loop (cdr inlines))))
-		       ((module)
-			`(if (eq? $hclass (AttributeCache-module-hclass $cache))
-			     ,(gen-py-callX `(py-getattribute-from-module-cache $OBJ $cache))
-			     ,(loop (cdr inlines))))
-		       (else (error "py-getattribute-and-callX-cached" "unknown inlining priority" (car inlines)))))))))
-
 (define-macro (py-getattribute-and-callX-cached obj attr X args cache inline-priorities)
    (define (gen-py-callX expr)
       `(py-callX ,X ,expr ,@args))

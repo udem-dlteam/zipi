@@ -15,5 +15,10 @@ fi
 if [ "$ZIPIDBG " = " " ]; then
   ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" @GAMBIT@ -:=@GAMBITROOT@,~~zipicache=@ZIPICACHE@,~~zipiroot=@ZIPIROOT@,search=@ZIPIROOT@ @ZIPIBIN@/zipi-compile-and-run.gambit "$@"
 else
-  ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" $ZIPIDBG --args @GAMBIT@ -:=@GAMBITROOT@,~~zipicache=@ZIPICACHE@,~~zipiroot=@ZIPIROOT@,search=@ZIPIROOT@ @ZIPIBIN@/zipi-compile-and-run.gambit "$@"
+  if [ "$ZIPIDBG " = "lldb " ]; then
+    DBGARGS="--"
+  else
+    DBGARGS="--args"
+  fi
+  ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" $ZIPIDBG $DBGARGS @GAMBIT@ -:=@GAMBITROOT@,~~zipicache=@ZIPICACHE@,~~zipiroot=@ZIPIROOT@,search=@ZIPIROOT@ @ZIPIBIN@/zipi-compile-and-run.gambit "$@"
 fi
