@@ -1,0 +1,14 @@
+.PHONY: do.gambit build.gambit install.gambit
+
+do.gambit: build.gambit
+
+install.gambit:
+	echo "--> install.gambit"
+
+build.gambit: ../bin/zipi-compile-and-run.gambit
+	echo "--> build.gambit"
+
+../bin/zipi-compile-and-run.gambit: zipi.bgl zipi.scm
+	echo "--> ../bin/zipi-compile-and-run.gambit"
+
+clean.gambit:
