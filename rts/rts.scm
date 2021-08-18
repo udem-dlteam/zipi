@@ -576,6 +576,24 @@
 ;; negative arity: functions takes x arguments, last argument is a *args
 ;; #f arity: unknown arity due to defaults value
 (define-rts (signature->arity signature)
+   (let ((args (vector-ref signature 0))
+	 (posonlyargs (vector-ref signature 1))
+	 (vararg (vector-ref signature 2))
+	 (kwonlyargs (vector-ref signature 3))
+	 (kw-defaults (vector-ref signature 4))
+	 (kwarg (vector-ref signature 5))
+	 (defaults (vector-ref signature 6)))
+      (if (and
+	   (eq? (vector-length kwonlyargs) 0)
+	   (eq? (vector-length kw-defaults) 0)
+	   (not kwarg)
+	   (eq? (vector-length defaults) 0))
+	  (if vararg
+	      (- -1 (vector-length args) (vector-length posonlyargs))
+	      (+ (vector-length args) (vector-length posonlyargs)))
+	  #f)))
+
+(define-rts (signature->scheme-arity signature)
   (let ((args (vector-ref signature 0))
         (posonlyargs (vector-ref signature 1))
         (vararg (vector-ref signature 2))
@@ -583,15 +601,12 @@
         (kw-defaults (vector-ref signature 4))
         (kwarg (vector-ref signature 5))
         (defaults (vector-ref signature 6)))
-    (if (and
-          (eq? (vector-length kwonlyargs) 0)
-          (eq? (vector-length kw-defaults) 0)
-          (not kwarg)
-          (eq? (vector-length defaults) 0))
-      (if vararg
-        (- -1 (vector-length args) (vector-length posonlyargs))
-        (+ (vector-length args) (vector-length posonlyargs)))
-      #f)))
+     (if (and
+	  (eq? (vector-length kwonlyargs) 0)
+	  (not kwarg)
+	  (not vararg))
+	 (+ (vector-length args) (vector-length posonlyargs))
+	 #f)))
 
 (define-rts (prebootstrap-procedure->py-function procedure signature)
   (let ((py-function
@@ -601,6 +616,7 @@
             #f
             procedure
             (signature->arity signature)
+            (signature->scheme-arity signature)
             signature)))
     (set!
       functions-awaiting-bootstap
@@ -614,6 +630,7 @@
     py-function-class
     procedure
     (signature->arity signature)
+    (signature->scheme-arity signature)
     signature))
 
 (define-rts procedure->py-function prebootstrap-procedure->py-function)
@@ -669,7 +686,7 @@
 	 ((eq? fun-type py-method-class)
 	  (let* ((func (PyObjectMethod-method fun))
 		 (__self__ (PyObjectMethod-self fun))
-		 (arity (PyObjectFunction-arity func)))
+		 (arity (PyObjectFunction-scheme-arity func)))
 	     (if (eq? arity 1)
 		 ((PyObjectFunction-procedure func) __self__)
 		 (py-call-generic func (cons __self__ '())))))
@@ -694,7 +711,7 @@
 	((eq? fun-type py-method-class)
 	 (let* ((func (PyObjectMethod-method fun))
 		(__self__ (PyObjectMethod-self fun))
-		(arity (PyObjectFunction-arity func)))
+		(arity (PyObjectFunction-scheme-arity func)))
 	    (if (eq? arity 2)
 		((PyObjectFunction-procedure func) __self__ a0)
 		(py-call-generic func (cons __self__ (cons a0 '()))))))
@@ -719,7 +736,7 @@
 	((eq? fun-type py-method-class)
 	 (let* ((func (PyObjectMethod-method fun))
 		(__self__ (PyObjectMethod-self fun))
-		(arity (PyObjectFunction-arity func)))
+		(arity (PyObjectFunction-scheme-arity func)))
 	    (if (eq? arity 3)
 		((PyObjectFunction-procedure func) __self__ a0 a1)
 		(py-call-generic func
@@ -745,7 +762,7 @@
 	((eq? fun-type py-method-class)
 	 (let* ((func (PyObjectMethod-method fun))
 		(__self__ (PyObjectMethod-self fun))
-		(arity (PyObjectFunction-arity func)))
+		(arity (PyObjectFunction-scheme-arity func)))
 	    (if (eq? arity 4)
 		((PyObjectFunction-procedure func) __self__ a0 a1 a2)
 		(py-call-generic func

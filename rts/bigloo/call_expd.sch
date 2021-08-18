@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Nov  5 10:30:55 2020                          */
-;*    Last change :  Tue Aug 10 11:43:31 2021 (serrano)                */
+;*    Last change :  Tue Aug 17 15:55:43 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Macros for Python calls                                          */
@@ -174,7 +174,7 @@
 		       (loop (cdr names) (+ i 1) table))))
 	     #f)))
 
-   (define (call-expander f args)
+   (define (call-expander call f args)
       (let* ((split-args
 		(let loop ((args args) (acc '()))
 		   (if (or (null? args) (keyword? (car args)))
@@ -245,10 +245,18 @@
 		   ((not (null? *args))
 		    `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
 		   (else
-		    `(py-callX ,nargs ,f ,@pos-args))))))))
+		    (call nargs f pos-args))))))))
 
    (match-case x
+      ((py-call (and (py-getattribute ?obj ?attr . ?opts) ?f) . ?args)
+       (e (call-expander
+	     (lambda (X fun args)
+		`(py-getattribute-and-callX ,X ,obj ,attr ,args ,@opts))
+	     f args) e))
       ((py-call ?f . ?args)
-       (e (call-expander f args) e))
+       (e (call-expander
+	     (lambda (X fun args)
+		`(py-callX ,X ,fun ,@args))
+	     f args) e))
       (else
        (error "py-call" "bad syntax" x))))

@@ -1,5 +1,5 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/rts#.scm                           */
+;*    serrano/prgm/project/zipi/zipi/rts/rts#.scm                      */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */

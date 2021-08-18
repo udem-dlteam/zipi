@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Aug 17 11:43:17 2021 (serrano)                */
+;*    Last change :  Tue Aug 17 15:29:19 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -83,6 +83,7 @@
 	   (class PyObjectFunction::PyObject
 	      procedure
 	      arity
+	      scheme-arity
 	      signature)
 	   
 	   (class PyObjectGenerator::PyObject

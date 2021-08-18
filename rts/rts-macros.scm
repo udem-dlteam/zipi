@@ -136,17 +136,56 @@
             ((PyObjectFunction-procedure $fun) ,@args-names)
             (,(fallback (length args)) ,min-neg-arity $fun ,@args-names)))))
     (else
-      (,(fallback (length args)) ,(- 0 X 1) ,fun ,@args))))
+     (,(fallback (length args)) ,(- 0 X 1) ,fun ,@args))))
 
-(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity signature)
-  `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,signature))
+(define-macro (py-getattribute-and-callX X obj attr args . opts)
+   (let ((cache (if (null? opts) #f (car opts)))
+         (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
+      (if cache
+          `(py-getattribute-and-callX-cached ,obj ,attr ,X ,args ,cache ,inlines)
+          `(py-callX ,X (py-getattribute-fallback ,obj ,attr) ,@args))))
 
-(define-macro ($py-make-PyObjectFunction specialized-args-limit hclass elements cls procedure arity signature)
+(define-macro (py-callMethodX X attr instance . args)
+  `(with-specialized-PyObjectFunction-args-limit $py-callMethodX ,X ,attr ,instance ,@args))
+
+(define-macro ($py-callMethodX specialized-args-limit X attr instance . args)
+   (define (gen-method)
+      `(make-PyObjectMethod py-method-hclass-of-instances
+	  '#() py-method-class ,instance ,attr))
+   (define (fallback sz)
+      (case sz
+ 	 ((1) 'py-call1-fallback)
+	 ((2) 'py-call2-fallback)
+	 ((3) 'py-call3-fallback)
+	 (else 'py-callX-fallback)))
+  (cond
+     ((= X 0)
+      `(py-call0 ,(gen-method)))
+    ((<= X specialized-args-limit)
+     (let ((min-neg-arity (- 0 X 1))
+	   (args-names (map
+                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
+                          (iota X))))
+        `(let* (,@(map list args-names args))
+	    (let (($func ,attr))
+	       (if (eq? (PyObjectFunction-scheme-arity $func)
+		      ,(+ 1 (length args)))
+		   (let (($self ,instance))
+		      ((PyObjectFunction-procedure $func) $self ,@args))
+		   (,(fallback (length args)) ,min-neg-arity ,(gen-method) ,@args-names))))))
+    (else
+      (,(fallback (length args)) ,(- 0 X 1) ,(gen-method) ,@args))))
+
+(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity scheme-arity signature)
+  `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,scheme-arity ,signature))
+
+(define-macro ($py-make-PyObjectFunction specialized-args-limit hclass elements cls procedure arity scheme-arity signature)
   `(let (($hclass ,hclass)
          ($elements ,elements)
          ($cls ,cls)
          ($procedure procedure)
          ($arity ,arity)
+         ($scheme-arity ,scheme-arity)
          ($signature ,signature))
       (cond
         ,@(let loop ((i 0))
@@ -155,9 +194,9 @@
               (cons
                 `((eqv? $arity ,i)
                     (,(string->symbol (string-append "make-PyObjectFunctionArity" (number->string i)))
-                        $hclass $elements $cls $procedure $arity $signature))
+                        $hclass $elements $cls $procedure $arity $scheme-arity $signature))
                 (loop (+ i 1)))))
-        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $signature)))))
+        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $scheme-arity $signature)))))
 
 ;; executions points in the type.__call__ method
 (define-macro (type-call-from-instance self instance args-w/-instance) ;;args should contain instance
@@ -2604,40 +2643,124 @@
 (define-macro (py-getattribute-cached obj attr cache inline-priorities)
   ;; attr should always be a string literal
   `(py-specialized-sint-float-dispatch-let
-     $X
+     $OBJ
      ,obj
      ;; TODO: use macro to determine exact attribute in case of
      ;; int and float, those can be determined statically
-     (py-getattribute-fallback $X ,attr)
-     (py-getattribute-fallback $X ,attr)
+     (py-getattribute-fallback $OBJ ,attr)
+     (py-getattribute-fallback $OBJ ,attr)
      ,(let loop ((inlines inline-priorities))
        (if (null? inlines)
          `(py-getattribute-cached-modular-fallback
-            $X (py-obj-hclass-general $X) ,attr ,cache
+            $OBJ (py-obj-hclass-general $OBJ) ,attr ,cache
             ,(not (not (memq 'object inline-priorities)))
             ,(not (not (memq 'mro inline-priorities)))
             ,(not (not (memq 'type inline-priorities)))
             ,(not (not (memq 'module inline-priorities))))
          `(let (($cache ,cache)
-                ($hclass (py-obj-hclass-general $X)))
+                ($hclass (py-obj-hclass-general $OBJ)))
              ,(case (car inlines)
                 ((object)
                   `(if (eq? $hclass (AttributeCache-object-hclass $cache))
-                       (py-getattribute-from-object-cache $X $cache)
+                       (py-getattribute-from-object-cache $OBJ $cache)
                        ,(loop (cdr inlines))))
                 ((mro)
                   `(if (eq? $hclass (AttributeCache-mro-hclass $cache))
-                       (py-getattribute-from-mro-cache $X $cache)
+                       (py-getattribute-from-mro-cache $OBJ $cache)
                        ,(loop (cdr inlines))))
                 ((type)
                   `(if (eq? $hclass (AttributeCache-type-hclass $cache))
-                       (py-getattribute-from-type-cache $X $cache)
+                       (py-getattribute-from-type-cache $OBJ $cache)
                        ,(loop (cdr inlines))))
                 ((module)
                   `(if (eq? $hclass (AttributeCache-module-hclass $cache))
-                       (py-getattribute-from-module-cache $X $cache)
+                       (py-getattribute-from-module-cache $OBJ $cache)
                        ,(loop (cdr inlines))))
                 (else (error "py-getattribute-cached" "unknown inlining priority" (car inlines)))))))))
+
+(define-macro (py-getattribute-and-callX-cached-dbg obj attr X args cache inline-priorities)
+   (define (gen-py-callX expr)
+      `(py-callX ,X ,expr ,@args))
+   ;; attr should always be a string literal
+   `(py-specialized-sint-float-dispatch-let
+       $OBJ
+       ,obj
+       ;; TODO: use macro to determine exact attribute in case of
+       ;; int and float, those can be determined statically
+       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
+       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
+       ,(let loop ((inlines inline-priorities))
+	   (if (null? inlines)
+	       (gen-py-callX
+		  `(py-getattribute-cached-modular-fallback
+		      $OBJ (py-obj-hclass-general $OBJ) ,attr ,cache
+		      ,(not (not (memq 'object inline-priorities)))
+		      ,(not (not (memq 'mro inline-priorities)))
+		      ,(not (not (memq 'type inline-priorities)))
+		      ,(not (not (memq 'module inline-priorities)))))
+	       `(let (($cache ,cache)
+		      ($hclass (py-obj-hclass-general $OBJ)))
+		   ,(case (car inlines)
+		       ((object)
+			`(if (eq? $hclass (AttributeCache-object-hclass $cache))
+			     ,(gen-py-callX `(py-getattribute-from-object-cache $OBJ $cache))
+			     ,(loop (cdr inlines))))
+		       ((mro)
+			`(if (eq? $hclass (AttributeCache-mro-hclass $cache))
+			     ,(gen-py-callX `(py-getattribute-from-mro-cache $OBJ $cache))
+			     ,(loop (cdr inlines))))
+		       ((type)
+			`(if (eq? $hclass (AttributeCache-type-hclass $cache))
+			     ,(gen-py-callX `(py-getattribute-from-type-cache $OBJ $cache))
+			     ,(loop (cdr inlines))))
+		       ((module)
+			`(if (eq? $hclass (AttributeCache-module-hclass $cache))
+			     ,(gen-py-callX `(py-getattribute-from-module-cache $OBJ $cache))
+			     ,(loop (cdr inlines))))
+		       (else (error "py-getattribute-and-callX-cached" "unknown inlining priority" (car inlines)))))))))
+
+(define-macro (py-getattribute-and-callX-cached obj attr X args cache inline-priorities)
+   (define (gen-py-callX expr)
+      `(py-callX ,X ,expr ,@args))
+   ;; attr should always be a string literal
+   `(py-specialized-sint-float-dispatch-let
+       $OBJ
+       ,obj
+       ;; TODO: use macro to determine exact attribute in case of
+       ;; int and float, those can be determined statically
+       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
+       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
+       ,(let loop ((inlines inline-priorities))
+	   (if (null? inlines)
+	       (gen-py-callX
+		  `(py-getattribute-cached-modular-fallback
+		      $OBJ (py-obj-hclass-general $OBJ) ,attr ,cache
+		      ,(not (not (memq 'object inline-priorities)))
+		      ,(not (not (memq 'mro inline-priorities)))
+		      ,(not (not (memq 'type inline-priorities)))
+		      ,(not (not (memq 'module inline-priorities)))))
+	       `(let (($cache ,cache)
+		      ($hclass (py-obj-hclass-general $OBJ)))
+		   ,(case (car inlines)
+		       ((object)
+			`(if (eq? $hclass (AttributeCache-object-hclass $cache))
+			     ,(gen-py-callX `(py-getattribute-from-object-cache $OBJ $cache))
+			     ,(loop (cdr inlines))))
+		       ((mro)
+			`(if (eq? $hclass (AttributeCache-mro-hclass $cache))
+			      (py-getattribute-and-callX-from-mro-cache $OBJ ,X ,args $cache)
+			     ,(loop (cdr inlines))))
+		       ((type)
+			`(if (eq? $hclass (AttributeCache-type-hclass $cache))
+			     (py-getattribute-and-callX-from-type-cache $OBJ ,X ,args $cache)
+			     ,(loop (cdr inlines))))
+		       ((module)
+			`(if (eq? $hclass (AttributeCache-module-hclass $cache))
+			     ,(gen-py-callX `(py-getattribute-from-module-cache $OBJ $cache))
+			     ,(loop (cdr inlines))))
+		       (else (error "py-getattribute-and-callX-cached" "unknown inlining priority" (car inlines)))))))))
+
+
 
 (define-macro (py-getattribute-from-module-cache obj cache)
   `(let* (($cache ,cache)
@@ -2663,7 +2786,12 @@
 (define-macro (py-getattribute-from-mro-cache obj cache)
   ;; obj should never be a sint or float, those case can be resolved statically
   `(let (($cache ,cache))
-    (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))))
+      (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))))
+
+(define-macro (py-getattribute-and-callX-from-mro-cache obj X args cache)
+  ;; obj should never be a sint or float, those case can be resolved statically
+  `(let (($cache ,cache))
+    (py-descriptor-get-and-callX (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,X ,args)))
 
 (define-macro (py-getattribute-from-type-cache obj cache)
   ;; obj should never be a sint or float, those are not types
@@ -2672,6 +2800,14 @@
     (if (eq? (AttributeCache-bind $cache) 'self)
         (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))
         (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)))))
+
+(define-macro (py-getattribute-and-callX-from-type-cache obj X args cache)
+  ;; obj should never be a sint or float, those are not types
+  `(let (($obj ,obj)
+         ($cache ,cache))
+    (if (eq? (AttributeCache-bind $cache) 'self)
+        (py-descriptor-get-and-callX (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,X ,args)
+        (py-callX ,X (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)) ,@args))))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
@@ -2976,7 +3112,20 @@
       ((PyObjectFunction? $attr)
         (py-descriptor-get-functionX-Y-Z-inline $attr $instance $owner))
       (else
-        (py-descriptor-get-fallback $attr $instance $owner)))))
+       (py-descriptor-get-fallback $attr $instance $owner)))))
+
+(define-macro (py-descriptor-get-and-callX attr instance owner X args)
+   `(let* (($attr ,attr)
+	   ($instance ,instance)
+	   ($owner ,owner)
+	   ($cls (py-obj-cls ,attr)))
+       (cond
+	  ((not (PyObjectType-can-have-getter $cls))
+	   (py-callX ,X $attr ,@args)) ;; this covers the case fixnum/flonum
+	  ((PyObjectFunction? $attr)
+	   (py-callMethodX ,X $attr $instance ,@args))
+	  (else
+	   (py-callX ,X (py-descriptor-get-fallback $attr $instance $owner) ,@args)))))
 
 (define-macro (py-iter obj)
   `(py-iter-fallback ,obj))
