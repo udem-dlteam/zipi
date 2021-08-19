@@ -1,10 +1,10 @@
 ;*=====================================================================*/
-;*    serrano/prgm/project/zipi/rts/rts-call.sch                       */
+;*    serrano/prgm/project/zipi/zipi/rts/bigloo/call.sch               */
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Nov  5 10:30:55 2020                          */
-;*    Last change :  Thu Nov  5 10:30:56 2020 (serrano)                */
-;*    Copyright   :  2020 Manuel Serrano                               */
+;*    Last change :  Thu Aug 19 07:17:15 2021 (serrano)                */
+;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Macros for Python calls                                          */
 ;*=====================================================================*/
@@ -29,3 +29,5 @@
 (define-expander register-constants-perfect-hashtable register-constants-perfect-hashtable-expander)
 
 (define-expander py-call py-call-expander)
+
+(define-expander signature-arity-alignment signature-arity-alignment-expander)

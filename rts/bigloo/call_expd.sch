@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Nov  5 10:30:55 2020                          */
-;*    Last change :  Tue Aug 17 15:55:43 2021 (serrano)                */
+;*    Last change :  Thu Aug 19 07:09:48 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Macros for Python calls                                          */
@@ -49,13 +49,16 @@
 	    (else
 	     (loop (cddr lst))))))
 
-   (let ((args (get-keyword-or-default args: '()))
-	 (posonlyargs (get-keyword-or-default posonlyargs: '()))
-	 (vararg (get-keyword-or-default vararg: #f))
-	 (kwonlyargs (get-keyword-or-default kwonlyargs: '()))
-	 (kw-defaults (get-keyword-or-default kw-defaults: #f))
-	 (kwarg (get-keyword-or-default kwarg: #f))
-	 (defaults (get-keyword-or-default defaults: #f)))
+   (let* ((args (get-keyword-or-default args: '()))
+	  (posonlyargs (get-keyword-or-default posonlyargs: '()))
+	  (vararg (get-keyword-or-default vararg: #f))
+	  (kwonlyargs (get-keyword-or-default kwonlyargs: '()))
+	  (kw-defaults (get-keyword-or-default kw-defaults: #f))
+	  (kwarg (get-keyword-or-default kwarg: #f))
+	  (defaults (get-keyword-or-default defaults: #f))
+	  (args-len (length args))
+	  (posonlyargs-len (length posonlyargs))
+	  (arity-alignment (if (not vararg) (+ args-len posonlyargs-len))))
       (e (if (or kw-defaults defaults)
 	     `(vector
 		 ,(kwote (constantify* args))
@@ -64,7 +67,8 @@
 		 ,(kwote (constantify* kwonlyargs))
 		 ,(or kw-defaults (kwote '#()))
 		 ,(and kwarg `',(constantify kwarg))
-		 ,(or defaults (kwote '#())))
+		 ,(or defaults (kwote '#()))
+		 ,arity-alignment)
 	     ;; signature with no default can be optimized to a constant
 	     `'#(,(constantify* args)
 		 ,(constantify* posonlyargs)
@@ -72,8 +76,19 @@
 		 ,(constantify* kwonlyargs)
 		 #()
 		 ,(and kwarg (constantify kwarg))
-		 #()))
+		 #()
+		 ,arity-alignment))
 	 e)))
+
+;*---------------------------------------------------------------------*/
+;*    signature-arity-alignment-expander ...                           */
+;*---------------------------------------------------------------------*/
+(define (signature-arity-alignment-expander x e)
+   (match-case x
+      ((signature-arity-alignment ?sig)
+       (e `(vector-ref ,sig 7) e))
+      (else
+       (error "signature-arity-alignment" "bad form" x))))
 
 ;* {*---------------------------------------------------------------------*} */
 ;* {*    empty-signature-expander ...                                     *} */

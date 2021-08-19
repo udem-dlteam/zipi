@@ -65,6 +65,11 @@
                   port: |##stderr-port|
                   "=== entering "
                   ',(|##source-strip| (cadr form)))))))))
+  (bigloo
+   (define-expander define-rts
+      (lambda (x e)
+	 (set-car! x 'define)
+	 (e x e))))
   (else
    (define-macro (define-rts pattern . body)
      (if (pair? pattern)
@@ -123,26 +128,36 @@
 	 ((2) 'py-call2-fallback)
 	 ((3) 'py-call3-fallback)
 	 (else 'py-callX-fallback)))
-  (cond
-    ((= X 0) `(py-call0 ,fun))
-    ((<= X specialized-args-limit)
-      (let ((min-neg-arity (- 0 X 1))
-            (args-names (map
-                          (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
-                          (iota X))))
-        `(let* (($fun ,fun)
-                ,@(map list args-names args))
-          (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
-            ((PyObjectFunction-procedure $fun) ,@args-names)
-            (,(fallback (length args)) ,min-neg-arity $fun ,@args-names)))))
-    (else
-     (,(fallback (length args)) ,(- 0 X 1) ,fun ,@args))))
+   (cond
+      ((= X 0) `(py-call0 ,fun))
+      ((<= X specialized-args-limit)
+       (let ((min-neg-arity (- 0 X 1))
+	     (args-names (map
+			    (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
+			    (iota X))))
+	  `(let* (($fun ,fun)
+		  ,@(map list args-names args))
+	      (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
+		  ((PyObjectFunction-procedure $fun) ,@args-names)
+		  (,(fallback (length args)) ,min-neg-arity $fun ,@args-names)))))
+      (else
+       (,(fallback (length args)) ,(- 0 X 1) ,fun ,@args))))
 
 (define-macro (py-getattribute-and-callX X obj attr args . opts)
    (let ((cache (if (null? opts) #f (car opts)))
-         (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
+         (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts)))
+	 (args-names (map
+			(lambda (i) (string->symbol (string-append "$arg" (number->string i))))
+			(iota X))))	
       (if cache
-          `(py-getattribute-and-callX-cached ,obj ,attr ,X ,args ,cache ,inlines)
+	  (let ((args-names (map (lambda (i)
+				    (string->symbol
+				       (string-append "$arg"
+					  (number->string i))))
+			       (iota X))))
+	     `(let* ,(map list args-names args)
+		 (py-getattribute-and-callX-cached ,obj ,attr ,X
+		    ,args-names ,cache ,inlines)))
           `(py-callX ,X (py-getattribute-fallback ,obj ,attr) ,@args))))
 
 (define-macro (py-callMethodX X attr instance . args)
