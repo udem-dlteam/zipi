@@ -35,7 +35,7 @@
    ;; followed by values
    (let ((known-keywords
 	     '(args: posonlyargs: vararg: kwonlyargs: kw-defaults:
-	       kwarg: defaults:)))
+	       kwarg: defaults: name:)))
       (let loop ((lst rest))
 	 (cond
 	    ((null? lst)

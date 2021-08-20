@@ -528,7 +528,7 @@
 
   ;; Check the arguments of make-signature are valid keywords followed by values
   (let ((known-keywords
-         '(args: posonlyargs: vararg: kwonlyargs: kw-defaults: kwarg: defaults:)))
+         '(args: posonlyargs: vararg: kwonlyargs: kw-defaults: kwarg: defaults: name:)))
     (let loop ((lst rest))
       (cond
         ((null? lst)
