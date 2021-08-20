@@ -788,7 +788,7 @@
    (let ((unpacked-args (iterables*->list *args-lst)))
      (py-call-generic obj (append args unpacked-args))))
 
-(define-macro (tprint . args) #unspecified)
+(define-macro (tprint . args) '#f)
 
 (define-rts (py-call-generic obj args)
    (let ((obj-type (py-type obj)))
@@ -867,7 +867,7 @@
       (apply procedure aligned-args)))
 
 (define-rts (py-call1-generic obj a0)
-   
+
    (let ((obj-type (py-type obj)))
       (cond
 	 ((eq? obj-type py-function-class)
@@ -2027,7 +2027,7 @@
 (define-rts (function-call self args)
   (if (eq? (py-type self) py-function-class)
       (let ((args-list (vector->list (PyObjectTuple-value args))))
-	 (tprint "functiopn-call " (length args-list))
+	 (tprint "function-call " (length args-list))
       (py-call-generic self args-list))
     (py-throw-required-type "__call__" "method" self)))
 

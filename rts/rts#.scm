@@ -528,7 +528,7 @@
 
   ;; Check the arguments of make-signature are valid keywords followed by values
   (let ((known-keywords
-         '(args: posonlyargs: vararg: kwonlyargs: kw-defaults: kwarg: defaults: name:)))
+         '(args: posonlyargs: vararg: kwonlyargs: kw-defaults: kwarg: defaults: location: name:)))
     (let loop ((lst rest))
       (cond
         ((null? lst)
@@ -572,6 +572,7 @@
           #()
           ,arity-alignment))))
 
+(define-macro (signature-defaults vect) `(vector-ref ,vect 6))
 (define-macro (signature-arity-alignment vect) `(vector-ref ,vect 7))
 
 (define-macro (register-constants-perfect-hashtable table)
