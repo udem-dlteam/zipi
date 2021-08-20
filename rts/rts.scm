@@ -861,18 +861,35 @@
 		 (py-throw-not-callable obj)
 		 (py-call1-generic __call__ obj)))))))
 
+(define-rts (align-and-call signature procedure . args)
+   (let ((aligned-args (align-args-with-signature args signature)))
+      (tprint "align-args " signature " " (length args))
+      (apply procedure aligned-args)))
+
 (define-rts (py-call1-generic obj a0)
+   
    (let ((obj-type (py-type obj)))
       (cond
 	 ((eq? obj-type py-function-class)
 	  (let* ((procedure (PyObjectFunction-procedure obj))
-		 (signature (PyObjectFunction-signature obj)))
-	     (if (eq? (signature-arity-alignment signature) 1)
+		 (signature (PyObjectFunction-signature obj))
+		 (arity (signature-arity-alignment signature)))
+	     (if (eq? arity 1)
 		 (procedure a0)
-		 (let ((aligned-args (align-args-with-signature (cons a0 '()) signature)))
-		    (tprint "py-call1-generic "
-		       " " (length aligned-args) " " signature)
-		    (apply procedure aligned-args)))))
+		 (let ((defaults (signature-defaults signature)))
+		    (if (eq? arity (fx+ (vector-length defaults) 1))
+			(case (vector-length defaults)
+			   ((0)
+			    (align-and-call signature procedure a0))
+			   ((1)
+			    (procedure a0 (vector-ref defaults 0)))
+			   ((2)
+			    (procedure a0 (vector-ref defaults 0) (vector-ref defaults 1)))
+			   ((3)
+			    (procedure a0 (vector-ref defaults 0) (vector-ref defaults 1) (vector-ref defaults 2)))
+			   (else
+			    (align-and-call signature procedure a0)))
+			(align-and-call signature procedure a0))))))
 	 ((eq? obj-type py-method-class)
 	  (let* ((func (PyObjectMethod-method obj))
 		 (__self__ (PyObjectMethod-self obj)))
@@ -899,13 +916,24 @@
       (cond
 	 ((eq? obj-type py-function-class)
 	  (let* ((procedure (PyObjectFunction-procedure obj))
-		 (signature (PyObjectFunction-signature obj)))
-	     (if (eq? (signature-arity-alignment signature) 2)
+		 (signature (PyObjectFunction-signature obj))
+		 (arity (signature-arity-alignment signature)))
+	     (if (eq? arity 2)
 		 (procedure a0 a1)
-		 (let ((aligned-args (align-args-with-signature (list a0 a1) signature)))
-		    (tprint "py-call-generic2 "
-		       " " (length aligned-args) " " signature)
-		    (apply procedure aligned-args)))))
+		 (let ((defaults (signature-defaults signature)))
+		    (if (eq? arity (fx+ (vector-length defaults) 1))
+			(case (vector-length defaults)
+			   ((0)
+			    (align-and-call signature procedure a0 a1))
+			   ((1)
+			    (procedure a0 a1 (vector-ref defaults 0)))
+			   ((2)
+			    (procedure a0 a1 (vector-ref defaults 0) (vector-ref defaults 1)))
+			   ((3)
+			    (procedure a0 a1 (vector-ref defaults 0) (vector-ref defaults 1) (vector-ref defaults 2)))
+			   (else
+			    (align-and-call signature procedure a0 a1)))
+			(align-and-call signature procedure a0 a1))))))
 	 ((eq? obj-type py-method-class)
 	  (let* ((func (PyObjectMethod-method obj))
 		 (__self__ (PyObjectMethod-self obj)))
@@ -1739,7 +1767,7 @@
 (define-rts int.__repr__
   (procedure->py-function
     int-repr
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: int.__repr__)))
 
 (define-rts (int-hash self)
   (if (py-subtype-of-int? self)
@@ -1749,7 +1777,7 @@
 (define-rts int.__hash__
   (procedure->py-function
     int-hash
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: int.__hash__)))
 
 (define-rts (int-int self)
   (if (py-subtype-of-int? self)
@@ -1759,7 +1787,7 @@
 (define-rts int.__int__
   (procedure->py-function
     int-int
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: int.__int__)))
 
 (define-rts (int-bool self)
   (if (py-subtype-of-int? self)
@@ -1770,7 +1798,7 @@
 (define-rts int.__bool__
   (procedure->py-function
     int-bool
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: int.__bool__)))
 
 ;;;----------------------------------------------------------------------------
 
@@ -1829,7 +1857,7 @@
 (define-rts object.__getattribute__
   (procedure->py-function
     object-getattribute
-    (make-signature posonlyargs: (obj name))))
+    (make-signature posonlyargs: (obj name) name: object.__getattribute__)))
 
 (define-rts (object-setattr obj name val)
   ;; TODO: add check that obj does not has it own setattr method
@@ -1844,7 +1872,7 @@
 (define-rts object.__setattr__
   (procedure->py-function
     object-setattr
-    (make-signature posonlyargs: (obj name val))))
+    (make-signature posonlyargs: (obj name val) name: object.__setattr__)))
 
 ;; Implements type.__getattribute__
 (define-rts (type-getattribute obj name #!optional (raise? #t) (cache #f))
@@ -1870,7 +1898,7 @@
 (define-rts type.__getattribute__
   (procedure->py-function
     type-getattribute
-    (make-signature posonlyargs: (obj name))))
+    (make-signature posonlyargs: (obj name) name: type.__getattribute__)))
 
 (define-rts (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
@@ -2008,7 +2036,8 @@
     function-call
     (make-signature
       posonlyargs: (self)
-      vararg: args)))
+      vararg: args
+      name: function.__call__)))
 
 (define-rts (type-call-from-new-method-fallback self args __new__)
   (type-call-from-new-method self args __new__))
@@ -2024,7 +2053,8 @@
     type-call-fallback
     (make-signature
       posonlyargs: (self)
-      vararg: args)))
+      vararg: args
+      name: type.__call__)))
 
 (define-rts (type-setattr self name val)
   ;; TODO: add check that obj does not has it own setattr method
@@ -2043,7 +2073,7 @@
 (define-rts type.__setattr__
   (procedure->py-function
     object-setattr
-    (make-signature posonlyargs: (self name val))))
+    (make-signature posonlyargs: (self name val) name: type.__setattr__)))
 
 
 ;; TODO: remove the tuple->list conversion once we support argument unpacking
@@ -2065,7 +2095,8 @@
     type-new
     (make-signature
       posonlyargs: (metacls cls)
-      vararg: args)))
+      vararg: args
+      name: type.__new__)))
 
 (define-rts (tuple-new cls iterable)
   (if (or (eq? cls py-tuple-class) (py-issubclass? cls py-tuple-class))
@@ -2091,7 +2122,7 @@
 (define-rts tuple.__new__
   (procedure->py-function
     tuple-new
-    (make-signature posonlyargs: (cls iterable) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (cls iterable) defaults: (vector py-absent) name: tuple.__new__)))
 
 ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
 ;; this should be done concurrently in py-call-generic
@@ -2110,7 +2141,8 @@
     (make-signature
       posonlyargs: (cls)
       vararg: args
-      kwarg: kwargs)))
+      kwarg: kwargs
+      name: object.__new__)))
 
 ;; object.__init__ exists but does nothing
 ;; its purpose is that super().__init__ does not raise and AttributeError
@@ -2119,7 +2151,8 @@
     (lambda (self args) py-None)
     (make-signature
       posonlyargs: (self)
-      vararg: args)))
+      vararg: args
+      name: object.__init__)))
 
 
 ;; =============================================================================
@@ -2373,7 +2406,7 @@
 (define-rts str.__new__
   (procedure->py-function
     str-new
-    (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (cls value) defaults: (vector py-absent) name: str.__new__)))
 
 (define-rts (str-hash-value str)
   (PyObjectStrRep-hash (py-str-representative str)))
@@ -2386,7 +2419,7 @@
 (define-rts str.__hash__
   (procedure->py-function
     str-hash
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: str.__hash__)))
 
 (define-rts (str-str self)
   (if (py-subtype-of-str? self)
@@ -2396,7 +2429,7 @@
 (define-rts str.__str__
   (procedure->py-function
     str-str
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: str.__str__)))
 
 (define-rts (str-repr self)
   (if (py-subtype-of-str? self)
@@ -2408,7 +2441,7 @@
 (define-rts str.__repr__
   (procedure->py-function
     str-repr
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: str.__repr__)))
 
 (define-rts (str-getitem self index)
   (if (py-subtype-of-str? self)
@@ -2441,7 +2474,7 @@
 (define-rts str.__getitem__
   (procedure->py-function
     str-getitem
-    (make-signature posonlyargs: (self index))))
+    (make-signature posonlyargs: (self index) name: str.__getitem__)))
 
 (define-rts (str-lower self)
   (if (py-subtype-of-str? self)
@@ -2451,7 +2484,7 @@
 (define-rts str.lower
   (procedure->py-function
     str-lower
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: str.lower)))
 
 (define-rts (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
@@ -2512,7 +2545,7 @@
 (define-rts object.__dir__
   (procedure->py-function
     object-dir
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: object.__dir__)))
 
 (define-rts (type-dir self)
   (py-make-list-from-elems
@@ -2523,7 +2556,7 @@
 (define-rts type.__dir__
   (procedure->py-function
     type-dir
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: type.__dir__)))
 
 (define-rts (type-repr self)
   (let* ((self-name (py-str-to-scheme (py-own-attr-ref self (& "__name__"))))
@@ -2533,7 +2566,7 @@
 (define-rts type.__repr__
   (procedure->py-function
     type-repr
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: type.__repr__)))
 
 (define-rts (object-repr self)
   (let* ((self-type (py-type self))
@@ -2545,7 +2578,7 @@
 (define-rts object.__repr__
   (procedure->py-function
     object-repr
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: object.__repr__)))
 
 (define-rts (object-str self)
   (py-repr self))
@@ -2553,7 +2586,7 @@
 (define-rts object.__str__
   (procedure->py-function
     object-str
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: object.__str__)))
 
 (define-rts (float->string-with-padded-zeros value)
   (let ((s (number->string value)))
@@ -2582,7 +2615,7 @@
 (define-rts float.__repr__
   (procedure->py-function
    float-repr
-   (make-signature posonlyargs: (self))))
+   (make-signature posonlyargs: (self) name: float.__repr__)))
 
 (define-rts (float-int self)
   (if (py-subtype-of-float? self)
@@ -2599,7 +2632,7 @@
 (define-rts float.__int__
   (procedure->py-function
     float-int
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: float.__int__)))
 
 (define-rts (py-display obj port)
   (display (py-str-to-scheme (py-str obj)) port))
@@ -2693,7 +2726,7 @@
 (define-rts generator.send
   (procedure->py-function
     py-generator-send
-    (make-signature posonlyargs: (self value))))
+    (make-signature posonlyargs: (self value) name: generator.send)))
 
 (define-rts (py-generator-throw self type value traceback)
   (let ((cont (PyObjectGenerator-continuation self)))
@@ -2713,7 +2746,8 @@
     py-generator-throw
     (make-signature
       posonlyargs: (self type value traceback)
-      defaults: '#(#f #f))))
+      defaults: '#(#f #f)
+      name: generator.throw)))
 
 (define-rts (py-throw-from-generator-exception-info exc-info)
   (let ((exc (vector-ref exc-info 0))
@@ -2750,8 +2784,7 @@
 (define-rts generator.close
   (procedure->py-function
     py-generator-close
-    (make-signature
-      posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: generator.close)))
 
 (define-rts (py-generator-next-fallback self)
   (py-generator-next self))
@@ -2759,12 +2792,12 @@
 (define-rts generator.__next__
   (procedure->py-function
     py-generator-next-fallback
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: generator.__next__)))
 
 (define-rts generator.__iter__
   (procedure->py-function
     (lambda (self) self)
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: generator.__iter__)))
 
 (define-rts (py-generator-new cls)
   (py-throw-exception-with-message
@@ -2774,7 +2807,7 @@
 (define-rts generator.__new__
   (procedure->py-function
     py-generator-new
-    (make-signature posonlyargs: (cls))))
+    (make-signature posonlyargs: (cls) name: generator.__new__)))
 
 ;; =============================================================================
 ;;  BUILTIN CLASSES
@@ -3086,7 +3119,7 @@
 (define-rts module.__dir__
   (procedure->py-function
     module-dir
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: module.__dir__)))
 
 
 (define-rts (module-getattribute obj name #!optional (raise? #t) (cache #f))
@@ -3123,7 +3156,7 @@
 (define-rts module.__getattribute__
   (procedure->py-function
     module-getattribute
-    (make-signature posonlyargs: (self name))))
+    (make-signature posonlyargs: (self name) name: module.__getattribute__)))
 
 
 (define-rts (module-setattr self name val)
@@ -3140,7 +3173,7 @@
 (define-rts module.__setattr__
   (procedure->py-function
     module-setattr
-    (make-signature posonlyargs: (self name val))))
+    (make-signature posonlyargs: (self name val) name: module.__setattr__)))
 
 ;; list iterator
 
@@ -3152,7 +3185,7 @@
 (define-rts list_iterator.__iter__
   (procedure->py-function
     list-iterator-iter
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: list_iterator.__iter__)))
 
 (define-rts (list-iterator-next-procedure self)
   (if (eq? (py-type self) py-list-iterator-class)
@@ -3162,7 +3195,7 @@
 (define-rts list_iterator.__next__
   (procedure->py-function
     list-iterator-next-procedure
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: list_iterator.__next__)))
 
 (define-rts py-list-iterator-class
   (py-make-builtin-class
@@ -3180,7 +3213,7 @@
 (define-rts py-tuple-iterator-iter
   (procedure->py-function
     tuple-iterator-iter
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: py-tuple-iterator-iter)))
 
 (define-rts (tuple-iterator-next-procedure self)
   (if (eq? (py-type self) py-tuple-iterator-class)
@@ -3190,7 +3223,7 @@
 (define-rts py-tuple-iterator-next
   (procedure->py-function
     tuple-iterator-next-procedure
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: py-tuple-iterator-next)))
 
 (define-rts py-tuple-iterator-class
   (py-make-builtin-class
@@ -3212,7 +3245,7 @@
 (define-rts py-bytearray-iterator.__iter__
   (procedure->py-function
     bytearray-iterator-iter
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: py-bytearray-iterator.__iter__)))
 
 (define-rts (bytearray-iterator-next self)
   (if (eq? (py-type self) py-bytearray-iterator-class)
@@ -3230,7 +3263,7 @@
 (define-rts py-bytearray-iterator.__next__
   (procedure->py-function
     bytearray-iterator-next
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: py-bytearray-iterator.__next__)))
 
 (define-rts py-bytearray-iterator-class
   (py-make-builtin-class
@@ -3288,7 +3321,7 @@
 (define-rts list.__new__
   (procedure->py-function
     list-new
-    (make-signature posonlyargs: (cls value) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (cls value) defaults: (vector py-absent) name: list.__new__)))
 
 (define-rts (list-iter self)
   (if (py-isinstance? self py-list-class)
@@ -3298,7 +3331,7 @@
 (define-rts list.__iter__
   (procedure->py-function
     list-iter
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: list.__iter__)))
 
 ;; TODO: use list real length instead of vector-length
 ;; otherwise this will crash once list is an actual dynamic array
@@ -3317,7 +3350,7 @@
 (define-rts list.__contains__
   (procedure->py-function
     list-contains
-    (make-signature posonlyargs: (self item))))
+    (make-signature posonlyargs: (self item) name: list.__contains__)))
 
 ;; TODO: print cyclic structures
 (define-rts (list-repr self)
@@ -3338,7 +3371,7 @@
 (define-rts list.__repr__
   (procedure->py-function
     list-repr
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: list.__repr__)))
 
 (define-rts (list-add self other)
   (if (py-isinstance? self py-list-class)
@@ -3350,7 +3383,7 @@
 (define-rts list.__add__
   (procedure->py-function
     list-add
-    (make-signature posonlyargs: (self other))))
+    (make-signature posonlyargs: (self other) name: list.__add__)))
 
 (define-rts (list-mul self n)
   (if (py-isinstance? self py-list-class)
@@ -3362,12 +3395,12 @@
 (define-rts list.__mul__
   (procedure->py-function
     list-mul
-    (make-signature posonlyargs: (self n))))
+    (make-signature posonlyargs: (self n) name: list.__mul__)))
 
 (define-rts list.__rmul__
   (procedure->py-function
     list-mul
-    (make-signature posonlyargs: (self n))))
+    (make-signature posonlyargs: (self n) name: list.__rmul__)))
 
 (define-rts (list-imul self n)
   (if (py-isinstance? self py-list-class)
@@ -3382,7 +3415,7 @@
 (define-rts list.__imul__
   (procedure->py-function
     list-imul
-    (make-signature posonlyargs: (self n))))
+    (make-signature posonlyargs: (self n) name: list.__imul__)))
 
 (define-rts (list-len self)
   (if (py-isinstance? self py-list-class)
@@ -3392,7 +3425,7 @@
 (define-rts list.__len__
   (procedure->py-function
     list-len
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: list.__len__)))
 
 (define-macro (define-list-binary-comparator name py-name py-compare)
   `(begin
@@ -3406,7 +3439,7 @@
     (define-rts ,py-name
       (procedure->py-function
         ,name
-        (make-signature posonlyargs: (self other))))))
+        (make-signature posonlyargs: (self other) name: ,py-name)))))
 
 (define-list-binary-comparator list-eq list.__eq__ py-eq-listX-listY)
 
@@ -3476,7 +3509,7 @@
 (define-rts list.__getitem__
   (procedure->py-function
     list-getitem
-    (make-signature posonlyargs: (self item))))
+    (make-signature posonlyargs: (self item) name: list.__getitem__)))
 
 
 (define-rts (list-set-simple-slice! lst start stop vec len)
@@ -3557,7 +3590,7 @@
 (define-rts list.__setitem__
   (procedure->py-function
     list-setitem
-    (make-signature posonlyargs: (self item value))))
+    (make-signature posonlyargs: (self item value) name: list.__setitem__)))
 
 (define-rts (list-shrink! list)
    (let* ((len (PyObjectList-len list))
@@ -3693,7 +3726,7 @@
 (define-rts list.__delitem__
   (procedure->py-function
     list-delitem
-    (make-signature posonlyargs: (self item))))
+    (make-signature posonlyargs: (self item) name: list.__delitem__)))
 
 (define-rts (list-pop self index)
   (if (py-isinstance? self py-list-class)
@@ -3721,7 +3754,7 @@
 (define-rts list.pop
   (procedure->py-function
     list-pop
-    (make-signature posonlyargs: (self index) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (self index) defaults: (vector py-absent) name: list.pop)))
 
 (define-rts (list-append self value)
   (if (py-isinstance? self py-list-class)
@@ -3739,7 +3772,7 @@
 (define-rts list.append
   (procedure->py-function
     list-append
-    (make-signature posonlyargs: (self value))))
+    (make-signature posonlyargs: (self value) name: list.append)))
 
 (define-rts (list-clear self)
   (if (py-isinstance? self py-list-class)
@@ -3752,7 +3785,7 @@
 (define-rts list.clear
   (procedure->py-function
     list-clear
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: list.clear)))
 
 ;; Could not call list-copy due to collision with Scheme list-copy
 (define-rts (list-copy-procedure self)
@@ -3763,7 +3796,7 @@
 (define-rts list.copy
   (procedure->py-function
     list-copy-procedure
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: list.copy)))
 
 (define-rts (list-count self item)
   (if (py-isinstance? self py-list-class)
@@ -3782,7 +3815,7 @@
 (define-rts list.count
   (procedure->py-function
     list-count
-    (make-signature posonlyargs: (self item))))
+    (make-signature posonlyargs: (self item) name: list.count)))
 
 (define-rts (list-index self item start stop)
   (if (py-isinstance? self py-list-class)
@@ -3818,7 +3851,7 @@
 (define-rts list.index
   (procedure->py-function
     list-index
-    (make-signature posonlyargs: (self item start stop) defaults: '#(#f #f))))
+    (make-signature posonlyargs: (self item start stop) defaults: '#(#f #f) name: list.index)))
 
 (define-rts (list-insert self index value)
   (if (py-isinstance? self py-list-class)
@@ -3838,7 +3871,7 @@
 (define-rts list.insert
   (procedure->py-function
     list-insert
-    (make-signature posonlyargs: (self index value))))
+    (make-signature posonlyargs: (self index value) name: list.insert)))
 
 (define-rts (list-extend-with-vector-head! lst source-vec stop)
   (let* ((len (PyObjectList-len lst))
@@ -3887,7 +3920,7 @@
 (define-rts list.extend
   (procedure->py-function
     list-extend
-    (make-signature posonlyargs: (self iterable))))
+    (make-signature posonlyargs: (self iterable) name: list.extend)))
 
 (define-rts (list-iadd self other)
   (if (py-isinstance? self py-list-class)
@@ -3898,7 +3931,7 @@
 (define-rts list.__iadd__
   (procedure->py-function
     list-iadd
-    (make-signature posonlyargs: (self other))))
+    (make-signature posonlyargs: (self other) name: list.__iadd__)))
 
 (define-rts (list-remove self item)
   (if (py-isinstance? self py-list-class)
@@ -3917,7 +3950,7 @@
 (define-rts list.remove
   (procedure->py-function
     list-remove
-    (make-signature posonlyargs: (self item))))
+    (make-signature posonlyargs: (self item) name: list.remove)))
 
 (define-rts (list-reverse self)
     (if (py-isinstance? self py-list-class)
@@ -3936,7 +3969,7 @@
 (define-rts list.reverse
   (procedure->py-function
     list-reverse
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: list.reverse)))
 
 (define-rts list.sort #f)
 
@@ -3950,7 +3983,7 @@
 (define-rts tuple.__iter__
   (procedure->py-function
     tuple-iter
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: tuple.__iter__)))
 
 (define-rts (tuple-contains self item)
   (if (py-isinstance? self py-tuple-class)
@@ -3967,7 +4000,7 @@
 (define-rts tuple.__contains__
   (procedure->py-function
     tuple-contains
-    (make-signature posonlyargs: (self item))))
+    (make-signature posonlyargs: (self item) name: tuple.__contains__)))
 
 (define-rts (tuple-add self other)
   (if (py-isinstance? self py-tuple-class)
@@ -3981,7 +4014,7 @@
 (define-rts tuple.__add__
   (procedure->py-function
     tuple-add
-    (make-signature posonlyargs: (self other))))
+    (make-signature posonlyargs: (self other) name: tuple.__add__)))
 
 (define-rts (vector*n v n)
   (let* ((v-len (vector-length v))
@@ -4009,12 +4042,12 @@
 (define-rts tuple.__mul__
   (procedure->py-function
     tuple-mul
-    (make-signature posonlyargs: (self n))))
+    (make-signature posonlyargs: (self n) name: tuple.__mul__)))
 
 (define-rts tuple.__rmul__
   (procedure->py-function
     tuple-mul
-    (make-signature posonlyargs: (self n))))
+    (make-signature posonlyargs: (self n) name: tuple.__rmul__)))
 
 (define-rts (vector-py-eq? v1 v2)
   (let ((v1-len (vector-length v1))
@@ -4073,7 +4106,7 @@
     (define-rts ,py-name
       (procedure->py-function
         ,name
-        (make-signature posonlyargs: (self other))))))
+        (make-signature posonlyargs: (self other) name: ,py-name)))))
 
 (define-tuple-binary-comparator tuple-eq tuple.__eq__ vector-py-eq?)
 
@@ -4105,7 +4138,7 @@
 (define-rts tuple.__repr__
   (procedure->py-function
     tuple-repr
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: tuple.__repr__)))
 
 (define-rts (tuple-len self)
   (if (py-isinstance? self py-tuple-class)
@@ -4116,7 +4149,7 @@
 (define-rts tuple.__len__
   (procedure->py-function
     tuple-len
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: tuple.__len__)))
 
 (define-rts (vector-slice vec start stop step)
   (let* ((len (get-slice-length start stop step))
@@ -4158,7 +4191,7 @@
 (define-rts tuple.__getitem__
   (procedure->py-function
     tuple-getitem
-    (make-signature posonlyargs: (self item))))
+    (make-signature posonlyargs: (self item) name: tuple.__getitem__)))
 
 (define-rts (tuple-count self item)
   (if (py-isinstance? self py-tuple-class)
@@ -4177,7 +4210,7 @@
 (define-rts tuple.count
   (procedure->py-function
     tuple-count
-    (make-signature posonlyargs: (self item))))
+    (make-signature posonlyargs: (self item) name: tuple.count)))
 
 (define-rts (tuple-index self item start stop)
   (if (py-isinstance? self py-tuple-class)
@@ -4215,7 +4248,8 @@
     tuple-index
     (make-signature
       posonlyargs: (self item start stop)
-      defaults: (vector py-absent py-absent))))
+      defaults: (vector py-absent py-absent)
+      name: tuple.index)))
 
 ;; slices
 
@@ -4244,7 +4278,8 @@
     slice-new
     (make-signature
       posonlyargs: (cls arg1 arg2 arg3)
-      defaults: (vector py-absent py-absent))))
+      defaults: (vector py-absent py-absent)
+      name: slice.__new__)))
 
 (define-rts (slice-indices self len)
     (if (py-isinstance? self py-slice-class)
@@ -4260,7 +4295,7 @@
 (define-rts slice.indices
   (procedure->py-function
     slice-indices
-    (make-signature posonlyargs: (self len))))
+    (make-signature posonlyargs: (self len) name: slice.indices)))
 
 ;; ===========================================
 ;; dynamic vector operations used by bytearray
@@ -4504,7 +4539,8 @@
     bytearray-new
     (make-signature
       posonlyargs: (cls source encoding errors)
-      defaults: (vector py-absent py-absent py-absent))))
+      defaults: (vector py-absent py-absent py-absent)
+      name: bytearray.__new__)))
 
 
 (define-rts (bytearray-getitem self item)
@@ -4527,8 +4563,7 @@
 (define-rts bytearray.__getitem__
   (procedure->py-function
     bytearray-getitem
-    (make-signature posonlyargs:
-      (self item))))
+    (make-signature posonlyargs: (self item) name: bytearray.__getitem__)))
 
 (define-rts (bytearray-set-slice self slice value)
   (let* ((dvec (PyObjectBytearray-value self))
@@ -4592,8 +4627,7 @@
 (define-rts bytearray.__setitem__
   (procedure->py-function
     bytearray-setitem
-      (make-signature posonlyargs:
-        (self key value))))
+      (make-signature posonlyargs: (self key value) name: bytearray.__setitem__)))
 
 (define-rts (bytearray-append self elem)
   (cond
@@ -4616,8 +4650,7 @@
 (define-rts bytearray.append
   (procedure->py-function
     bytearray-append
-    (make-signature posonlyargs:
-      (self value))))
+    (make-signature posonlyargs: (self value) name: bytearray.append)))
 
 (define-rts (bytearray-add self other)
   (if (py-isinstance? self py-bytearray-class)
@@ -4631,7 +4664,7 @@
 (define-rts bytearray.__add__
   (procedure->py-function
    bytearray-add
-   (make-signature posonlyargs: (self other))))
+   (make-signature posonlyargs: (self other) name: bytearray.__add__)))
 
 (define-rts (dynamic-u8vector-extend dvec-target dvec-source)
   (let* ((target (cdr dvec-target))
@@ -4666,7 +4699,7 @@
 (define-rts bytearray.__iadd__
   (procedure->py-function
    bytearray-iadd
-   (make-signature posonlyargs: (self other))))
+   (make-signature posonlyargs: (self other) name: bytearray.__iadd__)))
 
 (define-rts (bytearray-repr self)
   (define (u8->char-repr x)
@@ -4691,7 +4724,7 @@
 (define-rts bytearray.__repr__
   (procedure->py-function
    bytearray-repr
-   (make-signature posonlyargs: (self))))
+   (make-signature posonlyargs: (self) name: bytearray.__repr__)))
 
 (define-rts (bytearray-mul self n)
   (if (py-isinstance? self py-bytearray-class)
@@ -4705,12 +4738,12 @@
 (define-rts bytearray.__mul__
   (procedure->py-function
    bytearray-mul
-   (make-signature posonlyargs: (self other))))
+   (make-signature posonlyargs: (self other) name: bytearray.__mul__)))
 
 (define-rts bytearray.__rmul__
   (procedure->py-function
    bytearray-mul
-   (make-signature posonlyargs: (self n))))
+   (make-signature posonlyargs: (self n) name: bytearray.__rmul__)))
 
 (define-rts (bytearray-imul self n)
   (if (py-isinstance? self py-bytearray-class)
@@ -4725,7 +4758,7 @@
 (define-rts bytearray.__imul__
   (procedure->py-function
    bytearray-imul
-   (make-signature posonlyargs: (self n))))
+   (make-signature posonlyargs: (self n) name: bytearray.__imul__)))
 
 (define-rts (bytearray-len self)
   (if (py-isinstance? self py-bytearray-class)
@@ -4737,7 +4770,7 @@
 (define-rts bytearray.__len__
   (procedure->py-function
    bytearray-len
-   (make-signature posonlyargs: (self))))
+   (make-signature posonlyargs: (self) name: bytearray.__len__)))
 
 (define-macro (define-search-function endfunction name func-name)
   `(begin
@@ -4765,7 +4798,7 @@
      (define-rts ,func-name
        (procedure->py-function
         ,name
-        (make-signature posonlyargs: (self item start stop) defaults: (vector py-absent py-absent))))))
+        (make-signature posonlyargs: (self item start stop) defaults: (vector py-absent py-absent) name: ,func-name)))))
 
 (define-macro (dynamic-u8vector-count vec item start stop)
   `(py-int-from-scheme
@@ -4857,7 +4890,7 @@
      (define-rts ,(string->symbol (string-append "bytearray." name))
        (procedure->py-function
         ,func-name
-        (make-signature posonlyargs: (self other))))))
+        (make-signature posonlyargs: (self other) name: ,(string->symbol (string-append "bytearray." name)))))))
 
 
 (dynamic-u8vector-comparator-eq 1 #f #t "__gt__" bytearray-gt)
@@ -4877,7 +4910,7 @@
 (define-rts bytearray.__iter__
   (procedure->py-function
    bytearray-iter
-   (make-signature posonlyargs: (self))))
+   (make-signature posonlyargs: (self) name: bytearray.__iter__)))
 
 ;; =============================================================================
 ;;  Dict
@@ -5169,7 +5202,7 @@
 (define-rts dict.__setitem__
   (procedure->py-function
    dict-setitem
-    (make-signature posonlyargs: (self key value))))
+    (make-signature posonlyargs: (self key value) name: dict.__setitem__)))
 
 (define-rts (dict-get self key default)
   (if (py-isinstance? self py-dict-class)
@@ -5180,7 +5213,7 @@
 (define-rts dict.get
   (procedure->py-function
     dict-get
-    (make-signature posonlyargs: (self key default) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (self key default) defaults: (vector py-absent) name: dict.get)))
 
 (define-rts (dict-getitem self key)
   (if (py-isinstance? self py-dict-class)
@@ -5191,7 +5224,7 @@
 (define-rts dict.__getitem__
   (procedure->py-function
     dict-getitem
-    (make-signature posonlyargs: (self key))))
+    (make-signature posonlyargs: (self key) name: dict.__getitem__)))
 
 (define-rts (dict-delitem self key)
   (if (py-isinstance? self py-dict-class)
@@ -5205,7 +5238,7 @@
 (define-rts dict.__delitem__
   (procedure->py-function
     dict-delitem
-    (make-signature posonlyargs: (self key))))
+    (make-signature posonlyargs: (self key) name: dict.__delitem__)))
 
 (define-rts (dict-len self)
   (if (py-isinstance? self py-dict-class)
@@ -5217,7 +5250,7 @@
 (define-rts dict.__len__
   (procedure->py-function
     dict-len
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: dict.__len__)))
 
 (define-rts (dict-iter self)
   (if (py-isinstance? self py-dict-class)
@@ -5227,7 +5260,7 @@
 (define-rts dict.__iter__
   (procedure->py-function
     dict-iter
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: dict.__iter__)))
 
 ;; TODO: incorrect implementation, should return a dict_keys object
 (define-rts (dict-keys self)
@@ -5238,7 +5271,7 @@
 (define-rts dict.keys
   (procedure->py-function
     dict-keys
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: dict.keys)))
 
 ;; TODO: incorrect implementation, should return a dict_values object
 (define-rts (dict-values self)
@@ -5249,7 +5282,7 @@
 (define-rts dict.values
   (procedure->py-function
     dict-values
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: dict.values)))
 
 ;; =============================================================================
 ;;  Dict iterators
@@ -5270,7 +5303,7 @@
 (define-rts dict_keyiterator.__iter__
   (procedure->py-function
     dict-keyiterator-iter
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: dict_keyiterator.__iter__)))
 
 (define-rts (dict-keyiterator-next self)
   (if (py-isinstance? self py-dict-keyiterator-class)
@@ -5294,7 +5327,7 @@
 (define-rts dict_keyiterator.__next__
   (procedure->py-function
     dict-keyiterator-next
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: dict_keyiterator.__next__)))
 
 (define-rts py-dict-keyiterator-class
   (py-make-builtin-class
@@ -5319,7 +5352,7 @@
 (define-rts dict_valueiterator.__iter__
   (procedure->py-function
     dict-valueiterator-iter
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: dict_valueiterator.__iter__)))
 
 (define-rts (dict-valueiterator-next self)
   (if (py-isinstance? self py-dict-valueiterator-class)
@@ -5343,7 +5376,7 @@
 (define-rts dict_valueiterator.__next__
   (procedure->py-function
     dict-valueiterator-next
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: dict_valueiterator.__next__)))
 
 (define-rts py-dict-valueiterator-class
   (py-make-builtin-class
@@ -5582,7 +5615,7 @@
 (define-rts TextIOWrapper.__enter__
   (procedure->py-function
     TextIOWrapper-enter
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: TextIOWrapper.__enter__)))
 
 (define-rts (TextIOWrapper-close-port! self)
   (let ((port (PyObjectTextIOWrapper-port self)))
@@ -5604,7 +5637,7 @@
 (define-rts TextIOWrapper.__exit__
   (procedure->py-function
     TextIOWrapper-exit
-    (make-signature posonlyargs: (self exc_type exc_value traceback))))
+    (make-signature posonlyargs: (self exc_type exc_value traceback) name: TextIOWrapper.__exit__)))
 
 (define-rts (TextIOWrapper-close self)
   (if (py-isinstance? self py-TextIOWrapper-class)
@@ -5615,7 +5648,7 @@
 (define-rts TextIOWrapper.close
   (procedure->py-function
     TextIOWrapper-close
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: TextIOWrapper.close)))
 
 (define-rts (TextIOWrapper-read self)
   (if (py-isinstance? self py-TextIOWrapper-class)
@@ -5630,7 +5663,7 @@
 (define-rts TextIOWrapper.read
   (procedure->py-function
     TextIOWrapper-read
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: TextIOWrapper.read)))
 
 (define-rts py-TextIOWrapper-class
   (py-make-builtin-class
@@ -5677,7 +5710,7 @@
 (define-rts NotImplementedType.__new__
   (procedure->py-function
     NotImplementedType-new
-    (make-signature posonlyargs: (cls))))
+    (make-signature posonlyargs: (cls) name: NotImplementedType.__new__)))
 
 (define-rts (NotImplementedType-repr self)
   (if (eq? self py-NotImplemented)
@@ -5691,7 +5724,7 @@
 (define-rts NotImplementedType.__repr__
   (procedure->py-function
     NotImplementedType-repr
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: NotImplementedType.__repr__)))
 
 (define-rts py-NotImplementedType-class
   (py-make-builtin-class
@@ -5717,7 +5750,7 @@
 (define-rts NoneType.__new__
   (procedure->py-function
     NoneType-new
-    (make-signature posonlyargs: (cls))))
+    (make-signature posonlyargs: (cls) name: NoneType.__new__)))
 
 (define-rts (NoneType-repr self)
   (if (eq? self py-None)
@@ -5731,7 +5764,7 @@
 (define-rts NoneType.__repr__
   (procedure->py-function
     NoneType-repr
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: NoneType.__repr__)))
 
 (define-rts (NoneType-bool self)
   (if (eq? self py-None)
@@ -5745,7 +5778,7 @@
 (define-rts NoneType.__bool__
   (procedure->py-function
     NoneType-bool
-    (make-signature posonlyargs: (self))))
+    (make-signature posonlyargs: (self) name: NoneType.__bool__)))
 
 (define-rts py-NoneType-class
   (py-make-builtin-class
@@ -6072,43 +6105,43 @@
   (procedure->py-function
     (lambda (clk_id)
       (py-float-from-scheme 1e-6))
-    (make-signature posonlyargs: (clk_id))))
+    (make-signature posonlyargs: (clk_id) name: time.clock_getres)))
 
 (define-rts time.clock_gettime
   (procedure->py-function
     (lambda (clk_id)
       (py-float-from-scheme (time->seconds (current-time))))
-    (make-signature posonlyargs: (clk_id))))
+    (make-signature posonlyargs: (clk_id) name: time.clock_gettime)))
 
 (define-rts time.monotonic
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
-    (make-signature)))
+    (make-signature name: time.monotonic)))
 
 (define-rts time.perf_counter
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
-    (make-signature)))
+    (make-signature name: time.perf_counter)))
 
 (define-rts time.process_time
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
-    (make-signature)))
+    (make-signature name: time.process_time)))
 
 (define-rts time.time
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
-    (make-signature)))
+    (make-signature name: time.time)))
 
 (define-rts time.thread_time
   (procedure->py-function
     (lambda ()
       (py-float-from-scheme (time->seconds (current-time))))
-    (make-signature)))
+    (make-signature name: time.thread_time)))
 
 (define-rts time.sleep
   (procedure->py-function
@@ -6118,7 +6151,7 @@
           (gambit (thread-sleep! s))
           (bigloo (sleep (floor (inexact->exact (* s 1e6))))))
         py-None))
-    (make-signature posonlyargs: (secs))))
+    (make-signature posonlyargs: (secs) name: time.sleep)))
 
 (define-rts (make-time-mod)
   (let ((mod (py-make-module (& "_time") (& "") #f)))
@@ -6138,12 +6171,12 @@
 (define-rts statprof.begin
   (procedure->py-function
     statprof-begin
-    (make-signature)))
+    (make-signature name: statprof.begin)))
 
 (define-rts statprof.end
   (procedure->py-function
     statprof-end
-    (make-signature posonlyargs: (file))))
+    (make-signature posonlyargs: (file) name: statprof.end)))
 
 (define-rts (make-statprof-mod)
   (let ((mod (py-make-module (&& "statprof") (& "") #f)))
@@ -6166,7 +6199,7 @@
 (define-rts py-builtin-abs
   (procedure->py-function
     py-abs
-    (make-signature posonlyargs: (x))))
+    (make-signature posonlyargs: (x) name: py-builtin-abs)))
 
 ;;-------------------- all(iterable)
 
@@ -6183,7 +6216,7 @@
   (procedure->py-function
     (lambda (iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "all not implemented"))
-    (make-signature posonlyargs: (iterable))))
+    (make-signature posonlyargs: (iterable) name: py-builtin-all)))
 
 ;;-------------------- any(iterable)
 
@@ -6200,7 +6233,7 @@
   (procedure->py-function
     (lambda (iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "any not implemented"))
-    (make-signature posonlyargs: (iterable))))
+    (make-signature posonlyargs: (iterable) name: py-builtin-any)))
 
 ;;-------------------- ascii(object)
 
@@ -6213,7 +6246,7 @@
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "ascii not implemented"))
-    (make-signature posonlyargs: (object))))
+    (make-signature posonlyargs: (object) name: py-builtin-ascii)))
 
 ;;-------------------- bin(x)
 
@@ -6240,7 +6273,7 @@
   (procedure->py-function
     (lambda (x)
       (py-throw-exception-with-message py-builtin-NotImplementedError "bin not implemented"))
-    (make-signature posonlyargs: (x))))
+    (make-signature posonlyargs: (x) name: py-builtin-bin)))
 
 ;;-------------------- class bool([x])
 
@@ -6274,7 +6307,7 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "breakpoint not implemented"))
     (make-signature
       vararg: args
-      kwarg: kwargs)))
+      kwarg: kwargs name: py-builtin-breakpoint)))
 
     ;;-------------------- class bytearray([source[, encoding[, errors]]])
 
@@ -6322,7 +6355,7 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "bytes not implemented"))
     (make-signature
       posonlyargs: (source encodings errors)
-      defaults: (vector py-absent py-absent py-absent))))
+      defaults: (vector py-absent py-absent py-absent) name: py-builtin-bytes)))
 
     ;;-------------------- callable(object)
 
@@ -6339,7 +6372,7 @@
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "callable not implemented"))
-    (make-signature posonlyargs: (object))))
+    (make-signature posonlyargs: (object) name: py-builtin-callable)))
 
 ;;-------------------- chr(i)
 
@@ -6353,7 +6386,7 @@
 (define-rts py-builtin-chr
   (procedure->py-function
     py-chr
-    (make-signature posonlyargs: (i))))
+    (make-signature posonlyargs: (i) name: py-builtin-chr)))
 
 ;;-------------------- @classmethod
 
@@ -6463,7 +6496,7 @@
         (vector
           (py-int-from-scheme 0)
           py-False
-          (py-int-from-scheme -1)))))
+          (py-int-from-scheme -1)) name: py-builtin-compile)))
 
 ;;-------------------- class complex([real[, imag]])
 
@@ -6506,7 +6539,7 @@
   (procedure->py-function
     (lambda (object name)
       (py-throw-exception-with-message py-builtin-NotImplementedError "delattr not implemented"))
-    (make-signature posonlyargs: (object name))))
+    (make-signature posonlyargs: (object name) name: py-builtin-delattr)))
 
 ;;-------------------- class dict(**kwarg)
 ;;                     class dict(mapping, **kwarg)
@@ -6574,7 +6607,7 @@
 (define-rts py-builtin-dir
   (procedure->py-function
     py-dir
-    (make-signature posonlyargs: (object) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (object) defaults: (vector py-absent) name: py-builtin-dir)))
 
 ;;-------------------- divmod(a, b)
 
@@ -6591,7 +6624,7 @@
   (procedure->py-function
     (lambda (a b)
       (py-throw-exception-with-message py-builtin-NotImplementedError "divmod not implemented"))
-    (make-signature posonlyargs: (a b))))
+    (make-signature posonlyargs: (a b) name: py-builtin-divmod)))
 
 ;;-------------------- enumerate(iterable, start=0)
 
@@ -6620,7 +6653,7 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "enumerate not implemented"))
     (make-signature
       args: (iterable start)
-      defaults: (vector (py-int-from-scheme 0)))))
+      defaults: (vector (py-int-from-scheme 0)) name: py-builtin-enumerate)))
 
 ;;-------------------- eval(expression, globals=None, locals=None)
 
@@ -6667,7 +6700,7 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "eval not implemented"))
     (make-signature
       posonlyargs: (expression globals locals)
-      defaults: (vector py-absent py-absent))))
+      defaults: (vector py-absent py-absent) name: py-builtin-eval)))
 
 ;;-------------------- exec(object[, globals[, locals]])
 
@@ -6715,7 +6748,7 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "exec not implemented"))
     (make-signature
       posonlyargs: (expression globals locals)
-      defaults: (vector py-absent py-absent))))
+      defaults: (vector py-absent py-absent) name: py-builtin-exec)))
 
 ;;-------------------- filter(function, iterable)
 
@@ -6737,7 +6770,7 @@
   (procedure->py-function
     (lambda (function iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "filter not implemented"))
-    (make-signature posonlyargs: (function iterable))))
+    (make-signature posonlyargs: (function iterable) name: py-builtin-filter)))
 
 ;;-------------------- class float([x])
 
@@ -6823,7 +6856,7 @@
   (procedure->py-function
     (lambda (value format_spec)
       (py-throw-exception-with-message py-builtin-NotImplementedError "format not implemented"))
-    (make-signature posonlyargs: (value format_spec))))
+    (make-signature posonlyargs: (value format_spec) name: py-builtin-format)))
 
 ;;-------------------- class frozenset([iterable])
 
@@ -6838,7 +6871,7 @@
   (procedure->py-function
     (lambda (iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "frozenset not implemented"))
-    (make-signature posonlyargs: (iterable))))
+    (make-signature posonlyargs: (iterable) name: py-builtin-frozenset)))
 
 ;;-------------------- getattr(object, name[, default])
 
@@ -6866,7 +6899,7 @@
           "getattr(): attribute name must be string")))
    (make-signature
     posonlyargs: (object name default)
-    defaults: (vector py-absent))))
+    defaults: (vector py-absent) name: py-builtin-getattr)))
 
 ;;-------------------- globals()
 
@@ -6879,7 +6912,7 @@
   (procedure->py-function
     (lambda ()
       (py-throw-exception-with-message py-builtin-NotImplementedError "globals not implemented"))
-    (make-signature)))
+    (make-signature name: py-builtin-globals)))
 
 ;;-------------------- hasattr(object, name)
 
@@ -6893,7 +6926,7 @@
   (procedure->py-function
     (lambda (object name)
       (py-throw-exception-with-message py-builtin-NotImplementedError "hasattr not implemented"))
-    (make-signature posonlyargs: (object name))))
+    (make-signature posonlyargs: (object name) name: py-builtin-hasattr)))
 
 ;;-------------------- hash(object)
 
@@ -6910,7 +6943,7 @@
 (define-rts py-builtin-hash
   (procedure->py-function
     py-hash
-    (make-signature posonlyargs: (object))))
+    (make-signature posonlyargs: (object) name: py-builtin-hash)))
 
 ;;-------------------- help([object])
 
@@ -6937,7 +6970,7 @@
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "help not implemented"))
-    (make-signature posonlyargs: (object) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (object) defaults: (vector py-absent) name: py-builtin-help)))
 
 ;;-------------------- hex(x)
 
@@ -6976,7 +7009,7 @@
         (string-append
           "0x"
           (number->string (py-int-to-scheme (py-index x)) 16))))
-    (make-signature posonlyargs: (x))))
+    (make-signature posonlyargs: (x) name: py-builtin-hex)))
 
 ;;-------------------- id(object)
 
@@ -6992,7 +7025,7 @@
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "id not implemented"))
-    (make-signature posonlyargs: (object))))
+    (make-signature posonlyargs: (object) name: py-builtin-id)))
 
 ;;-------------------- input([prompt])
 
@@ -7020,7 +7053,7 @@
   (procedure->py-function
     (lambda (prompt)
       (py-throw-exception-with-message py-builtin-NotImplementedError "input not implemented"))
-      (make-signature posonlyargs: (prompt) defaults: (vector py-absent))))
+      (make-signature posonlyargs: (prompt) defaults: (vector py-absent) name: py-builtin-input)))
 
 ;;-------------------- class int([x])
 ;;                     class int(x, base=10)
@@ -7074,7 +7107,7 @@
   (procedure->py-function
     (lambda (object classinfo)
       (if (py-isinstance? object classinfo) py-True py-False))
-    (make-signature posonlyargs: (object classinfo))))
+    (make-signature posonlyargs: (object classinfo) name: py-builtin-isinstance)))
 
 ;;-------------------- issubclass(class, classinfo)
 
@@ -7099,7 +7132,7 @@
         (py-throw-exception-with-message
           py-builtin-TypeError
           "issubclass() arg 1 must be a class")))
-    (make-signature posonlyargs: (object classinfo))))
+    (make-signature posonlyargs: (object classinfo) name: py-builtin-issubclass)))
 
 ;;-------------------- iter(object[, sentinel])
 
@@ -7132,7 +7165,7 @@
       (if (eq? sentinel py-absent)
         (py-iter object)
         (py-throw-exception-with-message py-builtin-NotImplementedError "iter with 2 arguments not implemented")))
-    (make-signature posonlyargs: (object sentinel) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (object sentinel) defaults: (vector py-absent) name: py-builtin-iter)))
 
 ;;-------------------- len(s)
 
@@ -7143,7 +7176,7 @@
 (define-rts py-builtin-len
   (procedure->py-function
     (lambda (o) (py-length o))
-    (make-signature posonlyargs: (obj))))
+    (make-signature posonlyargs: (obj) name: py-builtin-len)))
 
 ;;-------------------- class list([iterable])
 
@@ -7167,7 +7200,7 @@
   (procedure->py-function
     (lambda ()
       (py-throw-exception-with-message py-builtin-NotImplementedError "locals not implemented"))
-    (make-signature)))
+    (make-signature name: py-builtin-locals)))
 
 ;;-------------------- map(function, iterable, ...)
 
@@ -7183,7 +7216,7 @@
   (procedure->py-function
     (lambda (function iterable)
       (py-throw-exception-with-message py-builtin-NotImplementedError "map not implemented"))
-    (make-signature posonlyargs: (function iterable))))
+    (make-signature posonlyargs: (function iterable) name: py-builtin-map)))
 
 ;;-------------------- max(iterable, *[, key, default])
 ;;                     max(arg1, arg2, *args[, key])
@@ -7216,7 +7249,7 @@
       posonlyargs: (arg1)
       vararg: args
       kwonlyargs: (key default)
-      kw-defaults: (vector py-absent py-absent))))
+      kw-defaults: (vector py-absent py-absent) name: py-builtin-max)))
 
 ;;-------------------- memoryview(obj)
 
@@ -7227,7 +7260,7 @@
   (procedure->py-function
     (lambda (obj)
       (py-throw-exception-with-message py-builtin-NotImplementedError "memoryview not implemented"))
-    (make-signature posonlyargs: (obj))))
+    (make-signature posonlyargs: (obj) name: py-builtin-memoryview)))
 
 ;;-------------------- min(iterable, *[, key, default])
 ;;                     min(arg1, arg2, *args[, key])
@@ -7263,7 +7296,7 @@
       posonlyargs: (arg1)
       vararg: args
       kwonlyargs: (key default)
-      kw-defaults: (vector py-absent py-absent))))
+      kw-defaults: (vector py-absent py-absent) name: py-builtin-min)))
 
 ;;-------------------- next(iterator[, default])
 
@@ -7274,7 +7307,7 @@
 (define-rts py-builtin-next
   (procedure->py-function
     iterator-next
-    (make-signature posonlyargs: (iterator default) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (iterator default) defaults: (vector py-absent) name: py-builtin-next)))
 
 ;;-------------------- class object
 
@@ -7315,7 +7348,7 @@
   (procedure->py-function
     (lambda (x)
       (py-throw-exception-with-message py-builtin-NotImplementedError "oct not implemented"))
-    (make-signature posonlyargs: (x))))
+    (make-signature posonlyargs: (x) name: py-builtin-oct)))
 
 ;;-------------------- open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)
 
@@ -7507,7 +7540,7 @@
           py-None
           py-None
           py-True
-          py-None))))
+          py-None) name: py-builtin-open)))
 
 ;;-------------------- ord(c)
 
@@ -7522,7 +7555,7 @@
       (if (and (py-subtype-of-str? c) (fx= (py-str-len-to-scheme c) 1))
         (py-int-from-scheme (char->integer (string-ref (py-str-to-scheme c) 0)))
         (py-throw-exception-with-message py-builtin-TypeError "ord() expected string of length 1")))
-    (make-signature posonlyargs: (c))))
+    (make-signature posonlyargs: (c) name: py-builtin-ord)))
 
 ;;-------------------- pow(x, y[, z])
 
@@ -7561,7 +7594,7 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "pow not implemented"))
     (make-signature
       args: (base exp mod)
-      defaults: (vector py-absent))))
+      defaults: (vector py-absent) name: py-builtin-pow)))
 
 ;;-------------------- print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
 
@@ -7600,7 +7633,7 @@
             (newline port)
             py-None))
     (make-signature
-      vararg: objects)))
+      vararg: objects name: py-builtin-print)))
 
 ;;-------------------- class property(fget=None, fset=None, fdel=None, doc=None)
 
@@ -7686,7 +7719,7 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "property not implemented"))
     (make-signature
       args: (fget fset fdel doc)
-      defaults: (vector py-None py-None py-None py-None))))
+      defaults: (vector py-None py-None py-None py-None) name: py-builtin-property)))
 
 ;;-------------------- range(stop)
 ;;                     range(start, stop[, step])
@@ -7713,7 +7746,7 @@
 (define-rts py-builtin-repr
   (procedure->py-function
     py-repr
-    (make-signature posonlyargs: (repr))))
+    (make-signature posonlyargs: (repr) name: py-builtin-repr)))
 
 ;;-------------------- reversed(seq)
 
@@ -7726,7 +7759,7 @@
   (procedure->py-function
     (lambda (seq)
       (py-throw-exception-with-message py-builtin-NotImplementedError "reversed not implemented"))
-    (make-signature posonlyargs: (seq))))
+    (make-signature posonlyargs: (seq) name: py-builtin-reversed)))
 
 ;;-------------------- round(number[, ndigits])
 
@@ -7757,7 +7790,7 @@
       (py-throw-exception-with-message py-builtin-NotImplementedError "round not implemented"))
     (make-signature
       args: (number ndigits)
-      defaults: (vector py-absent))))
+      defaults: (vector py-absent) name: py-builtin-round)))
 
 ;;-------------------- class set([iterable])
 
@@ -7782,7 +7815,7 @@
   (procedure->py-function
     (lambda (object name value)
       (py-throw-exception-with-message py-builtin-NotImplementedError "setattr not implemented"))
-    (make-signature posonlyargs: (object name value))))
+    (make-signature posonlyargs: (object name value) name: py-builtin-setattr)))
 
 ;;-------------------- class slice(stop)
 ;;                     class slice(start, stop[, step])
@@ -7831,7 +7864,7 @@
     (make-signature
       posonlyargs: (iterable)
       kwonlyargs: (key reverse)
-      kw-defaults: (vector py-absent py-False))))
+      kw-defaults: (vector py-absent py-False) name: py-builtin-sorted)))
 
 ;;-------------------- @staticmethod
 
@@ -7867,7 +7900,7 @@
   (procedure->py-function
     (lambda (function)
       (py-throw-exception-with-message py-builtin-NotImplementedError "staticmethod not implemented"))
-    (make-signature posonlyargs: (function))))
+    (make-signature posonlyargs: (function) name: py-builtin-staticmethod)))
 
 ;;-------------------- class str(object='')
 ;;                     class str(object=b'', encoding='utf-8', errors='strict')
@@ -7901,7 +7934,7 @@
     (make-signature
       args: (start)
       posonlyargs: (iterable)
-      defaults: (vector (py-int-from-scheme 0)))))
+      defaults: (vector (py-int-from-scheme 0)) name: py-builtin-sum)))
 
 ;;-------------------- super([type[, object-or-type]])
 
@@ -7979,7 +8012,7 @@
     super-init
     (make-signature
       posonlyargs: (self type object)
-      defaults: (vector py-absent py-absent))))
+      defaults: (vector py-absent py-absent) name: super.__init__)))
 
 (define-rts (super-getattribute self name)
   (if (eq? (py-str-representative name) (& "__class__"))
@@ -7999,7 +8032,7 @@
 (define-rts super.__getattribute__
   (procedure->py-function
     super-getattribute
-    (make-signature posonlyargs: (self name))))
+    (make-signature posonlyargs: (self name) name: super.__getattribute__)))
 
 (define-rts py-builtin-super
   (py-make-builtin-class
@@ -8066,7 +8099,7 @@
   (procedure->py-function
     (lambda (object)
       (py-throw-exception-with-message py-builtin-NotImplementedError "vars not implemented"))
-    (make-signature posonlyargs: (object) defaults: (vector py-absent))))
+    (make-signature posonlyargs: (object) defaults: (vector py-absent) name: py-builtin-vars)))
 
 ;;-------------------- zip(*iterables)
 
@@ -8118,7 +8151,7 @@
   (procedure->py-function
     (lambda (iterables)
       (py-throw-exception-with-message py-builtin-NotImplementedError "zip not implemented"))
-    (make-signature vararg: iterables)))
+    (make-signature vararg: iterables name: py-builtin-zip)))
 
 ;;-------------------- __import__(name, globals=None, locals=None, fromlist=(), level=0)
 
@@ -8195,7 +8228,7 @@
        py-None
        py-None
        py-absent
-       (py-int-from-scheme 0)))))
+       (py-int-from-scheme 0)) name: py-builtin-__import__)))
 
 ;; Exceptions declarations
 

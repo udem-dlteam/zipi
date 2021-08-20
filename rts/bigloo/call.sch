@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Nov  5 10:30:55 2020                          */
-;*    Last change :  Fri Aug 20 11:00:23 2021 (serrano)                */
+;*    Last change :  Fri Aug 20 15:20:41 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Macros for Python calls                                          */
@@ -30,5 +30,6 @@
 
 (define-expander py-call py-call-expander)
 
+(define-expander signature-defaults signature-defaults-expander)
 (define-expander signature-arity-alignment signature-arity-alignment-expander)
 (define-expander signature-location signature-location-expander)

@@ -145,10 +145,7 @@
 
 (define-macro (py-getattribute-and-callX X obj attr args . opts)
    (let ((cache (if (null? opts) #f (car opts)))
-         (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts)))
-	 (args-names (map
-			(lambda (i) (string->symbol (string-append "$arg" (number->string i))))
-			(iota X))))	
+         (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
       (if cache
 	  (let ((args-names (map (lambda (i)
 				    (string->symbol

@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Nov  5 10:30:55 2020                          */
-;*    Last change :  Fri Aug 20 10:59:37 2021 (serrano)                */
+;*    Last change :  Fri Aug 20 15:11:48 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Macros for Python calls                                          */
@@ -35,7 +35,7 @@
    ;; followed by values
    (let ((known-keywords
 	     '(args: posonlyargs: vararg: kwonlyargs: kw-defaults:
-	       kwarg: defaults: location:)))
+	       kwarg: defaults: location: name:)))
       (let loop ((lst rest))
 	 (cond
 	    ((null? lst)
@@ -59,7 +59,9 @@
 	  (args-len (length args))
 	  (posonlyargs-len (length posonlyargs))
 	  (arity-alignment (if (not vararg) (+ args-len posonlyargs-len)))
-	  (location (get-keyword-or-default location: (if (epair? x) `',(cer x) #f))))
+	  (location (get-keyword-or-default
+		       location: (if (epair? x) `',(cer x)
+				     (get-keyword-or-default name: #f)))))
       (e (if (or kw-defaults defaults)
 	     `(vector
 		 ,(kwote (constantify* args))
@@ -82,6 +84,16 @@
 		 ,arity-alignment
 		 ,location))
 	 e)))
+
+;*---------------------------------------------------------------------*/
+;*    signature-defaults-expander ...                                  */
+;*---------------------------------------------------------------------*/
+(define (signature-defaults-expander x e)
+   (match-case x
+      ((?- ?sig)
+       (e `(vector-ref ,sig 6) e))
+      (else
+       (error "signature-arity-alignment" "bad form" x))))
 
 ;*---------------------------------------------------------------------*/
 ;*    signature-arity-alignment-expander ...                           */

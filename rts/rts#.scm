@@ -528,7 +528,7 @@
 
   ;; Check the arguments of make-signature are valid keywords followed by values
   (let ((known-keywords
-         '(args: posonlyargs: vararg: kwonlyargs: kw-defaults: kwarg: defaults:)))
+         '(args: posonlyargs: vararg: kwonlyargs: kw-defaults: kwarg: defaults: name:)))
     (let loop ((lst rest))
       (cond
         ((null? lst)
@@ -542,22 +542,26 @@
         (else
           (loop (cddr lst))))))
 
-  (let ((args (get-keyword-or-default args: '()))
-        (posonlyargs (get-keyword-or-default posonlyargs: '()))
-        (vararg (get-keyword-or-default vararg: #f))
-        (kwonlyargs (get-keyword-or-default kwonlyargs: '()))
-        (kw-defaults (get-keyword-or-default kw-defaults: #f))
-        (kwarg (get-keyword-or-default kwarg: #f))
-        (defaults (get-keyword-or-default defaults: #f)))
+  (let* ((args (get-keyword-or-default args: '()))
+         (posonlyargs (get-keyword-or-default posonlyargs: '()))
+         (vararg (get-keyword-or-default vararg: #f))
+         (kwonlyargs (get-keyword-or-default kwonlyargs: '()))
+         (kw-defaults (get-keyword-or-default kw-defaults: #f))
+         (kwarg (get-keyword-or-default kwarg: #f))
+         (defaults (get-keyword-or-default defaults: #f))
+         (args-len (length args))
+         (posonlyargs-len (length posonlyargs))
+         (arity-alignment (if (not vararg) (+ args-len posonlyargs-len))))
     (if (or kw-defaults defaults)
       `(vector
-	  ,(kwote (constantify* args))
-	  ,(kwote (constantify* posonlyargs))
-	  ,(and vararg `',(constantify vararg))
-	  ,(kwote (constantify* kwonlyargs))
-	  ,(or kw-defaults (kwote '#()))
-	  ,(and kwarg `',(constantify kwarg))
-	  ,(or defaults (kwote '#())))
+          ,(kwote (constantify* args))
+          ,(kwote (constantify* posonlyargs))
+          ,(and vararg `',(constantify vararg))
+          ,(kwote (constantify* kwonlyargs))
+          ,(or kw-defaults (kwote '#()))
+          ,(and kwarg `',(constantify kwarg))
+          ,(or defaults (kwote '#()))
+          ,arity-alignment)
       ;; signature with no default can be optimized to a constant
       `'#(,(constantify* args)
           ,(constantify* posonlyargs)
@@ -565,7 +569,10 @@
           ,(constantify* kwonlyargs)
           #()
           ,(and kwarg (constantify kwarg))
-          #()))))
+          #()
+          ,arity-alignment))))
+
+(define-macro (signature-arity-alignment vect) `(vector-ref ,vect 7))
 
 (define-macro (register-constants-perfect-hashtable table)
   (vector-map
