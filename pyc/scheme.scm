@@ -1110,7 +1110,8 @@
 		     (else (error "signature" "unknown value for kwarg" kwarg)))
 		  (if (null? defaults)
 		      '()
-		      `(defaults: (vector ,@(scheme* defaults conf))))))))
+		      `(defaults: (vector ,@(scheme* defaults conf))))
+		  `(location: ',(PycNode-loc this))))))
 
    (let loop ((decs (PycFun-decorators this)))
       (if (null? decs)

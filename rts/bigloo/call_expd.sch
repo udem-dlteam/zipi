@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Nov  5 10:30:55 2020                          */
-;*    Last change :  Thu Aug 19 07:09:48 2021 (serrano)                */
+;*    Last change :  Fri Aug 20 10:59:37 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Macros for Python calls                                          */
@@ -35,7 +35,7 @@
    ;; followed by values
    (let ((known-keywords
 	     '(args: posonlyargs: vararg: kwonlyargs: kw-defaults:
-	       kwarg: defaults:)))
+	       kwarg: defaults: location:)))
       (let loop ((lst rest))
 	 (cond
 	    ((null? lst)
@@ -58,7 +58,8 @@
 	  (defaults (get-keyword-or-default defaults: #f))
 	  (args-len (length args))
 	  (posonlyargs-len (length posonlyargs))
-	  (arity-alignment (if (not vararg) (+ args-len posonlyargs-len))))
+	  (arity-alignment (if (not vararg) (+ args-len posonlyargs-len)))
+	  (location (get-keyword-or-default location: (if (epair? x) `',(cer x) #f))))
       (e (if (or kw-defaults defaults)
 	     `(vector
 		 ,(kwote (constantify* args))
@@ -68,7 +69,8 @@
 		 ,(or kw-defaults (kwote '#()))
 		 ,(and kwarg `',(constantify kwarg))
 		 ,(or defaults (kwote '#()))
-		 ,arity-alignment)
+		 ,arity-alignment
+		 ,location)
 	     ;; signature with no default can be optimized to a constant
 	     `'#(,(constantify* args)
 		 ,(constantify* posonlyargs)
@@ -77,7 +79,8 @@
 		 #()
 		 ,(and kwarg (constantify kwarg))
 		 #()
-		 ,arity-alignment))
+		 ,arity-alignment
+		 ,location))
 	 e)))
 
 ;*---------------------------------------------------------------------*/
@@ -89,6 +92,16 @@
        (e `(vector-ref ,sig 7) e))
       (else
        (error "signature-arity-alignment" "bad form" x))))
+
+;*---------------------------------------------------------------------*/
+;*    signature-location-expander ...                                  */
+;*---------------------------------------------------------------------*/
+(define (signature-location-expander x e)
+   (match-case x
+      ((signature-location ?sig)
+       (e `(vector-ref ,sig 8) e))
+      (else
+       (error "signature-location" "bad form" x))))
 
 ;* {*---------------------------------------------------------------------*} */
 ;* {*    empty-signature-expander ...                                     *} */

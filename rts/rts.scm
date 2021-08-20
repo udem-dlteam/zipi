@@ -788,14 +788,19 @@
    (let ((unpacked-args (iterables*->list *args-lst)))
      (py-call-generic obj (append args unpacked-args))))
 
+(define-macro (tprint . args) #unspecified)
+
 (define-rts (py-call-generic obj args)
    (let ((obj-type (py-type obj)))
-      ;;(tprint "py-call-generic obj=" (typeof obj) " args=" (length args))
     (cond
       ((eq? obj-type py-function-class)
         (let* ((procedure (PyObjectFunction-procedure obj))
                (signature (PyObjectFunction-signature obj))
                (aligned-args (align-args-with-signature args signature)))
+	   (tprint "py-call-generic args=" (length args)
+	      " sig=" signature " aligned-args="
+	      (length aligned-args) " eq=" (eq? args aligned-args))
+	   ;; (when (eq? args aligned-args) (c-debugging-print "ICI..."))
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
         (let* ((func (PyObjectMethod-method obj))
@@ -803,19 +808,22 @@
           (py-call-generic func (cons __self__ args))))
       ;; initialization of instances from type with no special metaclass
       ((eq? obj-type py-type-class)
-        (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
+       (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
           (if (eq? __new__ object.__new__)
-            (if (eq? obj py-object-class)
-              (if (null? args)
-                ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
-                ;; this should be done concurrently in object-new
-                (py-obj-alloc py-object-class)
-                (py-throw-exception-with-message
-                  py-builtin-TypeError
-                  "object() takes no arguments"))
-              (let ((instance (py-obj-alloc obj)))
-                (type-call-from-instance obj instance (cons instance args))))
-            (type-call-from-new-method-fallback obj args __new__))))
+	      (if (eq? obj py-object-class)
+		  (if (null? args)
+		      ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
+		      ;; this should be done concurrently in object-new
+		      (py-obj-alloc py-object-class)
+		      (py-throw-exception-with-message
+			 py-builtin-TypeError
+			 "object() takes no arguments"))
+		  (let ((instance (py-obj-alloc obj)))
+		     (tprint "type-call-from-instance...")
+		     (type-call-from-instance obj instance (cons instance args))))
+	      (begin
+		 (tprint "type-call-from-method...")
+		 (type-call-from-new-method-fallback obj args __new__)))))
       (else
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
@@ -831,8 +839,8 @@
 	     (if (eq? (signature-arity-alignment signature) 0)
 		 (procedure)
 		 (let ((aligned-args (align-args-with-signature '() signature)))
-;* 		    (tprint "py-call0-generic obj=" (typeof obj) " " procedure */
-;* 		       " " (length aligned-args) " " signature)        */
+		    (tprint "py-call0-generic "
+		       " " (length aligned-args) " " signature)
 		    (apply procedure aligned-args)))))
 	 ((eq? obj-type py-method-class)
 	  (let* ((func (PyObjectMethod-method obj))
@@ -845,8 +853,8 @@
 		 (if (eq? obj py-object-class)
 		     (py-obj-alloc py-object-class)
 		     (let ((instance (py-obj-alloc obj)))
-			(type-call-from-instance obj instance (cons instance '()))))
-		 (type-call-from-new-method-fallback obj '() __new__))))
+			(type-callX-from-instance obj instance instance)))
+		 (type-callX-from-new-method obj __new__))))
 	 (else
 	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
 	     (if (eq? __call__ py-absent)
@@ -862,8 +870,8 @@
 	     (if (eq? (signature-arity-alignment signature) 1)
 		 (procedure a0)
 		 (let ((aligned-args (align-args-with-signature (cons a0 '()) signature)))
-;* 		    (tprint "py-call1-generic obj=" (typeof obj) " " procedure */
-;* 		       " " (length aligned-args) " " signature)        */
+		    (tprint "py-call1-generic "
+		       " " (length aligned-args) " " signature)
 		    (apply procedure aligned-args)))))
 	 ((eq? obj-type py-method-class)
 	  (let* ((func (PyObjectMethod-method obj))
@@ -878,9 +886,8 @@
 			py-builtin-TypeError
 			"object() takes no arguments")
 		     (let ((instance (py-obj-alloc obj)))
-			(type-call-from-instance obj instance
-			   (cons* instance a0 '()))))
-		 (type-call-from-new-method-fallback obj (cons a0 '()) __new__))))
+			(type-callX-from-instance obj instance instance a0)))
+		 (type-callX-from-new-method obj __new__ a0))))
 	 (else
 	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
 	     (if (eq? __call__ py-absent)
@@ -896,8 +903,8 @@
 	     (if (eq? (signature-arity-alignment signature) 2)
 		 (procedure a0 a1)
 		 (let ((aligned-args (align-args-with-signature (list a0 a1) signature)))
-;* 		    (tprint "py-call-generic2 obj=" (typeof obj) " " procedure */
-;* 		       " " (length aligned-args) " " signature)        */
+		    (tprint "py-call-generic2 "
+		       " " (length aligned-args) " " signature)
 		    (apply procedure aligned-args)))))
 	 ((eq? obj-type py-method-class)
 	  (let* ((func (PyObjectMethod-method obj))
@@ -912,8 +919,8 @@
 			py-builtin-TypeError
 			"object() takes no arguments")
 		     (let ((instance (py-obj-alloc obj)))
-			(type-call-from-instance obj instance (cons instance (cons* a0 a1 '())))))
-		 (type-call-from-new-method-fallback obj (cons* a0 a1 '()) __new__))))
+			(type-callX-from-instance obj instance instance a0 a1)))
+		 (type-callX-from-new-method obj __new__ a0 a1))))
 	 (else
 	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
 	     (if (eq? __call__ py-absent)
@@ -929,8 +936,8 @@
 	     (if (eq? (signature-arity-alignment signature) 3)
 		 (procedure a0 a1 a2)
 		 (let ((aligned-args (align-args-with-signature (list a0 a1 a2) signature)))
-;* 		    (tprint "py-call-generic3 obj=" (typeof obj) " " procedure */
-;* 		       " " (length aligned-args) " " signature)        */
+		    (tprint "py-call-generic3 "
+		       " " (length aligned-args) " " signature)
 		    (apply procedure aligned-args)))))
 	 ((eq? obj-type py-method-class)
 	  (let* ((func (PyObjectMethod-method obj))
@@ -945,8 +952,8 @@
 			py-builtin-TypeError
 			"object() takes no arguments")
 		     (let ((instance (py-obj-alloc obj)))
-			(type-call-from-instance obj instance (cons instance (list a0 a1 a2)))))
-		 (type-call-from-new-method-fallback obj (list a0 a1 a2) __new__))))
+			(type-callX-from-instance obj instance instance a0 a1 a2)))
+		 (type-callX-from-new-method obj __new__ a0 a1 a2))))
 	 (else
 	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
 	     (if (eq? __call__ py-absent)
@@ -6210,7 +6217,7 @@
 
 ;;-------------------- bin(x)
 
-;; Convert an integer number to a binary string prefixed with “0b”. The
+;; Convert an integer number to a binary string prefixed with â0bâ. The
 ;; result is a valid Python expression. If x is not a Python int object,
 ;; it has to define an __index__() method that returns an integer. Some
 ;; examples:
@@ -6220,7 +6227,7 @@
 ;; >>> bin(-10)
 ;; '-0b1010'
 ;;
-;; If prefix “0b” is desired or not, you can use either of the following ways.
+;; If prefix â0bâ is desired or not, you can use either of the following ways.
 ;;
 ;; >>> format(14, '#b'), format(14, 'b')
 ;; ('0b1110', '1110')
@@ -6240,7 +6247,7 @@
 ;; Return a Boolean value, i.e. one of True or False. x is converted
 ;; using the standard truth testing procedure. If x is false or omitted,
 ;; this returns False; otherwise it returns True. The bool class is a
-;; subclass of int (see Numeric Types — int, float, complex). It cannot
+;; subclass of int (see Numeric Types â int, float, complex). It cannot
 ;; be subclassed further. Its only instances are False and True (see
 ;; Boolean Values).
 ;;
@@ -6254,7 +6261,7 @@
 ;; site. Specifically, it calls sys.breakpointhook(), passing args and
 ;; kws straight through. By default, sys.breakpointhook() calls
 ;; pdb.set_trace() expecting no arguments. In this case, it is purely a
-;; convenience function so you don’t have to explicitly import pdb or
+;; convenience function so you donât have to explicitly import pdb or
 ;; type as much code to enter the debugger. However, sys.breakpointhook()
 ;; can be set to some other function and breakpoint() will automatically
 ;; call that, allowing you to drop into the debugger of choice.
@@ -6290,15 +6297,15 @@
 ;; used as the initial contents of the array.  Without an argument, an
 ;; array of size 0 is created.
 ;;
-;; See also Binary Sequence Types — bytes, bytearray, memoryview and
+;; See also Binary Sequence Types â bytes, bytearray, memoryview and
 ;; Bytearray Objects.
 
 (define-rts py-builtin-bytearray py-bytearray-class)
 ;;-------------------- class bytes([source[, encoding[, errors]]])
 
-;; Return a new “bytes” object, which is an immutable sequence of
+;; Return a new âbytesâ object, which is an immutable sequence of
 ;; integers in the range 0 <= x < 256. bytes is an immutable version of
-;; bytearray – it has the same non-mutating methods and the same indexing
+;; bytearray â it has the same non-mutating methods and the same indexing
 ;; and slicing behavior.
 ;;
 ;; Accordingly, constructor arguments are interpreted as for bytearray().
@@ -6306,7 +6313,7 @@
 ;; Bytes objects can also be created with literals, see String and Bytes
 ;; literals.
 ;;
-;; See also Binary Sequence Types — bytes, bytearray, memoryview, Bytes
+;; See also Binary Sequence Types â bytes, bytearray, memoryview, Bytes
 ;; Objects, and Bytes and Bytearray Operations.
 
 (define-rts py-builtin-bytes
@@ -6338,7 +6345,7 @@
 
 ;; Return the string representing a character whose Unicode code point is
 ;; the integer i. For example, chr(97) returns the string 'a', while
-;; chr(8364) returns the string '€'. This is the inverse of ord().
+;; chr(8364) returns the string 'â¬'. This is the inverse of ord().
 ;;
 ;; The valid range for the argument is from 0 through 1,114,111 (0x10FFFF
 ;; in base 16). ValueError will be raised if i is outside that range.
@@ -6360,7 +6367,7 @@
 ;;     @classmethod
 ;;     def f(cls, arg1, arg2, ...): ...
 ;;
-;; The @classmethod form is a function decorator – see Function
+;; The @classmethod form is a function decorator â see Function
 ;; definitions for details.
 ;;
 ;; A class method can be called either on the class (such as C.f()) or on
@@ -6383,7 +6390,7 @@
 ;; for information on how to work with AST objects.
 ;;
 ;; The filename argument should give the file from which the code was
-;; read; pass some recognizable value if it wasn’t read from a file
+;; read; pass some recognizable value if it wasnât read from a file
 ;; ('<string>' is commonly used).
 ;;
 ;; The mode argument specifies what kind of code must be compiled; it can
@@ -6400,7 +6407,7 @@
 ;; argument is given and dont_inherit is not (or is zero) then the future
 ;; statements specified by the flags argument are used in addition to
 ;; those that would be used anyway. If dont_inherit is a non-zero integer
-;; then the flags argument is it – the future statements in effect around
+;; then the flags argument is it â the future statements in effect around
 ;; the call to compile are ignored.
 ;;
 ;; Future statements are specified by bits which can be bitwise ORed
@@ -6434,7 +6441,7 @@
 ;; character. This is to facilitate detection of incomplete and complete
 ;; statements in the code module.  Warning It is possible to crash the
 ;; Python interpreter with a sufficiently large/complex string when
-;; compiling to an AST object due to stack depth limitations in Python’s
+;; compiling to an AST object due to stack depth limitations in Pythonâs
 ;; AST compiler.  Changed in version 3.2: Allowed use of Windows and Mac
 ;; newlines. Also input in 'exec' mode does not have to end in a newline
 ;; anymore. Added the optimize parameter.
@@ -6477,7 +6484,7 @@
 ;; Note When converting from a string, the string must not contain
 ;; whitespace around the central + or - operator. For example,
 ;; complex('1+2j') is fine, but complex('1 + 2j') raises ValueError.  The
-;; complex type is described in Numeric Types — int, float, complex.
+;; complex type is described in Numeric Types â int, float, complex.
 ;;
 ;; Changed in version 3.6: Grouping digits with underscores as in code
 ;; literals is allowed.
@@ -6490,7 +6497,7 @@
 ;;-------------------- delattr(object, name)
 
 ;; This is a relative of setattr(). The arguments are an object and a
-;; string. The string must be the name of one of the object’s
+;; string. The string must be the name of one of the objectâs
 ;; attributes. The function deletes the named attribute, provided the
 ;; object allows it. For example, delattr(x, 'foobar') is equivalent to
 ;; del x.foobar.
@@ -6506,7 +6513,7 @@
 ;;                     class dict(iterable, **kwarg)
 
 ;; Create a new dictionary. The dict object is the dictionary class. See
-;; dict and Mapping Types — dict for documentation about this class.
+;; dict and Mapping Types â dict for documentation about this class.
 ;;
 ;; For other containers see the built-in list, set, and tuple classes, as
 ;; well as the collections module.
@@ -6525,7 +6532,7 @@
 ;; customize the way dir() reports their attributes.
 ;;
 ;; If the object does not provide __dir__(), the function tries its best
-;; to gather information from the object’s __dict__ attribute, if
+;; to gather information from the objectâs __dict__ attribute, if
 ;; defined, and from its type object. The resulting list is not
 ;; necessarily complete, and may be inaccurate when the object has a
 ;; custom __getattr__().
@@ -6535,11 +6542,11 @@
 ;; complete, information:
 ;;
 ;; If the object is a module object, the list contains the names of the
-;; module’s attributes.  If the object is a type or class object, the
+;; moduleâs attributes.  If the object is a type or class object, the
 ;; list contains the names of its attributes, and recursively of the
-;; attributes of its bases.  Otherwise, the list contains the object’s
-;; attributes’ names, the names of its class’s attributes, and
-;; recursively of the attributes of its class’s base classes.  The
+;; attributes of its bases.  Otherwise, the list contains the objectâs
+;; attributesâ names, the names of its classâs attributes, and
+;; recursively of the attributes of its classâs base classes.  The
 ;; resulting list is sorted alphabetically. For example:
 ;;
 ;; >>> import struct
@@ -6641,7 +6648,7 @@
 ;; This function can also be used to execute arbitrary code objects (such
 ;; as those created by compile()). In this case pass a code object
 ;; instead of a string. If the code object has been compiled with 'exec'
-;; as the mode argument, eval()’s return value will be None.
+;; as the mode argument, eval()âs return value will be None.
 ;;
 ;; Hints: dynamic execution of statements is supported by the exec()
 ;; function. The globals() and locals() functions returns the current
@@ -6668,8 +6675,8 @@
 ;; be either a string or a code object. If it is a string, the string is
 ;; parsed as a suite of Python statements which is then executed (unless
 ;; a syntax error occurs). 1 If it is a code object, it is simply
-;; executed. In all cases, the code that’s executed is expected to be
-;; valid as file input (see the section “File input” in the Reference
+;; executed. In all cases, the code thatâs executed is expected to be
+;; valid as file input (see the section âFile inputâ in the Reference
 ;; Manual). Be aware that the return and yield statements may not be used
 ;; outside of function definitions even within the context of code passed
 ;; to the exec() function. The return value is None.
@@ -6752,11 +6759,11 @@
 ;;
 ;; Here floatnumber is the form of a Python floating-point literal,
 ;; described in Floating point literals. Case is not significant, so, for
-;; example, “inf”, “Inf”, “INFINITY” and “iNfINity” are all acceptable
+;; example, âinfâ, âInfâ, âINFINITYâ and âiNfINityâ are all acceptable
 ;; spellings for positive infinity.
 ;;
 ;; Otherwise, if the argument is an integer or a floating point number, a
-;; floating point number with the same value (within Python’s floating
+;; floating point number with the same value (within Pythonâs floating
 ;; point precision) is returned. If the argument is outside the range of
 ;; a Python float, an OverflowError will be raised.
 ;;
@@ -6779,7 +6786,7 @@
 ;; >>> float('-Infinity')
 ;; -inf
 ;;
-;; The float type is described in Numeric Types — int, float, complex.
+;; The float type is described in Numeric Types â int, float, complex.
 ;;
 ;; Changed in version 3.6: Grouping digits with underscores as in code
 ;; literals is allowed.
@@ -6793,7 +6800,7 @@
 
 ;;-------------------- format(value[, format_spec])
 
-;; Convert a value to a “formatted” representation, as controlled by
+;; Convert a value to a âformattedâ representation, as controlled by
 ;; format_spec. The interpretation of format_spec will depend on the type
 ;; of the value argument, however there is a standard formatting syntax
 ;; that is used by most built-in types: Format Specification
@@ -6804,7 +6811,7 @@
 ;;
 ;; A call to format(value, format_spec) is translated to
 ;; type(value).__format__(value, format_spec) which bypasses the instance
-;; dictionary when searching for the value’s __format__() method. A
+;; dictionary when searching for the valueâs __format__() method. A
 ;; TypeError exception is raised if the method search reaches object and
 ;; the format_spec is non-empty, or if either the format_spec or the
 ;; return value are not strings.
@@ -6821,7 +6828,7 @@
 ;;-------------------- class frozenset([iterable])
 
 ;; Return a new frozenset object, optionally with elements taken from
-;; iterable. frozenset is a built-in class. See frozenset and Set Types —
+;; iterable. frozenset is a built-in class. See frozenset and Set Types â
 ;; set, frozenset for documentation about this class.
 ;;
 ;; For other containers see the built-in set, list, tuple, and dict
@@ -6836,7 +6843,7 @@
 ;;-------------------- getattr(object, name[, default])
 
 ;; Return the value of the named attribute of object. name must be a
-;; string. If the string is the name of one of the object’s attributes,
+;; string. If the string is the name of one of the objectâs attributes,
 ;; the result is the value of that attribute. For example, getattr(x,
 ;; 'foobar') is equivalent to x.foobar. If the named attribute does not
 ;; exist, default is returned if provided, otherwise AttributeError is
@@ -6877,7 +6884,7 @@
 ;;-------------------- hasattr(object, name)
 
 ;; The arguments are an object and a string. The result is True if the
-;; string is the name of one of the object’s attributes, False if
+;; string is the name of one of the objectâs attributes, False if
 ;; not. (This is implemented by calling getattr(object, name) and seeing
 ;; whether it raises an AttributeError or not.)
 
@@ -6935,7 +6942,7 @@
 ;;-------------------- hex(x)
 
 ;; Convert an integer number to a lowercase hexadecimal string prefixed
-;; with “0x”. If x is not a Python int object, it has to define an
+;; with â0xâ. If x is not a Python int object, it has to define an
 ;; __index__() method that returns an integer. Some examples:
 ;;
 ;; >>> hex(255)
@@ -6973,7 +6980,7 @@
 
 ;;-------------------- id(object)
 
-;; Return the “identity” of an object. This is an integer which is
+;; Return the âidentityâ of an object. This is an integer which is
 ;; guaranteed to be unique and constant for this object during its
 ;; lifetime. Two objects with non-overlapping lifetimes may have the same
 ;; id() value.
@@ -7029,14 +7036,14 @@
 ;; base. Optionally, the literal can be preceded by + or - (with no space
 ;; in between) and surrounded by whitespace. A base-n literal consists of
 ;; the digits 0 to n-1, with a to z (or A to Z) having values 10 to
-;; 35. The default base is 10. The allowed values are 0 and 2–36. Base-2,
+;; 35. The default base is 10. The allowed values are 0 and 2â36. Base-2,
 ;; -8, and -16 literals can be optionally prefixed with 0b/0B, 0o/0O, or
 ;; 0x/0X, as with integer literals in code. Base 0 means to interpret
 ;; exactly as a code literal, so that the actual base is 2, 8, 10, or 16,
 ;; and so that int('010', 0) is not legal, while int('010') is, as well
 ;; as int('010', 8).
 ;;
-;; The integer type is described in Numeric Types — int, float, complex.
+;; The integer type is described in Numeric Types â int, float, complex.
 ;;
 ;; Changed in version 3.4: If base is not an instance of int and the base
 ;; object has a base.__index__ method, that method is called to obtain an
@@ -7141,7 +7148,7 @@
 ;;-------------------- class list([iterable])
 
 ;; Rather than being a function, list is actually a mutable sequence
-;; type, as documented in Lists and Sequence Types — list, tuple, range.
+;; type, as documented in Lists and Sequence Types â list, tuple, range.
 
 (define-rts py-builtin-list py-list-class)
 
@@ -7213,7 +7220,7 @@
 
 ;;-------------------- memoryview(obj)
 
-;; Return a “memory view” object created from the given argument. See
+;; Return a âmemory viewâ object created from the given argument. See
 ;; Memory Views for more information.
 
 (define-rts py-builtin-memoryview
@@ -7275,14 +7282,14 @@
 ;; has the methods that are common to all instances of Python
 ;; classes. This function does not accept any arguments.
 ;;
-;; Note object does not have a __dict__, so you can’t assign arbitrary
+;; Note object does not have a __dict__, so you canât assign arbitrary
 ;; attributes to an instance of the object class.
 
 (define-rts py-builtin-object py-object-class)
 
 ;;-------------------- oct(x)
 
-;; Convert an integer number to an octal string prefixed with “0o”. The
+;; Convert an integer number to an octal string prefixed with â0oâ. The
 ;; result is a valid Python expression. If x is not a Python int object,
 ;; it has to define an __index__() method that returns an integer. For
 ;; example:
@@ -7293,7 +7300,7 @@
 ;; '-0o70'
 ;;
 ;; If you want to convert an integer number to octal string either
-;; with prefix “0o” or not, you can use either of the following ways.
+;; with prefix â0oâ or not, you can use either of the following ways.
 ;;
 ;; >>> '%#o' % 10, '%o' % 10
 ;; ('0o12', '12')
@@ -7367,7 +7374,7 @@
 ;; Python 3.0. Refer to the documentation of the newline parameter for
 ;; further details.
 ;;
-;; Note Python doesn’t depend on the underlying operating system’s notion of text files; all the processing is done by Python itself, and is therefore platform-independent.
+;; Note Python doesnât depend on the underlying operating systemâs notion of text files; all the processing is done by Python itself, and is therefore platform-independent.
 ;;
 ;; buffering is an optional integer used to set the buffering
 ;; policy. Pass 0 to switch buffering off (only allowed in binary mode),
@@ -7378,9 +7385,9 @@
 ;;
 ;; Binary files are buffered in fixed-size chunks; the size of the buffer
 ;; is chosen using a heuristic trying to determine the underlying
-;; device’s “block size” and falling back on io.DEFAULT_BUFFER_SIZE. On
+;; deviceâs âblock sizeâ and falling back on io.DEFAULT_BUFFER_SIZE. On
 ;; many systems, the buffer will typically be 4096 or 8192 bytes long.
-;; “Interactive” text files (files for which isatty() returns True) use
+;; âInteractiveâ text files (files for which isatty() returns True) use
 ;; line buffering. Other text files use the policy described above for
 ;; binary files.  encoding is the name of the encoding used to decode or
 ;; encode the file. This should only be used in text mode. The default
@@ -7389,7 +7396,7 @@
 ;; the codecs module for the list of supported encodings.
 ;;
 ;; errors is an optional string that specifies how encoding and decoding
-;; errors are to be handled—this cannot be used in binary mode. A variety
+;; errors are to be handledâthis cannot be used in binary mode. A variety
 ;; of standard error handlers are available (listed under Error
 ;; Handlers), though any error handling name that has been registered
 ;; with codecs.register_error() is also valid. The standard names
@@ -7405,7 +7412,7 @@
 ;;
 ;; 'xmlcharrefreplace' is only supported when writing to a file. Characters not supported by the encoding are replaced with the appropriate XML character reference &#nnn;.
 ;;
-;; 'backslashreplace' replaces malformed data by Python’s backslashed escape sequences.
+;; 'backslashreplace' replaces malformed data by Pythonâs backslashed escape sequences.
 ;;
 ;; 'namereplace' (also only supported when writing) replaces unsupported characters with \N{...} escape sequences.
 ;;
@@ -7506,7 +7513,7 @@
 
 ;; Given a string representing one Unicode character, return an
 ;; integer representing the Unicode code point of that character. For
-;; example, ord('a') returns the integer 97 and ord('€') (Euro sign)
+;; example, ord('a') returns the integer 97 and ord('â¬') (Euro sign)
 ;; returns 8364. This is the inverse of chr().
 
 (define-rts py-builtin-ord
@@ -7536,7 +7543,7 @@
 ;; be relatively prime to z. In that case, pow(inv_x, -y, z) is returned,
 ;; where inv_x is an inverse to x modulo z.
 ;;
-;; Here’s an example of computing an inverse for 38 modulo 97:
+;; Hereâs an example of computing an inverse for 38 modulo 97:
 ;;
 ;; >>>
 ;; >>> pow(38, -1, 97)
@@ -7624,7 +7631,7 @@
 ;; invoke the setter and del c.x the deleter.
 ;;
 ;; If given, doc will be the docstring of the property
-;; attribute. Otherwise, the property will copy fget’s docstring (if it
+;; attribute. Otherwise, the property will copy fgetâs docstring (if it
 ;; exists). This makes it possible to create read-only properties easily
 ;; using property() as a decorator:
 ;;
@@ -7637,9 +7644,9 @@
 ;;         """Get the current voltage."""
 ;;         return self._voltage
 ;;
-;; The @property decorator turns the voltage() method into a “getter” for
+;; The @property decorator turns the voltage() method into a âgetterâ for
 ;; a read-only attribute with the same name, and it sets the docstring
-;; for voltage to “Get the current voltage.”
+;; for voltage to âGet the current voltage.â
 ;;
 ;; A property object has getter, setter, and deleter methods usable as
 ;; decorators that create a copy of the property with the corresponding
@@ -7685,7 +7692,7 @@
 ;;                     range(start, stop[, step])
 
 ;; Rather than being a function, range is actually an immutable sequence
-;; type, as documented in Ranges and Sequence Types — list, tuple, range.
+;; type, as documented in Ranges and Sequence Types â list, tuple, range.
 
 (define-rts py-builtin-range #f)
 (define-rts py-builtin-range_iterator #f)
@@ -7740,8 +7747,8 @@
 ;;
 ;; Note The behavior of round() for floats can be surprising: for
 ;; example, round(2.675, 2) gives 2.67 instead of the expected 2.68. This
-;; is not a bug: it’s a result of the fact that most decimal fractions
-;; can’t be represented exactly as a float. See Floating Point
+;; is not a bug: itâs a result of the fact that most decimal fractions
+;; canât be represented exactly as a float. See Floating Point
 ;; Arithmetic: Issues and Limitations for more information.
 
 (define-rts py-builtin-round
@@ -7755,7 +7762,7 @@
 ;;-------------------- class set([iterable])
 
 ;; Return a new set object, optionally with elements taken from
-;; iterable. set is a built-in class. See set and Set Types — set,
+;; iterable. set is a built-in class. See set and Set Types â set,
 ;; frozenset for documentation about this class.
 ;;
 ;; For other containers see the built-in frozenset, list, tuple, and dict
@@ -7812,7 +7819,7 @@
 ;;
 ;; The built-in sorted() function is guaranteed to be stable. A sort is
 ;; stable if it guarantees not to change the relative order of elements
-;; that compare equal — this is helpful for sorting in multiple passes
+;; that compare equal â this is helpful for sorting in multiple passes
 ;; (for example, sort by department, then by salary grade).
 ;;
 ;; For sorting examples and a brief sorting tutorial, see Sorting HOW TO.
@@ -7836,7 +7843,7 @@
 ;; class C:
 ;;     @staticmethod
 ;;     def f(arg1, arg2, ...): ...
-;; The @staticmethod form is a function decorator – see Function definitions for details.
+;; The @staticmethod form is a function decorator â see Function definitions for details.
 ;;
 ;; A static method can be called either on the class (such as C.f()) or
 ;; on an instance (such as C().f()).
@@ -7868,14 +7875,14 @@
 ;; Return a str version of object. See str() for details.
 ;;
 ;; str is the built-in string class. For general information about
-;; strings, see Text Sequence Type — str.
+;; strings, see Text Sequence Type â str.
 
 (define-rts py-builtin-str #f)
 
 ;;-------------------- sum(iterable, /, start=0)
 
 ;; Sums start and the items of an iterable from left to right and returns
-;; the total. The iterable’s items are normally numbers, and the start
+;; the total. The iterableâs items are normally numbers, and the start
 ;; value is not allowed to be a string.
 ;;
 ;; For some use cases, there are good alternatives to sum(). The
@@ -7922,7 +7929,7 @@
 ;; a dynamic execution environment. This use case is unique to Python and
 ;; is not found in statically compiled languages or languages that only
 ;; support single inheritance. This makes it possible to implement
-;; “diamond diagrams” where multiple base classes implement the same
+;; "diamond diagrams" multiple base classes implement the same
 ;; method. Good design dictates that this method have the same calling
 ;; signature in every case (because the order of calls is determined at
 ;; runtime, because that order adapts to changes in the class hierarchy,
@@ -8006,7 +8013,7 @@
 ;;-------------------- tuple([iterable])
 
 ;; Rather than being a function, tuple is actually an immutable sequence
-;; type, as documented in Tuples and Sequence Types — list, tuple, range.
+;; type, as documented in Tuples and Sequence Types -- list, tuple, range.
 
 (define-rts py-builtin-tuple py-tuple-class)
 
@@ -8035,7 +8042,7 @@
 ;;
 ;; See also Type Objects.
 ;;
-;; Changed in version 3.6: Subclasses of type which don’t override
+;; Changed in version 3.6: Subclasses of type which donât override
 ;; type.__new__ may no longer use the one-argument form to get the type
 ;; of an object.
 
@@ -8091,7 +8098,7 @@
 ;; to the iterator. This has the effect of dividing the input into
 ;; n-length chunks.
 ;;
-;; zip() should only be used with unequal length inputs when you don’t
+;; zip() should only be used with unequal length inputs when you don't
 ;; care about trailing, unmatched values from the longer iterables. If
 ;; those values are important, use itertools.zip_longest() instead.
 ;;

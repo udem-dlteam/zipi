@@ -16,7 +16,7 @@ def node_kind(ast, kind):
         return (kind +
                 ' (' + str(getattr(ast, 'lineno', -1)) +
                 ' ' + str(getattr(ast, 'col_offset', -1)) +
-                ')')
+                ' "' + filepath + '")')
     else:
         return kind
 
@@ -702,6 +702,8 @@ def dump(ast):
     print(cvt_mod(ast))
 
 def scmast(path):
+    global filepath
+    filepath = path
     source = read_file(path)
     dump(parse(source))
 

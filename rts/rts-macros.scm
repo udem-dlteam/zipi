@@ -219,14 +219,23 @@
 
 ;; executions points in the type.__call__ method
 (define-macro (type-call-from-instance self instance args-w/-instance) ;;args should contain instance
-  `(let* (($self ,self)
-          ($instance ,instance)
-          ($args-w/-instance ,args-w/-instance))
-    (if (eq? (py-obj-cls $instance) $self)
-      (let ((__init__ (getattribute-from-cls-mro $self (& "__init__"))))
-        (py-call-generic __init__ $args-w/-instance)
-        $instance)
-      $instance)))
+   `(let* (($self ,self)
+	   ($instance ,instance)
+	   ($args-w/-instance ,args-w/-instance))
+       (if (eq? (py-obj-cls $instance) $self)
+	   (let ((__init__ (getattribute-from-cls-mro $self (& "__init__"))))
+	      (py-call-generic __init__ $args-w/-instance)
+	      $instance)
+	   $instance)))
+
+(define-macro (type-callX-from-instance self instance . args)
+   `(let* (($self ,self)
+	   ($instance ,instance))
+       (if (eq? (py-obj-cls $instance) $self)
+	   (let ((__init__ (getattribute-from-cls-mro $self (& "__init__"))))
+	      (py-call __init__ ,@args)
+	      $instance)
+	   $instance)))
 
 (define-macro (type-call-from-new-method self args __new__)
   `(let* (($self ,self)
@@ -235,6 +244,12 @@
          (args-w/-instance (cons $self $args))
          (instance (py-call-generic $__new__ args-w/-instance)))
       (type-call-from-instance $self instance args-w/-instance)))
+
+(define-macro (type-callX-from-new-method self __new__ . args)
+   `(let* (($self ,self)
+	   ($__new__ ,__new__)
+	   (instance (py-call $__new__ $self ,@args)))
+       (type-callX-from-instance $self instance $self ,@args)))
 
 ;; Macros to enable/disable various implementation strategies.
 
