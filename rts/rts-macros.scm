@@ -1636,6 +1636,15 @@
 (define-macro (getattribute-from-obj-mro-with-index/owner-2cont obj name succeed fail)
 `(getattribute-from-cls-mro-with-index/owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
+;* (define-expander py-throw                                           */
+;*    (lambda (x e)                                                    */
+;*       (match-case x                                                 */
+;* 	 ((?- ?exc)                                                    */
+;* 	  (e `(begin                                                   */
+;* 		 (tprint "throwing..." ',(if (epair? x) (cer x) '???)) */
+;* 		 ((@ py-throw __py_rts) ,exc))                         */
+;* 	     e)))))                                                    */
+       
 ;; object.__getattribute__ error message
 (define-macro (py-throw-object-getattribute-error obj name)
   `(py-throw

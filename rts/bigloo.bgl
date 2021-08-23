@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Tue Apr  7 16:51:08 2020                          */
-;*    Last change :  Thu Aug 12 13:12:35 2021 (serrano)                */
+;*    Last change :  Mon Aug 23 13:30:11 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Bigloo compatibility kit                                         */
@@ -56,6 +56,7 @@
 	   (inline infinite?::bool ::double)
 	   (inline flfinite?::bool ::double)
 	   (inline flinfinite?::bool ::double)
+	   (inline flabs::double ::double)
 	   (inline nan?::bool ::double)
 	   
 	   (inline +fx/overflow::obj ::obj ::obj)
@@ -170,6 +171,11 @@
 ;*---------------------------------------------------------------------*/
 (define-inline (nan? n)
    (nanfl? n))
+
+;*---------------------------------------------------------------------*/
+;*    fl operations ...                                                */
+;*---------------------------------------------------------------------*/
+(define-inline (flabs x) (absfl x))
 
 ;*---------------------------------------------------------------------*/
 ;*    fx operations ...                                                */

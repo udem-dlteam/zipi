@@ -130,9 +130,21 @@
         (cons node tail)))))
 
 (define-walk-method (cps-stmt this::PycSeq k kbreak kcontinue kraise)
-  (new-PycSeq
-    (PycNode-loc this)
-    (cps-stmt* (PycSeq-nodes this) k kbreak kcontinue kraise)))
+   ;; MS CARE 24 aug 2021: bm_queens.py break with the following error msg
+   ;; File "../../prgm/project/zipi/zipi/pyc/cps.scm", line 119, character 3847:
+   ;; #    (list (new-PycCallKont '(-1 -1) k))
+   ;; #          ^
+   ;; *** ERROR:cps-stmt*
+   ;; Type "PycExpr" expected, "bbool" provided -- #f
+   ;;    1. new-PycCallKont@__pyc_cps, ../../prgm/project/zipi/zipi/pyc/new.sch:220
+   ;;    2. cps-stmt*@__pyc_cps, ../../prgm/project/zipi/zipi/pyc/cps.scm:118
+   ;;    3. cps-stmt*@__pyc_cps, ../../prgm/project/zipi/zipi/pyc/cps.scm:118
+   ;;    4. cps-stmt*@__pyc_cps, ../../prgm/project/zipi/zipi/pyc/cps.scm:118
+   (if (not k)
+       this
+       (new-PycSeq
+	  (PycNode-loc this)
+	  (cps-stmt* (PycSeq-nodes this) k kbreak kcontinue kraise))))
 
 (define-walk-method (cps-stmt this::PycReturn k kbreak kcontinue kraise)
   (if kraise

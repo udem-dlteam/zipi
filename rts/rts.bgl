@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Tue Aug 17 15:29:19 2021 (serrano)                */
+;*    Last change :  Mon Aug 23 11:41:15 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -349,6 +349,7 @@
 	   (py-extend-builtin-core-class cls . attrs)
 	   (py-make-class name module bases . atrs)
 	   
+	   (inline native-exception? val)
 	   (py-throw ::obj)
 	   (py-throw-with-values exc . values)
 	   (py-throw-index-out-of-range type)
@@ -1093,7 +1094,12 @@
 ;*    exception-notify ::PyObject ...                                  */
 ;*---------------------------------------------------------------------*/
 (define-method (exception-notify o::PyObject)
-   (display (format "*** EXCEPTION: ~s\n" o) (current-error-port)))
+   (with-access::PyObjectFunction py-builtin-print (procedure)
+      (tprint "procedure=" procedure)
+      (display "*** PY-EXCEPTION: " (current-output-port))
+      (procedure (py-tuple-from-scheme (vector o)))
+      (newline)))
+;*    (display (format "*** EXCEPTION: ~s\n" o) (current-error-port))) */
 
 ;*---------------------------------------------------------------------*/
 ;*    bootstrap-builtins ...                                           */
@@ -1372,10 +1378,24 @@
       (orelse (body))))
 
 (define-inline (py-try-except handler body)
-  (with-handler
-    handler
-    (body)))
+   (with-handler
+      handler
+      (body)))
+
+(define-inline (native-exception? val)
+   (isa? val &exception))
 
 ;; throw an exception without checking it is an instance of BaseException
 (define-inline (py-throw-unsafe exc)
-  (raise exc))
+   (tprint "py-throw-unsafe " exc)
+   (raise exc))
+
+(define-expander py-throw-unsafe
+   (lambda (x e)
+      (match-case x
+	 ((?- ?exc)
+	  (e `(begin
+		 (tprint "py-throw-unsafe...")
+		 (raise ,exc))
+	     e)))))
+       
