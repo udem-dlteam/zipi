@@ -831,39 +831,35 @@
             (py-call-generic __call__ (cons obj args))))))))
 
 (define-rts (py-call0-generic obj)
-   (with-handler
-      (lambda (e)
-	 (tprint "error in py-call0...")
-	 (exception-notify e))
-      (let ((obj-type (py-type obj)))
-	 (cond
-	    ((eq? obj-type py-function-class)
-	     (let* ((procedure (PyObjectFunction-procedure obj))
-		    (signature (PyObjectFunction-signature obj)))
-		(if (eq? (signature-arity-alignment signature) 0)
-		    (procedure)
-		    (let ((aligned-args (align-args-with-signature '() signature)))
-		       (tprint "py-call0-generic "
-			  " " (length aligned-args) " " signature)
-		       (apply procedure aligned-args)))))
-	    ((eq? obj-type py-method-class)
-	     (let* ((func (PyObjectMethod-method obj))
-		    (__self__ (PyObjectMethod-self obj)))
-		(py-call1-generic func __self__)))
-	    ;; initialization of instances from type with no special metaclass
-	    ((eq? obj-type py-type-class)
-	     (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
-		(if (eq? __new__ object.__new__)
-		    (if (eq? obj py-object-class)
-			(py-obj-alloc py-object-class)
-			(let ((instance (py-obj-alloc obj)))
-			   (type-callX-from-instance obj instance instance)))
-		    (type-callX-from-new-method obj __new__))))
-	    (else
-	     (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
-		(if (eq? __call__ py-absent)
-		    (py-throw-not-callable obj)
-		    (py-call1-generic __call__ obj))))))))
+   (let ((obj-type (py-type obj)))
+      (cond
+	 ((eq? obj-type py-function-class)
+	  (let* ((procedure (PyObjectFunction-procedure obj))
+		 (signature (PyObjectFunction-signature obj)))
+	     (if (eq? (signature-arity-alignment signature) 0)
+		 (procedure)
+		 (let ((aligned-args (align-args-with-signature '() signature)))
+		    (tprint "py-call0-generic "
+		       " " (length aligned-args) " " signature)
+		    (apply procedure aligned-args)))))
+	 ((eq? obj-type py-method-class)
+	  (let* ((func (PyObjectMethod-method obj))
+		 (__self__ (PyObjectMethod-self obj)))
+	     (py-call1-generic func __self__)))
+	 ;; initialization of instances from type with no special metaclass
+	 ((eq? obj-type py-type-class)
+	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
+	     (if (eq? __new__ object.__new__)
+		 (if (eq? obj py-object-class)
+		     (py-obj-alloc py-object-class)
+		     (let ((instance (py-obj-alloc obj)))
+			(type-callX-from-instance obj instance instance)))
+		 (type-callX-from-new-method obj __new__))))
+	 (else
+	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
+	     (if (eq? __call__ py-absent)
+		 (py-throw-not-callable obj)
+		 (py-call1-generic __call__ obj)))))))
 
 (define-rts (align-and-call signature procedure . args)
    (let ((aligned-args (align-args-with-signature args signature)))
@@ -8047,6 +8043,21 @@
            (py-descriptor-get attr this-self owner))
          (lambda ()
            (object-getattribute self name))))))
+
+(define-rts (py-super-getattribute-for-getattribute name cls instance)
+  (if (eq? (py-str-representative name) (& "__class__"))
+      py-builtin-super
+      (let* ((this-class cls)
+             (this-self instance)
+             (mro (PyObjectType-mro this-class))
+             (parent-cls (vector-ref mro 1)))
+        (getattribute-from-cls-mro-with-owner-2cont
+         parent-cls
+         name
+         (lambda (attr owner)
+           (py-descriptor-get attr this-self owner))
+         (lambda ()
+	    (object-getattribute instance name))))))
 
 (define-rts super.__getattribute__
   (procedure->py-function

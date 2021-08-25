@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Marc Feeley & Manuel Serrano                      */
 ;*    Creation    :  Tue Jun  4 14:49:14 2019                          */
-;*    Last change :  Mon Aug 23 11:41:15 2021 (serrano)                */
+;*    Last change :  Wed Aug 25 15:42:22 2021 (serrano)                */
 ;*    Copyright   :  2019-21 M. Feeley & M. Serrano                    */
 ;*    -------------------------------------------------------------    */
 ;*    Object representation                                            */
@@ -580,7 +580,9 @@
 	   py-next-behaviors-table
 	   (py-iter-fallback obj)
 	   
-	   (py-make-dict key-value-pairs))
+	   (py-make-dict key-value-pairs)
+
+	   (py-super-getattribute-for-getattribute name cls instance))
    
    (pragma (py-call-generic (args-noescape args)))
    

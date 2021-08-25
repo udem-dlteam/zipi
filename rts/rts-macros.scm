@@ -95,12 +95,20 @@
   `(,macro-name 10 ,@args))
 
 (define-macro (py-call0-maybe-super fn cls instance)
-  `(let (($fn ,fn))
-      (if (eq? $fn py-builtin-super)
-        ,(if (not (and cls instance))
-          `(py-throw-super-no-arguments-error)
-          `(py-call py-builtin-super ,cls ,instance))
-        (py-call $fn))))
+   (match-case fn
+      ((py-getattribute (and ?obj (py-call (global-get %global (& "super") ?-) ?cls ?instance)) ?prop ?cache ?inline-priorities)
+       `(let (($fn ,fn))
+	   (py-call0-maybe-super $fn ,cls ,instance)))
+      ((py-getattribute ?obj ?prop ?cache ?inline-priorities)
+       `(py-getattribute-and-call0-maybe-super-cached ,obj ,prop
+	   ,cls ,instance ,cache ,inline-priorities))
+      (else
+       `(let (($fn ,fn))
+	   (if (eq? $fn py-builtin-super)
+	       ,(if (and cls instance)
+		    `(py-call py-builtin-super ,cls ,instance)
+		    `(py-throw-super-no-arguments-error))
+	       (py-call $fn))))))
 
 (define-macro (py-global-call global procedure global-id init-value name cache . args)
    (if (symbol? global-id)
@@ -2674,11 +2682,21 @@
   `(py-maybe-length-fallback ,obj))
 
 (define-macro (py-getattribute obj attr . opts)
-   (let ((cache (if (null? opts) #f (car opts)))
-         (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
-      (if cache
-          `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
-          `(py-getattribute-fallback ,obj ,attr))))
+   (match-case obj
+      ((py-call (global-get %global (& "super") ?cache) ?cls ?instance)
+       `(if (eq? (global-get %global (& "super") ,cache) py-builtin-super)
+	    (py-super-getattribute-for-getattribute ,attr ,cls ,instance)
+	    ,(let ((cache (if (null? opts) #f (car opts)))
+		   (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
+		(if cache
+		    `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
+		    `(py-getattribute-fallback ,obj ,attr)))))
+      (else
+       (let ((cache (if (null? opts) #f (car opts)))
+	     (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
+	  (if cache
+	      `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
+	      `(py-getattribute-fallback ,obj ,attr))))))
 
 (define-macro (py-getattribute-cached obj attr cache inline-priorities)
   ;; attr should always be a string literal
@@ -2717,6 +2735,51 @@
                        (py-getattribute-from-module-cache $OBJ $cache)
                        ,(loop (cdr inlines))))
                 (else (error "py-getattribute-cached" "unknown inlining priority" (car inlines)))))))))
+
+(define-macro (py-getattribute-and-call0-maybe-super-cached obj attr cls instance cache inline-priorities)
+   (define (gen-py-callX expr)
+      `(if (eq? ,expr py-builtin-super)
+	   ,(if (and cls instance)
+		`(py-call py-builtin-super ,cls ,instance)
+		`(py-throw-super-no-arguments-error))
+	   (py-callX ,0 ,expr)))
+   ;; attr should always be a string literal
+   `(py-specialized-sint-float-dispatch-let
+       $OBJ
+       ,obj
+       ;; TODO: use macro to determine exact attribute in case of
+       ;; int and float, those can be determined statically
+       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
+       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
+       ,(let loop ((inlines inline-priorities))
+	   (if (null? inlines)
+	       (gen-py-callX
+		  `(py-getattribute-cached-modular-fallback
+		      $OBJ (py-obj-hclass-general $OBJ) ,attr ,cache
+		      ,(not (not (memq 'object inline-priorities)))
+		      ,(not (not (memq 'mro inline-priorities)))
+		      ,(not (not (memq 'type inline-priorities)))
+		      ,(not (not (memq 'module inline-priorities)))))
+	       `(let (($cache ,cache)
+		      ($hclass (py-obj-hclass-general $OBJ)))
+		   ,(case (car inlines)
+		       ((object)
+			`(if (eq? $hclass (AttributeCache-object-hclass $cache))
+			     ,(gen-py-callX `(py-getattribute-from-object-cache $OBJ $cache))
+			     ,(loop (cdr inlines))))
+		       ((mro)
+			`(if (eq? $hclass (AttributeCache-mro-hclass $cache))
+			      (py-getattribute-and-call0-from-mro-maybe-super-cache $OBJ ,cls ,instance $cache)
+			     ,(loop (cdr inlines))))
+		       ((type)
+			`(if (eq? $hclass (AttributeCache-type-hclass $cache))
+			     (py-getattribute-and-call0-from-type-maybe-super-cache $OBJ ,cls ,instance $cache)
+			     ,(loop (cdr inlines))))
+		       ((module)
+			`(if (eq? $hclass (AttributeCache-module-hclass $cache))
+			     ,(gen-py-callX `(py-getattribute-from-module-cache $OBJ $cache))
+			     ,(loop (cdr inlines))))
+		       (else (error "py-getattribute-and-callX-cached" "unknown inlining priority" (car inlines)))))))))
 
 (define-macro (py-getattribute-and-callX-cached obj attr X args cache inline-priorities)
    (define (gen-py-callX expr)
@@ -2789,7 +2852,12 @@
 (define-macro (py-getattribute-and-callX-from-mro-cache obj X args cache)
   ;; obj should never be a sint or float, those case can be resolved statically
   `(let (($cache ,cache))
-    (py-descriptor-get-and-callX (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,X ,args)))
+      (py-descriptor-get-and-callX (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,X ,args)))
+
+(define-macro (py-getattribute-and-call0-from-mro-maybe-super-cache obj cls instance cache)
+  ;; obj should never be a sint or float, those case can be resolved statically
+  `(let (($cache ,cache))
+      (py-descriptor-get-and-call0-maybe-super (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,cls ,instance)))
 
 (define-macro (py-getattribute-from-type-cache obj cache)
   ;; obj should never be a sint or float, those are not types
@@ -2806,6 +2874,19 @@
     (if (eq? (AttributeCache-bind $cache) 'self)
         (py-descriptor-get-and-callX (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,X ,args)
         (py-callX ,X (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)) ,@args))))
+
+(define-macro (py-getattribute-and-call0-from-type-maybe-super-cache obj cls instance cache)
+   ;; obj should never be a sint or float, those are not types
+   `(let (($obj ,obj)
+	  ($cache ,cache))
+       (if (eq? (AttributeCache-bind $cache) 'self)
+	   (py-descriptor-get-and-call0-maybe-super (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,cls ,instance)
+	   (let (($fn (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache))))
+	      (if (eq? $fn py-builtin-super)
+		  ,(if (and cls instance)
+		       `(py-call py-builtin-super ,cls ,instance)
+		       `(py-throw-super-no-arguments-error))
+		  (py-callX 0 $fn))))))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
@@ -3124,6 +3205,23 @@
 	   (py-callMethodX ,X $attr $instance ,@args))
 	  (else
 	   (py-callX ,X (py-descriptor-get-fallback $attr $instance $owner) ,@args)))))
+
+(define-macro (py-descriptor-get-and-call0-maybe-super attr instance owner cls inst)
+   `(let* (($attr ,attr)
+	   ($instance ,instance)
+	   ($owner ,owner)
+	   ($cls (py-obj-cls ,attr)))
+       (cond
+	  ((not (PyObjectType-can-have-getter $cls))
+	   (py-callX ,0 $attr)) ;; this covers the case fixnum/flonum
+	  ((PyObjectFunction? $attr)
+	   (if (eq? $attr py-builtin-super)
+	       ,(if (and cls inst)
+		    `(py-call py-builtin-super ,cls ,inst)
+		    `(py-throw-super-no-arguments-error))
+	       (py-callMethodX 0 $attr $instance)))
+	  (else
+	   (py-callX 0 (py-descriptor-get-fallback $attr $instance $owner))))))
 
 (define-macro (py-iter obj)
   `(py-iter-fallback ,obj))

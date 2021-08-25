@@ -3,7 +3,7 @@
 ;*    -------------------------------------------------------------    */
 ;*    Author      :  Manuel Serrano                                    */
 ;*    Creation    :  Thu Nov  5 10:30:55 2020                          */
-;*    Last change :  Fri Aug 20 15:11:48 2021 (serrano)                */
+;*    Last change :  Wed Aug 25 15:45:22 2021 (serrano)                */
 ;*    Copyright   :  2020-21 Manuel Serrano                            */
 ;*    -------------------------------------------------------------    */
 ;*    Macros for Python calls                                          */
@@ -288,6 +288,8 @@
 		    (call nargs f pos-args))))))))
 
    (match-case x
+      ((py-call (and (py-getattribute (py-call (global-get %global (& "super") ?-) ?cls ?instance) ?attr . ?opts) ?f) . ?args)
+       (e `(let (($f ,f)) (py-call $f ,@args)) e))
       ((py-call (and (py-getattribute ?obj ?attr . ?opts) ?f) . ?args)
        (e (call-expander
 	     (lambda (X fun args)
