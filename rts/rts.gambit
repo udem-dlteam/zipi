@@ -159,7 +159,7 @@
                      #f))))))
         #f)))
 
-(define (compile-source source target)
+(define (compile-source source dest)
 
   (define root-dir
     (path-expand "~~zipiroot"))
@@ -171,20 +171,28 @@
       (fatal-error
         "cannot find zpc.gambit executable."))
 
-  (possible-error 1 "compiling file " source " to " target " \n")
+  (possible-error 1 "compiling file " source " to " dest " \n")
 
-  (shell-command
-    (string-append
-      (if debug-flag
-          "ZPC_DEBUG=true "
-          "ZPC_DEBUG=false ")
-      zpc-path
-      " -t gambit "
-      root-dir
-      " "
-      source
-      " > "
-      target)))
+  (let* ((output
+          (shell-command
+           (string-append
+            (if debug-flag
+                "ZPC_DEBUG=true "
+                "ZPC_DEBUG=false ")
+            zpc-path
+            " -t gambit "
+            root-dir
+            " "
+            source)
+           #t))
+         (status
+          (car output)))
+    (if (= status 0)
+        (call-with-output-file
+            dest
+          (lambda (port) (display (cdr output) port)))
+        (display (cdr output)))
+    status))
 
 (define-rts (ensure-parent-dir-exists path)
 

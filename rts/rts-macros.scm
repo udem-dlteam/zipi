@@ -95,6 +95,7 @@
   `(,macro-name 10 ,@args))
 
 (define-macro (py-call0-maybe-super fn cls instance)
+   (cond-expand (gambit (define-syntax match-case (lambda (src) (##import _match/match-expand) (match-expand src #t #f #t)))) (else))
    (match-case fn
       ((py-getattribute (and ?obj (py-call (global-get %global (& "super") ?-) ?cls ?instance)) ?prop ?cache ?inline-priorities)
        `(let (($fn ,fn))
@@ -2682,6 +2683,7 @@
   `(py-maybe-length-fallback ,obj))
 
 (define-macro (py-getattribute obj attr . opts)
+   (cond-expand (gambit (define-syntax match-case (lambda (src) (##import _match/match-expand) (match-expand src #t #f #t)))) (else))
    (match-case obj
       ((py-call (global-get %global (& "super") ?cache) ?cls ?instance)
        `(if (eq? (global-get %global (& "super") ,cache) py-builtin-super)

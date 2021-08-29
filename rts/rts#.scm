@@ -551,7 +551,9 @@
          (defaults (get-keyword-or-default defaults: #f))
          (args-len (length args))
          (posonlyargs-len (length posonlyargs))
-         (arity-alignment (if (not vararg) (+ args-len posonlyargs-len))))
+         (arity-alignment (if (not vararg) (+ args-len posonlyargs-len)))
+         (location (get-keyword-or-default
+                    location: (get-keyword-or-default name: #f))))
     (if (or kw-defaults defaults)
       `(vector
           ,(kwote (constantify* args))
@@ -561,7 +563,8 @@
           ,(or kw-defaults (kwote '#()))
           ,(and kwarg `',(constantify kwarg))
           ,(or defaults (kwote '#()))
-          ,arity-alignment)
+          ,arity-alignment
+          ',location)
       ;; signature with no default can be optimized to a constant
       `'#(,(constantify* args)
           ,(constantify* posonlyargs)
@@ -570,10 +573,12 @@
           #()
           ,(and kwarg (constantify kwarg))
           #()
-          ,arity-alignment))))
+          ,arity-alignment
+          ',location))))
 
 (define-macro (signature-defaults vect) `(vector-ref ,vect 6))
 (define-macro (signature-arity-alignment vect) `(vector-ref ,vect 7))
+(define-macro (signature-location vect) `(vector-ref ,vect 8))
 
 (define-macro (register-constants-perfect-hashtable table)
   (vector-map
