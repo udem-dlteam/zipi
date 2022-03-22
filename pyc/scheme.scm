@@ -1,3 +1,4 @@
+(cond-expand (gambit (include "decision-tables.scm")))
 
 (define (pyc-scheme ast conf)
    (pyc-cache! ast conf)
@@ -898,15 +899,14 @@
 (define-walk-method (scheme this::PycNumber conf)
   (let ((value (PycLiteralValue-val this)))
     (cond
-      ((flonum? value)
-        (epairify this
-          `(py-float-from-scheme ,value)))
+      ((or (flonum? value) (fixnum? value))
+        (epairify this value))
       ((not (real? value))
         `(py-throw-exception-with-message
             py-builtin-NotImplementedError
               "complex number at line "
               ,(number->string (car (PycNode-loc this)))))
-   	  ((number? value) ;; must be an int
+   	  ((number? value) ;; big num
         (epairify this
     	    `(py-int-from-scheme ,value)))
       (else
@@ -969,11 +969,16 @@
 
    (define native-types '(Uint Usint Ubint Ufloat Ubool Ustr))
 
+   (define (default-python-op)
+     `(,(symbol-append 'py- (PycBinary-op this))
+       ,(scheme (PycBinary-lhs this) conf)
+       ,(scheme (PycBinary-rhs this) conf)))
+
    (define (python-op)
       (epairify this
-	 `(,(symbol-append 'py- (PycBinary-op this))
-	   ,(scheme (PycBinary-lhs this) conf)
-	   ,(scheme (PycBinary-rhs this) conf))))
+        (if (eq? (PycBinary-op this) 'add)
+         (or (add-decision-table this conf) (default-python-op))
+      	 (default-python-op))))
 
    (define (scheme-op)
       (epairify this

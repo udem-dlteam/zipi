@@ -1,0 +1,10 @@
+(module __pyc_decision_tables
+
+   (include "ast.sch"
+	    "walk.sch")
+
+   (import __pyc_dump
+	   __pyc_ast
+	   __pyc_utils)
+
+   (export (add-decision-table this::PycNode conf)))

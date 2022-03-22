@@ -22,7 +22,7 @@ do: build
 #*---------------------------------------------------------------------*/
 OBJECTS_COMMON = ast compile parse sexp symbol return dump locals break \
   generator cps scheme javascript utils configure super \
-  intrinsics simple-scoping usage type-inference
+  intrinsics simple-scoping usage type-inference decision-tables
 
 #*---------------------------------------------------------------------*/
 #*    Common entry points                                              */

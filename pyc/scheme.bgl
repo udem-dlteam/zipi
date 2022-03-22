@@ -16,7 +16,8 @@
 
    (include "ast.sch"
 	    "walk.sch"
-	    "new.sch")
+	    "new.sch"
+      "decision-tables.scm")
 
    (import __pyc_configure
 	   __pyc_dump
@@ -146,7 +147,7 @@
 	  (mod (if (config-get conf :bootstrap)
 		   (pyc-scheme-bigloo-ast-bootstrap-module ast conf)
 		   (pyc-scheme-bigloo-ast-module conf))))
-      
+
       `(;; module declaration
 	,mod
 	(start-registering-constants)
