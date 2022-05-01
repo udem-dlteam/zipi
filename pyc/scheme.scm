@@ -975,10 +975,7 @@
        ,(scheme (PycBinary-rhs this) conf)))
 
    (define (python-op)
-      (epairify this
-        (if (eq? (PycBinary-op this) 'add)
-         (or (add-decision-table this conf) (default-python-op))
-      	 (default-python-op))))
+    (epairify this (or (dispatch-to-decision-table this conf) (default-python-op))))
 
    (define (scheme-op)
       (epairify this
