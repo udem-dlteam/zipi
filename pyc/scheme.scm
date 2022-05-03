@@ -969,13 +969,8 @@
 
    (define native-types '(Uint Usint Ubint Ufloat Ubool Ustr))
 
-   (define (default-python-op)
-     `(,(symbol-append 'py- (PycBinary-op this))
-       ,(scheme (PycBinary-lhs this) conf)
-       ,(scheme (PycBinary-rhs this) conf)))
-
    (define (python-op)
-    (epairify this (or (dispatch-to-decision-table this conf) (default-python-op))))
+    (epairify this (dispatch-PycBinary-to-decision-table this conf)))
 
    (define (scheme-op)
       (epairify this
