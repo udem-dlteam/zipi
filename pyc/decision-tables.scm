@@ -57,7 +57,7 @@
         (cons '() signature))))
 
   (define (parse-single-predicate predicate arguments)
-    (if (and (pair? predicate) (memq (car predicate) '(or and)))
+    (if (and (pair? predicate) (memq (car predicate) '(or and not)))
       `(,(car predicate) ,@(map (lambda (sexp) (parse-single-predicate sexp arguments)) (cdr predicate)))
       `(,predicate ,@arguments)))
 
@@ -143,6 +143,9 @@
 ;; Predicates
 ;; =====================================================================
 
+(define-macro (define-predicate . rest)
+  `(define ,@rest))
+
 ;; Helpers
 (define (lhs-is? pycbinary predicate)
   (predicate (PycBinary-lhs pycbinary)))
@@ -177,49 +180,49 @@
     (and (eq? lhs-type-hint type) (eq? rhs-type-hint type))))
 
 ;; Predicates usable in table
-(define (operands-are-complex-literals? pycbinary conf)
+(define-predicate (operands-are-complex-literals? pycbinary conf)
   (operands-number-literals-value-are? pycbinary (lambda (value) (not (real? value)))))
 
-(define (operands-are-int-literals? pycbinary conf)
+(define-predicate (operands-are-int-literals? pycbinary conf)
   (operands-number-literals-value-are? pycbinary (lambda (value) (and (real? value) (not (flonum? value))))))
 
-(define (operands-are-int-or-float-literals? pycbinary conf)
+(define-predicate (operands-are-int-or-float-literals? pycbinary conf)
   (operands-number-literals-value-are? pycbinary real?))
 
-(define (operands-are-string-literals? pycbinary conf)
+(define-predicate (operands-are-string-literals? pycbinary conf)
   (operands-are? pycbinary (lambda (operand) (isa? operand PycString))))
 
-(define (operands-are-unboxed-integers? pycbinary conf)
+(define-predicate (operands-are-unboxed-integers? pycbinary conf)
   (operands-are? pycbinary (lambda (value) (and (real? value) (not (flonum? value))))))
 
-(define (operands-are-unboxed-fixnums? pycbinary conf)
+(define-predicate (operands-are-unboxed-fixnums? pycbinary conf)
   (operands-are-statically-typed-as? pycbinary 'Usint))
 
-(define (operands-are-unboxed-integers? pycbinary conf)
+(define-predicate (operands-are-unboxed-integers? pycbinary conf)
   (or
     (operands-are-statically-typed-as? pycbinary 'Uint)
     (operands-are-statically-typed-as? pycbinary 'Ubint)
     (operands-are-statically-typed-as? pycbinary 'Usint)))
 
-(define (operands-are-unboxed-bool? pycbinary conf)
+(define-predicate (operands-are-unboxed-bool? pycbinary conf)
   (operands-are-statically-typed-as? pycbinary 'Ubool))
 
-(define (operands-are-unboxed-flonums? pycbinary conf)
+(define-predicate (operands-are-unboxed-flonums? pycbinary conf)
   (operands-are-statically-typed-as? pycbinary 'Ufloat))
 
-(define (operands-are-unboxed-strings? pycbinary conf)
+(define-predicate (operands-are-unboxed-strings? pycbinary conf)
   (operands-are-statically-typed-as? pycbinary 'Ustr))
 
-(define (lhs-is-a-str-literal pycbinary conf)
+(define-predicate (lhs-is-a-str-literal pycbinary conf)
   (lhs-is? pycbinary (lambda (lhs) (isa? lhs PycString))))
 
-(define (rhs-is-a-str-literal pycbinary conf)
+(define-predicate (rhs-is-a-str-literal pycbinary conf)
   (rhs-is? pycbinary (lambda (rhs) (isa? rhs PycString))))
 
-(define (lhs-is-a-sint-literal pycbinary conf)
+(define-predicate (lhs-is-a-sint-literal pycbinary conf)
   (lhs-number-literal-value-is? pycbinary fixnum?))
 
-(define (rhs-is-a-sint-literal pycbinary conf)
+(define-predicate (rhs-is-a-sint-literal pycbinary conf)
   (rhs-number-literal-value-is? pycbinary fixnum?))
 
 ;; =====================================================================
