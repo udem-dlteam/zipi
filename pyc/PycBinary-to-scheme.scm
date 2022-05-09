@@ -43,7 +43,7 @@
     (define ,signature
       ,(add-bindings (cdr signature) body))))
 
-(define-macro (define-PycBinary-table signature . body)
+(define-macro (define-PycBinary-to-scheme signature . body)
   (define (symbol-append . rest)
     (string->symbol (apply string-append (map symbol->string rest))))
 
@@ -230,7 +230,7 @@
 ;; =====================================================================
 
 ;; ADDITION
-(define-PycBinary-table (add-decision-table this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-PycBinary-to-scheme (add-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (+ (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -259,7 +259,7 @@
            (py-add $left $right))))))
 
 ;; SUBTRACTION
-(define-PycBinary-table (sub-decision-table this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-PycBinary-to-scheme (sub-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (- (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -282,7 +282,7 @@
            (py-sub $left $right))))))
 
 ;; MULTIPLICATION
-(define-PycBinary-table (mul-decision-table this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-PycBinary-to-scheme (mul-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (* (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -314,9 +314,9 @@
     ,(scheme (PycBinary-lhs binop) conf)
     ,(scheme (PycBinary-rhs binop) conf)))
 
-(define (dispatch-PycBinary-to-decision-table pycbinary conf)
+(define (PycBinary-to-scheme pycbinary conf)
   (let ((op (PycBinary-op pycbinary)))
-    (cond ((eq? op 'add) (add-decision-table pycbinary conf))
-          ((eq? op 'sub) (sub-decision-table pycbinary conf))
-          ((eq? op 'mul) (mul-decision-table pycbinary conf))
+    (cond ((eq? op 'add) (add-to-scheme pycbinary conf))
+          ((eq? op 'sub) (sub-to-scheme pycbinary conf))
+          ((eq? op 'mul) (mul-to-scheme pycbinary conf))
           (else (default-python-op pycbinary conf)))))

@@ -1,4 +1,4 @@
-(module __pyc_decision_tables
+(module __pyc_PycBinary_to_scheme
 
    (include "ast.sch"
 	    "walk.sch")
@@ -7,4 +7,4 @@
 	   __pyc_ast
 	   __pyc_utils)
 
-   (export (add-decision-table this::PycNode conf)))
+   (export (PycBinary-to-scheme this::PycBinary conf)))

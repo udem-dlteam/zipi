@@ -17,7 +17,7 @@
    (include "ast.sch"
 	    "walk.sch"
 	    "new.sch"
-      "decision-tables.scm")
+      "PycBinary-to-scheme.scm")
 
    (import __pyc_configure
 	   __pyc_dump

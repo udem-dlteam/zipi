@@ -1,4 +1,4 @@
-(cond-expand (gambit (include "decision-tables.scm")))
+(cond-expand (gambit (include "PycBinary-to-scheme.scm")))
 
 (define (pyc-scheme ast conf)
    (pyc-cache! ast conf)
@@ -970,7 +970,7 @@
    (define native-types '(Uint Usint Ubint Ufloat Ubool Ustr))
 
    (define (python-op)
-    (epairify this (dispatch-PycBinary-to-decision-table this conf)))
+    (epairify this (PycBinary-to-scheme this conf)))
 
    (define (scheme-op)
       (epairify this
