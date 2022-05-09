@@ -1,5 +1,3 @@
-(cond-expand (gambit (include "PycBinary-to-scheme.scm")))
-
 (define (pyc-scheme ast conf)
    (pyc-cache! ast conf)
    (scheme ast conf))
