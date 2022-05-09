@@ -229,6 +229,19 @@
 ;; Decision tables
 ;; =====================================================================
 
+(define (PycBinary-default-case this conf fx-op fl-op py-op)
+  (let (($left (my-gensym 'left))
+        ($right (my-gensym 'right)))
+    `(let ((,$left ,(scheme (PycBinary-lhs this) conf))
+           (,$right ,(scheme (PycBinary-rhs this) conf)))
+       (cond
+         ((and (fixnum? ,$left) (fixnum? ,$right))
+           (,fx-op ,$left ,$right))
+         ((and (flonum? ,$left) (flonum? ,$right))
+           (,fl-op ,$left ,$right))
+         (else
+           (,py-op ,$left ,$right))))))
+
 ;; ADDITION
 (define-PycBinary-to-scheme (add-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
@@ -249,14 +262,7 @@
   (operands-are-unboxed-strings?
     `(string-append ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
-    `(let (($left ,(scheme lhs conf)) ($right ,(scheme rhs conf)))
-       (cond
-         ((and (fixnum? $left) (fixnum? $right))
-           ,(py-fx+ '$left '$right))
-         ((and (flonum? $left) (flonum? $right))
-           ,(py-fl+ '$left '$right))
-         (else
-           (py-add $left $right))))))
+    (PycBinary-default-case this conf 'py-fx+ 'py-fl+ 'py-add)))
 
 ;; SUBTRACTION
 (define-PycBinary-to-scheme (sub-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -272,14 +278,7 @@
   (operands-are-unboxed-flonums?
     (py-fl- (scheme lhs conf) (scheme rhs conf)))
   (else
-    `(let (($left ,(scheme lhs conf)) ($right ,(scheme rhs conf)))
-       (cond
-         ((and (fixnum? $left) (fixnum? $right))
-           ,(py-fx- '$left '$right))
-         ((and (flonum? $left) (flonum? $right))
-           ,(py-fl- '$left '$right))
-         (else
-           (py-sub $left $right))))))
+    (PycBinary-default-case this conf 'py-fx- 'py-fl- 'py-sub)))
 
 ;; MULTIPLICATION
 (define-PycBinary-to-scheme (mul-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -299,14 +298,7 @@
   ((and lhs-is-a-sint-literal rhs-is-a-str-literal)
     (or (py-mul-str-literal rhs lhs conf) `(py-mul ,(scheme lhs conf) ,(scheme rhs conf))))
   (else
-    `(let (($left ,(scheme lhs conf)) ($right ,(scheme rhs conf)))
-       (cond
-         ((and (fixnum? $left) (fixnum? $right))
-           ,(py-fx* '$left '$right))
-         ((and (flonum? $left) (flonum? $right))
-           ,(py-fl* '$left '$right))
-         (else
-           (py-mul $left $right))))))
+    (PycBinary-default-case this conf 'py-fx* 'py-fl* 'py-mul)))
 
 ;; Dispatch
 (define (default-python-op binop conf)
