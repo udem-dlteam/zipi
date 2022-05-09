@@ -213,17 +213,54 @@
 (define-predicate (operands-are-unboxed-strings? pycbinary conf)
   (operands-are-statically-typed-as? pycbinary 'Ustr))
 
-(define-predicate (lhs-is-a-str-literal pycbinary conf)
+(define-predicate (lhs-is-a-str-literal? pycbinary conf)
   (lhs-is? pycbinary (lambda (lhs) (isa? lhs PycString))))
 
-(define-predicate (rhs-is-a-str-literal pycbinary conf)
+(define-predicate (rhs-is-a-str-literal? pycbinary conf)
   (rhs-is? pycbinary (lambda (rhs) (isa? rhs PycString))))
 
-(define-predicate (lhs-is-a-sint-literal pycbinary conf)
+(define-predicate (lhs-is-a-sint-literal? pycbinary conf)
   (lhs-number-literal-value-is? pycbinary fixnum?))
 
-(define-predicate (rhs-is-a-sint-literal pycbinary conf)
+(define-predicate (rhs-is-a-sint-literal? pycbinary conf)
   (rhs-number-literal-value-is? pycbinary fixnum?))
+
+(define-predicate (lhs-is-a-float-literal? pycbinary conf)
+  (lhs-number-literal-value-is? pycbinary flonum?))
+
+(define-predicate (rhs-is-a-float-literal? pycbinary conf)
+  (rhs-number-literal-value-is? pycbinary flonum?))
+
+(define-predicate (lhs-could-be-sint? pycbinary conf)
+  (or
+    (lhs-is? pycbinary (lambda (lhs) (not (isa? lhs PycLiteralValue))))
+    (lhs-is-a-sint-literal? pycbinary conf)))
+
+(define-predicate (rhs-could-be-sint? pycbinary conf)
+  (or
+    (rhs-is? pycbinary (lambda (rhs) (not (isa? rhs PycLiteralValue))))
+    (rhs-is-a-sint-literal? pycbinary conf)))
+
+(define-predicate (operands-could-be-sint? pycbinary conf)
+  (and
+    (lhs-could-be-sint? pycbinary conf)
+    (rhs-could-be-sint? pycbinary conf)))
+
+(define-predicate (lhs-could-be-float? pycbinary conf)
+  (or
+    (lhs-is? pycbinary (lambda (lhs) (not (isa? lhs PycLiteralValue))))
+    (lhs-is-a-float-literal? pycbinary conf)))
+
+(define-predicate (rhs-could-be-float? pycbinary conf)
+  (or
+    (rhs-is? pycbinary (lambda (rhs) (not (isa? rhs PycLiteralValue))))
+    (rhs-is-a-float-literal? pycbinary conf)))
+
+(define-predicate (operands-could-be-float? pycbinary conf)
+  (and
+    (lhs-could-be-float? pycbinary conf)
+    (rhs-could-be-float? pycbinary conf)))
+
 
 ;; =====================================================================
 ;; Decision tables
@@ -235,12 +272,15 @@
     `(let ((,$left ,(scheme (PycBinary-lhs this) conf))
            (,$right ,(scheme (PycBinary-rhs this) conf)))
        (cond
-         ((and (fixnum? ,$left) (fixnum? ,$right))
-           (,fx-op ,$left ,$right))
-         ((and (flonum? ,$left) (flonum? ,$right))
-           (,fl-op ,$left ,$right))
-         (else
-           (,py-op ,$left ,$right))))))
+         ,@(filter-false*
+           (and
+             (operands-could-be-sint? this conf)
+              `((and (fixnum? ,$left) (fixnum? ,$right)) (,fx-op ,$left ,$right)))
+           (and
+             (operands-could-be-float? this conf)
+             `((and (flonum? ,$left) (flonum? ,$right)) (,fl-op ,$left ,$right)))
+           `(else
+             (,py-op ,$left ,$right)))))))
 
 ;; ADDITION
 (define-PycBinary-to-scheme (add-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -293,9 +333,9 @@
     `(* ,(scheme lhs conf) ,(scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-fl* (scheme lhs conf) (scheme rhs conf)))
-  ((and lhs-is-a-str-literal rhs-is-a-sint-literal)
+  ((and lhs-is-a-str-literal? rhs-is-a-sint-literal?)
     (or (py-mul-str-literal lhs rhs conf) `(py-mul ,(scheme lhs conf) ,(scheme rhs conf))))
-  ((and lhs-is-a-sint-literal rhs-is-a-str-literal)
+  ((and lhs-is-a-sint-literal? rhs-is-a-str-literal?)
     (or (py-mul-str-literal rhs lhs conf) `(py-mul ,(scheme lhs conf) ,(scheme rhs conf))))
   (else
     (PycBinary-default-case this conf 'py-fx* 'py-fl* 'py-mul)))
