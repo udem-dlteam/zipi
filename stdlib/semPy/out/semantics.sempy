@@ -18,6 +18,11 @@ add_specializations("sub", types=default_binary_types)
 add_specializations("truediv", types=default_binary_types)
 add_specializations("xor", types=default_binary_types)
 
+# Divisions by zero
+add_specializations("floordiv", types=(default_types, [0, 0.0, False]))
+add_specializations("truediv", types=(default_types, [0, 0.0, False]))
+
+
 # Inplace semantics
 add_specializations("iadd", types=default_binary_types)
 add_specializations("ibitand", types=default_binary_types)

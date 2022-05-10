@@ -1443,6 +1443,126 @@ def py_xor_strX_strY(x: str, y: str):
     raise TypeError("'^' not supported between instances of 'str' and 'str'")
 
 @define_behavior
+def py_floordiv_sintX_sint0(x: sint, y: sint):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_sintX_float0(x: sint, y: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_sintX_boolFalse(x: sint, y: bool):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_bintX_sint0(x: bint, y: sint):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_bintX_float0(x: bint, y: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_bintX_boolFalse(x: bint, y: bool):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_boolX_sint0(x: bool, y: sint):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_boolX_float0(x: bool, y: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_boolX_boolFalse(x: bool, y: bool):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_floatX_sint0(x: float, y: sint):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_floatX_float0(x: float, y: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_floatX_boolFalse(x: float, y: bool):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_strX_sint0(x: str, y: sint):
+    raise TypeError("'//' not supported between instances of 'str' and 'int'")
+
+@define_behavior
+def py_floordiv_strX_float0(x: str, y: float):
+    raise TypeError("'//' not supported between instances of 'str' and 'float'")
+
+@define_behavior
+def py_floordiv_strX_boolFalse(x: str, y: bool):
+    raise TypeError("'//' not supported between instances of 'str' and 'bool'")
+
+@define_behavior
+def py_truediv_sintX_sint0(x: sint, y: sint):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_sintX_float0(x: sint, y: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_sintX_boolFalse(x: sint, y: bool):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_bintX_sint0(x: bint, y: sint):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_bintX_float0(x: bint, y: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_bintX_boolFalse(x: bint, y: bool):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_boolX_sint0(x: bool, y: sint):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_boolX_float0(x: bool, y: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_boolX_boolFalse(x: bool, y: bool):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_floatX_sint0(x: float, y: sint):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_floatX_float0(x: float, y: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_floatX_boolFalse(x: float, y: bool):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_strX_sint0(x: str, y: sint):
+    raise TypeError("'/' not supported between instances of 'str' and 'int'")
+
+@define_behavior
+def py_truediv_strX_float0(x: str, y: float):
+    raise TypeError("'/' not supported between instances of 'str' and 'float'")
+
+@define_behavior
+def py_truediv_strX_boolFalse(x: str, y: bool):
+    raise TypeError("'/' not supported between instances of 'str' and 'bool'")
+
+@define_behavior
 def py_iadd_sintX_sintY(x: sint, y: sint):
     return py_int_from_host(py_int_to_host(x) + py_int_to_host(y))
 
