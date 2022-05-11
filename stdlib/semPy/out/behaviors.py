@@ -1563,6 +1563,42 @@ def py_truediv_strX_boolFalse(x: str):
     raise TypeError("'/' not supported between instances of 'str' and 'bool'")
 
 @define_behavior
+def py_mod_sintX_sint0(x: sint):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_sintX_float0(x: sint):
+    raise ZeroDivisionError('float modulo by zero')
+
+@define_behavior
+def py_mod_sintX_boolFalse(x: sint):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_bintX_sint0(x: bint):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_bintX_float0(x: bint):
+    raise ZeroDivisionError('float modulo by zero')
+
+@define_behavior
+def py_mod_bintX_boolFalse(x: bint):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_boolX_sint0(x: bool):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_boolX_float0(x: bool):
+    raise ZeroDivisionError('float modulo by zero')
+
+@define_behavior
+def py_mod_boolX_boolFalse(x: bool):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
 def py_iadd_sintX_sintY(x: sint, y: sint):
     return py_int_from_host(py_int_to_host(x) + py_int_to_host(y))
 
