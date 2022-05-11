@@ -1766,6 +1766,7 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, valu
         fn = callee["__new__"]
         args = [callee]
 
+
         for t, v in zip(types, values):
             if v is None:
                 args.append(PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)))
@@ -1776,6 +1777,7 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, valu
     else:
         fn = callee
         args = []
+
         for t, v in zip(types, values):
             if v is None:
                 args.append(PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)))
@@ -1787,6 +1789,11 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, valu
     result_body = list(partial_eval_function_call(fn, args, [], rte, toplevel=True))
 
     annotations = [None if t == "unknown" else ast.Name(t, ast.Load()) for t in types]
+
+    # Remove fixed arguments
+    keep = [not isinstance(arg.origin, ast.Constant) for arg in args]
+    args_names = [name for name, k in zip(args_names, keep) if k]
+    annotations = [ann for ann, k in zip(annotations, keep) if k]
 
     annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
 
