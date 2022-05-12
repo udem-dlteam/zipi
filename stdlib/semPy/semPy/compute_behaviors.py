@@ -1292,7 +1292,12 @@ def resolve_expression_sign(expr, rte):
 # We implemented limited mechanism to detect whether a value is positive or negative
 # This is mainly aimed at resolving the sign of int values coming from length of a sequence
 def partial_eval_lt(left, right, rte):
-    if isinstance(right, ast.Constant) and right.value == 0:
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
+
+    if left_known_value is not None and right_known_value is not None:
+        return ast.Constant(left_known_value < right_known_value)
+    elif isinstance(right, ast.Constant) and right.value == 0:
         sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
@@ -1306,7 +1311,12 @@ def partial_eval_lt(left, right, rte):
 
 
 def partial_eval_le(left, right, rte):
-    if isinstance(right, ast.Constant) and right.value == 0:
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
+
+    if left_known_value is not None and right_known_value is not None:
+        return ast.Constant(left_known_value <= right_known_value)
+    elif isinstance(right, ast.Constant) and right.value == 0:
         sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
@@ -1320,7 +1330,12 @@ def partial_eval_le(left, right, rte):
 
 
 def partial_eval_gt(left, right, rte):
-    if isinstance(right, ast.Constant) and right.value == 0:
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
+
+    if left_known_value is not None and right_known_value is not None:
+        return ast.Constant(left_known_value > right_known_value)
+    elif isinstance(right, ast.Constant) and right.value == 0:
         sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
@@ -1334,7 +1349,12 @@ def partial_eval_gt(left, right, rte):
 
 
 def partial_eval_ge(left, right, rte):
-    if isinstance(right, ast.Constant) and right.value == 0:
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
+
+    if left_known_value is not None and right_known_value is not None:
+        return ast.Constant(left_known_value >= right_known_value)
+    elif isinstance(right, ast.Constant) and right.value == 0:
         sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
@@ -1362,23 +1382,23 @@ def is_always_python_numeric(expr, value, rte):
     return False
 
 
-def expr_numeric_value_is_known(expr, rte):
+def get_numerical_exact_value(expr, rte):
     if isinstance(expr, ast.Constant):
         return expr.value
     elif isinstance(expr, PPYValue):
         origin = expr.origin
 
         if isinstance(origin, ast.Constant):
-            return expr_numeric_value_is_known(origin, rte)
+            return get_numerical_exact_value(origin, rte)
         elif isinstance(origin, ast.arg):
             lookup = rte[origin.arg]
 
             # toplevel arguments point to themselves when no value was provided for behavior
             if lookup is not expr:
-                return expr_numeric_value_is_known(rte[origin.arg], rte)
+                return get_numerical_exact_value(rte[origin.arg], rte)
         elif isinstance(origin, ast.Call) and origin.func in (ppy_intrinsic_py_int_to_host,
                                                               ppy_intrinsic_py_float_to_host):
-            return expr_numeric_value_is_known(origin.args[0], rte)
+            return get_numerical_exact_value(origin.args[0], rte)
 
     return None
 
@@ -1448,7 +1468,7 @@ def get_host_bool(expr, rte):
 
     if isinstance(expr, ast.Call) and expr.func is ppy_intrinsic_py_bool_to_host_bool:
         arg0 = expr.args[0]
-        known_value  = expr_numeric_value_is_known(arg0, rte)
+        known_value  = get_numerical_exact_value(arg0, rte)
 
         if known_value is not None:
             return known_value
@@ -1495,8 +1515,8 @@ def partial_eval_eq_left_host_int_from_bool(left, right, rte):
 
 
 def partial_eval_eq(left, right, rte):
-    left_known_value = expr_numeric_value_is_known(left, rte)
-    right_known_value = expr_numeric_value_is_known(right, rte)
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
 
     if left_known_value is not None and right_known_value is not None:
         return ast.Constant(left_known_value == right_known_value)

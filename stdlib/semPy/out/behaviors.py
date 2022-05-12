@@ -1599,6 +1599,30 @@ def py_mod_boolX_boolFalse(x: bool):
     raise ZeroDivisionError('modulo by zero')
 
 @define_behavior
+def py_lshift_sintX_sintNeg1(x: sint):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_lshift_bintX_sintNeg1(x: bint):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_lshift_boolX_sintNeg1(x: bool):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_rshift_sintX_sintNeg1(x: sint):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_rshift_bintX_sintNeg1(x: bint):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_rshift_boolX_sintNeg1(x: bool):
+    raise ValueError('negative shift count')
+
+@define_behavior
 def py_iadd_sintX_sintY(x: sint, y: sint):
     return py_int_from_host(py_int_to_host(x) + py_int_to_host(y))
 

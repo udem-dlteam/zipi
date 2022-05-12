@@ -23,6 +23,9 @@ add_specializations("floordiv", types=(default_types, [0, 0.0, False]))
 add_specializations("truediv", types=(default_types, [0, 0.0, False]))
 add_specializations("mod", types=(["sint", "bint", "bool"], [0, 0.0, False]))
 
+# Negative shifts
+add_specializations("lshift", types=(["sint", "bint", "bool"], [-1]))
+add_specializations("rshift", types=(["sint", "bint", "bool"], [-1]))
 
 # Inplace semantics
 add_specializations("iadd", types=default_binary_types)
