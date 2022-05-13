@@ -171,7 +171,7 @@
    (bigloo: (bit-xor left right))))
 
 ;; BIT-SHIFT-LEFT
-(define-operator (py-fx^ left right)
+(define-operator (py-fx<< left right)
   (if ((gambit: (|##fx>=| right 0))
        (bigloo: (>=fx right 0)))
     ((gambit: (or (|##fxarithmetic-shift-left?| left right)
@@ -179,7 +179,7 @@
      (bigloo: (py-int-from-scheme (bit-lsh left right))))
     (py-lshift-sintX-sintNeg1-fallback left)))
 
-(define-operator (unboxed-fx-or left right)
+(define-operator (unboxed-fx<< left right)
   (if ((gambit: (|##fx>=| right 0))
        (bigloo: (>=fx right 0)))
     ((gambit: (|##arithmetic-shift| left right)))
@@ -187,7 +187,7 @@
     (py-lshift-sintX-sintNeg1-fallback left)))
 
 ;; BIT-SHIFT-RIGHT
-(define-operator (py-fx^ left right)
+(define-operator (py-fx>> left right)
   (if ((gambit: (|##fx>=| right 0))
        (bigloo: (>=fx right 0)))
     ((gambit: (or (|##fxarithmetic-shift-right?| left right)
@@ -195,12 +195,93 @@
      (bigloo: (py-int-from-scheme (bit-rsh left right))))
     (py-rshift-sintX-sintNeg1-fallback left)))
 
-(define-operator (unboxed-fx-or left right)
+(define-operator (unboxed-fx>> left right)
   (if ((gambit: (|##fx>=| right 0))
        (bigloo: (>=fx right 0)))
     ((gambit: (|##arithmetic-shift| left (||##negate| right))))
      (bigloo: (bit-rsh left right))
     (py-rshift-sintX-sintNeg1-fallback left)))
+
+;; FLOORDIV
+
+(define-operator (py-fx// left right)
+  (if ((gambit: (|##fx=| right 0))
+       (bigloo: (=fx right 0)))
+    (py-floordiv-sintX-sint0-fallback left)
+    ((gambit: (|##fxquotient| left right))
+     (bigloo: (quotientfx left right)))))
+
+(define-operator (unboxed-fx// left right)
+  (if ((gambit: (|##fx=| right 0))
+       (bigloo: (=fx right 0)))
+    (py-floordiv-sintX-sint0-fallback left)
+    ((gambit: (|##fxquotient| left right))
+     (bigloo: (quotientfx left right)))))
+
+(define-operator (py-fl// left right)
+  (if ((gambit: (|##fl=| right 0.0))
+       (bigloo: (=fl right 0.0)))
+    (py-floordiv-floatX-float0-fallback left)
+    ((gambit: (|##flfloor| (|##fl/| left right)))
+     (bigloo: (floorfl (/fl left right))))))
+
+;; TRUEDIV
+
+(define-operator (py-fx/ left right)
+  (if ((gambit: (|##fx=| right 0))
+       (bigloo: (=fx right 0)))
+    (py-truediv-sintX-sint0-fallback left)
+    ((gambit: (|##fl/| (|##fixnum->flonum| left) (|##fixnum->flonum| right)))
+     (bigloo: (/ left right)))))
+
+(define-operator (unboxed-fx/ left right)
+  (if ((gambit: (|##fx=| right 0))
+       (bigloo: (=fx right 0)))
+    (py-truediv-sintX-sint0-fallback left)
+    ((gambit: (|##fl/| (|##fixnum->flonum| left) (|##fixnum->flonum| right)))
+     (bigloo: (/ left right)))))
+
+(define-operator (py-fl/ left right)
+  (if ((gambit: (|##fl=| right 0.0))
+       (bigloo: (=fl right 0.0)))
+    (py-truediv-floatX-float0-fallback left)
+    ((gambit: (|##fl/| left right))
+     (bigloo:(/fl left right)))))
+
+;; MODULO
+
+(define-operator (py-fx% left right)
+  (if ((gambit: (|##fx=| right 0))
+       (bigloo: (=fx right 0)))
+    (py-mod-sintX-sint0-fallback left)
+    ((gambit: (|##fxmodulo| left right))
+     (bigloo: (fxmodulo left right)))))
+
+(define-operator (unboxed-fx% left right)
+  (if ((gambit: (|##fx=| right 0))
+       (bigloo: (=fx right 0)))
+    (py-mod-sintX-sint0-fallback left)
+    ((gambit: (|##fxmodulo| left right))
+     (bigloo: (fxmodulo left right)))))
+
+(define-operator (py-fl% left right)
+  (if ((gambit: (|##fl=| right 0.0))
+       (bigloo: (=fl right 0.0)))
+    (py-mod-floatX-float0-fallback left)
+    ((gambit:
+      (let (($temp (fl/ left right)))
+        (|##fl-| left
+                 (|##fl*| right
+                          (if (|##fl<| 0.0 left)
+                              (|##flfloor| $temp)
+                              (|##flceiling| $temp))))))
+     (bigloo:
+       (let (($temp (/fl left right)))
+         (-fl left
+              (*fl right
+                   (if (<fl 0.0 left)
+                       (floorfl $temp)
+                       (ceilingfl $temp)))))))))
 
 ;; String literal operations
 
@@ -332,6 +413,12 @@
     (lhs-could-be-float? pycbinary conf)
     (rhs-could-be-float? pycbinary conf)))
 
+(define-predicate (rhs-is-non-negative-literal? pycbinary conf)
+  (rhs-number-literal-value-is? pycbinary (lambda (val) (>= val 0))))
+
+(define-predicate (rhs-is-non-zero-literal? pycbinary conf)
+  (rhs-number-literal-value-is? pycbinary (lambda (val) (not (= val 0)))))
+
 
 ;; =====================================================================
 ;; Decision tables
@@ -345,9 +432,11 @@
        (cond
          ,@(filter-false*
            (and
+             fx-op
              (operands-could-be-sint? this conf)
               `((and (fixnum? ,$left) (fixnum? ,$right)) (,fx-op ,$left ,$right)))
            (and
+             fl-op
              (operands-could-be-float? this conf)
              `((and (flonum? ,$left) (flonum? ,$right)) (,fl-op ,$left ,$right)))
            `(else
@@ -411,6 +500,118 @@
   (else
     (PycBinary-default-case this conf 'py-fx* 'py-fl* 'py-mul)))
 
+;; EXPONENT
+(define-PycBinary-to-scheme (pow-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  (operands-are-int-literals?
+    (let ((result (expt (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
+      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+  (operands-are-int-or-float-literals?
+    (expt (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
+  (operands-are-unboxed-fixnums?
+    (unboxed-fx** (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-integers?
+    `(expt ,(scheme lhs conf) ,(scheme rhs conf)))
+  (operands-are-unboxed-flonums?
+    (py-fl** (scheme lhs conf) (scheme rhs conf)))
+  (else
+    (PycBinary-default-case this conf 'py-fx** 'py-fl** 'py-pow)))
+
+;; BITAND
+(define-PycBinary-to-scheme (bitand-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  (operands-are-int-literals?
+    (let ((result (bitwise-and (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
+      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+  (operands-are-unboxed-fixnums?
+    (unboxed-fx& (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-integers?
+    `(bitwise-and ,(scheme lhs conf) ,(scheme rhs conf)))
+  (else
+    (PycBinary-default-case this conf 'py-fx& #f 'py-pow)))
+
+;; BITOR
+(define-PycBinary-to-scheme (bitor-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  (operands-are-int-literals?
+    (let ((result (bitwise-ior (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
+      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+  (operands-are-unboxed-fixnums?
+    (unboxed-fx-or (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-integers?
+    `(bitwise-and ,(scheme lhs conf) ,(scheme rhs conf)))
+  (else
+    (PycBinary-default-case this conf 'py-fx-or #f 'py-bitor)))
+
+;; XOR
+(define-PycBinary-to-scheme (xor-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  (operands-are-int-literals?
+    (let ((result (bitwise-xor (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
+      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+  (operands-are-unboxed-fixnums?
+    (unboxed-fx^ (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-integers?
+    `(bitwise-xor ,(scheme lhs conf) ,(scheme rhs conf)))
+  (else
+    (PycBinary-default-case this conf 'py-fx^ #f 'py-xor)))
+
+;; SHIFT-LEFT
+(define-PycBinary-to-scheme (lshift-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  ((and operands-are-int-literals? rhs-is-non-negative-literal?)
+    (let ((result (arithmetic-shift (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
+      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+  (operands-are-unboxed-fixnums?
+    (unboxed-fx<< (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-integers?
+    `(arithmetic-shift ,(scheme lhs conf) ,(scheme rhs conf)))
+  (else
+    (PycBinary-default-case this conf 'py-fx<< #f 'py-lshift)))
+
+;; SHIFT-RIGHT
+(define-PycBinary-to-scheme (rshift-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  ((and operands-are-int-literals? rhs-is-non-negative-literal?)
+    (let ((result (arithmetic-shift (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs)))))
+      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+  (operands-are-unboxed-fixnums?
+    (unboxed-fx>> (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-integers?
+    `(arithmetic-shift ,(scheme lhs conf) (- ,(scheme rhs conf))))
+  (else
+    (PycBinary-default-case this conf 'py-fx>> #f 'py-rshift)))
+
+;; FLOORDIV
+(define-PycBinary-to-scheme (floordiv-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  ((and operands-are-int-literals? rhs-is-non-zero-literal?)
+    (let ((result (quotient (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs)))))
+      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+  (operands-are-unboxed-fixnums?
+    (unboxed-fx// (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-integers?
+    `(quotient ,(scheme lhs conf) (- ,(scheme rhs conf))))
+  (else
+    (PycBinary-default-case this conf 'py-fx// py-fl// 'py-floordiv)))
+
+;; TRUEDIV
+(define-PycBinary-to-scheme (truediv-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  ((and operands-are-int-literals? rhs-is-non-zero-literal?)
+    (let ((result (exact->inexact (/ (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs))))))
+      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+  (operands-are-unboxed-fixnums?
+    (unboxed-fx/ (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-integers?
+    `(exact->inexact (/ ,(scheme lhs conf) (- ,(scheme rhs conf)))))
+  (else
+    (PycBinary-default-case this conf 'py-fx/ py-fl/ 'py-truediv)))à
+
+;; MODULO
+(define-PycBinary-to-scheme (modulo-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  ((and operands-are-int-literals? rhs-is-non-zero-literal?)
+    (let ((result (modulo (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs)))))
+      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+  (operands-are-unboxed-fixnums?
+    (unboxed-fx% (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-integers?
+    `(modulo ,(scheme lhs conf) (- ,(scheme rhs conf))))
+  (else
+    (PycBinary-default-case this conf 'py-fx% py-fl% 'py-mod)))
+
 ;; Dispatch
 (define (default-python-op binop conf)
   `(,(symbol-append 'py- (PycBinary-op binop))
@@ -422,4 +623,13 @@
     (cond ((eq? op 'add) (add-to-scheme pycbinary conf))
           ((eq? op 'sub) (sub-to-scheme pycbinary conf))
           ((eq? op 'mul) (mul-to-scheme pycbinary conf))
+          ((eq? op 'pow) (pow-to-scheme pycbinary conf))
+          ((eq? op 'bitand) (bitand-to-scheme pycbinary conf))
+          ((eq? op 'bitor) (bitor-to-scheme pycbinary conf))
+          ((eq? op 'xor) (xor-to-scheme pycbinary conf))
+          ((eq? op 'lshift) (lshift-to-scheme pycbinary conf))
+          ((eq? op 'rshift) (rshift-to-scheme pycbinary conf))
+          ((eq? op 'floordiv) (floordiv-to-scheme pycbinary conf))
+          ((eq? op 'truediv) (truediv-to-scheme pycbinary conf))
+          ((eq? op 'mod) (mod-to-scheme pycbinary conf))
           (else (default-python-op pycbinary conf)))))
