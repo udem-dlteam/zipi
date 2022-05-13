@@ -133,6 +133,77 @@
   ((gambit: (|##fl*| left right))
    (bigloo: (*fl left right))))
 
+;; EXPONENT
+(define-operator (py-fx** left right)
+  (py-int-from-scheme (expt left right)))
+
+(define-operator (unboxed-fx** left right)
+  (expt left right))
+
+(define-operator (py-fl** left right)
+  (expt left right))
+
+;; BIT-AND
+(define-operator (py-fx& left right)
+  ((gambit: (|##fxand| left right))
+   (bigloo: (bit-and left right))))
+
+(define-operator (unboxed-fx& left right)
+  ((gambit: (|##fxand| left right))
+   (bigloo: (bit-and left right))))
+
+;; BIT-OR
+(define-operator (py-fx-or left right)
+  ((gambit: (|##fxior| left right))
+   (bigloo: (bit-or left right))))
+
+(define-operator (unboxed-fx-or left right)
+  ((gambit: (|##fxxor| left right))
+   (bigloo: (bit-or left right))))
+
+;; BIT-XOR
+(define-operator (py-fx^ left right)
+  ((gambit: (|##fxxor| left right))
+   (bigloo: (bit-xor left right))))
+
+(define-operator (unboxed-fx^ left right)
+  ((gambit: (|##fxor| left right))
+   (bigloo: (bit-xor left right))))
+
+;; BIT-SHIFT-LEFT
+(define-operator (py-fx^ left right)
+  (if ((gambit: (|##fx>=| right 0))
+       (bigloo: (>=fx right 0)))
+    ((gambit: (or (|##fxarithmetic-shift-left?| left right)
+                  (py-bint-from-scheme (|##arithmetic-shift| left right))))
+     (bigloo: (py-int-from-scheme (bit-lsh left right))))
+    (py-lshift-sintX-sintNeg1-fallback left)))
+
+(define-operator (unboxed-fx-or left right)
+  (if ((gambit: (|##fx>=| right 0))
+       (bigloo: (>=fx right 0)))
+    ((gambit: (|##arithmetic-shift| left right)))
+     (bigloo: (bit-lsh left right))
+    (py-lshift-sintX-sintNeg1-fallback left)))
+
+;; BIT-SHIFT-RIGHT
+(define-operator (py-fx^ left right)
+  (if ((gambit: (|##fx>=| right 0))
+       (bigloo: (>=fx right 0)))
+    ((gambit: (or (|##fxarithmetic-shift-right?| left right)
+                  (py-bint-from-scheme (|##arithmetic-shift| left (||##negate| right)))))
+     (bigloo: (py-int-from-scheme (bit-rsh left right))))
+    (py-rshift-sintX-sintNeg1-fallback left)))
+
+(define-operator (unboxed-fx-or left right)
+  (if ((gambit: (|##fx>=| right 0))
+       (bigloo: (>=fx right 0)))
+    ((gambit: (|##arithmetic-shift| left (||##negate| right))))
+     (bigloo: (bit-rsh left right))
+    (py-rshift-sintX-sintNeg1-fallback left)))
+
+;; String literal operations
+
 (define (py-mul-str-literal pycstring pycnumber conf)
   (let ((string (PycLiteralValue-val pycstring))
         (number (PycLiteralValue-val pycnumber)))
