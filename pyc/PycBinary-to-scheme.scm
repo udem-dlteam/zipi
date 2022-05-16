@@ -1,7 +1,6 @@
 ;; =====================================================================
 ;; Macros and helpers
 ;; =====================================================================
-
 (define-macro (replace-system sexp)
   (define host (cond-expand (gambit gambit:) (bigloo 'bigloo:)))
 
@@ -182,8 +181,8 @@
 (define-operator (unboxed-fx<< left right)
   (if ((gambit: (|##fx>=| right 0))
        (bigloo: (>=fx right 0)))
-    ((gambit: (|##arithmetic-shift| left right)))
-     (bigloo: (bit-lsh left right))
+    ((gambit: (|##arithmetic-shift| left right))
+     (bigloo: (bit-lsh left right)))
     (py-lshift-sintX-sintNeg1-fallback left)))
 
 ;; BIT-SHIFT-RIGHT
@@ -191,14 +190,14 @@
   (if ((gambit: (|##fx>=| right 0))
        (bigloo: (>=fx right 0)))
     ((gambit: (or (|##fxarithmetic-shift-right?| left right)
-                  (py-bint-from-scheme (|##arithmetic-shift| left (||##negate| right)))))
+                  (py-bint-from-scheme (|##arithmetic-shift| left (|##negate| right)))))
      (bigloo: (py-int-from-scheme (bit-rsh left right))))
     (py-rshift-sintX-sintNeg1-fallback left)))
 
 (define-operator (unboxed-fx>> left right)
   (if ((gambit: (|##fx>=| right 0))
        (bigloo: (>=fx right 0)))
-    ((gambit: (|##arithmetic-shift| left (||##negate| right))))
+    ((gambit: (|##arithmetic-shift| left (|##negate| right))))
      (bigloo: (bit-rsh left right))
     (py-rshift-sintX-sintNeg1-fallback left)))
 
@@ -430,17 +429,19 @@
     `(let ((,$left ,(scheme (PycBinary-lhs this) conf))
            (,$right ,(scheme (PycBinary-rhs this) conf)))
        (cond
-         ,@(filter-false*
-           (and
-             fx-op
-             (operands-could-be-sint? this conf)
-              `((and (fixnum? ,$left) (fixnum? ,$right)) (,fx-op ,$left ,$right)))
-           (and
-             fl-op
-             (operands-could-be-float? this conf)
-             `((and (flonum? ,$left) (flonum? ,$right)) (,fl-op ,$left ,$right)))
-           `(else
-             (,py-op ,$left ,$right)))))))
+         ,@(filter
+           (lambda (x) x)
+           (list
+             (and
+               fx-op
+               (operands-could-be-sint? this conf)
+                `((and (fixnum? ,$left) (fixnum? ,$right)) (,fx-op ,$left ,$right)))
+             (and
+               fl-op
+               (operands-could-be-float? this conf)
+               `((and (flonum? ,$left) (flonum? ,$right)) (,fl-op ,$left ,$right)))
+             `(else
+               (,py-op ,$left ,$right))))))))
 
 ;; ADDITION
 (define-PycBinary-to-scheme (add-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -598,7 +599,7 @@
   (operands-are-unboxed-integers?
     `(exact->inexact (/ ,(scheme lhs conf) (- ,(scheme rhs conf)))))
   (else
-    (PycBinary-default-case this conf 'py-fx/ py-fl/ 'py-truediv)))à
+    (PycBinary-default-case this conf 'py-fx/ py-fl/ 'py-truediv)))
 
 ;; MODULO
 (define-PycBinary-to-scheme (modulo-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))

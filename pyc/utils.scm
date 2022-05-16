@@ -7,6 +7,3 @@
       (set! gensym-count (+ i 1))
       (string->symbol (string-append "$" (symbol->string sym) "_" (number->string i)))))
 (define gensym-count 0)
-
-(define (filter-false* . rest)
-  (filter (lambda (x) x) rest))
