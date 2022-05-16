@@ -251,11 +251,11 @@
          (instance (py-call-generic $__new__ args-w/-instance)))
       (type-call-from-instance $self instance args-w/-instance)))
 
-(define-macro (type-callX-from-new-method self __new__ . args)
-   `(let* (($self ,self)
-	   ($__new__ ,__new__)
-	   (instance (py-call $__new__ $self ,@args)))
-       (type-callX-from-instance $self instance $self ,@args)))
+(define-macro (type-callX-from-new-method cls __new__ . args)
+   `(let* (($cls ,cls)
+	         ($__new__ ,__new__)
+	         (instance (py-call $__new__ $cls ,@args)))
+      (type-callX-from-instance $cls instance $cls ,@args)))
 
 ;; Macros to enable/disable various implementation strategies.
 
@@ -1653,7 +1653,7 @@
 ;* 		 (tprint "throwing..." ',(if (epair? x) (cer x) '???)) */
 ;* 		 ((@ py-throw __py_rts) ,exc))                         */
 ;* 	     e)))))                                                    */
-       
+
 ;; object.__getattribute__ error message
 (define-macro (py-throw-object-getattribute-error obj name)
   `(py-throw
