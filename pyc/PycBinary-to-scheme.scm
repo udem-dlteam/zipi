@@ -465,8 +465,6 @@
   (else
     (PycBinary-default-case this conf py-fx+ py-fl+ 'py-add)))
 
-(pp add-to-scheme)
-
 ;; SUBTRACTION
 (define-PycBinary-to-scheme (sub-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
