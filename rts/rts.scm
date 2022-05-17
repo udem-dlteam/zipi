@@ -900,7 +900,8 @@
 	    (if (eq? __new__ object.__new__)
   		  (if (eq? obj py-object-class)
   		    (py-throw-exception-with-message py-builtin-TypeError "object() takes no arguments")
-  		    (type-callX-from-instance obj (py-obj-alloc obj) instance a0))
+          (let ((instance (py-obj-alloc obj)))
+  		      (type-callX-from-instance obj instance instance a0)))
 		    (type-callX-from-new-method obj __new__ a0))))
 	 (else
 	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))

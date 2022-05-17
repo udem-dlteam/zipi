@@ -580,36 +580,35 @@
 ;; FLOORDIV
 (define-PycBinary-to-scheme (floordiv-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   ((and operands-are-int-literals? rhs-is-non-zero-literal?)
-    (let ((result (quotient (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs)))))
+    (let ((result (quotient (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx// (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    `(quotient ,(scheme lhs conf) (- ,(scheme rhs conf))))
+    `(quotient ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
     (PycBinary-default-case this conf py-fx// py-fl// 'py-floordiv)))
-
+unboxed-fx%
 ;; TRUEDIV
 (define-PycBinary-to-scheme (truediv-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   ((and operands-are-int-literals? rhs-is-non-zero-literal?)
-    (let ((result (exact->inexact (/ (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs))))))
-      (if (fixnum? result) result `(py-bint-from-scheme ,result))))
+    (exact->inexact (/ (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx/ (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    `(exact->inexact (/ ,(scheme lhs conf) (- ,(scheme rhs conf)))))
+    `(exact->inexact (/ ,(scheme lhs conf) ,(scheme rhs conf))))
   (else
     (PycBinary-default-case this conf py-fx/ py-fl/ 'py-truediv)))
 
 ;; MODULO
 (define-PycBinary-to-scheme (mod-to-scheme this conf (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   ((and operands-are-int-literals? rhs-is-non-zero-literal?)
-    (let ((result (modulo (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs)))))
+    (let ((result (modulo (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx% (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    `(modulo ,(scheme lhs conf) (- ,(scheme rhs conf))))
+    `(modulo ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
     (PycBinary-default-case this conf py-fx% py-fl% 'py-mod)))
 
