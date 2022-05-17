@@ -914,36 +914,6 @@
    (epairify this
       `(&& ,(PycLiteralValue-val this))))
 
-(define (dispatch-native-bin-operator op)
-  (define ops
-    `((add . py+)
-      (bitand . py&)
-      (bitor . py+b) ;; TODO replace by |py\|| once supported by bigloo
-      (floordiv . py//)
-      (lshift . py<<)
-      (mod . py%)
-      (mul . py*)
-      (pow . py**)
-      (rshift . py>>)
-      (sub . py-)
-      (truediv . py/)
-      (xor . py^)
-      ;; inplace
-      (iadd . py+)
-      (ibitand . py&)
-      (ibitor . py+b) ;; TODO replace by |py\|| once supported by bigloo
-      (ifloordiv . py//)
-      (ilshift . py<<)
-      (imod . py%)
-      (imul . py*)
-      (ipow . py**)
-      (irshift . py>>)
-      (isub . py-)
-      (itruediv . py/)
-      (ixor . py^)))
-  (let ((res (assq op ops)))
-    (and res (cdr res))))
-
 (define (dispatch-native-cmp-operator op)
   (define ops
     `((eq . py==)
@@ -971,16 +941,14 @@
     (epairify this (PycBinary-to-scheme this conf)))
 
    (define (scheme-op)
-      (epairify this
-	 (let ((op (dispatch-native-bin-operator (PycBinary-op this))))
-	    (if op
-		`(,op
-		    ,(scheme (PycBinary-lhs this) conf)
-		    ,(scheme (PycBinary-rhs this) conf))
-		`(py-test-from-scheme
-		    (,(dispatch-native-cmp-operator (PycBinary-op this))
-		     ,(scheme (PycBinary-lhs this) conf)
-		     ,(scheme (PycBinary-rhs this) conf)))))))
+      (let ((op (dispatch-native-cmp-operator (PycBinary-op this))))
+        (epairify this
+        (if op
+        		`(py-test-from-scheme
+        		    (,op
+        		     ,(scheme (PycBinary-lhs this) conf)
+        		     ,(scheme (PycBinary-rhs this) conf)))
+            (epairify this (PycBinary-to-scheme this conf))))))
 
    ;; MS, 16may2021: seq operator has been introduced to type-check
    ;; MARK-DEFINE-BEHAVIOR!@instrincs.scm
