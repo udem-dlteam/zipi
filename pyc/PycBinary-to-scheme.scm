@@ -30,7 +30,7 @@
             'quasiquote
               (list
               'let
-                (list (car arguments) (list ' unquote (car arguments)))
+                (list (list (car arguments) (list ' unquote (car arguments))))
                 (list 'unquote '$body)))
             (list
               'replace-symbol
@@ -95,11 +95,11 @@
 
 ;; ADDITION
 (define-operator (py-fx+ left right)
-  ((gambit: (or (|##fx+| left right) (py-bint-from-scheme (|##+2| left right))))
+  ((gambit: (or (|##fx+?| left right) (py-bint-from-scheme (|##+2| left right))))
    (bigloo: (py-int-from-scheme (+fx/overflow left right)))))
 
 (define-operator (unboxed-fx+ left right)
-  ((gambit: (or (|##fx+| left right) (|##+2| left right)))
+  ((gambit: (|##+2| left right))
    (bigloo: (+fx/overflow left right))))
 
 (define-operator (py-fl+ left right)
@@ -108,12 +108,12 @@
 
 ;; SUBTRACTION
 (define-operator (py-fx- left right)
-  ((gambit: (or (|##fx-| left right) (py-bint-from-scheme (|##-2| left right))))
+  ((gambit: (or (|##fx-?| left right) (py-bint-from-scheme (|##-2| left right))))
    (bigloo: (py-int-from-scheme (-fx/overflow left right)))))
 
-(define-operator (py-fl- left right)
-  ((gambit: (|##fl-| left right))
-   (bigloo: (-fl left right))))
+(define-operator (unboxed-fx- left right)
+  ((gambit: (|##-2| left right))
+   (bigloo: (-fx/overflow left right))))
 
 (define-operator (py-fl- left right)
   ((gambit: (|##fl-| left right))
@@ -121,11 +121,11 @@
 
 ;; MULTIPLICATION
 (define-operator (py-fx* left right)
-  ((gambit: (or (|##fx*| left right) (py-bint-from-scheme (|##*2| left right))))
+  ((gambit: (or (|##fx*?| left right) (py-bint-from-scheme (|##*2| left right))))
    (bigloo: (py-int-from-scheme (*fx/overflow left right)))))
 
 (define-operator (unboxed-fx* left right)
-  ((gambit: (or (|##fx*| left right) (|##*2| left right)))
+  ((gambit: (|##*2| left right))
    (bigloo: (*fx/overflow left right))))
 
 (define-operator (py-fl* left right)
@@ -171,35 +171,41 @@
 
 ;; BIT-SHIFT-LEFT
 (define-operator (py-fx<< left right)
-  (if ((gambit: (|##fx>=| right 0))
-       (bigloo: (>=fx right 0)))
-    ((gambit: (or (|##fxarithmetic-shift-left?| left right)
-                  (py-bint-from-scheme (|##arithmetic-shift| left right))))
-     (bigloo: (py-int-from-scheme (bit-lsh left right))))
-    (py-lshift-sintX-sintNeg1-fallback left)))
+  ((gambit: (or (|##fxarithmetic-shift-left?| left right)
+                (if (|##fx>=| right 0)
+                   (py-bint-from-scheme (|##arithmetic-shift| left right))
+                   (py-lshift-sintX-sintNeg1-fallback left))))
+   (bigloo:
+     (if (>=fx right 0)
+         (py-int-from-scheme (bit-lsh left right))
+         (py-lshift-sintX-sintNeg1-fallback left)))))
 
 (define-operator (unboxed-fx<< left right)
-  (if ((gambit: (|##fx>=| right 0))
-       (bigloo: (>=fx right 0)))
-    ((gambit: (|##arithmetic-shift| left right))
-     (bigloo: (bit-lsh left right)))
-    (py-lshift-sintX-sintNeg1-fallback left)))
+  ((gambit: (or (|##fxarithmetic-shift-left?| left right)
+                (if (|##fx>=| right 0)
+                   (|##arithmetic-shift| left right)
+                   (py-lshift-sintX-sintNeg1-fallback left))))
+   (bigloo:
+     (if (>=fx right 0)
+         (bit-lsh left right)
+         (py-lshift-sintX-sintNeg1-fallback left)))))
 
 ;; BIT-SHIFT-RIGHT
 (define-operator (py-fx>> left right)
-  (if ((gambit: (|##fx>=| right 0))
-       (bigloo: (>=fx right 0)))
-    ((gambit: (or (|##fxarithmetic-shift-right?| left right)
-                  (py-bint-from-scheme (|##arithmetic-shift| left (|##negate| right)))))
-     (bigloo: (py-int-from-scheme (bit-rsh left right))))
-    (py-rshift-sintX-sintNeg1-fallback left)))
+  ((gambit: (or (|##fxarithmetic-shift-right?| left right)
+                (py-rshift-sintX-sintNeg1-fallback left)))
+   (bigloo:
+     (if (>=fx right 0)
+         (bit-rsh left right)
+         (py-rshift-sintX-sintNeg1-fallback left)))))
 
 (define-operator (unboxed-fx>> left right)
-  (if ((gambit: (|##fx>=| right 0))
-       (bigloo: (>=fx right 0)))
-    ((gambit: (|##arithmetic-shift| left (|##negate| right))))
-     (bigloo: (bit-rsh left right))
-    (py-rshift-sintX-sintNeg1-fallback left)))
+  ((gambit: (or (|##fxarithmetic-shift-right?| left right)
+                (py-rshift-sintX-sintNeg1-fallback left)))
+   (bigloo:
+     (if (>=fx right 0)
+         (bit-rsh left right)
+         (py-rshift-sintX-sintNeg1-fallback left)))))
 
 ;; FLOORDIV
 
@@ -500,7 +506,7 @@
   (rhs-number-literal-value-is? pycbinary (lambda (val) (not (= val 0)))))
 
 (define-predicate (must-return-host-bool pycbinary conf params)
-  (let ((data (memq must-return-host-bool: params)))
+  (let ((data (memq must-return-host-value: params)))
     (and data (cadr data))))
 
 ;; =====================================================================
@@ -518,11 +524,11 @@
            (list
              (and
                fx-op
-               (operands-could-be-sint? this conf)
+               (operands-could-be-sint? this conf params)
                 `((and (fixnum? ,$left) (fixnum? ,$right)) ,(fx-op $left $right)))
              (and
                fl-op
-               (operands-could-be-float? this conf)
+               (operands-could-be-float? this conf params)
                `((and (flonum? ,$left) (flonum? ,$right)) ,(fl-op $left $right)))
              `(else
                (,py-op ,$left ,$right))))))))
@@ -765,9 +771,9 @@
 
 ;; LE
 (define-comparisons-to-scheme le-to-scheme
-                              py-fx<= unboxed-inteler<= py-fl<= py-le
+                              py-fx<= unboxed-integer<= py-fl<= py-le
                               test-le-to-scheme
-                              py-test-fx<= unboxed-test-inteler<= py-test-fl<= py-test-le
+                              py-test-fx<= unboxed-test-integer<= py-test-fl<= py-test-le
                               <= string<=?)
 
 ;; NE
@@ -783,11 +789,11 @@
         'py-False
         'py-True))
   (operands-are-unboxed-fixnums?
-    (py-fx!= (scheme lhs conf) (scheme rhs conf)))
+    (py-test-fx!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    (unboxed-integer!= (scheme lhs conf) (scheme rhs conf)))
+    (unboxed-test-integer!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-flonums?
-    (py-fl!= (scheme lhs conf) (scheme rhs conf)))
+    (py-test-fl!= (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx!= py-fl!= 'py-ne)))
 
