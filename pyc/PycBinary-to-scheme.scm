@@ -166,7 +166,7 @@
    (bigloo: (bit-xor left right))))
 
 (define-operator (unboxed-fx^ left right)
-  ((gambit: (|##fxor| left right))
+  ((gambit: (|##fxxor| left right))
    (bigloo: (bit-xor left right))))
 
 ;; BIT-SHIFT-LEFT
@@ -408,10 +408,11 @@
     (and (lhs-number-literal-value-is? pycbinary predicate)
          (rhs-number-literal-value-is? pycbinary predicate)))
 
-(define (operands-are-statically-typed-as? pycbinary type)
-  (let ((lhs-type-hint (PycBinary-lhs-type-hint pycbinary))
+(define (operands-are-statically-typed-as? pycbinary types)
+  (let ((types (if (list? types) types (list types)))
+        (lhs-type-hint (PycBinary-lhs-type-hint pycbinary))
         (rhs-type-hint (PycBinary-rhs-type-hint pycbinary)))
-    (and (eq? lhs-type-hint type) (eq? rhs-type-hint type))))
+    (and (memq lhs-type-hint types) (memq rhs-type-hint types) #t)))
 
 ;; Predicates usable in table
 (define-predicate (operands-are-complex-literals? pycbinary conf params)
@@ -426,9 +427,6 @@
 (define-predicate (operands-are-string-literals? pycbinary conf params)
   (operands-are? pycbinary (lambda (operand) (isa? operand PycString))))
 
-(define-predicate (operands-are-unboxed-integers? pycbinary conf params)
-  (operands-are? pycbinary (lambda (value) (and (real? value) (not (flonum? value))))))
-
 (define-predicate (operands-are-unboxed-fixnums? pycbinary conf params)
   (operands-are-statically-typed-as? pycbinary 'Usint))
 
@@ -440,6 +438,9 @@
 
 (define-predicate (operands-are-unboxed-bool? pycbinary conf params)
   (operands-are-statically-typed-as? pycbinary 'Ubool))
+
+(define-predicate (operands-are-unboxed-reals? pycbinary conf params)
+  (operands-are-statically-typed-as? pycbinary (list 'Uint 'Usint 'Ubint 'Ubool 'Ufloat)))
 
 (define-predicate (operands-are-unboxed-flonums? pycbinary conf params)
   (operands-are-statically-typed-as? pycbinary 'Ufloat))
@@ -513,7 +514,7 @@
 ;; Decision tables
 ;; =====================================================================
 
-(define (PycBinary-default-case this conf params fx-op fl-op py-op)
+(define (PycBinary-default-case this conf params fx-op fl-op op-name)
   (let (($left (my-gensym 'left))
         ($right (my-gensym 'right)))
     `(let ((,$left ,(scheme (PycBinary-lhs this) conf))
@@ -531,7 +532,7 @@
                (operands-could-be-float? this conf params)
                `((and (flonum? ,$left) (flonum? ,$right)) ,(fl-op $left $right)))
              `(else
-               (,py-op ,$left ,$right))))))))
+               (py-binary-behavior-call ,op-name ,$left ,$right))))))))
 
 ;; ADDITION
 (define-PycBinary-to-scheme (add-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -546,14 +547,14 @@
             conf))
   (operands-are-unboxed-fixnums?
     (unboxed-fx+ (scheme lhs conf) (scheme rhs conf)))
-  (operands-are-unboxed-integers?
+  (operands-are-unboxed-reals?
     `(+ ,(scheme lhs conf) ,(scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-fl+ (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-strings?
     `(string-append ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx+ py-fl+ 'py-add)))
+    (PycBinary-default-case this conf params py-fx+ py-fl+ 'add)))
 
 ;; SUBTRACTION
 (define-PycBinary-to-scheme (sub-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -569,7 +570,7 @@
   (operands-are-unboxed-flonums?
     (py-fl- (scheme lhs conf) (scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx- py-fl- 'py-sub)))
+    (PycBinary-default-case this conf params py-fx- py-fl- 'sub)))
 
 ;; MULTIPLICATION
 (define-PycBinary-to-scheme (mul-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -589,7 +590,7 @@
   ((and lhs-is-a-sint-literal? rhs-is-a-str-literal?)
     (or (py-mul-str-literal rhs lhs conf) `(py-mul ,(scheme lhs conf) ,(scheme rhs conf))))
   (else
-    (PycBinary-default-case this conf params py-fx* py-fl* 'py-mul)))
+    (PycBinary-default-case this conf params py-fx* py-fl* 'mul)))
 
 ;; EXPONENT
 (define-PycBinary-to-scheme (pow-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -605,7 +606,7 @@
   (operands-are-unboxed-flonums?
     (py-fl** (scheme lhs conf) (scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx** py-fl** 'py-pow)))
+    (PycBinary-default-case this conf params py-fx** py-fl** 'pow)))
 
 ;; BITAND
 (define-PycBinary-to-scheme (bitand-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -617,7 +618,7 @@
   (operands-are-unboxed-integers?
     `(bitwise-and ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx& #f 'py-pow)))
+    (PycBinary-default-case this conf params py-fx& #f 'pow)))
 
 ;; BITOR
 (define-PycBinary-to-scheme (bitor-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -629,7 +630,7 @@
   (operands-are-unboxed-integers?
     `(bitwise-and ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx-or #f 'py-bitor)))
+    (PycBinary-default-case this conf params py-fx-or #f 'bitor)))
 
 ;; XOR
 (define-PycBinary-to-scheme (xor-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -641,7 +642,7 @@
   (operands-are-unboxed-integers?
     `(bitwise-xor ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx^ #f 'py-xor)))
+    (PycBinary-default-case this conf params py-fx^ #f 'xor)))
 
 ;; SHIFT-LEFT
 (define-PycBinary-to-scheme (lshift-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -653,7 +654,7 @@
   (operands-are-unboxed-integers?
     `(arithmetic-shift ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx<< #f 'py-lshift)))
+    (PycBinary-default-case this conf params py-fx<< #f 'lshift)))
 
 ;; SHIFT-RIGHT
 (define-PycBinary-to-scheme (rshift-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -665,7 +666,7 @@
   (operands-are-unboxed-integers?
     `(arithmetic-shift ,(scheme lhs conf) (- ,(scheme rhs conf))))
   (else
-    (PycBinary-default-case this conf params py-fx>> #f 'py-rshift)))
+    (PycBinary-default-case this conf params py-fx>> #f 'rshift)))
 
 ;; FLOORDIV
 (define-PycBinary-to-scheme (floordiv-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -677,7 +678,7 @@
   (operands-are-unboxed-integers?
     `(quotient ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx// py-fl// 'py-floordiv)))
+    (PycBinary-default-case this conf params py-fx// py-fl// 'floordiv)))
 
 ;; TRUEDIV
 (define-PycBinary-to-scheme (truediv-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -688,7 +689,7 @@
   (operands-are-unboxed-integers?
     `(exact->inexact (/ ,(scheme lhs conf) ,(scheme rhs conf))))
   (else
-    (PycBinary-default-case this conf params py-fx/ py-fl/ 'py-truediv)))
+    (PycBinary-default-case this conf params py-fx/ py-fl/ 'truediv)))
 
 ;; MODULO
 (define-PycBinary-to-scheme (mod-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -700,16 +701,16 @@
   (operands-are-unboxed-integers?
     `(modulo ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx% py-fl% 'py-mod)))
+    (PycBinary-default-case this conf params py-fx% py-fl% 'mod)))
 
 ;; COMPARISONS
-(define-macro (define-comparisons-to-scheme op-name py-fx unboxed-integer py-fl py-op
-                                            op-test-name py-test-fx unboxed-test-integer py-test-fl py-test-op
+(define-macro (define-comparisons-to-scheme name py-fx unboxed-integer py-fl op-name
+                                            test-name py-test-fx unboxed-test-integer py-test-fl test-op-name
                                             op string-op)
   `(begin
-    (define-PycBinary-to-scheme (,op-name this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+    (define-PycBinary-to-scheme (,name this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
       (must-return-host-bool
-        (,op-test-name this conf params))
+        (,test-name this conf params))
       (operands-are-int-or-float-literals?
         (if (,op (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))
             'py-True
@@ -718,6 +719,13 @@
         (if (,string-op (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))
             'py-True
             'py-False))
+      (operands-are-unboxed-strings?
+        (list 'if (list (quote ,string-op) (scheme lhs conf) (scheme rhs conf))
+          'py-True
+          'py-False))
+        ;;(if (,string-op (scheme lhs conf) (scheme rhs conf))
+            ;;'py-True
+            ;;'py-False))
       (operands-are-unboxed-fixnums?
         (,py-fx (scheme lhs conf) (scheme rhs conf)))
       (operands-are-unboxed-integers?
@@ -725,13 +733,15 @@
       (operands-are-unboxed-flonums?
         (,py-fl (scheme lhs conf) (scheme rhs conf)))
       (else
-        (PycBinary-default-case this conf params ,py-fx ,py-fl (quote ,py-op))))
+        (PycBinary-default-case this conf params ,py-fx ,py-fl (quote ,op-name))))
 
-    (define-PycBinary-to-scheme (,op-test-name this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+    (define-PycBinary-to-scheme (,test-name this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
       (operands-are-int-or-float-literals?
         (,op (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
       (operands-are-str-literals?
         (,string-op (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
+      (operands-are-unboxed-strings?
+        (list (quote ,string-op) (scheme lhs conf) (scheme rhs conf)))
       (operands-are-unboxed-fixnums?
         (,py-test-fx (scheme lhs conf) (scheme rhs conf)))
       (operands-are-unboxed-integers?
@@ -739,41 +749,41 @@
       (operands-are-unboxed-flonums?
         (,py-test-fl (scheme lhs conf) (scheme rhs conf)))
       (else
-        (PycBinary-default-case this conf params ,py-test-fx ,py-test-fl (quote ,py-test-op))))))
+        (PycBinary-default-case this conf params ,py-test-fx ,py-test-fl (quote ,test-op-name))))))
 
 ;; EQ
 (define-comparisons-to-scheme eq-to-scheme
-                              py-fx= unboxed-integer= py-fl= py-eq
+                              py-fx= unboxed-integer= py-fl= eq
                               test-eq-to-scheme
-                              py-test-fx= unboxed-test-integer= py-test-fl= py-test-eq
+                              py-test-fx= unboxed-test-integer= py-test-fl= test-eq
                               = string=?)
 
 ;; GT
 (define-comparisons-to-scheme gt-to-scheme
-                              py-fx> unboxed-integer> py-fl> py-gt
+                              py-fx> unboxed-integer> py-fl> gt
                               test-gt-to-scheme
-                              py-test-fx> unboxed-test-integer> py-test-fl> py-test-gt
+                              py-test-fx> unboxed-test-integer> py-test-fl> test-gt
                               > string>?)
 
 ;; GE
 (define-comparisons-to-scheme ge-to-scheme
-                              py-fx>= unboxed-integer>= py-fl>= py-ge
+                              py-fx>= unboxed-integer>= py-fl>= ge
                               test-ge-to-scheme
-                              py-test-fx>= unboxed-test-integer>= py-test-fl>= py-test-ge
+                              py-test-fx>= unboxed-test-integer>= py-test-fl>= test-ge
                               >= string>=?)
 
 ;; LT
 (define-comparisons-to-scheme lt-to-scheme
-                              py-fx< unboxed-integer< py-fl< py-lt
+                              py-fx< unboxed-integer< py-fl< lt
                               test-lt-to-scheme
-                              py-test-fx< unboxed-test-integer< py-test-fl< py-test-lt
+                              py-test-fx< unboxed-test-integer< py-test-fl< test-lt
                               < string<?)
 
 ;; LE
 (define-comparisons-to-scheme le-to-scheme
-                              py-fx<= unboxed-integer<= py-fl<= py-le
+                              py-fx<= unboxed-integer<= py-fl<= le
                               test-le-to-scheme
-                              py-test-fx<= unboxed-test-integer<= py-test-fl<= py-test-le
+                              py-test-fx<= unboxed-test-integer<= py-test-fl<= test-le
                               <= string<=?)
 
 ;; NE
@@ -788,6 +798,10 @@
     (if (string=? (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))
         'py-False
         'py-True))
+  (operands-are-unboxed-strings?
+    `(if (string=? ,(scheme lhs conf) ,(scheme rhs conf))
+        py-False
+        py-True))
   (operands-are-unboxed-fixnums?
     (py-test-fx!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
@@ -795,13 +809,15 @@
   (operands-are-unboxed-flonums?
     (py-test-fl!= (scheme lhs conf) (scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-fx!= py-fl!= 'py-ne)))
+    (PycBinary-default-case this conf params py-fx!= py-fl!= 'ne)))
 
 (define-PycBinary-to-scheme (test-ne-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-or-float-literals?
     (not (= (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
   (operands-are-str-literals?
     (not (string=? (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
+  (operands-are-unboxed-strings?
+    `(not (string=? ,(scheme lhs conf) ,(scheme rhs conf))))
   (operands-are-unboxed-fixnums?
     (py-test-fx!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
@@ -809,7 +825,13 @@
   (operands-are-unboxed-flonums?
     (py-test-fl!= (scheme lhs conf) (scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-test-fx!= py-test-fl!= 'py-test-ne))))
+    (PycBinary-default-case this conf params py-test-fx!= py-test-fl!= 'test-ne))))
+
+(define-PycBinary-to-scheme (is-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  (must-return-host-bool
+    `(py-test-is ,(scheme lhs conf) ,(scheme rhs conf)))
+  (else
+    `(py-is ,(scheme lhs conf) ,(scheme rhs conf))))
 
 ;; Dispatch
 (define (default-python-op binop conf params)
@@ -840,6 +862,8 @@
           ((memq op '(truediv itruediv)) (truediv-to-scheme pycbinary conf params))
           ((memq op '(mod imod)) (mod-to-scheme pycbinary conf params))
 
+          ;; TODO: pyc does not detect that native comparisons should return native bool, but behaviors are written as such
+
           ;; comparisons
           ((eq? op 'eq) (eq-to-scheme pycbinary conf params))
           ((eq? op 'ne) (ne-to-scheme pycbinary conf params))
@@ -847,5 +871,6 @@
           ((eq? op 'ge) (ge-to-scheme pycbinary conf params))
           ((eq? op 'lt) (lt-to-scheme pycbinary conf params))
           ((eq? op 'le) (le-to-scheme pycbinary conf params))
+          ((eq? op 'is) (is-to-scheme pycbinary conf params))
 
           (else (default-python-op pycbinary conf params)))))

@@ -2938,7 +2938,6 @@
             (,$step (vector-ref ,$indices 2))
             (,$res-len (get-slice-length ,$start ,$stop ,$step))
             (,$res-vec (make-vector (list-get-inner-len ,$res-len) #f)))
-       #;(step)
        (let loop ((source ,$start) (target 0))
          (if (< target ,$res-len)
              (begin
