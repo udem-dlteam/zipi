@@ -720,9 +720,7 @@
             'py-True
             'py-False))
       (operands-are-unboxed-strings?
-        (list 'if (list (quote ,string-op) (scheme lhs conf) (scheme rhs conf))
-          'py-True
-          'py-False))
+        (list (quote ,string-op) (scheme lhs conf) (scheme rhs conf)))
         ;;(if (,string-op (scheme lhs conf) (scheme rhs conf))
             ;;'py-True
             ;;'py-False))
@@ -799,9 +797,7 @@
         'py-False
         'py-True))
   (operands-are-unboxed-strings?
-    `(if (string=? ,(scheme lhs conf) ,(scheme rhs conf))
-        py-False
-        py-True))
+    `(not (string=? ,(scheme lhs conf) ,(scheme rhs conf))))
   (operands-are-unboxed-fixnums?
     (py-test-fx!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
@@ -815,7 +811,7 @@
   (operands-are-int-or-float-literals?
     (not (= (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
   (operands-are-str-literals?
-    (not (string=? (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
+    (not (string=? (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
   (operands-are-unboxed-strings?
     `(not (string=? ,(scheme lhs conf) ,(scheme rhs conf))))
   (operands-are-unboxed-fixnums?
@@ -825,7 +821,7 @@
   (operands-are-unboxed-flonums?
     (py-test-fl!= (scheme lhs conf) (scheme rhs conf)))
   (else
-    (PycBinary-default-case this conf params py-test-fx!= py-test-fl!= 'test-ne))))
+    (PycBinary-default-case this conf params py-test-fx!= py-test-fl!= 'test-ne)))
 
 (define-PycBinary-to-scheme (is-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (must-return-host-bool
@@ -861,8 +857,6 @@
           ((memq op '(floordiv ifloordiv)) (floordiv-to-scheme pycbinary conf params))
           ((memq op '(truediv itruediv)) (truediv-to-scheme pycbinary conf params))
           ((memq op '(mod imod)) (mod-to-scheme pycbinary conf params))
-
-          ;; TODO: pyc does not detect that native comparisons should return native bool, but behaviors are written as such
 
           ;; comparisons
           ((eq? op 'eq) (eq-to-scheme pycbinary conf params))
