@@ -206,7 +206,10 @@
 	  (body-conf (if need-return
 			 (cons* fun: this return: return-sym conf)
 			 (cons* fun: this conf)))
-	  (body (scheme (PycFun-body this) body-conf))
+	  (body (scheme (PycFun-body this)
+                  (cons* in-behavior:
+                     (PycSemantics-is-behavior this)
+                     body-conf)))
 	  (scheme-name (PycFun-name this)))
       (list
 	 (cons

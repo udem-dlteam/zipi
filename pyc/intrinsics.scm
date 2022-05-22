@@ -882,7 +882,8 @@
           annotation: annotation
           annotation-names: annotation-names
           inline: inline
-          inline-as-is: inline-as-is)))
+          inline-as-is: inline-as-is
+          is-behavior: #t)))
 
     (define (make-default-inline-behavior-body)
       (new-PycSeq

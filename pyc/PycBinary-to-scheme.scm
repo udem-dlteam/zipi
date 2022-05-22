@@ -507,14 +507,16 @@
   (rhs-number-literal-value-is? pycbinary (lambda (val) (not (= val 0)))))
 
 (define-predicate (must-return-host-bool pycbinary conf params)
-  (let ((data (memq must-return-host-value: params)))
-    (and data (cadr data))))
+  (config-get params must-return-host-value:))
 
 ;; =====================================================================
 ;; Decision tables
 ;; =====================================================================
 
 (define (PycBinary-default-case this conf params fx-op fl-op op-name)
+    (if (config-get conf in-semantics:)
+      (error "PycBinary-default-case" "must not use default case for behavior" (pyc->list this)))
+
   (let (($left (my-gensym 'left))
         ($right (my-gensym 'right)))
     `(let ((,$left ,(scheme (PycBinary-lhs this) conf))
