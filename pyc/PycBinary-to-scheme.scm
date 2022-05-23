@@ -318,7 +318,6 @@
   (let ((py-fx (string->symbol (string-append "py-fx" (symbol->string symbol))))
         (unboxed-real (string->symbol (string-append "unboxed-real" (symbol->string symbol))))
         (py-test-fx (string->symbol (string-append "py-test-fx" (symbol->string symbol))))
-        (unboxed-test-real (string->symbol (string-append "unboxed-test-real" (symbol->string symbol))))
         (py-fl (string->symbol (string-append "py-fl" (symbol->string symbol))))
         (py-test-fl (string->symbol (string-append "py-test-fl" (symbol->string symbol))))
         (gambit-fx-op (string->symbol (string-append "##fx" (symbol->string symbol))))
@@ -333,16 +332,11 @@
           py-False))
 
       (define-operator (,unboxed-real left right)
-        (if (,symbol left right)
-          py-True
-          py-False))
+        (,symbol left right))
 
       (define-operator (,py-test-fx  left right)
         ((gambit: (,gambit-fx-op left right))
          (bigloo: (,bigloo-fx-op left right))))
-
-      (define-operator (,unboxed-test-real  left right)
-        (,symbol left right))
 
       (define-operator (,py-fl left right)
         (if ((gambit: (,gambit-fl-op left right))
@@ -368,16 +362,11 @@
     py-True))
 
 (define-operator (unboxed-real!= left right)
-  (if (= left right)
-    py-False
-    py-True))
+  (not (= left right)))
 
 (define-operator (py-test-fx!= left right)
   (not ((gambit: (|##fx=| left right))
         (bigloo: (=fx left right)))))
-
-(define-operator (unboxed-test-real!= left right)
-  (not (= left right)))
 
 (define-operator (py-fl!= left right)
   (if ((gambit: (|##fl=| left right))
@@ -472,7 +461,7 @@
   (operands-are-statically-typed-as? pycbinary 'sint))
 
 (define-predicate (operands-are-unboxed-fixnums? pycbinary conf params)
-  (operands-are-statically-typed-as? pycbinary 'Usint))
+  (operands-are-statically-typed-as? pycbinary '(Usint Ubool)))
 
 (define-predicate (operands-are-unboxed-integers? pycbinary conf params)
   (operands-are-statically-typed-as? pycbinary '(Uint Ubint Usint)))
@@ -793,7 +782,7 @@
 
 ;; COMPARISONS
 (define-macro (define-comparisons-to-scheme name py-fx unboxed-real py-fl op-name
-                                            test-name py-test-fx unboxed-test-real py-test-fl test-op-name
+                                            test-name py-test-fx py-test-fl test-op-name
                                             op string-op)
   `(begin
     (define-PycBinary-to-scheme (,name this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
@@ -810,11 +799,11 @@
       (operands-are-unboxed-strings?
         (list (quote ,string-op) (scheme lhs conf) (scheme rhs conf)))
       ((or operands-are-unboxed-fixnums? operands-are-sint?)
-        (,py-fx (scheme lhs conf) (scheme rhs conf)))
+        (,py-test-fx (scheme lhs conf) (scheme rhs conf)))
       (operands-are-unboxed-reals?
         (,unboxed-real (scheme lhs conf) (scheme rhs conf)))
       (operands-are-unboxed-flonums?
-        (,py-fl (scheme lhs conf) (scheme rhs conf)))
+        (,py-test-fl (scheme lhs conf) (scheme rhs conf)))
       (else
         (PycBinary-default-case this conf params ,py-fx ,py-fl (quote ,op-name))))
 
@@ -828,7 +817,7 @@
       ((or operands-are-unboxed-fixnums? operands-are-sint?)
         (,py-test-fx (scheme lhs conf) (scheme rhs conf)))
       (operands-are-unboxed-reals?
-        (,unboxed-test-real (scheme lhs conf) (scheme rhs conf)))
+        (,unboxed-real (scheme lhs conf) (scheme rhs conf)))
       (operands-are-unboxed-flonums?
         (,py-test-fl (scheme lhs conf) (scheme rhs conf)))
       (else
@@ -838,35 +827,35 @@
 (define-comparisons-to-scheme eq-to-scheme
                               py-fx= unboxed-real= py-fl= eq
                               test-eq-to-scheme
-                              py-test-fx= unboxed-test-real= py-test-fl= test-eq
+                              py-test-fx= py-test-fl= test-eq
                               = string=?)
 
 ;; GT
 (define-comparisons-to-scheme gt-to-scheme
                               py-fx> unboxed-real> py-fl> gt
                               test-gt-to-scheme
-                              py-test-fx> unboxed-test-real> py-test-fl> test-gt
+                              py-test-fx> py-test-fl> test-gt
                               > string>?)
 
 ;; GE
 (define-comparisons-to-scheme ge-to-scheme
                               py-fx>= unboxed-real>= py-fl>= ge
                               test-ge-to-scheme
-                              py-test-fx>= unboxed-test-real>= py-test-fl>= test-ge
+                              py-test-fx>= py-test-fl>= test-ge
                               >= string>=?)
 
 ;; LT
 (define-comparisons-to-scheme lt-to-scheme
                               py-fx< unboxed-real< py-fl< lt
                               test-lt-to-scheme
-                              py-test-fx< unboxed-test-real< py-test-fl< test-lt
+                              py-test-fx< py-test-fl< test-lt
                               < string<?)
 
 ;; LE
 (define-comparisons-to-scheme le-to-scheme
                               py-fx<= unboxed-real<= py-fl<= le
                               test-le-to-scheme
-                              py-test-fx<= unboxed-test-real<= py-test-fl<= test-le
+                              py-test-fx<= py-test-fl<= test-le
                               <= string<=?)
 
 ;; NE
@@ -886,7 +875,7 @@
   ((or operands-are-unboxed-fixnums? operands-are-sint?)
     (py-test-fx!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-reals?
-    (unboxed-test-real!= (scheme lhs conf) (scheme rhs conf)))
+    (unboxed-real!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-test-fl!= (scheme lhs conf) (scheme rhs conf)))
   (else
@@ -902,7 +891,7 @@
   ((or operands-are-unboxed-fixnums? operands-are-sint?)
     (py-test-fx!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-reals?
-    (unboxed-test-real!= (scheme lhs conf) (scheme rhs conf)))
+    (unboxed-real!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-test-fl!= (scheme lhs conf) (scheme rhs conf)))
   (else
