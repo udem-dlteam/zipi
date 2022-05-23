@@ -62,4 +62,5 @@ zipi/*.o
 config.status
 tests/.idea
 __pycache__/
+*.idea
 *~
