@@ -54,3 +54,8 @@
     (define (,name ,@arguments)
       (let* (,@bindings)
         ,(parse-body body arguments))))))
+
+(define-macro (define-predicate signature . body)
+  `(define ,signature
+    ;;(pp (quote ,(car signature)))
+    ,@body))

@@ -339,11 +339,6 @@
 ;; Predicates
 ;; =====================================================================
 
-(define-macro (define-predicate signature . body)
-  `(define ,signature
-    ;;(pp (quote ,(car signature)))
-    ,@body))
-
 ;; Helpers
 (define (lhs-is? pycbinary predicate)
   (predicate (PycBinary-lhs pycbinary)))
@@ -495,7 +490,7 @@
   (config-get params must-return-host-value:))
 
 ;; =====================================================================
-;; Decision tables
+;; Code generation
 ;; =====================================================================
 
 (define (PycBinary-default-case this conf params fx-op fl-op op-name)
