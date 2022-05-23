@@ -1,19 +1,13 @@
 ;; =====================================================================
-;; Macros and helpers
+;; System-dependant operators
 ;; =====================================================================
-(define-macro (replace-system sexp)
-  (define host (cond-expand (gambit gambit:) (bigloo 'bigloo:)))
 
-  (define known-hosts '(bigloo: gambit:))
-
-  (define (replace sexp)
-    (if (pair? sexp)
-      (if (and (pair? (car sexp)) (memq (caar sexp) known-hosts))
-        (cadr (assq host sexp))
-        (map replace sexp))
-      sexp))
-
-  (replace sexp))
+(define (replace-symbol sexp target replacement)
+  (cond
+    ((eq? sexp target) replacement)
+    ((pair? sexp) (cons (replace-symbol (car sexp) target replacement)
+                        (replace-symbol (cdr sexp) target replacement)))
+    (else sexp)))
 
 (define-macro (define-operator signature body)
 
@@ -41,57 +35,6 @@
   `(replace-system
     (define ,signature
       ,(add-bindings (cdr signature) body))))
-
-(define-macro (define-PycBinary-to-scheme signature . body)
-  (define (symbol-append . rest)
-    (string->symbol (apply string-append (map symbol->string rest))))
-
-  (define (parse-signature signature)
-    (cond
-      ((and (pair? signature) (symbol? (car signature)))
-        (let ((tail (parse-signature (cdr signature))))
-          (cons (cons (car signature) (car tail)) (cdr tail))))
-      (else
-        ;; treat the rest of the signature as bindings for let*
-        (cons '() signature))))
-
-  (define (parse-single-predicate predicate arguments)
-    (if (and (pair? predicate) (memq (car predicate) '(or and not)))
-      `(,(car predicate) ,@(map (lambda (sexp) (parse-single-predicate sexp arguments)) (cdr predicate)))
-      `(,predicate ,@arguments)))
-
-  (define (parse-body-predicates body arguments)
-    (cond
-      ((null? body) '())
-      ((eq? (caar body) 'else)
-        `((else ,@(cdar body))))
-      (else
-        `((,(parse-single-predicate (caar body) arguments) ,@(cdar body)) ;; a conditional branch
-          ,@(parse-body-predicates (cdr body) arguments)))))
-
-  (define (parse-body body arguments)
-    `(cond ,@(parse-body-predicates body arguments)))
-
-  (let* ((parsed-signature (parse-signature signature))
-         (name (caar parsed-signature))
-         (arguments (cdar parsed-signature))
-         (bindings (cdr parsed-signature)))
-
-  `(replace-system
-    (define (,name ,@arguments)
-      (let* (,@bindings)
-        ,(parse-body body arguments))))))
-
-(define (replace-symbol sexp target replacement)
-  (cond
-    ((eq? sexp target) replacement)
-    ((pair? sexp) (cons (replace-symbol (car sexp) target replacement)
-                        (replace-symbol (cdr sexp) target replacement)))
-    (else sexp)))
-
-;; =====================================================================
-;; System-dependant operators
-;; =====================================================================
 
 ;; ADDITION
 (define-operator (py-fx+ left right)
@@ -579,7 +522,7 @@
                (py-binary-behavior-call ,op-name ,$left ,$right))))))))
 
 ;; ADDITION
-(define-PycBinary-to-scheme (add-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (add-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (+ (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -603,7 +546,7 @@
     (PycBinary-default-case this conf params py-fx+ py-fl+ 'add)))
 
 ;; SUBTRACTION
-(define-PycBinary-to-scheme (sub-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (sub-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (- (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -621,7 +564,7 @@
     (PycBinary-default-case this conf params py-fx- py-fl- 'sub)))
 
 ;; MULTIPLICATION
-(define-PycBinary-to-scheme (mul-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (mul-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (* (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -646,7 +589,7 @@
     (PycBinary-default-case this conf params py-fx* py-fl* 'mul)))
 
 ;; EXPONENT
-(define-PycBinary-to-scheme (pow-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (pow-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (expt (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -664,7 +607,7 @@
     (PycBinary-default-case this conf params py-fx** py-fl** 'pow)))
 
 ;; BITAND
-(define-PycBinary-to-scheme (bitand-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (bitand-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (bitwise-and (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -678,7 +621,7 @@
     (PycBinary-default-case this conf params py-fx& #f 'pow)))
 
 ;; BITOR
-(define-PycBinary-to-scheme (bitor-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (bitor-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (bitwise-ior (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -692,7 +635,7 @@
     (PycBinary-default-case this conf params py-fx-or #f 'bitor)))
 
 ;; XOR
-(define-PycBinary-to-scheme (xor-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (xor-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-literals?
     (let ((result (bitwise-xor (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -706,7 +649,7 @@
     (PycBinary-default-case this conf params py-fx^ #f 'xor)))
 
 ;; SHIFT-LEFT
-(define-PycBinary-to-scheme (lshift-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (lshift-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   ((and operands-are-int-literals? rhs-is-non-negative-literal?)
     (let ((result (arithmetic-shift (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -720,7 +663,7 @@
     (PycBinary-default-case this conf params py-fx<< #f 'lshift)))
 
 ;; SHIFT-RIGHT
-(define-PycBinary-to-scheme (rshift-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (rshift-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   ((and operands-are-int-literals? rhs-is-non-negative-literal?)
     (let ((result (arithmetic-shift (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs)))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -734,7 +677,7 @@
     (PycBinary-default-case this conf params py-fx>> #f 'rshift)))
 
 ;; FLOORDIV
-(define-PycBinary-to-scheme (floordiv-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (floordiv-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   ((and operands-are-int-literals? rhs-is-non-zero-literal?)
     (let ((result (quotient (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -750,7 +693,7 @@
     (PycBinary-default-case this conf params py-fx// py-fl// 'floordiv)))
 
 ;; TRUEDIV
-(define-PycBinary-to-scheme (truediv-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (truediv-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   ((and operands-are-int-literals? rhs-is-non-zero-literal?)
     (exact->inexact (/ (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
   (operands-are-unboxed-fixnums?
@@ -765,7 +708,7 @@
     (PycBinary-default-case this conf params py-fx/ py-fl/ 'truediv)))
 
 ;; MODULO
-(define-PycBinary-to-scheme (mod-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (mod-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   ((and operands-are-int-literals? rhs-is-non-zero-literal?)
     (let ((result (modulo (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
@@ -785,7 +728,7 @@
                                             test-name py-test-fx py-test-fl test-op-name
                                             op string-op)
   `(begin
-    (define-PycBinary-to-scheme (,name this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+    (define-compilation-to-scheme (,name this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
       (must-return-host-bool
         (,test-name this conf params))
       (operands-are-int-or-float-literals?
@@ -807,7 +750,7 @@
       (else
         (PycBinary-default-case this conf params ,py-fx ,py-fl (quote ,op-name))))
 
-    (define-PycBinary-to-scheme (,test-name this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+    (define-compilation-to-scheme (,test-name this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
       (operands-are-int-or-float-literals?
         (,op (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
       (operands-are-str-literals?
@@ -859,7 +802,7 @@
                               <= string<=?)
 
 ;; NE
-(define-PycBinary-to-scheme (ne-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (ne-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (must-return-host-bool
     (test-ne-to-scheme this conf params))
   (operands-are-int-or-float-literals?
@@ -881,7 +824,7 @@
   (else
     (PycBinary-default-case this conf params py-fx!= py-fl!= 'ne)))
 
-(define-PycBinary-to-scheme (test-ne-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (test-ne-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (operands-are-int-or-float-literals?
     (not (= (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
   (operands-are-str-literals?
@@ -897,7 +840,7 @@
   (else
     (PycBinary-default-case this conf params py-test-fx!= py-test-fl!= 'test-ne)))
 
-(define-PycBinary-to-scheme (is-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+(define-compilation-to-scheme (is-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
   (must-return-host-bool
     `(py-test-is ,(scheme lhs conf) ,(scheme rhs conf)))
   (else

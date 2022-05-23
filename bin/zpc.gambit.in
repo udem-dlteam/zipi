@@ -25,6 +25,7 @@ $PYC_DIR/ast.bgl \
 -e "(##include \"$PYC_DIR/walk.sch\")" \
 -e "(##include \"$PYC_DIR/new.sch\")" \
 -e "(##include \"$PYC_DIR/sexp.scm\")" \
+-e "(##include \"$PYC_DIR/pyc-to-scheme-utils.scm\")" \
 $PYC_DIR/symbol.bgl \
 $PYC_DIR/symbol.scm \
 $PYC_DIR/usage.bgl \
