@@ -34,6 +34,8 @@ $PYC_DIR/return.scm \
 $PYC_DIR/locals.bgl \
 $PYC_DIR/locals.scm \
 $PYC_DIR/super.scm \
+$PYC_DIR/PycBinary-to-scheme.bgl \
+$PYC_DIR/PycBinary-to-scheme.scm \
 $PYC_DIR/scheme.bgl \
 $PYC_DIR/scheme.scm \
 $PYC_DIR/break.bgl \

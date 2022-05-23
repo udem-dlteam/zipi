@@ -897,14 +897,12 @@
 	 ;; initialization of instances from type with no special metaclass
 	 ((eq? obj-type py-type-class)
 	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
-	     (if (eq? __new__ object.__new__)
-		 (if (eq? obj py-object-class)
-		     (py-throw-exception-with-message
-			py-builtin-TypeError
-			"object() takes no arguments")
-		     (let ((instance (py-obj-alloc obj)))
-			(type-callX-from-instance obj instance instance a0)))
-		 (type-callX-from-new-method obj __new__ a0))))
+	    (if (eq? __new__ object.__new__)
+  		  (if (eq? obj py-object-class)
+  		    (py-throw-exception-with-message py-builtin-TypeError "object() takes no arguments")
+          (let ((instance (py-obj-alloc obj)))
+  		      (type-callX-from-instance obj instance instance a0)))
+		    (type-callX-from-new-method obj __new__ a0))))
 	 (else
 	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
 	     (if (eq? __call__ py-absent)
@@ -912,48 +910,44 @@
 		 (py-call2-generic __call__ obj a0)))))))
 
 (define-rts (py-call2-generic obj a0 a1)
-   (let ((obj-type (py-type obj)))
-      (cond
-	 ((eq? obj-type py-function-class)
-	  (let* ((procedure (PyObjectFunction-procedure obj))
-		 (signature (PyObjectFunction-signature obj))
-		 (arity (signature-arity-alignment signature)))
-	     (if (eq? arity 2)
-		 (procedure a0 a1)
-		 (let ((defaults (signature-defaults signature)))
-		    (if (eq? arity (fx+ (vector-length defaults) 1))
-			(case (vector-length defaults)
-			   ((0)
-			    (align-and-call signature procedure a0 a1))
-			   ((1)
-			    (procedure a0 a1 (vector-ref defaults 0)))
-			   ((2)
-			    (procedure a0 a1 (vector-ref defaults 0) (vector-ref defaults 1)))
-			   ((3)
-			    (procedure a0 a1 (vector-ref defaults 0) (vector-ref defaults 1) (vector-ref defaults 2)))
-			   (else
-			    (align-and-call signature procedure a0 a1)))
-			(align-and-call signature procedure a0 a1))))))
-	 ((eq? obj-type py-method-class)
-	  (let* ((func (PyObjectMethod-method obj))
-		 (__self__ (PyObjectMethod-self obj)))
-	     (py-call3-generic func __self__ a0 a1)))
-	 ;; initialization of instances from type with no special metaclass
-	 ((eq? obj-type py-type-class)
-	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
-	     (if (eq? __new__ object.__new__)
-		 (if (eq? obj py-object-class)
-		     (py-throw-exception-with-message
-			py-builtin-TypeError
-			"object() takes no arguments")
-		     (let ((instance (py-obj-alloc obj)))
-			(type-callX-from-instance obj instance instance a0 a1)))
-		 (type-callX-from-new-method obj __new__ a0 a1))))
-	 (else
-	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
-	     (if (eq? __call__ py-absent)
-		 (py-throw-not-callable obj)
-		 (py-call3-generic __call__ obj a0 a1)))))))
+  (let ((obj-type (py-type obj)))
+    (cond
+  	 ((eq? obj-type py-function-class)
+  	  (let* ((procedure (PyObjectFunction-procedure obj))
+             (signature (PyObjectFunction-signature obj))
+  		       (arity (signature-arity-alignment signature)))
+  	    (if (eq? arity 2)
+  		    (procedure a0 a1)
+  		    (let ((defaults (signature-defaults signature)))
+  		      (if (eq? arity (fx+ (vector-length defaults) 1))
+        			(case (vector-length defaults)
+        			   ((2)
+        			    (procedure a0 a1 (vector-ref defaults 1)))
+        			   ((3)
+        			    (procedure a0 a1 (vector-ref defaults 1) (vector-ref defaults 2)))
+        			   (else
+        			    (align-and-call signature procedure a0 a1)))
+  			      (align-and-call signature procedure a0 a1))))))
+  	 ((eq? obj-type py-method-class)
+  	  (let* ((func (PyObjectMethod-method obj))
+  		 (__self__ (PyObjectMethod-self obj)))
+  	     (py-call3-generic func __self__ a0 a1)))
+  	 ;; initialization of instances from type with no special metaclass
+  	 ((eq? obj-type py-type-class)
+  	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
+  	     (if (eq? __new__ object.__new__)
+  		 (if (eq? obj py-object-class)
+  		     (py-throw-exception-with-message
+  			py-builtin-TypeError
+  			"object() takes no arguments")
+  		     (let ((instance (py-obj-alloc obj)))
+  			(type-callX-from-instance obj instance instance a0 a1)))
+  		 (type-callX-from-new-method obj __new__ a0 a1))))
+  	 (else
+  	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
+  	     (if (eq? __call__ py-absent)
+  		 (py-throw-not-callable obj)
+  		 (py-call3-generic __call__ obj a0 a1)))))))
 
 (define-rts (py-call3-generic obj a0 a1 a2)
    (let ((obj-type (py-type obj)))
@@ -6086,12 +6080,12 @@
 	   (print-exception e (current-error-port))
 	   (exit 1))
 	(lambda ()
-	   
+
 	   (if profile-flag
 	       (statprof-begin profile-flag))
-	   
+
 	   (compile-and-get-mod path (file-info path) (& "__main__") py-None #f)
-	   
+
 	   (if profile-flag
 	       (statprof-end path))))))
 
@@ -6101,12 +6095,12 @@
 
   (let ((sys.modules (sys.modules-get)))
      (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
-	   
+
      (if profile-flag
 	 (statprof-begin profile-flag))
 
      (mod-init (& "__main__") py-None #f)
-	   
+
      (if profile-flag
 	 (statprof-end path))))
 

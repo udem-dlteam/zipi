@@ -1,4 +1,3 @@
-
 (define (pyc-scheme ast conf)
    (pyc-cache! ast conf)
    (scheme ast conf))
@@ -207,7 +206,10 @@
 	  (body-conf (if need-return
 			 (cons* fun: this return: return-sym conf)
 			 (cons* fun: this conf)))
-	  (body (scheme (PycFun-body this) body-conf))
+	  (body (scheme (PycFun-body this)
+                  (cons* in-behavior:
+                     (PycSemantics-is-behavior this)
+                     body-conf)))
 	  (scheme-name (PycFun-name this)))
       (list
 	 (cons
@@ -336,6 +338,8 @@
               ((not)
                 `(not ,(pyc-test expr conf)))
               (else (py-test? (scheme this conf) (PycExpr-type this))))))
+        ((isa? this PycBinary)
+          (PycBinary-to-scheme this conf '(must-return-host-value: #t)))
         ((isa? this PycBoolOp)
           (let ((op (PycBoolOp-op this))
                 (args (PycBoolOp-args this)))
@@ -898,15 +902,14 @@
 (define-walk-method (scheme this::PycNumber conf)
   (let ((value (PycLiteralValue-val this)))
     (cond
-      ((flonum? value)
-        (epairify this
-          `(py-float-from-scheme ,value)))
+      ((or (flonum? value) (fixnum? value))
+        (epairify this value))
       ((not (real? value))
         `(py-throw-exception-with-message
             py-builtin-NotImplementedError
               "complex number at line "
               ,(number->string (car (PycNode-loc this)))))
-   	  ((number? value) ;; must be an int
+   	  ((number? value) ;; big num
         (epairify this
     	    `(py-int-from-scheme ,value)))
       (else
@@ -916,93 +919,14 @@
    (epairify this
       `(&& ,(PycLiteralValue-val this))))
 
-(define (dispatch-native-bin-operator op)
-  (define ops
-    `((add . py+)
-      (bitand . py&)
-      (bitor . py+b) ;; TODO replace by |py\|| once supported by bigloo
-      (floordiv . py//)
-      (lshift . py<<)
-      (mod . py%)
-      (mul . py*)
-      (pow . py**)
-      (rshift . py>>)
-      (sub . py-)
-      (truediv . py/)
-      (xor . py^)
-      ;; inplace
-      (iadd . py+)
-      (ibitand . py&)
-      (ibitor . py+b) ;; TODO replace by |py\|| once supported by bigloo
-      (ifloordiv . py//)
-      (ilshift . py<<)
-      (imod . py%)
-      (imul . py*)
-      (ipow . py**)
-      (irshift . py>>)
-      (isub . py-)
-      (itruediv . py/)
-      (ixor . py^)))
-  (let ((res (assq op ops)))
-    (and res (cdr res))))
-
-(define (dispatch-native-cmp-operator op)
-  (define ops
-    `((eq . py==)
-      (ne . py!=)
-      (ge . py>=)
-      (gt . py>)
-      (le . py<=)
-      (lt . py<)))
-  (let ((res (assq op ops)))
-    (and res (cdr res))))
-
-(define (dispatch-native-un-operator op)
-  (define ops
-    `((pos . pypos)
-      (neg . pyneg)
-      (invert . pyinvert)))
-  (let ((res (assq op ops)))
-    (and res (cdr res))))
-
 (define-walk-method (scheme this::PycBinary conf)
-
-   (define native-types '(Uint Usint Ubint Ufloat Ubool Ustr))
-
-   (define (python-op)
-      (epairify this
-	 `(,(symbol-append 'py- (PycBinary-op this))
-	   ,(scheme (PycBinary-lhs this) conf)
-	   ,(scheme (PycBinary-rhs this) conf))))
-
-   (define (scheme-op)
-      (epairify this
-	 (let ((op (dispatch-native-bin-operator (PycBinary-op this))))
-	    (if op
-		`(,op
-		    ,(scheme (PycBinary-lhs this) conf)
-		    ,(scheme (PycBinary-rhs this) conf))
-		`(py-test-from-scheme
-		    (,(dispatch-native-cmp-operator (PycBinary-op this))
-		     ,(scheme (PycBinary-lhs this) conf)
-		     ,(scheme (PycBinary-rhs this) conf)))))))
-
    ;; MS, 16may2021: seq operator has been introduced to type-check
    ;; MARK-DEFINE-BEHAVIOR!@instrincs.scm
    (if (eq? (PycBinary-op this) 'seq)
        `(begin
-	   ,(scheme (PycBinary-lhs this) conf)
-	   ,(scheme (PycBinary-rhs this) conf))
-       (let ((lhs-type-hint (PycBinary-lhs-type-hint this))
-	     (rhs-type-hint (PycBinary-rhs-type-hint this)))
-	  (if (and lhs-type-hint (memq lhs-type-hint native-types))
-	      (if (and rhs-type-hint (memq rhs-type-hint native-types))
-		  (scheme-op)
-		  (error "scheme::PycBinary" "operation between lhs native type and non-native type" rhs-type-hint))
-	      (if (and rhs-type-hint (memq rhs-type-hint native-types))
-		  (begin
-		     (error "scheme::PycBinary" "operation between rhs native type and non-native type" lhs-type-hint))
-		  (python-op))))))
+         ,(scheme (PycBinary-lhs this) conf)
+         ,(scheme (PycBinary-rhs this) conf))
+       (PycBinary-to-scheme this conf)))
 
 (define-walk-method (scheme this::PycChainCmp conf)
   (let ((left-chain-symbol (my-gensym '%left-elt)))
@@ -1025,6 +949,14 @@
               (if (py-test ,res-symbol)
                   ,(loop chain-symbol (cdr rights) (cdr ops))
                   ,res-symbol))))))))
+
+(define (dispatch-native-un-operator op)
+  (define ops
+    `((pos . pypos)
+      (neg . pyneg)
+      (invert . pyinvert)))
+  (let ((res (assq op ops)))
+    (and res (cdr res))))
 
 (define-walk-method (scheme this::PycUnary conf)
   (define native-types '(Uint Usint Ubint Ufloat Ubool Ustr))

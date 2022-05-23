@@ -1443,6 +1443,186 @@ def py_xor_strX_strY(x: str, y: str):
     raise TypeError("'^' not supported between instances of 'str' and 'str'")
 
 @define_behavior
+def py_floordiv_sintX_sint0(x: sint):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_sintX_float0(x: sint):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_sintX_boolFalse(x: sint):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_bintX_sint0(x: bint):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_bintX_float0(x: bint):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_bintX_boolFalse(x: bint):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_boolX_sint0(x: bool):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_boolX_float0(x: bool):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_boolX_boolFalse(x: bool):
+    raise ZeroDivisionError('integer division by zero')
+
+@define_behavior
+def py_floordiv_floatX_sint0(x: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_floatX_float0(x: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_floatX_boolFalse(x: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_floordiv_strX_sint0(x: str):
+    raise TypeError("'//' not supported between instances of 'str' and 'int'")
+
+@define_behavior
+def py_floordiv_strX_float0(x: str):
+    raise TypeError("'//' not supported between instances of 'str' and 'float'")
+
+@define_behavior
+def py_floordiv_strX_boolFalse(x: str):
+    raise TypeError("'//' not supported between instances of 'str' and 'bool'")
+
+@define_behavior
+def py_truediv_sintX_sint0(x: sint):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_sintX_float0(x: sint):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_sintX_boolFalse(x: sint):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_bintX_sint0(x: bint):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_bintX_float0(x: bint):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_bintX_boolFalse(x: bint):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_boolX_sint0(x: bool):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_boolX_float0(x: bool):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_boolX_boolFalse(x: bool):
+    raise ZeroDivisionError('division by zero')
+
+@define_behavior
+def py_truediv_floatX_sint0(x: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_floatX_float0(x: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_floatX_boolFalse(x: float):
+    raise ZeroDivisionError('float division by zero')
+
+@define_behavior
+def py_truediv_strX_sint0(x: str):
+    raise TypeError("'/' not supported between instances of 'str' and 'int'")
+
+@define_behavior
+def py_truediv_strX_float0(x: str):
+    raise TypeError("'/' not supported between instances of 'str' and 'float'")
+
+@define_behavior
+def py_truediv_strX_boolFalse(x: str):
+    raise TypeError("'/' not supported between instances of 'str' and 'bool'")
+
+@define_behavior
+def py_mod_sintX_sint0(x: sint):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_sintX_float0(x: sint):
+    raise ZeroDivisionError('float modulo by zero')
+
+@define_behavior
+def py_mod_sintX_boolFalse(x: sint):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_bintX_sint0(x: bint):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_bintX_float0(x: bint):
+    raise ZeroDivisionError('float modulo by zero')
+
+@define_behavior
+def py_mod_bintX_boolFalse(x: bint):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_boolX_sint0(x: bool):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_mod_boolX_float0(x: bool):
+    raise ZeroDivisionError('float modulo by zero')
+
+@define_behavior
+def py_mod_boolX_boolFalse(x: bool):
+    raise ZeroDivisionError('modulo by zero')
+
+@define_behavior
+def py_lshift_sintX_sintNeg1(x: sint):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_lshift_bintX_sintNeg1(x: bint):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_lshift_boolX_sintNeg1(x: bool):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_rshift_sintX_sintNeg1(x: sint):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_rshift_bintX_sintNeg1(x: bint):
+    raise ValueError('negative shift count')
+
+@define_behavior
+def py_rshift_boolX_sintNeg1(x: bool):
+    raise ValueError('negative shift count')
+
+@define_behavior
 def py_iadd_sintX_sintY(x: sint, y: sint):
     return py_int_from_host(py_int_to_host(x) + py_int_to_host(y))
 

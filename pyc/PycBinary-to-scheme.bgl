@@ -1,0 +1,10 @@
+(module __pyc_PycBinary_to_scheme
+
+   (include "ast.sch"
+	    "walk.sch")
+
+   (import __pyc_dump
+	   __pyc_ast
+	   __pyc_utils)
+
+   (export (PycBinary-to-scheme this::PycBinary conf)))

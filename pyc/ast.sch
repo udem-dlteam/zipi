@@ -1,7 +1,7 @@
 ;; ==========================================================
 ;; Class accessors
-;; Bigloo (4.4b)
-;; Inria -- Sophia Antipolis     Mon 22 Mar 2021 06:58:31 PM CET 
+;; Bigloo (4.4a)
+;; Inria -- Sophia Antipolis     Tue 03 Nov 2020 01:28:01 PM CET 
 ;; (bigloo -classgen ast.bgl -o ast.sch)
 ;; ==========================================================
 
@@ -22,7 +22,7 @@
 ;; PycUnimplemented
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycUnimplemented::PycUnimplemented loc2210::pair %info2211::obj cps2212::obj msg2213::string)
+    (inline make-PycUnimplemented::PycUnimplemented loc2211::pair %info2212::obj cps2213::obj msg2214::string)
     (inline PycUnimplemented?::bool ::obj)
     (PycUnimplemented-nil::PycUnimplemented)
     (inline PycUnimplemented-msg::string ::PycUnimplemented)
@@ -36,7 +36,7 @@
 ;; PycModule
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycModule::PycModule loc2199::pair %info2200::obj cps2201::obj special-init2202::obj version2203::int ident2204::string stmts2205::pair-nil globals2206::pair-nil global-defs2207::pair-nil caches2208::pair-nil)
+    (inline make-PycModule::PycModule loc2200::pair %info2201::obj cps2202::obj special-init2203::obj version2204::int ident2205::string stmts2206::pair-nil globals2207::pair-nil global-defs2208::pair-nil caches2209::pair-nil)
     (inline PycModule?::bool ::obj)
     (PycModule-nil::PycModule)
     (inline PycModule-caches::pair-nil ::PycModule)
@@ -60,7 +60,7 @@
 ;; PycVar
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycVar::PycVar loc2181::pair %info2182::obj cps2183::obj id2184::symbol scope2185::symbol name2186::obj key2187::int in-scope-of2188::obj usage2189::pair-nil assig2190::pair-nil can-be-deleted2191::bool global-only-accessed2192::obj global-always-define2193::obj global-ref-to-init-d2194::obj is-builtin2195::obj simple-scoping-top-b2196::obj cache2197::obj)
+    (inline make-PycVar::PycVar loc2182::pair %info2183::obj cps2184::obj id2185::symbol scope2186::symbol name2187::obj key2188::int in-scope-of2189::obj usage2190::pair-nil assig2191::pair-nil can-be-deleted2192::bool global-only-accessed2193::obj global-always-define2194::obj global-ref-to-init-d2195::obj is-builtin2196::obj simple-scoping-top-b2197::obj cache2198::obj)
     (inline PycVar?::bool ::obj)
     (PycVar-nil::PycVar)
     (inline PycVar-cache::obj ::PycVar)
@@ -100,7 +100,7 @@
 ;; PycStmt
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycStmt::PycStmt loc2177::pair %info2178::obj cps2179::obj)
+    (inline make-PycStmt::PycStmt loc2178::pair %info2179::obj cps2180::obj)
     (inline PycStmt?::bool ::obj)
     (PycStmt-nil::PycStmt)
     (inline PycStmt-cps::obj ::PycStmt)
@@ -112,7 +112,7 @@
 ;; PycSeq
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycSeq::PycSeq loc2172::pair %info2173::obj cps2174::obj nodes2175::pair-nil)
+    (inline make-PycSeq::PycSeq loc2173::pair %info2174::obj cps2175::obj nodes2176::pair-nil)
     (inline PycSeq?::bool ::obj)
     (PycSeq-nil::PycSeq)
     (inline PycSeq-nodes::pair-nil ::PycSeq)
@@ -126,7 +126,7 @@
 ;; PycBlock
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycBlock::PycBlock loc2166::pair %info2167::obj cps2168::obj decls2169::pair-nil body2170::PycStmt)
+    (inline make-PycBlock::PycBlock loc2167::pair %info2168::obj cps2169::obj decls2170::pair-nil body2171::PycStmt)
     (inline PycBlock?::bool ::obj)
     (PycBlock-nil::PycBlock)
     (inline PycBlock-body::PycStmt ::PycBlock)
@@ -142,7 +142,7 @@
 ;; PycReturn
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycReturn::PycReturn loc2160::pair %info2161::obj cps2162::obj val2163::PycExpr tail2164::bool)
+    (inline make-PycReturn::PycReturn loc2161::pair %info2162::obj cps2163::obj val2164::PycExpr tail2165::bool)
     (inline PycReturn?::bool ::obj)
     (PycReturn-nil::PycReturn)
     (inline PycReturn-tail::bool ::PycReturn)
@@ -158,7 +158,7 @@
 ;; PycGeneratorReturn
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycGeneratorReturn::PycGeneratorReturn loc2154::pair %info2155::obj cps2156::obj val2157::PycExpr tail2158::bool)
+    (inline make-PycGeneratorReturn::PycGeneratorReturn loc2155::pair %info2156::obj cps2157::obj val2158::PycExpr tail2159::bool)
     (inline PycGeneratorReturn?::bool ::obj)
     (PycGeneratorReturn-nil::PycGeneratorReturn)
     (inline PycGeneratorReturn-tail::bool ::PycGeneratorReturn)
@@ -174,7 +174,7 @@
 ;; PycReturnYield
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycReturnYield::PycReturnYield loc2147::pair %info2148::obj cps2149::obj val2150::PycExpr kont2151::PycKont generator2152::bool)
+    (inline make-PycReturnYield::PycReturnYield loc2148::pair %info2149::obj cps2150::obj val2151::PycExpr kont2152::PycKont generator2153::bool)
     (inline PycReturnYield?::bool ::obj)
     (PycReturnYield-nil::PycReturnYield)
     (inline PycReturnYield-generator::bool ::PycReturnYield)
@@ -191,7 +191,7 @@
 ;; PycDelete
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycDelete::PycDelete loc2142::pair %info2143::obj cps2144::obj expr2145::PycExpr)
+    (inline make-PycDelete::PycDelete loc2143::pair %info2144::obj cps2145::obj expr2146::PycExpr)
     (inline PycDelete?::bool ::obj)
     (PycDelete-nil::PycDelete)
     (inline PycDelete-expr::PycExpr ::PycDelete)
@@ -205,7 +205,7 @@
 ;; PycAssig
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycAssig::PycAssig loc2136::pair %info2137::obj cps2138::obj lhs2139::PycExpr rhs2140::PycExpr)
+    (inline make-PycAssig::PycAssig loc2137::pair %info2138::obj cps2139::obj lhs2140::PycExpr rhs2141::PycExpr)
     (inline PycAssig?::bool ::obj)
     (PycAssig-nil::PycAssig)
     (inline PycAssig-rhs::PycExpr ::PycAssig)
@@ -221,7 +221,7 @@
 ;; PycAugAssig
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycAugAssig::PycAugAssig loc2128::pair %info2129::obj cps2130::obj lhs2131::PycExpr rhs2132::PycExpr op2133::symbol cache2134::obj)
+    (inline make-PycAugAssig::PycAugAssig loc2129::pair %info2130::obj cps2131::obj lhs2132::PycExpr rhs2133::PycExpr op2134::symbol cache2135::obj)
     (inline PycAugAssig?::bool ::obj)
     (PycAugAssig-nil::PycAugAssig)
     (inline PycAugAssig-cache::obj ::PycAugAssig)
@@ -241,7 +241,7 @@
 ;; PycIf
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycIf::PycIf loc2121::pair %info2122::obj cps2123::obj test2124::PycExpr then2125::PycStmt else2126::PycStmt)
+    (inline make-PycIf::PycIf loc2122::pair %info2123::obj cps2124::obj test2125::PycExpr then2126::PycStmt else2127::PycStmt)
     (inline PycIf?::bool ::obj)
     (PycIf-nil::PycIf)
     (inline PycIf-else::PycStmt ::PycIf)
@@ -259,7 +259,7 @@
 ;; PycWithItem
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycWithItem::PycWithItem loc2115::pair %info2116::obj cps2117::obj context-expr2118::PycExpr optional-vars2119::PycExpr)
+    (inline make-PycWithItem::PycWithItem loc2116::pair %info2117::obj cps2118::obj context-expr2119::PycExpr optional-vars2120::PycExpr)
     (inline PycWithItem?::bool ::obj)
     (PycWithItem-nil::PycWithItem)
     (inline PycWithItem-optional-vars::PycExpr ::PycWithItem)
@@ -275,7 +275,7 @@
 ;; PycWith
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycWith::PycWith loc2109::pair %info2110::obj cps2111::obj items2112::PycWithItem body2113::PycStmt)
+    (inline make-PycWith::PycWith loc2110::pair %info2111::obj cps2112::obj items2113::PycWithItem body2114::PycStmt)
     (inline PycWith?::bool ::obj)
     (PycWith-nil::PycWith)
     (inline PycWith-body::PycStmt ::PycWith)
@@ -291,7 +291,7 @@
 ;; PycLoop
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycLoop::PycLoop loc2101::pair %info2102::obj cps2103::obj body2104::PycStmt else2105::PycStmt need-break2106::bool need-continue2107::bool)
+    (inline make-PycLoop::PycLoop loc2102::pair %info2103::obj cps2104::obj body2105::PycStmt else2106::PycStmt need-break2107::bool need-continue2108::bool)
     (inline PycLoop?::bool ::obj)
     (PycLoop-nil::PycLoop)
     (inline PycLoop-need-continue::bool ::PycLoop)
@@ -311,7 +311,7 @@
 ;; PycFor
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycFor::PycFor loc2089::pair %info2090::obj cps2091::obj body2092::PycStmt else2093::PycStmt need-break2094::bool need-continue2095::bool target2096::PycExpr iter2097::PycExpr cachei2098::obj cachen2099::obj)
+    (inline make-PycFor::PycFor loc2090::pair %info2091::obj cps2092::obj body2093::PycStmt else2094::PycStmt need-break2095::bool need-continue2096::bool target2097::PycExpr iter2098::PycExpr cachei2099::obj cachen2100::obj)
     (inline PycFor?::bool ::obj)
     (PycFor-nil::PycFor)
     (inline PycFor-cachen::obj ::PycFor)
@@ -339,7 +339,7 @@
 ;; PycCPSFor
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycCPSFor::PycCPSFor loc2075::pair %info2076::obj cps2077::obj body2078::PycStmt else2079::PycStmt need-break2080::bool need-continue2081::bool target2082::PycExpr iter2083::PycExpr cachei2084::obj cachen2085::obj loop-kont-var2086::PycVar else-kont-var2087::PycVar)
+    (inline make-PycCPSFor::PycCPSFor loc2076::pair %info2077::obj cps2078::obj body2079::PycStmt else2080::PycStmt need-break2081::bool need-continue2082::bool target2083::PycExpr iter2084::PycExpr cachei2085::obj cachen2086::obj loop-kont-var2087::PycVar else-kont-var2088::PycVar)
     (inline PycCPSFor?::bool ::obj)
     (PycCPSFor-nil::PycCPSFor)
     (inline PycCPSFor-else-kont-var::PycVar ::PycCPSFor)
@@ -371,7 +371,7 @@
 ;; PycWhile
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycWhile::PycWhile loc2066::pair %info2067::obj cps2068::obj body2069::PycStmt else2070::PycStmt need-break2071::bool need-continue2072::bool test2073::PycExpr)
+    (inline make-PycWhile::PycWhile loc2067::pair %info2068::obj cps2069::obj body2070::PycStmt else2071::PycStmt need-break2072::bool need-continue2073::bool test2074::PycExpr)
     (inline PycWhile?::bool ::obj)
     (PycWhile-nil::PycWhile)
     (inline PycWhile-test::PycExpr ::PycWhile)
@@ -393,7 +393,7 @@
 ;; PycCPSWhile
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycCPSWhile::PycCPSWhile loc2055::pair %info2056::obj cps2057::obj body2058::PycStmt else2059::PycStmt need-break2060::bool need-continue2061::bool test2062::PycExpr loop-kont-var2063::PycVar else-kont-var2064::PycVar)
+    (inline make-PycCPSWhile::PycCPSWhile loc2056::pair %info2057::obj cps2058::obj body2059::PycStmt else2060::PycStmt need-break2061::bool need-continue2062::bool test2063::PycExpr loop-kont-var2064::PycVar else-kont-var2065::PycVar)
     (inline PycCPSWhile?::bool ::obj)
     (PycCPSWhile-nil::PycCPSWhile)
     (inline PycCPSWhile-else-kont-var::PycVar ::PycCPSWhile)
@@ -419,7 +419,7 @@
 ;; PycRaise
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycRaise::PycRaise loc2049::pair %info2050::obj cps2051::obj exc2052::PycExpr cause2053::PycExpr)
+    (inline make-PycRaise::PycRaise loc2050::pair %info2051::obj cps2052::obj exc2053::PycExpr cause2054::PycExpr)
     (inline PycRaise?::bool ::obj)
     (PycRaise-nil::PycRaise)
     (inline PycRaise-cause::PycExpr ::PycRaise)
@@ -435,7 +435,7 @@
 ;; PycTry
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycTry::PycTry loc2039::pair %info2040::obj cps2041::obj body2042::PycStmt handlers2043::pair-nil else2044::PycStmt finally2045::PycStmt exc-var2046::PycVar tail2047::bool)
+    (inline make-PycTry::PycTry loc2040::pair %info2041::obj cps2042::obj body2043::PycStmt handlers2044::pair-nil else2045::PycStmt finally2046::PycStmt exc-var2047::PycVar tail2048::bool)
     (inline PycTry?::bool ::obj)
     (PycTry-nil::PycTry)
     (inline PycTry-tail::bool ::PycTry)
@@ -459,7 +459,7 @@
 ;; PycHandler
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycHandler::PycHandler loc2032::pair %info2033::obj cps2034::obj exc-var2035::PycVar type2036::PycExpr body2037::PycStmt)
+    (inline make-PycHandler::PycHandler loc2033::pair %info2034::obj cps2035::obj exc-var2036::PycVar type2037::PycExpr body2038::PycStmt)
     (inline PycHandler?::bool ::obj)
     (PycHandler-nil::PycHandler)
     (inline PycHandler-body::PycStmt ::PycHandler)
@@ -477,7 +477,7 @@
 ;; PycHandlerCPS
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycHandlerCPS::PycHandlerCPS loc2024::pair %info2025::obj cps2026::obj exc-var2027::PycVar type2028::PycExpr body2029::PycStmt next-handler2030::PycNode)
+    (inline make-PycHandlerCPS::PycHandlerCPS loc2025::pair %info2026::obj cps2027::obj exc-var2028::PycVar type2029::PycExpr body2030::PycStmt next-handler2031::PycNode)
     (inline PycHandlerCPS?::bool ::obj)
     (PycHandlerCPS-nil::PycHandlerCPS)
     (inline PycHandlerCPS-next-handler::PycNode ::PycHandlerCPS)
@@ -497,7 +497,7 @@
 ;; PycBreak
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycBreak::PycBreak loc2020::pair %info2021::obj cps2022::obj)
+    (inline make-PycBreak::PycBreak loc2021::pair %info2022::obj cps2023::obj)
     (inline PycBreak?::bool ::obj)
     (PycBreak-nil::PycBreak)
     (inline PycBreak-cps::obj ::PycBreak)
@@ -509,7 +509,7 @@
 ;; PycContinue
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycContinue::PycContinue loc2016::pair %info2017::obj cps2018::obj)
+    (inline make-PycContinue::PycContinue loc2017::pair %info2018::obj cps2019::obj)
     (inline PycContinue?::bool ::obj)
     (PycContinue-nil::PycContinue)
     (inline PycContinue-cps::obj ::PycContinue)
@@ -521,7 +521,7 @@
 ;; PycPass
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycPass::PycPass loc2012::pair %info2013::obj cps2014::obj)
+    (inline make-PycPass::PycPass loc2013::pair %info2014::obj cps2015::obj)
     (inline PycPass?::bool ::obj)
     (PycPass-nil::PycPass)
     (inline PycPass-cps::obj ::PycPass)
@@ -533,7 +533,7 @@
 ;; PycStmtExpr
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycStmtExpr::PycStmtExpr loc2007::pair %info2008::obj cps2009::obj expr2010::PycExpr)
+    (inline make-PycStmtExpr::PycStmtExpr loc2008::pair %info2009::obj cps2010::obj expr2011::PycExpr)
     (inline PycStmtExpr?::bool ::obj)
     (PycStmtExpr-nil::PycStmtExpr)
     (inline PycStmtExpr-expr::PycExpr ::PycStmtExpr)
@@ -547,7 +547,7 @@
 ;; PycSymbols
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycSymbols::PycSymbols loc2001::pair %info2002::obj cps2003::obj scope2004::symbol names2005::pair-nil)
+    (inline make-PycSymbols::PycSymbols loc2002::pair %info2003::obj cps2004::obj scope2005::symbol names2006::pair-nil)
     (inline PycSymbols?::bool ::obj)
     (PycSymbols-nil::PycSymbols)
     (inline PycSymbols-names::pair-nil ::PycSymbols)
@@ -561,7 +561,7 @@
 ;; PycExpr
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycExpr::PycExpr loc1996::pair %info1997::obj cps1998::obj type1999::obj)
+    (inline make-PycExpr::PycExpr loc1997::pair %info1998::obj cps1999::obj type2000::obj)
     (inline PycExpr?::bool ::obj)
     (PycExpr-nil::PycExpr)
     (inline PycExpr-type::obj ::PycExpr)
@@ -575,7 +575,7 @@
 ;; PycStarredExpr
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycStarredExpr::PycStarredExpr loc1990::pair %info1991::obj cps1992::obj type1993::obj expr1994::PycExpr)
+    (inline make-PycStarredExpr::PycStarredExpr loc1991::pair %info1992::obj cps1993::obj type1994::obj expr1995::PycExpr)
     (inline PycStarredExpr?::bool ::obj)
     (PycStarredExpr-nil::PycStarredExpr)
     (inline PycStarredExpr-expr::PycExpr ::PycStarredExpr)
@@ -591,7 +591,7 @@
 ;; PycPragma
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycPragma::PycPragma loc1983::pair %info1984::obj cps1985::obj type1986::obj lang1987::symbol expr1988::obj)
+    (inline make-PycPragma::PycPragma loc1984::pair %info1985::obj cps1986::obj type1987::obj lang1988::symbol expr1989::obj)
     (inline PycPragma?::bool ::obj)
     (PycPragma-nil::PycPragma)
     (inline PycPragma-expr::obj ::PycPragma)
@@ -609,7 +609,7 @@
 ;; PycRef
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycRef::PycRef loc1974::pair %info1975::obj cps1976::obj type1977::obj decl1978::PycVar ctx1979::symbol cache1980::obj can-direct-access1981::bool)
+    (inline make-PycRef::PycRef loc1975::pair %info1976::obj cps1977::obj type1978::obj decl1979::PycVar ctx1980::symbol cache1981::obj can-direct-access1982::bool)
     (inline PycRef?::bool ::obj)
     (PycRef-nil::PycRef)
     (inline PycRef-can-direct-access::bool ::PycRef)
@@ -631,7 +631,7 @@
 ;; PycRefUnresolved
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycRefUnresolved::PycRefUnresolved loc1966::pair %info1967::obj cps1968::obj type1969::obj id1970::symbol ctx1971::symbol cache1972::obj)
+    (inline make-PycRefUnresolved::PycRefUnresolved loc1967::pair %info1968::obj cps1969::obj type1970::obj id1971::symbol ctx1972::symbol cache1973::obj)
     (inline PycRefUnresolved?::bool ::obj)
     (PycRefUnresolved-nil::PycRefUnresolved)
     (inline PycRefUnresolved-cache::obj ::PycRefUnresolved)
@@ -651,7 +651,7 @@
 ;; PycAccess
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycAccess::PycAccess loc1957::pair %info1958::obj cps1959::obj type1960::obj obj1961::PycExpr field1962::obj usage1963::obj cache1964::obj)
+    (inline make-PycAccess::PycAccess loc1958::pair %info1959::obj cps1960::obj type1961::obj obj1962::PycExpr field1963::obj usage1964::obj cache1965::obj)
     (inline PycAccess?::bool ::obj)
     (PycAccess-nil::PycAccess)
     (inline PycAccess-cache::obj ::PycAccess)
@@ -672,7 +672,7 @@
 ;; PycSubscript
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycSubscript::PycSubscript loc1949::pair %info1950::obj cps1951::obj type1952::obj obj1953::PycExpr index1954::PycExpr cache1955::obj)
+    (inline make-PycSubscript::PycSubscript loc1950::pair %info1951::obj cps1952::obj type1953::obj obj1954::PycExpr index1955::PycExpr cache1956::obj)
     (inline PycSubscript?::bool ::obj)
     (PycSubscript-nil::PycSubscript)
     (inline PycSubscript-cache::obj ::PycSubscript)
@@ -692,7 +692,7 @@
 ;; PycSlice
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycSlice::PycSlice loc1940::pair %info1941::obj cps1942::obj type1943::obj obj1944::PycExpr lower1945::PycExpr upper1946::PycExpr step1947::PycExpr)
+    (inline make-PycSlice::PycSlice loc1941::pair %info1942::obj cps1943::obj type1944::obj obj1945::PycExpr lower1946::PycExpr upper1947::PycExpr step1948::PycExpr)
     (inline PycSlice?::bool ::obj)
     (PycSlice-nil::PycSlice)
     (inline PycSlice-step::PycExpr ::PycSlice)
@@ -714,7 +714,7 @@
 ;; PycIfExp
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycIfExp::PycIfExp loc1932::pair %info1933::obj cps1934::obj type1935::obj test1936::PycExpr body1937::PycExpr orelse1938::PycExpr)
+    (inline make-PycIfExp::PycIfExp loc1933::pair %info1934::obj cps1935::obj type1936::obj test1937::PycExpr body1938::PycExpr orelse1939::PycExpr)
     (inline PycIfExp?::bool ::obj)
     (PycIfExp-nil::PycIfExp)
     (inline PycIfExp-orelse::PycExpr ::PycIfExp)
@@ -734,7 +734,7 @@
 ;; PycAssert
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycAssert::PycAssert loc1926::pair %info1927::obj cps1928::obj test1929::PycExpr msg1930::PycExpr)
+    (inline make-PycAssert::PycAssert loc1927::pair %info1928::obj cps1929::obj test1930::PycExpr msg1931::PycExpr)
     (inline PycAssert?::bool ::obj)
     (PycAssert-nil::PycAssert)
     (inline PycAssert-msg::PycExpr ::PycAssert)
@@ -763,7 +763,7 @@
 ;; PycUninit
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycUninit::PycUninit loc1920::pair %info1921::obj cps1922::obj type1923::obj)
+    (inline make-PycUninit::PycUninit loc1921::pair %info1922::obj cps1923::obj type1924::obj)
     (inline PycUninit?::bool ::obj)
     (PycUninit-nil::PycUninit)
     (inline PycUninit-type::obj ::PycUninit)
@@ -777,7 +777,7 @@
 ;; PycLiteralValue
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycLiteralValue::PycLiteralValue loc1914::pair %info1915::obj cps1916::obj type1917::obj val1918::obj)
+    (inline make-PycLiteralValue::PycLiteralValue loc1915::pair %info1916::obj cps1917::obj type1918::obj val1919::obj)
     (inline PycLiteralValue?::bool ::obj)
     (PycLiteralValue-nil::PycLiteralValue)
     (inline PycLiteralValue-val::obj ::PycLiteralValue)
@@ -793,7 +793,7 @@
 ;; PycBool
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycBool::PycBool loc1908::pair %info1909::obj cps1910::obj type1911::obj val1912::obj)
+    (inline make-PycBool::PycBool loc1909::pair %info1910::obj cps1911::obj type1912::obj val1913::obj)
     (inline PycBool?::bool ::obj)
     (PycBool-nil::PycBool)
     (inline PycBool-val::obj ::PycBool)
@@ -809,7 +809,7 @@
 ;; PycNone
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycNone::PycNone loc1902::pair %info1903::obj cps1904::obj type1905::obj val1906::obj)
+    (inline make-PycNone::PycNone loc1903::pair %info1904::obj cps1905::obj type1906::obj val1907::obj)
     (inline PycNone?::bool ::obj)
     (PycNone-nil::PycNone)
     (inline PycNone-val::obj ::PycNone)
@@ -825,7 +825,7 @@
 ;; PycNumber
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycNumber::PycNumber loc1896::pair %info1897::obj cps1898::obj type1899::obj val1900::obj)
+    (inline make-PycNumber::PycNumber loc1897::pair %info1898::obj cps1899::obj type1900::obj val1901::obj)
     (inline PycNumber?::bool ::obj)
     (PycNumber-nil::PycNumber)
     (inline PycNumber-val::obj ::PycNumber)
@@ -841,7 +841,7 @@
 ;; PycString
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycString::PycString loc1890::pair %info1891::obj cps1892::obj type1893::obj val1894::obj)
+    (inline make-PycString::PycString loc1891::pair %info1892::obj cps1893::obj type1894::obj val1895::obj)
     (inline PycString?::bool ::obj)
     (PycString-nil::PycString)
     (inline PycString-val::obj ::PycString)
@@ -857,7 +857,7 @@
 ;; PycUnary
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycUnary::PycUnary loc1881::pair %info1882::obj cps1883::obj type1884::obj op1885::symbol expr1886::PycExpr type-hint1887::obj cache1888::obj)
+    (inline make-PycUnary::PycUnary loc1882::pair %info1883::obj cps1884::obj type1885::obj op1886::symbol expr1887::PycExpr type-hint1888::obj cache1889::obj)
     (inline PycUnary?::bool ::obj)
     (PycUnary-nil::PycUnary)
     (inline PycUnary-cache::obj ::PycUnary)
@@ -879,7 +879,7 @@
 ;; PycBinary
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycBinary::PycBinary loc1870::pair %info1871::obj cps1872::obj type1873::obj op1874::symbol lhs1875::PycExpr rhs1876::PycExpr lhs-type-hint1877::obj rhs-type-hint1878::obj cache1879::obj)
+    (inline make-PycBinary::PycBinary loc1871::pair %info1872::obj cps1873::obj type1874::obj op1875::symbol lhs1876::PycExpr rhs1877::PycExpr lhs-type-hint1878::obj rhs-type-hint1879::obj cache1880::obj)
     (inline PycBinary?::bool ::obj)
     (PycBinary-nil::PycBinary)
     (inline PycBinary-cache::obj ::PycBinary)
@@ -905,7 +905,7 @@
 ;; PycChainCmp
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycChainCmp::PycChainCmp loc1862::pair %info1863::obj cps1864::obj type1865::obj ops1866::pair-nil lhs1867::PycExpr rest1868::pair-nil)
+    (inline make-PycChainCmp::PycChainCmp loc1863::pair %info1864::obj cps1865::obj type1866::obj ops1867::pair-nil lhs1868::PycExpr rest1869::pair-nil)
     (inline PycChainCmp?::bool ::obj)
     (PycChainCmp-nil::PycChainCmp)
     (inline PycChainCmp-rest::pair-nil ::PycChainCmp)
@@ -925,7 +925,7 @@
 ;; PycBoolOp
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycBoolOp::PycBoolOp loc1854::pair %info1855::obj cps1856::obj type1857::obj op1858::symbol args1859::pair-nil cache1860::obj)
+    (inline make-PycBoolOp::PycBoolOp loc1855::pair %info1856::obj cps1857::obj type1858::obj op1859::symbol args1860::pair-nil cache1861::obj)
     (inline PycBoolOp?::bool ::obj)
     (PycBoolOp-nil::PycBoolOp)
     (inline PycBoolOp-cache::obj ::PycBoolOp)
@@ -945,7 +945,7 @@
 ;; PycFun
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycFun::PycFun loc1827::pair %info1828::obj cps1829::obj type1830::obj args1831::pair-nil posonlyargs1832::pair-nil vararg1833::obj kwonlyargs1834::pair-nil kw-defaults1835::pair-nil kwarg1836::obj defaults1837::pair-nil body1838::PycStmt decorators1839::pair-nil decls1840::pair-nil generator1841::bool need-return1842::bool can-locals1843::bool super-in-class1844::bool use-simple-scoping1845::bool name1846::obj annotation-names1847::pair-nil annotation1848::pair-nil is-builtin1849::obj is-private1850::obj &proc1851::obj &proc-init1852::obj)
+    (inline make-PycFun::PycFun loc1828::pair %info1829::obj cps1830::obj type1831::obj args1832::pair-nil posonlyargs1833::pair-nil vararg1834::obj kwonlyargs1835::pair-nil kw-defaults1836::pair-nil kwarg1837::obj defaults1838::pair-nil body1839::PycStmt decorators1840::pair-nil decls1841::pair-nil generator1842::bool need-return1843::bool can-locals1844::bool super-in-class1845::bool use-simple-scoping1846::bool name1847::obj annotation-names1848::pair-nil annotation1849::pair-nil is-builtin1850::obj is-private1851::obj &proc1852::obj &proc-init1853::obj)
     (inline PycFun?::bool ::obj)
     (PycFun-nil::PycFun)
     (inline PycFun-&proc-init::obj ::PycFun)
@@ -1003,9 +1003,11 @@
 ;; PycSemantics
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycSemantics::PycSemantics loc1798::pair %info1799::obj cps1800::obj type1801::obj args1802::pair-nil posonlyargs1803::pair-nil vararg1804::obj kwonlyargs1805::pair-nil kw-defaults1806::pair-nil kwarg1807::obj defaults1808::pair-nil body1809::PycStmt decorators1810::pair-nil decls1811::pair-nil generator1812::bool need-return1813::bool can-locals1814::bool super-in-class1815::bool use-simple-scoping1816::bool name1817::obj annotation-names1818::pair-nil annotation1819::pair-nil is-builtin1820::obj is-private1821::obj &proc1822::obj &proc-init1823::obj inline1824::bool inline-as-is1825::bool)
+    (inline make-PycSemantics::PycSemantics loc1798::pair %info1799::obj cps1800::obj type1801::obj args1802::pair-nil posonlyargs1803::pair-nil vararg1804::obj kwonlyargs1805::pair-nil kw-defaults1806::pair-nil kwarg1807::obj defaults1808::pair-nil body1809::PycStmt decorators1810::pair-nil decls1811::pair-nil generator1812::bool need-return1813::bool can-locals1814::bool super-in-class1815::bool use-simple-scoping1816::bool name1817::obj annotation-names1818::pair-nil annotation1819::pair-nil is-builtin1820::obj is-private1821::obj &proc1822::obj &proc-init1823::obj inline1824::bool inline-as-is1825::bool is-behavior1826::bool)
     (inline PycSemantics?::bool ::obj)
     (PycSemantics-nil::PycSemantics)
+    (inline PycSemantics-is-behavior::bool ::PycSemantics)
+    (inline PycSemantics-is-behavior-set! ::PycSemantics ::bool)
     (inline PycSemantics-inline-as-is::bool ::PycSemantics)
     (inline PycSemantics-inline-as-is-set! ::PycSemantics ::bool)
     (inline PycSemantics-inline::bool ::PycSemantics)
@@ -1333,7 +1335,7 @@
 (define-inline (PycNode-loc-set! o::PycNode v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycUnimplemented
-(define-inline (make-PycUnimplemented::PycUnimplemented loc2210::pair %info2211::obj cps2212::obj msg2213::string) (instantiate::PycUnimplemented (loc loc2210) (%info %info2211) (cps cps2212) (msg msg2213)))
+(define-inline (make-PycUnimplemented::PycUnimplemented loc2211::pair %info2212::obj cps2213::obj msg2214::string) (instantiate::PycUnimplemented (loc loc2211) (%info %info2212) (cps cps2213) (msg msg2214)))
 (define-inline (PycUnimplemented?::bool obj::obj) ((@ isa? __object) obj (@ PycUnimplemented __pyc_ast)))
 (define (PycUnimplemented-nil::PycUnimplemented) (class-nil (@ PycUnimplemented __pyc_ast)))
 (define-inline (PycUnimplemented-msg::string o::PycUnimplemented) (-> |#!bigloo_wallow| o msg))
@@ -1346,7 +1348,7 @@
 (define-inline (PycUnimplemented-loc-set! o::PycUnimplemented v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycModule
-(define-inline (make-PycModule::PycModule loc2199::pair %info2200::obj cps2201::obj special-init2202::obj version2203::int ident2204::string stmts2205::pair-nil globals2206::pair-nil global-defs2207::pair-nil caches2208::pair-nil) (instantiate::PycModule (loc loc2199) (%info %info2200) (cps cps2201) (special-init special-init2202) (version version2203) (ident ident2204) (stmts stmts2205) (globals globals2206) (global-defs global-defs2207) (caches caches2208)))
+(define-inline (make-PycModule::PycModule loc2200::pair %info2201::obj cps2202::obj special-init2203::obj version2204::int ident2205::string stmts2206::pair-nil globals2207::pair-nil global-defs2208::pair-nil caches2209::pair-nil) (instantiate::PycModule (loc loc2200) (%info %info2201) (cps cps2202) (special-init special-init2203) (version version2204) (ident ident2205) (stmts stmts2206) (globals globals2207) (global-defs global-defs2208) (caches caches2209)))
 (define-inline (PycModule?::bool obj::obj) ((@ isa? __object) obj (@ PycModule __pyc_ast)))
 (define (PycModule-nil::PycModule) (class-nil (@ PycModule __pyc_ast)))
 (define-inline (PycModule-caches::pair-nil o::PycModule) (-> |#!bigloo_wallow| o caches))
@@ -1371,7 +1373,7 @@
 (define-inline (PycModule-loc-set! o::PycModule v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycVar
-(define-inline (make-PycVar::PycVar loc2181::pair %info2182::obj cps2183::obj id2184::symbol scope2185::symbol name2186::obj key2187::int in-scope-of2188::obj usage2189::pair-nil assig2190::pair-nil can-be-deleted2191::bool global-only-accessed2192::obj global-always-define2193::obj global-ref-to-init-d2194::obj is-builtin2195::obj simple-scoping-top-b2196::obj cache2197::obj) (instantiate::PycVar (loc loc2181) (%info %info2182) (cps cps2183) (id id2184) (scope scope2185) (name name2186) (key key2187) (in-scope-of in-scope-of2188) (usage usage2189) (assig assig2190) (can-be-deleted can-be-deleted2191) (global-only-accessed-in-module global-only-accessed2192) (global-always-defined global-always-define2193) (global-ref-to-init-def global-ref-to-init-d2194) (is-builtin is-builtin2195) (simple-scoping-top-block simple-scoping-top-b2196) (cache cache2197)))
+(define-inline (make-PycVar::PycVar loc2182::pair %info2183::obj cps2184::obj id2185::symbol scope2186::symbol name2187::obj key2188::int in-scope-of2189::obj usage2190::pair-nil assig2191::pair-nil can-be-deleted2192::bool global-only-accessed2193::obj global-always-define2194::obj global-ref-to-init-d2195::obj is-builtin2196::obj simple-scoping-top-b2197::obj cache2198::obj) (instantiate::PycVar (loc loc2182) (%info %info2183) (cps cps2184) (id id2185) (scope scope2186) (name name2187) (key key2188) (in-scope-of in-scope-of2189) (usage usage2190) (assig assig2191) (can-be-deleted can-be-deleted2192) (global-only-accessed-in-module global-only-accessed2193) (global-always-defined global-always-define2194) (global-ref-to-init-def global-ref-to-init-d2195) (is-builtin is-builtin2196) (simple-scoping-top-block simple-scoping-top-b2197) (cache cache2198)))
 (define-inline (PycVar?::bool obj::obj) ((@ isa? __object) obj (@ PycVar __pyc_ast)))
 (define (PycVar-nil::PycVar) (class-nil (@ PycVar __pyc_ast)))
 (define-inline (PycVar-cache::obj o::PycVar) (-> |#!bigloo_wallow| o cache))
@@ -1410,7 +1412,7 @@
 (define-inline (PycVar-loc-set! o::PycVar v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycStmt
-(define-inline (make-PycStmt::PycStmt loc2177::pair %info2178::obj cps2179::obj) (instantiate::PycStmt (loc loc2177) (%info %info2178) (cps cps2179)))
+(define-inline (make-PycStmt::PycStmt loc2178::pair %info2179::obj cps2180::obj) (instantiate::PycStmt (loc loc2178) (%info %info2179) (cps cps2180)))
 (define-inline (PycStmt?::bool obj::obj) ((@ isa? __object) obj (@ PycStmt __pyc_ast)))
 (define (PycStmt-nil::PycStmt) (class-nil (@ PycStmt __pyc_ast)))
 (define-inline (PycStmt-cps::obj o::PycStmt) (-> |#!bigloo_wallow| o cps))
@@ -1421,7 +1423,7 @@
 (define-inline (PycStmt-loc-set! o::PycStmt v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycSeq
-(define-inline (make-PycSeq::PycSeq loc2172::pair %info2173::obj cps2174::obj nodes2175::pair-nil) (instantiate::PycSeq (loc loc2172) (%info %info2173) (cps cps2174) (nodes nodes2175)))
+(define-inline (make-PycSeq::PycSeq loc2173::pair %info2174::obj cps2175::obj nodes2176::pair-nil) (instantiate::PycSeq (loc loc2173) (%info %info2174) (cps cps2175) (nodes nodes2176)))
 (define-inline (PycSeq?::bool obj::obj) ((@ isa? __object) obj (@ PycSeq __pyc_ast)))
 (define (PycSeq-nil::PycSeq) (class-nil (@ PycSeq __pyc_ast)))
 (define-inline (PycSeq-nodes::pair-nil o::PycSeq) (-> |#!bigloo_wallow| o nodes))
@@ -1434,7 +1436,7 @@
 (define-inline (PycSeq-loc-set! o::PycSeq v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycBlock
-(define-inline (make-PycBlock::PycBlock loc2166::pair %info2167::obj cps2168::obj decls2169::pair-nil body2170::PycStmt) (instantiate::PycBlock (loc loc2166) (%info %info2167) (cps cps2168) (decls decls2169) (body body2170)))
+(define-inline (make-PycBlock::PycBlock loc2167::pair %info2168::obj cps2169::obj decls2170::pair-nil body2171::PycStmt) (instantiate::PycBlock (loc loc2167) (%info %info2168) (cps cps2169) (decls decls2170) (body body2171)))
 (define-inline (PycBlock?::bool obj::obj) ((@ isa? __object) obj (@ PycBlock __pyc_ast)))
 (define (PycBlock-nil::PycBlock) (class-nil (@ PycBlock __pyc_ast)))
 (define-inline (PycBlock-body::PycStmt o::PycBlock) (-> |#!bigloo_wallow| o body))
@@ -1449,7 +1451,7 @@
 (define-inline (PycBlock-loc-set! o::PycBlock v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycReturn
-(define-inline (make-PycReturn::PycReturn loc2160::pair %info2161::obj cps2162::obj val2163::PycExpr tail2164::bool) (instantiate::PycReturn (loc loc2160) (%info %info2161) (cps cps2162) (val val2163) (tail tail2164)))
+(define-inline (make-PycReturn::PycReturn loc2161::pair %info2162::obj cps2163::obj val2164::PycExpr tail2165::bool) (instantiate::PycReturn (loc loc2161) (%info %info2162) (cps cps2163) (val val2164) (tail tail2165)))
 (define-inline (PycReturn?::bool obj::obj) ((@ isa? __object) obj (@ PycReturn __pyc_ast)))
 (define (PycReturn-nil::PycReturn) (class-nil (@ PycReturn __pyc_ast)))
 (define-inline (PycReturn-tail::bool o::PycReturn) (-> |#!bigloo_wallow| o tail))
@@ -1464,7 +1466,7 @@
 (define-inline (PycReturn-loc-set! o::PycReturn v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycGeneratorReturn
-(define-inline (make-PycGeneratorReturn::PycGeneratorReturn loc2154::pair %info2155::obj cps2156::obj val2157::PycExpr tail2158::bool) (instantiate::PycGeneratorReturn (loc loc2154) (%info %info2155) (cps cps2156) (val val2157) (tail tail2158)))
+(define-inline (make-PycGeneratorReturn::PycGeneratorReturn loc2155::pair %info2156::obj cps2157::obj val2158::PycExpr tail2159::bool) (instantiate::PycGeneratorReturn (loc loc2155) (%info %info2156) (cps cps2157) (val val2158) (tail tail2159)))
 (define-inline (PycGeneratorReturn?::bool obj::obj) ((@ isa? __object) obj (@ PycGeneratorReturn __pyc_ast)))
 (define (PycGeneratorReturn-nil::PycGeneratorReturn) (class-nil (@ PycGeneratorReturn __pyc_ast)))
 (define-inline (PycGeneratorReturn-tail::bool o::PycGeneratorReturn) (-> |#!bigloo_wallow| o tail))
@@ -1479,7 +1481,7 @@
 (define-inline (PycGeneratorReturn-loc-set! o::PycGeneratorReturn v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycReturnYield
-(define-inline (make-PycReturnYield::PycReturnYield loc2147::pair %info2148::obj cps2149::obj val2150::PycExpr kont2151::PycKont generator2152::bool) (instantiate::PycReturnYield (loc loc2147) (%info %info2148) (cps cps2149) (val val2150) (kont kont2151) (generator generator2152)))
+(define-inline (make-PycReturnYield::PycReturnYield loc2148::pair %info2149::obj cps2150::obj val2151::PycExpr kont2152::PycKont generator2153::bool) (instantiate::PycReturnYield (loc loc2148) (%info %info2149) (cps cps2150) (val val2151) (kont kont2152) (generator generator2153)))
 (define-inline (PycReturnYield?::bool obj::obj) ((@ isa? __object) obj (@ PycReturnYield __pyc_ast)))
 (define (PycReturnYield-nil::PycReturnYield) (class-nil (@ PycReturnYield __pyc_ast)))
 (define-inline (PycReturnYield-generator::bool o::PycReturnYield) (-> |#!bigloo_wallow| o generator))
@@ -1496,7 +1498,7 @@
 (define-inline (PycReturnYield-loc-set! o::PycReturnYield v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycDelete
-(define-inline (make-PycDelete::PycDelete loc2142::pair %info2143::obj cps2144::obj expr2145::PycExpr) (instantiate::PycDelete (loc loc2142) (%info %info2143) (cps cps2144) (expr expr2145)))
+(define-inline (make-PycDelete::PycDelete loc2143::pair %info2144::obj cps2145::obj expr2146::PycExpr) (instantiate::PycDelete (loc loc2143) (%info %info2144) (cps cps2145) (expr expr2146)))
 (define-inline (PycDelete?::bool obj::obj) ((@ isa? __object) obj (@ PycDelete __pyc_ast)))
 (define (PycDelete-nil::PycDelete) (class-nil (@ PycDelete __pyc_ast)))
 (define-inline (PycDelete-expr::PycExpr o::PycDelete) (-> |#!bigloo_wallow| o expr))
@@ -1509,7 +1511,7 @@
 (define-inline (PycDelete-loc-set! o::PycDelete v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycAssig
-(define-inline (make-PycAssig::PycAssig loc2136::pair %info2137::obj cps2138::obj lhs2139::PycExpr rhs2140::PycExpr) (instantiate::PycAssig (loc loc2136) (%info %info2137) (cps cps2138) (lhs lhs2139) (rhs rhs2140)))
+(define-inline (make-PycAssig::PycAssig loc2137::pair %info2138::obj cps2139::obj lhs2140::PycExpr rhs2141::PycExpr) (instantiate::PycAssig (loc loc2137) (%info %info2138) (cps cps2139) (lhs lhs2140) (rhs rhs2141)))
 (define-inline (PycAssig?::bool obj::obj) ((@ isa? __object) obj (@ PycAssig __pyc_ast)))
 (define (PycAssig-nil::PycAssig) (class-nil (@ PycAssig __pyc_ast)))
 (define-inline (PycAssig-rhs::PycExpr o::PycAssig) (-> |#!bigloo_wallow| o rhs))
@@ -1524,7 +1526,7 @@
 (define-inline (PycAssig-loc-set! o::PycAssig v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycAugAssig
-(define-inline (make-PycAugAssig::PycAugAssig loc2128::pair %info2129::obj cps2130::obj lhs2131::PycExpr rhs2132::PycExpr op2133::symbol cache2134::obj) (instantiate::PycAugAssig (loc loc2128) (%info %info2129) (cps cps2130) (lhs lhs2131) (rhs rhs2132) (op op2133) (cache cache2134)))
+(define-inline (make-PycAugAssig::PycAugAssig loc2129::pair %info2130::obj cps2131::obj lhs2132::PycExpr rhs2133::PycExpr op2134::symbol cache2135::obj) (instantiate::PycAugAssig (loc loc2129) (%info %info2130) (cps cps2131) (lhs lhs2132) (rhs rhs2133) (op op2134) (cache cache2135)))
 (define-inline (PycAugAssig?::bool obj::obj) ((@ isa? __object) obj (@ PycAugAssig __pyc_ast)))
 (define (PycAugAssig-nil::PycAugAssig) (class-nil (@ PycAugAssig __pyc_ast)))
 (define-inline (PycAugAssig-cache::obj o::PycAugAssig) (-> |#!bigloo_wallow| o cache))
@@ -1543,7 +1545,7 @@
 (define-inline (PycAugAssig-loc-set! o::PycAugAssig v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycIf
-(define-inline (make-PycIf::PycIf loc2121::pair %info2122::obj cps2123::obj test2124::PycExpr then2125::PycStmt else2126::PycStmt) (instantiate::PycIf (loc loc2121) (%info %info2122) (cps cps2123) (test test2124) (then then2125) (else else2126)))
+(define-inline (make-PycIf::PycIf loc2122::pair %info2123::obj cps2124::obj test2125::PycExpr then2126::PycStmt else2127::PycStmt) (instantiate::PycIf (loc loc2122) (%info %info2123) (cps cps2124) (test test2125) (then then2126) (else else2127)))
 (define-inline (PycIf?::bool obj::obj) ((@ isa? __object) obj (@ PycIf __pyc_ast)))
 (define (PycIf-nil::PycIf) (class-nil (@ PycIf __pyc_ast)))
 (define-inline (PycIf-else::PycStmt o::PycIf) (-> |#!bigloo_wallow| o else))
@@ -1560,7 +1562,7 @@
 (define-inline (PycIf-loc-set! o::PycIf v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycWithItem
-(define-inline (make-PycWithItem::PycWithItem loc2115::pair %info2116::obj cps2117::obj context-expr2118::PycExpr optional-vars2119::PycExpr) (instantiate::PycWithItem (loc loc2115) (%info %info2116) (cps cps2117) (context-expr context-expr2118) (optional-vars optional-vars2119)))
+(define-inline (make-PycWithItem::PycWithItem loc2116::pair %info2117::obj cps2118::obj context-expr2119::PycExpr optional-vars2120::PycExpr) (instantiate::PycWithItem (loc loc2116) (%info %info2117) (cps cps2118) (context-expr context-expr2119) (optional-vars optional-vars2120)))
 (define-inline (PycWithItem?::bool obj::obj) ((@ isa? __object) obj (@ PycWithItem __pyc_ast)))
 (define (PycWithItem-nil::PycWithItem) (class-nil (@ PycWithItem __pyc_ast)))
 (define-inline (PycWithItem-optional-vars::PycExpr o::PycWithItem) (-> |#!bigloo_wallow| o optional-vars))
@@ -1575,7 +1577,7 @@
 (define-inline (PycWithItem-loc-set! o::PycWithItem v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycWith
-(define-inline (make-PycWith::PycWith loc2109::pair %info2110::obj cps2111::obj items2112::PycWithItem body2113::PycStmt) (instantiate::PycWith (loc loc2109) (%info %info2110) (cps cps2111) (items items2112) (body body2113)))
+(define-inline (make-PycWith::PycWith loc2110::pair %info2111::obj cps2112::obj items2113::PycWithItem body2114::PycStmt) (instantiate::PycWith (loc loc2110) (%info %info2111) (cps cps2112) (items items2113) (body body2114)))
 (define-inline (PycWith?::bool obj::obj) ((@ isa? __object) obj (@ PycWith __pyc_ast)))
 (define (PycWith-nil::PycWith) (class-nil (@ PycWith __pyc_ast)))
 (define-inline (PycWith-body::PycStmt o::PycWith) (-> |#!bigloo_wallow| o body))
@@ -1590,7 +1592,7 @@
 (define-inline (PycWith-loc-set! o::PycWith v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycLoop
-(define-inline (make-PycLoop::PycLoop loc2101::pair %info2102::obj cps2103::obj body2104::PycStmt else2105::PycStmt need-break2106::bool need-continue2107::bool) (instantiate::PycLoop (loc loc2101) (%info %info2102) (cps cps2103) (body body2104) (else else2105) (need-break need-break2106) (need-continue need-continue2107)))
+(define-inline (make-PycLoop::PycLoop loc2102::pair %info2103::obj cps2104::obj body2105::PycStmt else2106::PycStmt need-break2107::bool need-continue2108::bool) (instantiate::PycLoop (loc loc2102) (%info %info2103) (cps cps2104) (body body2105) (else else2106) (need-break need-break2107) (need-continue need-continue2108)))
 (define-inline (PycLoop?::bool obj::obj) ((@ isa? __object) obj (@ PycLoop __pyc_ast)))
 (define (PycLoop-nil::PycLoop) (class-nil (@ PycLoop __pyc_ast)))
 (define-inline (PycLoop-need-continue::bool o::PycLoop) (-> |#!bigloo_wallow| o need-continue))
@@ -1609,7 +1611,7 @@
 (define-inline (PycLoop-loc-set! o::PycLoop v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycFor
-(define-inline (make-PycFor::PycFor loc2089::pair %info2090::obj cps2091::obj body2092::PycStmt else2093::PycStmt need-break2094::bool need-continue2095::bool target2096::PycExpr iter2097::PycExpr cachei2098::obj cachen2099::obj) (instantiate::PycFor (loc loc2089) (%info %info2090) (cps cps2091) (body body2092) (else else2093) (need-break need-break2094) (need-continue need-continue2095) (target target2096) (iter iter2097) (cachei cachei2098) (cachen cachen2099)))
+(define-inline (make-PycFor::PycFor loc2090::pair %info2091::obj cps2092::obj body2093::PycStmt else2094::PycStmt need-break2095::bool need-continue2096::bool target2097::PycExpr iter2098::PycExpr cachei2099::obj cachen2100::obj) (instantiate::PycFor (loc loc2090) (%info %info2091) (cps cps2092) (body body2093) (else else2094) (need-break need-break2095) (need-continue need-continue2096) (target target2097) (iter iter2098) (cachei cachei2099) (cachen cachen2100)))
 (define-inline (PycFor?::bool obj::obj) ((@ isa? __object) obj (@ PycFor __pyc_ast)))
 (define (PycFor-nil::PycFor) (class-nil (@ PycFor __pyc_ast)))
 (define-inline (PycFor-cachen::obj o::PycFor) (-> |#!bigloo_wallow| o cachen))
@@ -1636,7 +1638,7 @@
 (define-inline (PycFor-loc-set! o::PycFor v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycCPSFor
-(define-inline (make-PycCPSFor::PycCPSFor loc2075::pair %info2076::obj cps2077::obj body2078::PycStmt else2079::PycStmt need-break2080::bool need-continue2081::bool target2082::PycExpr iter2083::PycExpr cachei2084::obj cachen2085::obj loop-kont-var2086::PycVar else-kont-var2087::PycVar) (instantiate::PycCPSFor (loc loc2075) (%info %info2076) (cps cps2077) (body body2078) (else else2079) (need-break need-break2080) (need-continue need-continue2081) (target target2082) (iter iter2083) (cachei cachei2084) (cachen cachen2085) (loop-kont-var loop-kont-var2086) (else-kont-var else-kont-var2087)))
+(define-inline (make-PycCPSFor::PycCPSFor loc2076::pair %info2077::obj cps2078::obj body2079::PycStmt else2080::PycStmt need-break2081::bool need-continue2082::bool target2083::PycExpr iter2084::PycExpr cachei2085::obj cachen2086::obj loop-kont-var2087::PycVar else-kont-var2088::PycVar) (instantiate::PycCPSFor (loc loc2076) (%info %info2077) (cps cps2078) (body body2079) (else else2080) (need-break need-break2081) (need-continue need-continue2082) (target target2083) (iter iter2084) (cachei cachei2085) (cachen cachen2086) (loop-kont-var loop-kont-var2087) (else-kont-var else-kont-var2088)))
 (define-inline (PycCPSFor?::bool obj::obj) ((@ isa? __object) obj (@ PycCPSFor __pyc_ast)))
 (define (PycCPSFor-nil::PycCPSFor) (class-nil (@ PycCPSFor __pyc_ast)))
 (define-inline (PycCPSFor-else-kont-var::PycVar o::PycCPSFor) (-> |#!bigloo_wallow| o else-kont-var))
@@ -1667,7 +1669,7 @@
 (define-inline (PycCPSFor-loc-set! o::PycCPSFor v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycWhile
-(define-inline (make-PycWhile::PycWhile loc2066::pair %info2067::obj cps2068::obj body2069::PycStmt else2070::PycStmt need-break2071::bool need-continue2072::bool test2073::PycExpr) (instantiate::PycWhile (loc loc2066) (%info %info2067) (cps cps2068) (body body2069) (else else2070) (need-break need-break2071) (need-continue need-continue2072) (test test2073)))
+(define-inline (make-PycWhile::PycWhile loc2067::pair %info2068::obj cps2069::obj body2070::PycStmt else2071::PycStmt need-break2072::bool need-continue2073::bool test2074::PycExpr) (instantiate::PycWhile (loc loc2067) (%info %info2068) (cps cps2069) (body body2070) (else else2071) (need-break need-break2072) (need-continue need-continue2073) (test test2074)))
 (define-inline (PycWhile?::bool obj::obj) ((@ isa? __object) obj (@ PycWhile __pyc_ast)))
 (define (PycWhile-nil::PycWhile) (class-nil (@ PycWhile __pyc_ast)))
 (define-inline (PycWhile-test::PycExpr o::PycWhile) (-> |#!bigloo_wallow| o test))
@@ -1688,7 +1690,7 @@
 (define-inline (PycWhile-loc-set! o::PycWhile v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycCPSWhile
-(define-inline (make-PycCPSWhile::PycCPSWhile loc2055::pair %info2056::obj cps2057::obj body2058::PycStmt else2059::PycStmt need-break2060::bool need-continue2061::bool test2062::PycExpr loop-kont-var2063::PycVar else-kont-var2064::PycVar) (instantiate::PycCPSWhile (loc loc2055) (%info %info2056) (cps cps2057) (body body2058) (else else2059) (need-break need-break2060) (need-continue need-continue2061) (test test2062) (loop-kont-var loop-kont-var2063) (else-kont-var else-kont-var2064)))
+(define-inline (make-PycCPSWhile::PycCPSWhile loc2056::pair %info2057::obj cps2058::obj body2059::PycStmt else2060::PycStmt need-break2061::bool need-continue2062::bool test2063::PycExpr loop-kont-var2064::PycVar else-kont-var2065::PycVar) (instantiate::PycCPSWhile (loc loc2056) (%info %info2057) (cps cps2058) (body body2059) (else else2060) (need-break need-break2061) (need-continue need-continue2062) (test test2063) (loop-kont-var loop-kont-var2064) (else-kont-var else-kont-var2065)))
 (define-inline (PycCPSWhile?::bool obj::obj) ((@ isa? __object) obj (@ PycCPSWhile __pyc_ast)))
 (define (PycCPSWhile-nil::PycCPSWhile) (class-nil (@ PycCPSWhile __pyc_ast)))
 (define-inline (PycCPSWhile-else-kont-var::PycVar o::PycCPSWhile) (-> |#!bigloo_wallow| o else-kont-var))
@@ -1713,7 +1715,7 @@
 (define-inline (PycCPSWhile-loc-set! o::PycCPSWhile v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycRaise
-(define-inline (make-PycRaise::PycRaise loc2049::pair %info2050::obj cps2051::obj exc2052::PycExpr cause2053::PycExpr) (instantiate::PycRaise (loc loc2049) (%info %info2050) (cps cps2051) (exc exc2052) (cause cause2053)))
+(define-inline (make-PycRaise::PycRaise loc2050::pair %info2051::obj cps2052::obj exc2053::PycExpr cause2054::PycExpr) (instantiate::PycRaise (loc loc2050) (%info %info2051) (cps cps2052) (exc exc2053) (cause cause2054)))
 (define-inline (PycRaise?::bool obj::obj) ((@ isa? __object) obj (@ PycRaise __pyc_ast)))
 (define (PycRaise-nil::PycRaise) (class-nil (@ PycRaise __pyc_ast)))
 (define-inline (PycRaise-cause::PycExpr o::PycRaise) (-> |#!bigloo_wallow| o cause))
@@ -1728,7 +1730,7 @@
 (define-inline (PycRaise-loc-set! o::PycRaise v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycTry
-(define-inline (make-PycTry::PycTry loc2039::pair %info2040::obj cps2041::obj body2042::PycStmt handlers2043::pair-nil else2044::PycStmt finally2045::PycStmt exc-var2046::PycVar tail2047::bool) (instantiate::PycTry (loc loc2039) (%info %info2040) (cps cps2041) (body body2042) (handlers handlers2043) (else else2044) (finally finally2045) (exc-var exc-var2046) (tail tail2047)))
+(define-inline (make-PycTry::PycTry loc2040::pair %info2041::obj cps2042::obj body2043::PycStmt handlers2044::pair-nil else2045::PycStmt finally2046::PycStmt exc-var2047::PycVar tail2048::bool) (instantiate::PycTry (loc loc2040) (%info %info2041) (cps cps2042) (body body2043) (handlers handlers2044) (else else2045) (finally finally2046) (exc-var exc-var2047) (tail tail2048)))
 (define-inline (PycTry?::bool obj::obj) ((@ isa? __object) obj (@ PycTry __pyc_ast)))
 (define (PycTry-nil::PycTry) (class-nil (@ PycTry __pyc_ast)))
 (define-inline (PycTry-tail::bool o::PycTry) (-> |#!bigloo_wallow| o tail))
@@ -1751,7 +1753,7 @@
 (define-inline (PycTry-loc-set! o::PycTry v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycHandler
-(define-inline (make-PycHandler::PycHandler loc2032::pair %info2033::obj cps2034::obj exc-var2035::PycVar type2036::PycExpr body2037::PycStmt) (instantiate::PycHandler (loc loc2032) (%info %info2033) (cps cps2034) (exc-var exc-var2035) (type type2036) (body body2037)))
+(define-inline (make-PycHandler::PycHandler loc2033::pair %info2034::obj cps2035::obj exc-var2036::PycVar type2037::PycExpr body2038::PycStmt) (instantiate::PycHandler (loc loc2033) (%info %info2034) (cps cps2035) (exc-var exc-var2036) (type type2037) (body body2038)))
 (define-inline (PycHandler?::bool obj::obj) ((@ isa? __object) obj (@ PycHandler __pyc_ast)))
 (define (PycHandler-nil::PycHandler) (class-nil (@ PycHandler __pyc_ast)))
 (define-inline (PycHandler-body::PycStmt o::PycHandler) (-> |#!bigloo_wallow| o body))
@@ -1768,7 +1770,7 @@
 (define-inline (PycHandler-loc-set! o::PycHandler v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycHandlerCPS
-(define-inline (make-PycHandlerCPS::PycHandlerCPS loc2024::pair %info2025::obj cps2026::obj exc-var2027::PycVar type2028::PycExpr body2029::PycStmt next-handler2030::PycNode) (instantiate::PycHandlerCPS (loc loc2024) (%info %info2025) (cps cps2026) (exc-var exc-var2027) (type type2028) (body body2029) (next-handler next-handler2030)))
+(define-inline (make-PycHandlerCPS::PycHandlerCPS loc2025::pair %info2026::obj cps2027::obj exc-var2028::PycVar type2029::PycExpr body2030::PycStmt next-handler2031::PycNode) (instantiate::PycHandlerCPS (loc loc2025) (%info %info2026) (cps cps2027) (exc-var exc-var2028) (type type2029) (body body2030) (next-handler next-handler2031)))
 (define-inline (PycHandlerCPS?::bool obj::obj) ((@ isa? __object) obj (@ PycHandlerCPS __pyc_ast)))
 (define (PycHandlerCPS-nil::PycHandlerCPS) (class-nil (@ PycHandlerCPS __pyc_ast)))
 (define-inline (PycHandlerCPS-next-handler::PycNode o::PycHandlerCPS) (-> |#!bigloo_wallow| o next-handler))
@@ -1787,7 +1789,7 @@
 (define-inline (PycHandlerCPS-loc-set! o::PycHandlerCPS v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycBreak
-(define-inline (make-PycBreak::PycBreak loc2020::pair %info2021::obj cps2022::obj) (instantiate::PycBreak (loc loc2020) (%info %info2021) (cps cps2022)))
+(define-inline (make-PycBreak::PycBreak loc2021::pair %info2022::obj cps2023::obj) (instantiate::PycBreak (loc loc2021) (%info %info2022) (cps cps2023)))
 (define-inline (PycBreak?::bool obj::obj) ((@ isa? __object) obj (@ PycBreak __pyc_ast)))
 (define (PycBreak-nil::PycBreak) (class-nil (@ PycBreak __pyc_ast)))
 (define-inline (PycBreak-cps::obj o::PycBreak) (-> |#!bigloo_wallow| o cps))
@@ -1798,7 +1800,7 @@
 (define-inline (PycBreak-loc-set! o::PycBreak v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycContinue
-(define-inline (make-PycContinue::PycContinue loc2016::pair %info2017::obj cps2018::obj) (instantiate::PycContinue (loc loc2016) (%info %info2017) (cps cps2018)))
+(define-inline (make-PycContinue::PycContinue loc2017::pair %info2018::obj cps2019::obj) (instantiate::PycContinue (loc loc2017) (%info %info2018) (cps cps2019)))
 (define-inline (PycContinue?::bool obj::obj) ((@ isa? __object) obj (@ PycContinue __pyc_ast)))
 (define (PycContinue-nil::PycContinue) (class-nil (@ PycContinue __pyc_ast)))
 (define-inline (PycContinue-cps::obj o::PycContinue) (-> |#!bigloo_wallow| o cps))
@@ -1809,7 +1811,7 @@
 (define-inline (PycContinue-loc-set! o::PycContinue v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycPass
-(define-inline (make-PycPass::PycPass loc2012::pair %info2013::obj cps2014::obj) (instantiate::PycPass (loc loc2012) (%info %info2013) (cps cps2014)))
+(define-inline (make-PycPass::PycPass loc2013::pair %info2014::obj cps2015::obj) (instantiate::PycPass (loc loc2013) (%info %info2014) (cps cps2015)))
 (define-inline (PycPass?::bool obj::obj) ((@ isa? __object) obj (@ PycPass __pyc_ast)))
 (define (PycPass-nil::PycPass) (class-nil (@ PycPass __pyc_ast)))
 (define-inline (PycPass-cps::obj o::PycPass) (-> |#!bigloo_wallow| o cps))
@@ -1820,7 +1822,7 @@
 (define-inline (PycPass-loc-set! o::PycPass v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycStmtExpr
-(define-inline (make-PycStmtExpr::PycStmtExpr loc2007::pair %info2008::obj cps2009::obj expr2010::PycExpr) (instantiate::PycStmtExpr (loc loc2007) (%info %info2008) (cps cps2009) (expr expr2010)))
+(define-inline (make-PycStmtExpr::PycStmtExpr loc2008::pair %info2009::obj cps2010::obj expr2011::PycExpr) (instantiate::PycStmtExpr (loc loc2008) (%info %info2009) (cps cps2010) (expr expr2011)))
 (define-inline (PycStmtExpr?::bool obj::obj) ((@ isa? __object) obj (@ PycStmtExpr __pyc_ast)))
 (define (PycStmtExpr-nil::PycStmtExpr) (class-nil (@ PycStmtExpr __pyc_ast)))
 (define-inline (PycStmtExpr-expr::PycExpr o::PycStmtExpr) (-> |#!bigloo_wallow| o expr))
@@ -1833,7 +1835,7 @@
 (define-inline (PycStmtExpr-loc-set! o::PycStmtExpr v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycSymbols
-(define-inline (make-PycSymbols::PycSymbols loc2001::pair %info2002::obj cps2003::obj scope2004::symbol names2005::pair-nil) (instantiate::PycSymbols (loc loc2001) (%info %info2002) (cps cps2003) (scope scope2004) (names names2005)))
+(define-inline (make-PycSymbols::PycSymbols loc2002::pair %info2003::obj cps2004::obj scope2005::symbol names2006::pair-nil) (instantiate::PycSymbols (loc loc2002) (%info %info2003) (cps cps2004) (scope scope2005) (names names2006)))
 (define-inline (PycSymbols?::bool obj::obj) ((@ isa? __object) obj (@ PycSymbols __pyc_ast)))
 (define (PycSymbols-nil::PycSymbols) (class-nil (@ PycSymbols __pyc_ast)))
 (define-inline (PycSymbols-names::pair-nil o::PycSymbols) (-> |#!bigloo_wallow| o names))
@@ -1848,7 +1850,7 @@
 (define-inline (PycSymbols-loc-set! o::PycSymbols v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycExpr
-(define-inline (make-PycExpr::PycExpr loc1996::pair %info1997::obj cps1998::obj type1999::obj) (instantiate::PycExpr (loc loc1996) (%info %info1997) (cps cps1998) (type type1999)))
+(define-inline (make-PycExpr::PycExpr loc1997::pair %info1998::obj cps1999::obj type2000::obj) (instantiate::PycExpr (loc loc1997) (%info %info1998) (cps cps1999) (type type2000)))
 (define-inline (PycExpr?::bool obj::obj) ((@ isa? __object) obj (@ PycExpr __pyc_ast)))
 (define (PycExpr-nil::PycExpr) (class-nil (@ PycExpr __pyc_ast)))
 (define-inline (PycExpr-type::obj o::PycExpr) (-> |#!bigloo_wallow| o type))
@@ -1861,7 +1863,7 @@
 (define-inline (PycExpr-loc-set! o::PycExpr v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycStarredExpr
-(define-inline (make-PycStarredExpr::PycStarredExpr loc1990::pair %info1991::obj cps1992::obj type1993::obj expr1994::PycExpr) (instantiate::PycStarredExpr (loc loc1990) (%info %info1991) (cps cps1992) (type type1993) (expr expr1994)))
+(define-inline (make-PycStarredExpr::PycStarredExpr loc1991::pair %info1992::obj cps1993::obj type1994::obj expr1995::PycExpr) (instantiate::PycStarredExpr (loc loc1991) (%info %info1992) (cps cps1993) (type type1994) (expr expr1995)))
 (define-inline (PycStarredExpr?::bool obj::obj) ((@ isa? __object) obj (@ PycStarredExpr __pyc_ast)))
 (define (PycStarredExpr-nil::PycStarredExpr) (class-nil (@ PycStarredExpr __pyc_ast)))
 (define-inline (PycStarredExpr-expr::PycExpr o::PycStarredExpr) (-> |#!bigloo_wallow| o expr))
@@ -1876,7 +1878,7 @@
 (define-inline (PycStarredExpr-loc-set! o::PycStarredExpr v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycPragma
-(define-inline (make-PycPragma::PycPragma loc1983::pair %info1984::obj cps1985::obj type1986::obj lang1987::symbol expr1988::obj) (instantiate::PycPragma (loc loc1983) (%info %info1984) (cps cps1985) (type type1986) (lang lang1987) (expr expr1988)))
+(define-inline (make-PycPragma::PycPragma loc1984::pair %info1985::obj cps1986::obj type1987::obj lang1988::symbol expr1989::obj) (instantiate::PycPragma (loc loc1984) (%info %info1985) (cps cps1986) (type type1987) (lang lang1988) (expr expr1989)))
 (define-inline (PycPragma?::bool obj::obj) ((@ isa? __object) obj (@ PycPragma __pyc_ast)))
 (define (PycPragma-nil::PycPragma) (class-nil (@ PycPragma __pyc_ast)))
 (define-inline (PycPragma-expr::obj o::PycPragma) (-> |#!bigloo_wallow| o expr))
@@ -1893,7 +1895,7 @@
 (define-inline (PycPragma-loc-set! o::PycPragma v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycRef
-(define-inline (make-PycRef::PycRef loc1974::pair %info1975::obj cps1976::obj type1977::obj decl1978::PycVar ctx1979::symbol cache1980::obj can-direct-access1981::bool) (instantiate::PycRef (loc loc1974) (%info %info1975) (cps cps1976) (type type1977) (decl decl1978) (ctx ctx1979) (cache cache1980) (can-direct-access can-direct-access1981)))
+(define-inline (make-PycRef::PycRef loc1975::pair %info1976::obj cps1977::obj type1978::obj decl1979::PycVar ctx1980::symbol cache1981::obj can-direct-access1982::bool) (instantiate::PycRef (loc loc1975) (%info %info1976) (cps cps1977) (type type1978) (decl decl1979) (ctx ctx1980) (cache cache1981) (can-direct-access can-direct-access1982)))
 (define-inline (PycRef?::bool obj::obj) ((@ isa? __object) obj (@ PycRef __pyc_ast)))
 (define (PycRef-nil::PycRef) (class-nil (@ PycRef __pyc_ast)))
 (define-inline (PycRef-can-direct-access::bool o::PycRef) (-> |#!bigloo_wallow| o can-direct-access))
@@ -1914,7 +1916,7 @@
 (define-inline (PycRef-loc-set! o::PycRef v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycRefUnresolved
-(define-inline (make-PycRefUnresolved::PycRefUnresolved loc1966::pair %info1967::obj cps1968::obj type1969::obj id1970::symbol ctx1971::symbol cache1972::obj) (instantiate::PycRefUnresolved (loc loc1966) (%info %info1967) (cps cps1968) (type type1969) (id id1970) (ctx ctx1971) (cache cache1972)))
+(define-inline (make-PycRefUnresolved::PycRefUnresolved loc1967::pair %info1968::obj cps1969::obj type1970::obj id1971::symbol ctx1972::symbol cache1973::obj) (instantiate::PycRefUnresolved (loc loc1967) (%info %info1968) (cps cps1969) (type type1970) (id id1971) (ctx ctx1972) (cache cache1973)))
 (define-inline (PycRefUnresolved?::bool obj::obj) ((@ isa? __object) obj (@ PycRefUnresolved __pyc_ast)))
 (define (PycRefUnresolved-nil::PycRefUnresolved) (class-nil (@ PycRefUnresolved __pyc_ast)))
 (define-inline (PycRefUnresolved-cache::obj o::PycRefUnresolved) (-> |#!bigloo_wallow| o cache))
@@ -1933,7 +1935,7 @@
 (define-inline (PycRefUnresolved-loc-set! o::PycRefUnresolved v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycAccess
-(define-inline (make-PycAccess::PycAccess loc1957::pair %info1958::obj cps1959::obj type1960::obj obj1961::PycExpr field1962::obj usage1963::obj cache1964::obj) (instantiate::PycAccess (loc loc1957) (%info %info1958) (cps cps1959) (type type1960) (obj obj1961) (field field1962) (usage usage1963) (cache cache1964)))
+(define-inline (make-PycAccess::PycAccess loc1958::pair %info1959::obj cps1960::obj type1961::obj obj1962::PycExpr field1963::obj usage1964::obj cache1965::obj) (instantiate::PycAccess (loc loc1958) (%info %info1959) (cps cps1960) (type type1961) (obj obj1962) (field field1963) (usage usage1964) (cache cache1965)))
 (define-inline (PycAccess?::bool obj::obj) ((@ isa? __object) obj (@ PycAccess __pyc_ast)))
 (define (PycAccess-nil::PycAccess) (class-nil (@ PycAccess __pyc_ast)))
 (define-inline (PycAccess-cache::obj o::PycAccess) (-> |#!bigloo_wallow| o cache))
@@ -1954,7 +1956,7 @@
 (define-inline (PycAccess-loc-set! o::PycAccess v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycSubscript
-(define-inline (make-PycSubscript::PycSubscript loc1949::pair %info1950::obj cps1951::obj type1952::obj obj1953::PycExpr index1954::PycExpr cache1955::obj) (instantiate::PycSubscript (loc loc1949) (%info %info1950) (cps cps1951) (type type1952) (obj obj1953) (index index1954) (cache cache1955)))
+(define-inline (make-PycSubscript::PycSubscript loc1950::pair %info1951::obj cps1952::obj type1953::obj obj1954::PycExpr index1955::PycExpr cache1956::obj) (instantiate::PycSubscript (loc loc1950) (%info %info1951) (cps cps1952) (type type1953) (obj obj1954) (index index1955) (cache cache1956)))
 (define-inline (PycSubscript?::bool obj::obj) ((@ isa? __object) obj (@ PycSubscript __pyc_ast)))
 (define (PycSubscript-nil::PycSubscript) (class-nil (@ PycSubscript __pyc_ast)))
 (define-inline (PycSubscript-cache::obj o::PycSubscript) (-> |#!bigloo_wallow| o cache))
@@ -1973,7 +1975,7 @@
 (define-inline (PycSubscript-loc-set! o::PycSubscript v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycSlice
-(define-inline (make-PycSlice::PycSlice loc1940::pair %info1941::obj cps1942::obj type1943::obj obj1944::PycExpr lower1945::PycExpr upper1946::PycExpr step1947::PycExpr) (instantiate::PycSlice (loc loc1940) (%info %info1941) (cps cps1942) (type type1943) (obj obj1944) (lower lower1945) (upper upper1946) (step step1947)))
+(define-inline (make-PycSlice::PycSlice loc1941::pair %info1942::obj cps1943::obj type1944::obj obj1945::PycExpr lower1946::PycExpr upper1947::PycExpr step1948::PycExpr) (instantiate::PycSlice (loc loc1941) (%info %info1942) (cps cps1943) (type type1944) (obj obj1945) (lower lower1946) (upper upper1947) (step step1948)))
 (define-inline (PycSlice?::bool obj::obj) ((@ isa? __object) obj (@ PycSlice __pyc_ast)))
 (define (PycSlice-nil::PycSlice) (class-nil (@ PycSlice __pyc_ast)))
 (define-inline (PycSlice-step::PycExpr o::PycSlice) (-> |#!bigloo_wallow| o step))
@@ -1994,7 +1996,7 @@
 (define-inline (PycSlice-loc-set! o::PycSlice v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycIfExp
-(define-inline (make-PycIfExp::PycIfExp loc1932::pair %info1933::obj cps1934::obj type1935::obj test1936::PycExpr body1937::PycExpr orelse1938::PycExpr) (instantiate::PycIfExp (loc loc1932) (%info %info1933) (cps cps1934) (type type1935) (test test1936) (body body1937) (orelse orelse1938)))
+(define-inline (make-PycIfExp::PycIfExp loc1933::pair %info1934::obj cps1935::obj type1936::obj test1937::PycExpr body1938::PycExpr orelse1939::PycExpr) (instantiate::PycIfExp (loc loc1933) (%info %info1934) (cps cps1935) (type type1936) (test test1937) (body body1938) (orelse orelse1939)))
 (define-inline (PycIfExp?::bool obj::obj) ((@ isa? __object) obj (@ PycIfExp __pyc_ast)))
 (define (PycIfExp-nil::PycIfExp) (class-nil (@ PycIfExp __pyc_ast)))
 (define-inline (PycIfExp-orelse::PycExpr o::PycIfExp) (-> |#!bigloo_wallow| o orelse))
@@ -2013,7 +2015,7 @@
 (define-inline (PycIfExp-loc-set! o::PycIfExp v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycAssert
-(define-inline (make-PycAssert::PycAssert loc1926::pair %info1927::obj cps1928::obj test1929::PycExpr msg1930::PycExpr) (instantiate::PycAssert (loc loc1926) (%info %info1927) (cps cps1928) (test test1929) (msg msg1930)))
+(define-inline (make-PycAssert::PycAssert loc1927::pair %info1928::obj cps1929::obj test1930::PycExpr msg1931::PycExpr) (instantiate::PycAssert (loc loc1927) (%info %info1928) (cps cps1929) (test test1930) (msg msg1931)))
 (define-inline (PycAssert?::bool obj::obj) ((@ isa? __object) obj (@ PycAssert __pyc_ast)))
 (define (PycAssert-nil::PycAssert) (class-nil (@ PycAssert __pyc_ast)))
 (define-inline (PycAssert-msg::PycExpr o::PycAssert) (-> |#!bigloo_wallow| o msg))
@@ -2040,7 +2042,7 @@
 (define-inline (PycLiteral-loc-set! o::PycLiteral v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycUninit
-(define-inline (make-PycUninit::PycUninit loc1920::pair %info1921::obj cps1922::obj type1923::obj) (instantiate::PycUninit (loc loc1920) (%info %info1921) (cps cps1922) (type type1923)))
+(define-inline (make-PycUninit::PycUninit loc1921::pair %info1922::obj cps1923::obj type1924::obj) (instantiate::PycUninit (loc loc1921) (%info %info1922) (cps cps1923) (type type1924)))
 (define-inline (PycUninit?::bool obj::obj) ((@ isa? __object) obj (@ PycUninit __pyc_ast)))
 (define (PycUninit-nil::PycUninit) (class-nil (@ PycUninit __pyc_ast)))
 (define-inline (PycUninit-type::obj o::PycUninit) (-> |#!bigloo_wallow| o type))
@@ -2053,7 +2055,7 @@
 (define-inline (PycUninit-loc-set! o::PycUninit v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycLiteralValue
-(define-inline (make-PycLiteralValue::PycLiteralValue loc1914::pair %info1915::obj cps1916::obj type1917::obj val1918::obj) (instantiate::PycLiteralValue (loc loc1914) (%info %info1915) (cps cps1916) (type type1917) (val val1918)))
+(define-inline (make-PycLiteralValue::PycLiteralValue loc1915::pair %info1916::obj cps1917::obj type1918::obj val1919::obj) (instantiate::PycLiteralValue (loc loc1915) (%info %info1916) (cps cps1917) (type type1918) (val val1919)))
 (define-inline (PycLiteralValue?::bool obj::obj) ((@ isa? __object) obj (@ PycLiteralValue __pyc_ast)))
 (define (PycLiteralValue-nil::PycLiteralValue) (class-nil (@ PycLiteralValue __pyc_ast)))
 (define-inline (PycLiteralValue-val::obj o::PycLiteralValue) (-> |#!bigloo_wallow| o val))
@@ -2068,7 +2070,7 @@
 (define-inline (PycLiteralValue-loc-set! o::PycLiteralValue v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycBool
-(define-inline (make-PycBool::PycBool loc1908::pair %info1909::obj cps1910::obj type1911::obj val1912::obj) (instantiate::PycBool (loc loc1908) (%info %info1909) (cps cps1910) (type type1911) (val val1912)))
+(define-inline (make-PycBool::PycBool loc1909::pair %info1910::obj cps1911::obj type1912::obj val1913::obj) (instantiate::PycBool (loc loc1909) (%info %info1910) (cps cps1911) (type type1912) (val val1913)))
 (define-inline (PycBool?::bool obj::obj) ((@ isa? __object) obj (@ PycBool __pyc_ast)))
 (define (PycBool-nil::PycBool) (class-nil (@ PycBool __pyc_ast)))
 (define-inline (PycBool-val::obj o::PycBool) (-> |#!bigloo_wallow| o val))
@@ -2083,7 +2085,7 @@
 (define-inline (PycBool-loc-set! o::PycBool v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycNone
-(define-inline (make-PycNone::PycNone loc1902::pair %info1903::obj cps1904::obj type1905::obj val1906::obj) (instantiate::PycNone (loc loc1902) (%info %info1903) (cps cps1904) (type type1905) (val val1906)))
+(define-inline (make-PycNone::PycNone loc1903::pair %info1904::obj cps1905::obj type1906::obj val1907::obj) (instantiate::PycNone (loc loc1903) (%info %info1904) (cps cps1905) (type type1906) (val val1907)))
 (define-inline (PycNone?::bool obj::obj) ((@ isa? __object) obj (@ PycNone __pyc_ast)))
 (define (PycNone-nil::PycNone) (class-nil (@ PycNone __pyc_ast)))
 (define-inline (PycNone-val::obj o::PycNone) (-> |#!bigloo_wallow| o val))
@@ -2098,7 +2100,7 @@
 (define-inline (PycNone-loc-set! o::PycNone v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycNumber
-(define-inline (make-PycNumber::PycNumber loc1896::pair %info1897::obj cps1898::obj type1899::obj val1900::obj) (instantiate::PycNumber (loc loc1896) (%info %info1897) (cps cps1898) (type type1899) (val val1900)))
+(define-inline (make-PycNumber::PycNumber loc1897::pair %info1898::obj cps1899::obj type1900::obj val1901::obj) (instantiate::PycNumber (loc loc1897) (%info %info1898) (cps cps1899) (type type1900) (val val1901)))
 (define-inline (PycNumber?::bool obj::obj) ((@ isa? __object) obj (@ PycNumber __pyc_ast)))
 (define (PycNumber-nil::PycNumber) (class-nil (@ PycNumber __pyc_ast)))
 (define-inline (PycNumber-val::obj o::PycNumber) (-> |#!bigloo_wallow| o val))
@@ -2113,7 +2115,7 @@
 (define-inline (PycNumber-loc-set! o::PycNumber v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycString
-(define-inline (make-PycString::PycString loc1890::pair %info1891::obj cps1892::obj type1893::obj val1894::obj) (instantiate::PycString (loc loc1890) (%info %info1891) (cps cps1892) (type type1893) (val val1894)))
+(define-inline (make-PycString::PycString loc1891::pair %info1892::obj cps1893::obj type1894::obj val1895::obj) (instantiate::PycString (loc loc1891) (%info %info1892) (cps cps1893) (type type1894) (val val1895)))
 (define-inline (PycString?::bool obj::obj) ((@ isa? __object) obj (@ PycString __pyc_ast)))
 (define (PycString-nil::PycString) (class-nil (@ PycString __pyc_ast)))
 (define-inline (PycString-val::obj o::PycString) (-> |#!bigloo_wallow| o val))
@@ -2128,7 +2130,7 @@
 (define-inline (PycString-loc-set! o::PycString v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycUnary
-(define-inline (make-PycUnary::PycUnary loc1881::pair %info1882::obj cps1883::obj type1884::obj op1885::symbol expr1886::PycExpr type-hint1887::obj cache1888::obj) (instantiate::PycUnary (loc loc1881) (%info %info1882) (cps cps1883) (type type1884) (op op1885) (expr expr1886) (type-hint type-hint1887) (cache cache1888)))
+(define-inline (make-PycUnary::PycUnary loc1882::pair %info1883::obj cps1884::obj type1885::obj op1886::symbol expr1887::PycExpr type-hint1888::obj cache1889::obj) (instantiate::PycUnary (loc loc1882) (%info %info1883) (cps cps1884) (type type1885) (op op1886) (expr expr1887) (type-hint type-hint1888) (cache cache1889)))
 (define-inline (PycUnary?::bool obj::obj) ((@ isa? __object) obj (@ PycUnary __pyc_ast)))
 (define (PycUnary-nil::PycUnary) (class-nil (@ PycUnary __pyc_ast)))
 (define-inline (PycUnary-cache::obj o::PycUnary) (-> |#!bigloo_wallow| o cache))
@@ -2149,7 +2151,7 @@
 (define-inline (PycUnary-loc-set! o::PycUnary v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycBinary
-(define-inline (make-PycBinary::PycBinary loc1870::pair %info1871::obj cps1872::obj type1873::obj op1874::symbol lhs1875::PycExpr rhs1876::PycExpr lhs-type-hint1877::obj rhs-type-hint1878::obj cache1879::obj) (instantiate::PycBinary (loc loc1870) (%info %info1871) (cps cps1872) (type type1873) (op op1874) (lhs lhs1875) (rhs rhs1876) (lhs-type-hint lhs-type-hint1877) (rhs-type-hint rhs-type-hint1878) (cache cache1879)))
+(define-inline (make-PycBinary::PycBinary loc1871::pair %info1872::obj cps1873::obj type1874::obj op1875::symbol lhs1876::PycExpr rhs1877::PycExpr lhs-type-hint1878::obj rhs-type-hint1879::obj cache1880::obj) (instantiate::PycBinary (loc loc1871) (%info %info1872) (cps cps1873) (type type1874) (op op1875) (lhs lhs1876) (rhs rhs1877) (lhs-type-hint lhs-type-hint1878) (rhs-type-hint rhs-type-hint1879) (cache cache1880)))
 (define-inline (PycBinary?::bool obj::obj) ((@ isa? __object) obj (@ PycBinary __pyc_ast)))
 (define (PycBinary-nil::PycBinary) (class-nil (@ PycBinary __pyc_ast)))
 (define-inline (PycBinary-cache::obj o::PycBinary) (-> |#!bigloo_wallow| o cache))
@@ -2174,7 +2176,7 @@
 (define-inline (PycBinary-loc-set! o::PycBinary v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycChainCmp
-(define-inline (make-PycChainCmp::PycChainCmp loc1862::pair %info1863::obj cps1864::obj type1865::obj ops1866::pair-nil lhs1867::PycExpr rest1868::pair-nil) (instantiate::PycChainCmp (loc loc1862) (%info %info1863) (cps cps1864) (type type1865) (ops ops1866) (lhs lhs1867) (rest rest1868)))
+(define-inline (make-PycChainCmp::PycChainCmp loc1863::pair %info1864::obj cps1865::obj type1866::obj ops1867::pair-nil lhs1868::PycExpr rest1869::pair-nil) (instantiate::PycChainCmp (loc loc1863) (%info %info1864) (cps cps1865) (type type1866) (ops ops1867) (lhs lhs1868) (rest rest1869)))
 (define-inline (PycChainCmp?::bool obj::obj) ((@ isa? __object) obj (@ PycChainCmp __pyc_ast)))
 (define (PycChainCmp-nil::PycChainCmp) (class-nil (@ PycChainCmp __pyc_ast)))
 (define-inline (PycChainCmp-rest::pair-nil o::PycChainCmp) (-> |#!bigloo_wallow| o rest))
@@ -2193,7 +2195,7 @@
 (define-inline (PycChainCmp-loc-set! o::PycChainCmp v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycBoolOp
-(define-inline (make-PycBoolOp::PycBoolOp loc1854::pair %info1855::obj cps1856::obj type1857::obj op1858::symbol args1859::pair-nil cache1860::obj) (instantiate::PycBoolOp (loc loc1854) (%info %info1855) (cps cps1856) (type type1857) (op op1858) (args args1859) (cache cache1860)))
+(define-inline (make-PycBoolOp::PycBoolOp loc1855::pair %info1856::obj cps1857::obj type1858::obj op1859::symbol args1860::pair-nil cache1861::obj) (instantiate::PycBoolOp (loc loc1855) (%info %info1856) (cps cps1857) (type type1858) (op op1859) (args args1860) (cache cache1861)))
 (define-inline (PycBoolOp?::bool obj::obj) ((@ isa? __object) obj (@ PycBoolOp __pyc_ast)))
 (define (PycBoolOp-nil::PycBoolOp) (class-nil (@ PycBoolOp __pyc_ast)))
 (define-inline (PycBoolOp-cache::obj o::PycBoolOp) (-> |#!bigloo_wallow| o cache))
@@ -2212,7 +2214,7 @@
 (define-inline (PycBoolOp-loc-set! o::PycBoolOp v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycFun
-(define-inline (make-PycFun::PycFun loc1827::pair %info1828::obj cps1829::obj type1830::obj args1831::pair-nil posonlyargs1832::pair-nil vararg1833::obj kwonlyargs1834::pair-nil kw-defaults1835::pair-nil kwarg1836::obj defaults1837::pair-nil body1838::PycStmt decorators1839::pair-nil decls1840::pair-nil generator1841::bool need-return1842::bool can-locals1843::bool super-in-class1844::bool use-simple-scoping1845::bool name1846::obj annotation-names1847::pair-nil annotation1848::pair-nil is-builtin1849::obj is-private1850::obj &proc1851::obj &proc-init1852::obj) (instantiate::PycFun (loc loc1827) (%info %info1828) (cps cps1829) (type type1830) (args args1831) (posonlyargs posonlyargs1832) (vararg vararg1833) (kwonlyargs kwonlyargs1834) (kw-defaults kw-defaults1835) (kwarg kwarg1836) (defaults defaults1837) (body body1838) (decorators decorators1839) (decls decls1840) (generator generator1841) (need-return need-return1842) (can-locals can-locals1843) (super-in-class super-in-class1844) (use-simple-scoping use-simple-scoping1845) (name name1846) (annotation-names annotation-names1847) (annotation annotation1848) (is-builtin is-builtin1849) (is-private is-private1850) (&proc &proc1851) (&proc-init &proc-init1852)))
+(define-inline (make-PycFun::PycFun loc1828::pair %info1829::obj cps1830::obj type1831::obj args1832::pair-nil posonlyargs1833::pair-nil vararg1834::obj kwonlyargs1835::pair-nil kw-defaults1836::pair-nil kwarg1837::obj defaults1838::pair-nil body1839::PycStmt decorators1840::pair-nil decls1841::pair-nil generator1842::bool need-return1843::bool can-locals1844::bool super-in-class1845::bool use-simple-scoping1846::bool name1847::obj annotation-names1848::pair-nil annotation1849::pair-nil is-builtin1850::obj is-private1851::obj &proc1852::obj &proc-init1853::obj) (instantiate::PycFun (loc loc1828) (%info %info1829) (cps cps1830) (type type1831) (args args1832) (posonlyargs posonlyargs1833) (vararg vararg1834) (kwonlyargs kwonlyargs1835) (kw-defaults kw-defaults1836) (kwarg kwarg1837) (defaults defaults1838) (body body1839) (decorators decorators1840) (decls decls1841) (generator generator1842) (need-return need-return1843) (can-locals can-locals1844) (super-in-class super-in-class1845) (use-simple-scoping use-simple-scoping1846) (name name1847) (annotation-names annotation-names1848) (annotation annotation1849) (is-builtin is-builtin1850) (is-private is-private1851) (&proc &proc1852) (&proc-init &proc-init1853)))
 (define-inline (PycFun?::bool obj::obj) ((@ isa? __object) obj (@ PycFun __pyc_ast)))
 (define (PycFun-nil::PycFun) (class-nil (@ PycFun __pyc_ast)))
 (define-inline (PycFun-&proc-init::obj o::PycFun) (-> |#!bigloo_wallow| o &proc-init))
@@ -2269,9 +2271,11 @@
 (define-inline (PycFun-loc-set! o::PycFun v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycSemantics
-(define-inline (make-PycSemantics::PycSemantics loc1798::pair %info1799::obj cps1800::obj type1801::obj args1802::pair-nil posonlyargs1803::pair-nil vararg1804::obj kwonlyargs1805::pair-nil kw-defaults1806::pair-nil kwarg1807::obj defaults1808::pair-nil body1809::PycStmt decorators1810::pair-nil decls1811::pair-nil generator1812::bool need-return1813::bool can-locals1814::bool super-in-class1815::bool use-simple-scoping1816::bool name1817::obj annotation-names1818::pair-nil annotation1819::pair-nil is-builtin1820::obj is-private1821::obj &proc1822::obj &proc-init1823::obj inline1824::bool inline-as-is1825::bool) (instantiate::PycSemantics (loc loc1798) (%info %info1799) (cps cps1800) (type type1801) (args args1802) (posonlyargs posonlyargs1803) (vararg vararg1804) (kwonlyargs kwonlyargs1805) (kw-defaults kw-defaults1806) (kwarg kwarg1807) (defaults defaults1808) (body body1809) (decorators decorators1810) (decls decls1811) (generator generator1812) (need-return need-return1813) (can-locals can-locals1814) (super-in-class super-in-class1815) (use-simple-scoping use-simple-scoping1816) (name name1817) (annotation-names annotation-names1818) (annotation annotation1819) (is-builtin is-builtin1820) (is-private is-private1821) (&proc &proc1822) (&proc-init &proc-init1823) (inline inline1824) (inline-as-is inline-as-is1825)))
+(define-inline (make-PycSemantics::PycSemantics loc1798::pair %info1799::obj cps1800::obj type1801::obj args1802::pair-nil posonlyargs1803::pair-nil vararg1804::obj kwonlyargs1805::pair-nil kw-defaults1806::pair-nil kwarg1807::obj defaults1808::pair-nil body1809::PycStmt decorators1810::pair-nil decls1811::pair-nil generator1812::bool need-return1813::bool can-locals1814::bool super-in-class1815::bool use-simple-scoping1816::bool name1817::obj annotation-names1818::pair-nil annotation1819::pair-nil is-builtin1820::obj is-private1821::obj &proc1822::obj &proc-init1823::obj inline1824::bool inline-as-is1825::bool is-behavior1826::bool) (instantiate::PycSemantics (loc loc1798) (%info %info1799) (cps cps1800) (type type1801) (args args1802) (posonlyargs posonlyargs1803) (vararg vararg1804) (kwonlyargs kwonlyargs1805) (kw-defaults kw-defaults1806) (kwarg kwarg1807) (defaults defaults1808) (body body1809) (decorators decorators1810) (decls decls1811) (generator generator1812) (need-return need-return1813) (can-locals can-locals1814) (super-in-class super-in-class1815) (use-simple-scoping use-simple-scoping1816) (name name1817) (annotation-names annotation-names1818) (annotation annotation1819) (is-builtin is-builtin1820) (is-private is-private1821) (&proc &proc1822) (&proc-init &proc-init1823) (inline inline1824) (inline-as-is inline-as-is1825) (is-behavior is-behavior1826)))
 (define-inline (PycSemantics?::bool obj::obj) ((@ isa? __object) obj (@ PycSemantics __pyc_ast)))
 (define (PycSemantics-nil::PycSemantics) (class-nil (@ PycSemantics __pyc_ast)))
+(define-inline (PycSemantics-is-behavior::bool o::PycSemantics) (-> |#!bigloo_wallow| o is-behavior))
+(define-inline (PycSemantics-is-behavior-set! o::PycSemantics v::bool) (set! (-> |#!bigloo_wallow| o is-behavior) v))
 (define-inline (PycSemantics-inline-as-is::bool o::PycSemantics) (-> |#!bigloo_wallow| o inline-as-is))
 (define-inline (PycSemantics-inline-as-is-set! o::PycSemantics v::bool) (set! (-> |#!bigloo_wallow| o inline-as-is) v))
 (define-inline (PycSemantics-inline::bool o::PycSemantics) (-> |#!bigloo_wallow| o inline))

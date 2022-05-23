@@ -689,22 +689,29 @@
 (define (get-pragma-call-type-hint call)
   (let* ((fun (PycCall-fun call))
         (expr (PycPragma-expr fun)))
-    (cond
-      ((eq? expr 'py-int-to-scheme) 'Uint)
-      ((eq? expr 'py-bool-to-scheme-int) 'Usint)
-      ((eq? expr 'py-sint-to-scheme) 'Usint)
-      ((eq? expr 'py-bint-to-scheme) 'Ubint)
-      ((eq? expr 'py-float-to-scheme) 'Ufloat)
-      ((eq? expr 'py-subtype-of-float-to-scheme) 'Ufloat)
-      ((eq? expr 'py-bool-to-scheme-bool) 'Ubool)
-      ((eq? expr 'py-str-to-scheme) 'Ustr)
-      ((eq? expr 'py-int-from-scheme) 'int)
-      ((eq? expr 'py-sint-from-scheme) 'sint)
-      ((eq? expr 'py-bint-from-scheme) 'bint)
-      ((eq? expr 'py-float-from-scheme) 'float)
-      ((eq? expr 'py-bool-from-scheme-bool) 'bool)
-      ((eq? expr 'py-str-from-scheme) 'str)
-      ((eq? expr 'py-str-len-to-scheme) 'Usint)
+    (case expr
+      ((py-int-to-scheme)
+        (let ((arg-type-hint (get-expr-type-hint (car (PycCall-args call)))))
+          (case arg-type-hint
+            ((sint bool) 'Usint)
+            ((bint) 'Ubint)
+            (else 'Uint))))
+      ((py-bool-to-scheme-int py-sint-to-scheme py-str-len-to-scheme) 'Usint)
+      ((py-bint-to-scheme) 'Ubint)
+      ((py-float-to-scheme py-subtype-of-float-to-scheme) 'Ufloat)
+      ((py-bool-to-scheme-bool) 'Ubool)
+      ((py-str-to-scheme) 'Ustr)
+      ((py-int-from-scheme)
+        (let ((arg-type-hint (get-expr-type-hint (car (PycCall-args call)))))
+          (case arg-type-hint
+            ((Usint Ubool) 'sint)
+            ((Ubint) 'bint)
+            (else 'int))))
+      ((py-sint-from-scheme) 'sint)
+      ((py-bint-from-scheme) 'bint)
+      ((py-float-from-scheme) 'float)
+      ((py-bool-from-scheme-bool) 'bool)
+      ((py-str-from-scheme) 'str)
       (else #f))))
 
 (define (get-expr-type-hint expr)
@@ -882,7 +889,8 @@
           annotation: annotation
           annotation-names: annotation-names
           inline: inline
-          inline-as-is: inline-as-is)))
+          inline-as-is: inline-as-is
+          is-behavior: #t)))
 
     (define (make-default-inline-behavior-body)
       (new-PycSeq

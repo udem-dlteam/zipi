@@ -407,7 +407,7 @@ class PPYValue(PPYObject):
         elif isinstance(origin, ast.Call):
             self.type = self._resolve_call_return_type(origin)
         elif isinstance(origin, ast.Constant):
-            self.type = type_name_to_ppy(__type(origin.value).__name__, context.modules)
+            self.type = type or type_name_to_ppy(__type(origin.value).__name__, context.modules)
         else:
             self.type = None
 
@@ -429,6 +429,11 @@ class PPYValue(PPYObject):
     @classmethod
     def with_type_only(cls, type):
         return cls(origin=None, context=None, type=type)
+
+    @classmethod
+    def with_type_and_value_only(cls, type, value):
+        origin = ast.Constant(value)
+        return cls(origin=origin, context=None, type=type)
 
 
 class PPYContainer(PPYObject):
@@ -511,6 +516,9 @@ class PPYClass(PPYValue, PPYContainer):
         # Add __name__ to attributes as there is no support for descriptors yet
         self.name = name
         self["__name__"] = ast.Constant(name)
+
+    def __repr__(self):
+        return f"<{type(self).__qualname__} ({self.name})>"
 
 
 class PPYBaseModule(PPYContainer):
@@ -854,7 +862,9 @@ def partial_eval_function_call(fn, args, keywords, rte, return_kind=ReturnKind.a
 
         for fn_arg, callee_arg in zip(fn_args, args):
             if toplevel:
-                callee_arg.origin = fn_arg
+                if not isinstance(callee_arg.origin, ast.Constant):
+                    callee_arg.origin = fn_arg
+
             call_rte[fn_arg.arg] = callee_arg
 
         yield from partial_eval_stmts(mangled_fn_origin.body, call_rte)
@@ -1019,12 +1029,12 @@ def builtin_eval_issubclass_call(args, rte):
 
 # End of builtin calls
 
-
 def partial_eval_stmts(stmts, rte):
     for stmt in stmts:
-        yield from partial_eval_stmt(stmt, rte)
+        sub_statements = list(partial_eval_stmt(stmt, rte))
+        yield from sub_statements
 
-        if isinstance(stmt, ast.Return) or isinstance(stmt, ast.Raise):
+        if isinstance(stmt, ast.Return) or isinstance(stmt, ast.Raise) or isinstance(sub_statements[-1], ast.Raise):
             break
 
 
@@ -1107,7 +1117,7 @@ def partial_eval_assign(assign, rte):
 
 def partial_eval_if(stmt, rte):
     test_result = partial_eval_expr(stmt.test, rte)
-    maybe_host_bool = get_host_bool(test_result)
+    maybe_host_bool = get_host_bool(test_result, rte)
 
     if isinstance(test_result, ast.Constant):
         if test_result.value:
@@ -1282,7 +1292,12 @@ def resolve_expression_sign(expr, rte):
 # We implemented limited mechanism to detect whether a value is positive or negative
 # This is mainly aimed at resolving the sign of int values coming from length of a sequence
 def partial_eval_lt(left, right, rte):
-    if isinstance(right, ast.Constant) and right.value == 0:
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
+
+    if left_known_value is not None and right_known_value is not None:
+        return ast.Constant(left_known_value < right_known_value)
+    elif isinstance(right, ast.Constant) and right.value == 0:
         sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
@@ -1296,7 +1311,12 @@ def partial_eval_lt(left, right, rte):
 
 
 def partial_eval_le(left, right, rte):
-    if isinstance(right, ast.Constant) and right.value == 0:
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
+
+    if left_known_value is not None and right_known_value is not None:
+        return ast.Constant(left_known_value <= right_known_value)
+    elif isinstance(right, ast.Constant) and right.value == 0:
         sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
@@ -1310,7 +1330,12 @@ def partial_eval_le(left, right, rte):
 
 
 def partial_eval_gt(left, right, rte):
-    if isinstance(right, ast.Constant) and right.value == 0:
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
+
+    if left_known_value is not None and right_known_value is not None:
+        return ast.Constant(left_known_value > right_known_value)
+    elif isinstance(right, ast.Constant) and right.value == 0:
         sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
@@ -1324,7 +1349,12 @@ def partial_eval_gt(left, right, rte):
 
 
 def partial_eval_ge(left, right, rte):
-    if isinstance(right, ast.Constant) and right.value == 0:
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
+
+    if left_known_value is not None and right_known_value is not None:
+        return ast.Constant(left_known_value >= right_known_value)
+    elif isinstance(right, ast.Constant) and right.value == 0:
         sign, strict = resolve_expression_sign(left, rte)
 
         if sign is not None:
@@ -1350,6 +1380,27 @@ def is_always_python_numeric(expr, value, rte):
                                    ppy_intrinsic_py_float_from_host,) \
                    and is_always_host_numeric(origin.args[0], value, rte)
     return False
+
+
+def get_numerical_exact_value(expr, rte):
+    if isinstance(expr, ast.Constant):
+        return expr.value
+    elif isinstance(expr, PPYValue):
+        origin = expr.origin
+
+        if isinstance(origin, ast.Constant):
+            return get_numerical_exact_value(origin, rte)
+        elif isinstance(origin, ast.arg):
+            lookup = rte[origin.arg]
+
+            # toplevel arguments point to themselves when no value was provided for behavior
+            if lookup is not expr:
+                return get_numerical_exact_value(rte[origin.arg], rte)
+        elif isinstance(origin, ast.Call) and origin.func in (ppy_intrinsic_py_int_to_host,
+                                                              ppy_intrinsic_py_float_to_host):
+            return get_numerical_exact_value(origin.args[0], rte)
+
+    return None
 
 
 def is_always_host_numeric(expr, value, rte):
@@ -1411,13 +1462,16 @@ def host_bool(b):
     return ast.Call(ppy_intrinsic_py_bool_to_host_bool, [ast.Constant(b)], [])
 
 
-def get_host_bool(expr):
+def get_host_bool(expr, rte):
     if isinstance(expr, PPYValue):
         expr = expr.origin
 
     if isinstance(expr, ast.Call) and expr.func is ppy_intrinsic_py_bool_to_host_bool:
-        if isinstance(arg0 := expr.args[0], ast.Constant):
-            return arg0.value
+        arg0 = expr.args[0]
+        known_value  = get_numerical_exact_value(arg0, rte)
+
+        if known_value is not None:
+            return known_value
     return None
 
 
@@ -1461,11 +1515,11 @@ def partial_eval_eq_left_host_int_from_bool(left, right, rte):
 
 
 def partial_eval_eq(left, right, rte):
-    if isinstance(left, ast.Constant):
-        if isinstance(right, ast.Constant):
-            return ast.Constant(left.value == right.value)
-        else:
-            return partial_eval_eq(right, left, rte)
+    left_known_value = get_numerical_exact_value(left, rte)
+    right_known_value = get_numerical_exact_value(right, rte)
+
+    if left_known_value is not None and right_known_value is not None:
+        return ast.Constant(left_known_value == right_known_value)
     # Checks for division, a bint cannot be 0
     elif is_always_python_numeric(right, 0, rte) and is_always_python_bint(left, rte) \
          or is_always_python_numeric(left, 0, rte) and is_always_python_bint(right, rte):
@@ -1533,7 +1587,7 @@ def partial_eval_ne(left, right, rte):
         return reverse_comparison(eq_res, rte)
 
 
-    maybe_host_bool = get_host_bool(eq_res)
+    maybe_host_bool = get_host_bool(eq_res, rte)
 
     if maybe_host_bool is None:
         return None
@@ -1722,7 +1776,7 @@ def make_ast_simple_arguments(*args_names, annotations=()):
     return ast.arguments([], [ast.arg(n, t, None) for n, t in zip(args_names, annotations)], None, [], [], None, [])
 
 
-def compute_single_behavior(behavior_name, module_name, callee_name, types, as_test, ppy_sys_modules):
+def compute_single_behavior(behavior_name, module_name, callee_name, types, values, as_test, ppy_sys_modules):
     module = ppy_sys_modules[module_name]
     callee = module[callee_name]
 
@@ -1730,17 +1784,36 @@ def compute_single_behavior(behavior_name, module_name, callee_name, types, as_t
 
     if isinstance(callee, PPYClass):
         fn = callee["__new__"]
-        args = [callee,
-                *(PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)) for t in types)]
+        args = [callee]
+
+
+        for t, v in zip(types, values):
+            if v is None:
+                args.append(PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)))
+            else:
+                args.append(PPYValue.with_type_and_value_only(type_name_to_ppy(t, ppy_sys_modules), v))
+
         args_names = [a.arg for a in fn.origin.args.args][1:]
     else:
         fn = callee
-        args = [PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)) for t in types]
+        args = []
+
+        for t, v in zip(types, values):
+            if v is None:
+                args.append(PPYValue.with_type_only(type_name_to_ppy(t, ppy_sys_modules)))
+            else:
+                args.append(PPYValue.with_type_and_value_only(type_name_to_ppy(t, ppy_sys_modules), v))
+
         args_names = [a.arg for a in fn.origin.args.args]
 
     result_body = list(partial_eval_function_call(fn, args, [], rte, toplevel=True))
 
     annotations = [None if t == "unknown" else ast.Name(t, ast.Load()) for t in types]
+
+    # Remove fixed arguments
+    keep = [not isinstance(arg.origin, ast.Constant) for arg in args]
+    args_names = [name for name, k in zip(args_names, keep) if k]
+    annotations = [ann for ann, k in zip(annotations, keep) if k]
 
     annotated_arguments = make_ast_simple_arguments(*args_names, annotations=annotations)
 
@@ -1869,11 +1942,12 @@ def compute_behaviors(semantics_file, builtins_file, more_modules):
     result = f"from __compiler_intrinsics__ import {define_behavior}, {other_intrinsics}\n\n"
 
     for specs in specializations:
-        for behavior_name, types in specs:
+        for behavior_name, types, values in specs:
             behavior = compute_single_behavior(behavior_name,
                                                specs.module,
                                                specs.function,
                                                types,
+                                               values,
                                                specs.as_test,
                                                ppy_sys_modules)
             try:
