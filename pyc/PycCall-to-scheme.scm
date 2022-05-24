@@ -2,42 +2,53 @@
 ;; Predicates
 ;; =====================================================================
 
-(define-predicate (call-to-a-prama? call conf params)
+(define-predicate (call-to-a-pragma? call conf params)
   (isa? (PycCall-fun call) PycPragma))
 
 (define-predicate (call-to-an-attribute? call conf params)
   (isa? (PycCall-fun call) PycAccess))
 
 (define-predicate (call-has-keyword-arguments? call conf params)
-  (pair? (PycBinary-keywords-names call)))
+  (pair? (PycCall-keywords-names call)))
+
+(define-predicate (call-has-fixed-arity? call conf params)
+  (let* ((args (PycCall-args call))
+         (keywords-names (PycCall-keywords-names call))
+         (keywords-values (PycCall-keywords-values call)))
+    (and
+      (all? (lambda (x) (not (isa? x PycStarredExpr))) args) ;; contains no *args
+      (all? (lambda (x) x) keywords-names)))) ;; Contains no **kwargs
+
+(define (correct-arity? fun call conf params)
+   (and
+     (not (call-has-keyword-arguments? call conf params))
+     (=
+       (+ (length (PycFun-args fun)) (length (PycFun-posonlyargs fun)))
+       (length (PycCall-args call)))))
 
 (define-predicate (call-matches-signature-to-global-function? call conf params)
-  (define (correct-arity? fun call)
-     (and
-       (not (call-has-keyword-arguments? call))
-       (=
-         (+ (length (PycFun-args fun)) (length (PycFun-posonlyargs fun)))
-         (length (PycCall-args this)))))
-
-  (let ((fun (PycCall-fun this))
-        (global-funs (config-get params global-funs:)))
+  (let ((fun (PycCall-fun call))
+        (global-funs (config-get conf global-funs:)))
     (if (isa? fun PycRef)
       (let* ((var (PycRef-decl fun)))
         (if (eq? (PycVar-scope var) 'global)
           (let ((init-val (and global-funs (get-def-with-var global-funs var))))
              (and (isa? init-val PycFun)
                   (symbol? (PycFun-&proc init-val))
-                  (correct-arity? init-val call)))
+                  (correct-arity? init-val call conf params)))
           #f))
       #f)))
 
 (define-predicate (static-call-to-global-function? call conf params)
   (and
-    (PycVar-global-ref-to-init-def (PycRef-decl (PycCall-fun call)))
-    (call-matches-signature-to-global-function? call conf params)))
+    (call-matches-signature-to-global-function? call conf params)
+    (PycVar-global-ref-to-init-def (PycRef-decl (PycCall-fun call)))))
 
 (define-predicate (ignore-global-functions? call conf params)
   (config-get params ignore-global-functions:))
+
+(define-predicate (call-with-no-arguments? call conf params)
+  (and (null? (PycCall-args call)) (null? (PycCall-keywords-names call))))
 
 ;; =====================================================================
 ;; Code generation
@@ -54,52 +65,138 @@
 
   (let* ((fun (PycCall-fun call))
          (var (PycRef-decl fun))
-         (global-funs (config-get params global-funs:))
+         (global-funs (config-get conf global-funs:))
          (init-val (get-def-with-var global-funs var)))
     (PycFun-&proc init-val)))
 
 (define (py-static-global-call call conf)
-  `(,(get-static-global-call-procedure-name call conf) ,@(PycCall-args call)))
+  `(,(get-static-global-call-procedure-name call conf)
+    ,@(map (lambda (a) (scheme a conf)) (PycCall-args call))))
 
 (define (py-global-call call conf params)
   (let* ((fun (PycCall-fun call))
-         (var (PycRef-decl f))
+         (var (PycRef-decl fun))
          (args (PycCall-args call))
          (args-syms (map (lambda (e) (my-gensym 'arg)) args))
          (global-name (scheme-var-name var conf))
-         (global-init-val-name ,(scheme-def-optim-globals-name-init var conf)))
+         (global-init-val-name (scheme-def-optim-globals-name-init var conf)))
     `(let* ,(map (lambda (p a) (list p (scheme a conf))) args-syms args)
       (if (eq? ,global-name ,global-init-val-name)
-        (,global-name ,@args-syms)
+        ((PyObjectFunction-procedure ,global-name) ,@args-syms)
         ,(call-to-scheme call
                          conf
                          (cons*
                            ignore-global-functions: #t
                            params))))))
 
+(define (py-call-with-arity-check call conf params)
+  ;; call by checking the arity of a call with no keyword and no *args
+  (let* ((fun (PycCall-fun call))
+         (fun-sym (my-gensym 'fun))
+         (fun-code (scheme fun conf))
+         (args (PycCall-args call))
+         (X (length args))
+         ;; function such as f(x, y, *args) have a negative arity to mark the *args
+         ;; the function f(x1, x2, ..., xn, *args) has an arity N = -(n + 1), thus
+         ;; the number of arguments A must be A > n = -(N + 1)
+         (min-negative-arity (- 0 X 1))
+         (args-code (map (lambda (a) (scheme a conf)) args))
+         (args-sym (map (lambda (_) (my-gensym 'arg)) args))
+         (args-bindings (map list args-sym args-code))
+         (bindings (cons (list fun-sym fun-code) args-bindings))
+         (dynamic-super-call (dynamic-super-call? call conf params))
+         (cond-to-call-super-if-needed
+           (if dynamic-super-call
+             (list `((py-test-is ,fun-sym py-builtin-super) ,dynamic-super-call))
+             '())))
+    `(let* ,bindings
+      ;; TODO: limit X to what the rts can handle
+      (cond
+        ((,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) ,fun-sym)
+          ((PyObjectFunction-procedure ,fun-sym) ,@args-sym))
+        ,@cond-to-call-super-if-needed
+        (else
+          (py-callX-fallback ,min-negative-arity ,fun-sym ,@args-sym))))))
+
+(define (dynamic-super-call? call conf params)
+  ;; A dynamic super call occurs when the user calls super()
+  ;; but the compiler calls super(cls, self)
+  ;; this may occur whenever the called expression evaluates to super
+  ;; at runtime.
+  (let* ((loc (PycNode-loc call))
+         (fun-loc (PycNode-loc (PycCall-fun call)))
+         (caller (config-get conf fun:))
+         (caller-args (and caller (PycFun-args caller)))
+         (class-key (and caller (PycFun-super-in-class caller)))
+         (super-instance
+           (if (and caller-args (> (length caller-args) 0))
+              (scheme-var-name (list-ref caller-args 0) conf)
+              #f)))
+    (if (and (call-with-no-arguments? call conf params)
+             class-key
+             super-instance)
+      (call-to-scheme
+        (new-PycCall loc (new-PycStatic fun-loc 'py-builtin-super 'py-builtin-super)
+                         (list (new-PycStatic fun-loc class-key class-key)
+                               (new-PycStatic fun-loc super-instance super-instance)))
+        conf params)
+      #f)))
+
+(define (default-call-no-super-check fun args keywords-names keywords-values conf params)
+  `(py-call
+    ,(scheme fun conf)
+    ,@(flatten
+        (map (lambda (a)
+               (if (isa? a PycStarredExpr)
+                   (list *: (scheme (PycStarredExpr-expr a) conf))
+                   (list (scheme a conf))))
+             args))
+    ,@(interleave
+        (map (lambda (n) (if n (string->keyword (symbol->string n)) **:)) keywords-names)
+        (map (lambda (v) (scheme v conf)) keywords-values))))
+
+(define (default-call call conf params)
+  (let* ((fun (PycCall-fun call))
+         (fun-loc (PycNode-loc fun))
+         (args (PycCall-args call))
+         (keywords-names (PycCall-keywords-names call))
+         (keywords-values (PycCall-keywords-values call))
+         (dynamic-super-call (dynamic-super-call? call conf params)))
+    (if dynamic-super-call
+      (let ((fn-sym (my-gensym 'fun-maybe-super)))
+        `(let ((,fn-sym ,(scheme fun conf)))
+           (if (py-test-is ,fn-sym py-builtin-super)
+              ,dynamic-super-call
+              ,(default-call-no-super-check
+                (new-PycStatic fun-loc fn-sym fn-sym)
+                args
+                keywords-names
+                keywords-values
+                conf
+                params))))
+      (default-call-no-super-check fun args keywords-names keywords-values conf params))))
+
+;; Dispatch
+
 (define-compilation-to-scheme (call-to-scheme call conf params
                                               (fun (PycCall-fun call))
                                               (args (PycCall-args call))
-                                              (keywords-names (PycBinary-keywords-names call))
-                                              (keywords-values (PycBinary-keywords-values call)))
-  (call-to-a-prama?
+                                              (keywords-names (PycCall-keywords-names call))
+                                              (keywords-values (PycCall-keywords-values call)))
+  (call-to-a-pragma?
     `(,(scheme fun conf) ,@(map (lambda (a) (scheme a conf)) args)))
   (static-call-to-global-function?
     (py-static-global-call call conf))
-  ((and call-matches-signature-to-global-function?
-        (not ignore-global-functions?))
+  ((and (not ignore-global-functions?)
+        call-matches-signature-to-global-function?)
     (py-global-call call conf params))
   (call-to-an-attribute?
-    #f)
-  ((not call-has-keyword-arguments?)
-    #f)
+    (default-call call conf params)) ;; TODO
+  ((and (not call-has-keyword-arguments?)
+        call-has-fixed-arity?)
+    (py-call-with-arity-check call conf params))
   (else
-    (PycBinary-default-case call conf params py-fx// py-fl// 'floordiv)))
-
-;; Dispatch
-(define (default-call call conf params)
-  `(py-call
-    #f))
+    (default-call call conf params)))
 
 (define (PycCall-to-scheme call conf . rest)
   (if (> (length rest) 1) (error "PycCall-to-scheme" "takes 3 arguments" (length rest)))

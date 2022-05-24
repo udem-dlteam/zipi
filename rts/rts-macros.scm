@@ -2679,26 +2679,15 @@
 (define-macro (py-length obj)
   `(py-length-fallback ,obj))
 
-(define-macro (py-maybe-gth obj)
+(define-macro (py-maybe-length obj)
   `(py-maybe-length-fallback ,obj))
 
 (define-macro (py-getattribute obj attr . opts)
-   (cond-expand (gambit (define-syntax match-case (lambda (src) (##import _match/match-expand) (match-expand src #t #f #t)))) (else))
-   (match-case obj
-      ((py-call (global-get %global (& "super") ?cache) ?cls ?instance)
-       `(if (eq? (global-get %global (& "super") ,cache) py-builtin-super)
-	    (py-super-getattribute-for-getattribute ,attr ,cls ,instance)
-	    ,(let ((cache (if (null? opts) #f (car opts)))
-		   (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
-		(if cache
-		    `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
-		    `(py-getattribute-fallback ,obj ,attr)))))
-      (else
-       (let ((cache (if (null? opts) #f (car opts)))
-	     (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
-	  (if cache
-	      `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
-	      `(py-getattribute-fallback ,obj ,attr))))))
+  (let ((cache (if (null? opts) #f (car opts)))
+        (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
+  (if cache
+    `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
+    `(py-getattribute-fallback ,obj ,attr))))
 
 (define-macro (py-getattribute-cached obj attr cache inline-priorities)
   ;; attr should always be a string literal

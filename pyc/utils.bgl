@@ -14,5 +14,7 @@
 ;*---------------------------------------------------------------------*/
 (module __pyc_utils
    (export (config-get conf key #!optional def)
-	   (my-gensym ::symbol)))
-	   
+	         (my-gensym ::symbol)
+           (interleave . rest)
+           (all? pred lst)
+           (any? pred lst)))
