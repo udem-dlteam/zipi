@@ -234,7 +234,8 @@
 
 (define-method-call-compilation-to-scheme call-method-to-scheme
   ;; method-name     nargs      type               bind   procedure
-  ("append"          1          'py-builtin-list    #t     'list-append-unsafe)
+  ("append"          1          'py-builtin-list    #t     'list-append:unsafe)
+  ("lower"           0          'py-builtin-str     #t     'str-lower:unsafe)
   (else (default-call call conf params)))
 
 (define-compilation-to-scheme (call-to-scheme call conf params

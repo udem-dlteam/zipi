@@ -832,7 +832,8 @@
     str-representatives
 
     ;; methods for quick calls
-    list-append-unsafe
+    list-append:unsafe
+    str-lower:unsafe
 
     ;; semantics & behaviors
     @placeholder@

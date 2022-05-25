@@ -2474,9 +2474,12 @@
     str-getitem
     (make-signature posonlyargs: (self index) name: str.__getitem__)))
 
+(define-rts (str-lower:unsafe self)
+  (py-str-from-scheme (string-downcase (py-subtype-of-str-to-scheme self))))
+
 (define-rts (str-lower self)
   (if (py-subtype-of-str? self)
-      (py-str-from-scheme (string-downcase (py-subtype-of-str-to-scheme self)))
+      (str-lower:unsafe self)
       (py-throw-required-type "lower" "str" self)))
 
 (define-rts str.lower
@@ -3764,7 +3767,7 @@
     list-pop
     (make-signature posonlyargs: (self index) defaults: (vector py-absent) name: list.pop)))
 
-(define-rts (list-append-unsafe self value)
+(define-rts (list-append:unsafe self value)
   (let* ((len (PyObjectList-len self))
         (vec
           (let ((vec (PyObjectList-vector self)))
@@ -3777,7 +3780,7 @@
 
 (define-rts (list-append self value)
   (if (py-isinstance? self py-list-class)
-    (list-append-unsafe self value)
+    (list-append:unsafe self value)
     (py-throw-not-a-type-object "list.append" self)))
 
 (define-rts list.append
