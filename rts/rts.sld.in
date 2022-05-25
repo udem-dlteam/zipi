@@ -67,7 +67,7 @@
     py-throw-with-values
     py-throw-exception-with-message
     py-throw-index-out-of-range
-    py-throw-assignment-index-out-of-range 
+    py-throw-assignment-index-out-of-range
 
     py-try-except
     py-try-except-else
@@ -830,6 +830,9 @@
     py-float-class
     py-method-class
     str-representatives
+
+    ;; methods for quick calls
+    list-append-unsafe
 
     ;; semantics & behaviors
     @placeholder@

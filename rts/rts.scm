@@ -3764,18 +3764,21 @@
     list-pop
     (make-signature posonlyargs: (self index) defaults: (vector py-absent) name: list.pop)))
 
+(define-rts (list-append-unsafe self value)
+  (let* ((len (PyObjectList-len self))
+        (vec
+          (let ((vec (PyObjectList-vector self)))
+            (if (= len (vector-length vec))
+               (list-grow! self)
+               vec))))
+   (vector-set! vec len value)
+   (PyObjectList-len-set! self (+ len 1))
+   py-None))
+
 (define-rts (list-append self value)
   (if (py-isinstance? self py-list-class)
-    (let* ((len (PyObjectList-len self))
-           (vec
-             (let ((vec (PyObjectList-vector self)))
-               (if (= len (vector-length vec))
-                  (list-grow! self)
-                  vec))))
-      (vector-set! vec len value)
-      (PyObjectList-len-set! self (+ len 1)))
-    (py-throw-not-a-type-object "list.append" self))
-  py-None)
+    (list-append-unsafe self value)
+    (py-throw-not-a-type-object "list.append" self)))
 
 (define-rts list.append
   (procedure->py-function

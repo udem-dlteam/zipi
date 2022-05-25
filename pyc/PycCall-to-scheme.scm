@@ -178,11 +178,68 @@
 
 ;; Dispatch
 
+(define-macro (define-method-call-compilation-to-scheme name . body)
+  (define (parse-case method-case)
+    (let* ((conditional-method-name (list-ref method-case 0))
+          (expected-nargs (list-ref method-case 1))
+          (expected-type (list-ref method-case 2))
+          (must-bind (list-ref method-case 3))
+          (procedure-name (list-ref method-case 4))
+          (predicate
+            `(lambda (call conf params)
+              (and (not (call-has-keyword-arguments? call conf params))
+                   (call-has-fixed-arity? call conf params)
+                   (= (length args) ,expected-nargs))))
+          (default-call-maker
+            `(lambda (obj-sym)
+              (default-call
+                (new-PycCall (PycNode-loc call)
+                  (new-PycAccess (PycStatic (PycNode-loc fun) obj-sym obj-sym)
+                                 (PycAccess-field fun)
+                                 (PycAccess-usage fun)
+                                 (PycAccess-cache fun))
+                   args)
+                call conf params)))
+          (code-generation
+            `(let ((obj-sym (my-gensym 'self))
+                   (obj-ast (PycAccess-obj fun)))
+              `(let ((,obj-sym ,(scheme obj-ast conf)))
+                 (if (py-test-is (py-obj-cls ,obj-sym) ,,expected-type)
+                    ;; TODO: this duplicates the code of arguments, is that ok?
+                    ,,(if must-bind
+                       ``(,,procedure-name ,obj-sym ,@(map (lambda (a) (scheme a conf)) args))
+                       ``(,,procedure-name ,@(map (lambda (a) (scheme a conf)) args)))
+                    ,(default-call
+                      (new-PycCall (PycNode-loc call)
+                        ;; TODO abstract the copy function
+                        (new-PycAccess (PycNode-loc obj-ast)
+                                       (new-PycStatic (PycNode-loc fun) obj-sym obj-sym)
+                                       (PycAccess-field fun)
+                                       usage: (PycAccess-usage fun)
+                                       cache: (PycAccess-cache fun)
+                                       cps: (PycNode-cps fun)
+                                       %info: (PycNode-%info fun))
+                         args)
+                      conf params))))))
+      (list predicate code-generation)))
+
+  (let* ((bindings
+          `((fun (PycCall-fun call))
+            (args (PycCall-args call))
+            (keyword-values (PycCall-keywords-values call))
+            (keywords-names (PycCall-keywords-names call))))
+         (signature `(,name call conf params ,@bindings)))
+    `(define-compilation-to-scheme ,signature
+      ,@(map (lambda (c) (if (eq? (car c) 'else) c (parse-case c))) body))))
+
+(define-method-call-compilation-to-scheme call-method-to-scheme
+  ;; method-name     nargs      type               bind   procedure
+  ("append"          1          'py-builtin-list    #t     'list-append-unsafe)
+  (else (default-call call conf params)))
+
 (define-compilation-to-scheme (call-to-scheme call conf params
                                               (fun (PycCall-fun call))
-                                              (args (PycCall-args call))
-                                              (keywords-names (PycCall-keywords-names call))
-                                              (keywords-values (PycCall-keywords-values call)))
+                                              (args (PycCall-args call)))
   (call-to-a-pragma?
     `(,(scheme fun conf) ,@(map (lambda (a) (scheme a conf)) args)))
   (static-call-to-global-function?
@@ -191,7 +248,7 @@
         call-matches-signature-to-global-function?)
     (py-global-call call conf params))
   (call-to-an-attribute?
-    (default-call call conf params)) ;; TODO
+    (call-method-to-scheme call conf params))
   ((and (not call-has-keyword-arguments?)
         call-has-fixed-arity?)
     (py-call-with-arity-check call conf params))
