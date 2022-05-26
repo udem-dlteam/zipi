@@ -1145,9 +1145,6 @@
 (define-macro (py-str-to-scheme str)
   `(py-str-to-scheme-fallback ,str))
 
-(define-macro (py-subtype-of-str-to-scheme str)
-  `(py-subtype-of-str-to-scheme-fallback ,str))
-
 (define-macro (py-str-representative str)
   `(let ((str ,str))
      (let ((rep (PyObjectStr-part2-or-rep str)))

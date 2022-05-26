@@ -1335,7 +1335,7 @@
       (if (null? unused-kwargs)
         '()
         (let ((unknown-keyword
-               (py-subtype-of-str-to-scheme
+               (py-str-to-scheme
                 (caar unused-kwargs))))
           (py-throw-exception-with-message
             py-builtin-TypeError
@@ -1380,7 +1380,7 @@
     (if (= (ordered-table-length unused-kwargs) 0)
       '()
       (let ((unknown-keyword
-             (py-subtype-of-str-to-scheme
+             (py-str-to-scheme
               (ordered-table-first-key unused-kwargs))))
         (py-throw-exception-with-message
           py-builtin-TypeError
@@ -2218,9 +2218,6 @@
 
           result))))
 
-(define-rts (py-subtype-of-str-to-scheme-fallback str)
-  (py-str-to-scheme-fallback str))
-
 (define-rts (py-str-representative-fallback str)
   (let ((part1-or-string (PyObjectStr-part1-or-string str)))
     (if (string? part1-or-string)
@@ -2395,7 +2392,7 @@
                 (result (py-call __str__ value)))
            (if (py-subtype-of-str? result)
                (py-subtype-of-str-from-scheme
-                 (py-subtype-of-str-to-scheme result)
+                 (py-str-to-scheme result)
                  cls)
                (throw-returned-wrong-type "__str__" value "non-string")))))
     (else
@@ -2431,7 +2428,7 @@
 
 (define-rts (str-repr self)
   (if (py-subtype-of-str? self)
-      (let* ((string (py-subtype-of-str-to-scheme self))
+      (let* ((string (py-str-to-scheme self))
              (string-repr (py-str-repr-scheme string)))
         (py-str-from-scheme string-repr))
       (py-throw-required-type "__repr__" "str" self)))
@@ -2445,7 +2442,7 @@
   (if (py-subtype-of-str? self)
     (cond
       ((py-subtype-of-int? index)
-        (let* ((string-content (py-subtype-of-str-to-scheme self))
+        (let* ((string-content (py-str-to-scheme self))
                (len (py-str-len-to-scheme self))
                (i (py-subtype-of-int-to-scheme index)))
           (if (index-in-length-range i len)
@@ -2475,7 +2472,7 @@
     (make-signature posonlyargs: (self index) name: str.__getitem__)))
 
 (define-rts (str-lower:unsafe self)
-  (py-str-from-scheme (string-downcase (py-subtype-of-str-to-scheme self))))
+  (py-str-from-scheme (string-downcase (py-str-to-scheme self))))
 
 (define-rts (str-lower self)
   (if (py-subtype-of-str? self)
@@ -3370,7 +3367,7 @@
            (vec (PyObjectList-vector self))
            (content-strs (vector-map py-repr (subvector vec 0 len)))
            (content-strings
-            (vector-map (lambda (x) (py-subtype-of-str-to-scheme x))
+            (vector-map (lambda (x) (py-str-to-scheme x))
                         content-strs)))
       (py-str-from-scheme
         (string-append
@@ -4140,7 +4137,7 @@
     (let* ((vec (PyObjectTuple-value self))
            (content-strs (vector-map py-repr vec))
            (content-strings
-            (vector-map (lambda (x) (py-subtype-of-str-to-scheme x))
+            (vector-map (lambda (x) (py-str-to-scheme x))
                         content-strs)))
       (py-str-from-scheme
         (string-append
@@ -5694,7 +5691,7 @@
 ;; TODO: arguments other than file are currentl ignored
 (define-rts (py-open file mode buffering encoding errors newline closefd opener)
   (cond ((py-subtype-of-str? file)
-         (let ((filename (py-subtype-of-str-to-scheme file)))
+         (let ((filename (py-str-to-scheme file)))
            (let ((file-port (open-file filename)))
              (py-TextIOWrapper-alloc
               file-port
@@ -5981,7 +5978,7 @@
                  (if (py-subtype-of-str? value) ;; TODO : support bytes
                      (let ((path (string-append
                                   (path-normalize
-                                   (py-subtype-of-str-to-scheme value))
+                                   (py-str-to-scheme value))
                                   __name__)))
                        (or (import-with-zipi-cache path py-__name__ py-__package__)
                            (loop sys.path-iter)))
@@ -8247,7 +8244,7 @@
      (cond
       ((eq? globals py-None)
        (if (py-subtype-of-str? name)
-           (builtin-__import__ (py-subtype-of-str-to-scheme name))
+           (builtin-__import__ (py-str-to-scheme name))
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
        (py-throw-exception-with-message py-NotImplemented "__import__ with more than one argument is not yet implemented"))))

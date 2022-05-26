@@ -41,6 +41,8 @@ $PYC_DIR/PycBinary-to-scheme.bgl \
 $PYC_DIR/PycBinary-to-scheme.scm \
 $PYC_DIR/PycCall-to-scheme.bgl \
 $PYC_DIR/PycCall-to-scheme.scm \
+$PYC_DIR/PycAccess-to-scheme.bgl \
+$PYC_DIR/PycAccess-to-scheme.scm \
 $PYC_DIR/scheme.bgl \
 $PYC_DIR/scheme.scm \
 $PYC_DIR/break.bgl \

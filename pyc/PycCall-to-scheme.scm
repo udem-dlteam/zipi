@@ -176,6 +176,12 @@
                 params))))
       (default-call-no-super-check fun args keywords-names keywords-values conf params))))
 
+(define (default-call-method-with-binding-skip call conf params)
+  (let* ((method-access (PycCall-fun call))
+         (obj (PycAccess-obj method-access))
+         (field (PycAccess-field method-access)))
+  (default-call call conf params)))
+
 ;; Dispatch
 
 (define-macro (define-method-call-compilation-to-scheme name . body)
@@ -185,31 +191,24 @@
           (expected-type (list-ref method-case 2))
           (must-bind (list-ref method-case 3))
           (procedure-name (list-ref method-case 4))
+          (fast-type-check (list-ref method-case 5))
           (predicate
             `(lambda (call conf params)
               (and (not (call-has-keyword-arguments? call conf params))
                    (call-has-fixed-arity? call conf params)
                    (= (length args) ,expected-nargs))))
-          (default-call-maker
-            `(lambda (obj-sym)
-              (default-call
-                (new-PycCall (PycNode-loc call)
-                  (new-PycAccess (PycStatic (PycNode-loc fun) obj-sym obj-sym)
-                                 (PycAccess-field fun)
-                                 (PycAccess-usage fun)
-                                 (PycAccess-cache fun))
-                   args)
-                call conf params)))
           (code-generation
             `(let ((obj-sym (my-gensym 'self))
                    (obj-ast (PycAccess-obj fun)))
               `(let ((,obj-sym ,(scheme obj-ast conf)))
-                 (if (py-test-is (py-obj-cls ,obj-sym) ,,expected-type)
+                 (if ,,(if fast-type-check
+                         ``(,,fast-type-check ,obj-sym)
+                         ``(py-test-is (py-obj-cls ,obj-sym) ,,expected-type))
                     ;; TODO: this duplicates the code of arguments, is that ok?
                     ,,(if must-bind
                        ``(,,procedure-name ,obj-sym ,@(map (lambda (a) (scheme a conf)) args))
                        ``(,,procedure-name ,@(map (lambda (a) (scheme a conf)) args)))
-                    ,(default-call
+                    ,(default-call-method-with-binding-skip
                       (new-PycCall (PycNode-loc call)
                         ;; TODO abstract the copy function
                         (new-PycAccess (PycNode-loc obj-ast)
@@ -233,10 +232,10 @@
       ,@(map (lambda (c) (if (eq? (car c) 'else) c (parse-case c))) body))))
 
 (define-method-call-compilation-to-scheme call-method-to-scheme
-  ;; method-name     nargs      type               bind   procedure
-  ("append"          1          'py-builtin-list    #t     'list-append:unsafe)
-  ("lower"           0          'py-builtin-str     #t     'str-lower:unsafe)
-  (else (default-call call conf params)))
+  ;; method-name     nargs      type               bind   procedure            ;;fast-type-check
+  ("append"          1          'py-builtin-list    #t    'list-append:unsafe  #f)
+  ("lower"           0          'py-builtin-str     #t    'str-lower:unsafe    'py-has-type-str?)
+  (else (default-call-method-with-binding-skip call conf params)))
 
 (define-compilation-to-scheme (call-to-scheme call conf params
                                               (fun (PycCall-fun call))

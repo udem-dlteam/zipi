@@ -181,15 +181,24 @@ def test(obj):
 
 @define_semantics
 def getattribute(obj, attr):
-    __getattribute__ = class_getattr(obj, "__getattribute__")
-    try:
-        return __getattribute__(obj, attr)
-    except AttributeError as e:
+    def normal(__getattribute__):
+        try:
+            return __getattribute__(obj, attr)
+        except AttributeError as e:
+            __getattr__ = class_getattr(obj, "__getattr__")
+            if __getattr__ is absent:
+                raise e
+            else:
+                return __getattr__(obj, attr)
+
+    def fallback():
         __getattr__ = class_getattr(obj, "__getattr__")
         if __getattr__ is absent:
             raise e
         else:
             return __getattr__(obj, attr)
+
+    return normal(class_getattr(obj, "__getattribute__"))
 
 @define_semantics
 def setattribute(obj, attr, val):
@@ -630,7 +639,7 @@ class int:
             return py_bool_from_host_bool(py_int_to_host(0) != py_int_to_host(self))
         else:
             raise TypeError("descriptor '__bool__' requires a 'int' object but received a '" + class_getattr(self, "__name__") + "'")
-    
+
     def __float__(self):
         if isinstance(self, int):
             return py_int_to_float(self)
@@ -1633,13 +1642,13 @@ class NameError(Exception):
 @builtin
 class OSError(Exception):
     pass
-    
+
 
 @builtin
 class IOError(OSError):
     pass
-    
-    
+
+
 @builtin
 class EnvironmentError(OSError):
     pass

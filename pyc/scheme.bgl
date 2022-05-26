@@ -23,7 +23,8 @@
 	   __pyc_ast
 	   __pyc_utils
      __PycBinary_to_scheme
-     __PycCall_to_scheme)
+     __PycCall_to_scheme
+     __PycAccess_to_scheme)
 
    (export (pyc-scheme ast conf)
 ;* 	   (pyc-scheme-eval ast conf)                                  */
