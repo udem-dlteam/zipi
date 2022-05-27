@@ -185,16 +185,12 @@ def getattribute(obj, attr):
         try:
             return __getattribute__(obj, attr)
         except AttributeError as e:
-            __getattr__ = class_getattr(obj, "__getattr__")
-            if __getattr__ is absent:
-                raise e
-            else:
-                return __getattr__(obj, attr)
+            return fallback(e)
 
-    def fallback():
+    def fallback(e):
         __getattr__ = class_getattr(obj, "__getattr__")
         if __getattr__ is absent:
-            raise e
+            raise AttributeError(attr) if e is absent else e
         else:
             return __getattr__(obj, attr)
 

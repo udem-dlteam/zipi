@@ -1815,6 +1815,43 @@
 (define-rts (getattribute-from-obj-mro-fallback obj name)
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
+(define-rts (object-getattribute-skip-binding obj name #!optional (raise? #t) (cache #f))
+  (define (getattribute-from-mro index-hit-on-object-hclass)
+    (getattribute-from-obj-mro-with-index/owner-2cont
+      obj
+      name
+      (lambda (index cls-attr owner)
+        (if index-hit-on-object-hclass
+          (if cache
+            (AttributeCache-object-or-mro-hit!
+              cache
+              (py-obj-hclass obj)
+              index-hit-on-object-hclass
+              cls-attr
+              owner))
+          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) cls-attr owner)))
+        (py-descriptor-get cls-attr obj owner))
+      (lambda ()
+        ;; TODO: replace this hack by something better
+        ;; NOTE: __class__ should get a getset_descriptor on object
+        (if (eq? (py-str-representative name) (& "__class__"))
+            (py-obj-cls obj)
+            (begin
+              (and
+                raise?
+                (py-throw-object-getattribute-error obj name)))))))
+
+  (py-own-attr-index/ref-2cont
+    obj
+    name
+    (lambda (index val)
+      (if (eq? val py-absent)
+        (getattribute-from-mro #t)
+        (begin
+          (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
+          val)))
+    (lambda () (getattribute-from-mro #f))))
+
 (define-rts (object-getattribute obj name #!optional (raise? #t) (cache #f))
   (define (getattribute-from-mro index-hit-on-object-hclass)
     (getattribute-from-obj-mro-with-index/owner-2cont
