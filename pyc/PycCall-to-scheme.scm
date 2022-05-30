@@ -179,22 +179,36 @@
 (define (default-call-method-with-binding-skip call conf params)
   (let* ((method-access (PycCall-fun call))
          (obj (PycAccess-obj method-access))
-         (field (PycAccess-field method-access)))
-  (call-to-scheme
-    (new-PycCall
-      (PycNode-loc call)
-      (new-PycStatic (PycNode-loc method-access)
-                     'unbound-atribute
-                     (access-to-scheme method-access conf (cons* skip-binding: #t params)))
-      (PycCall-args call)
-      %info: (PycNode-%info call)
-      cps: (PycNode-cps call)
-      type: (PycExpr-type call)
-      keywords-values: (PycCall-keywords-values call)
-      keywords-names: (PycCall-keywords-names call)
-      can-be-super: (PycCall-can-be-super call))
-    conf
-    params)))
+         (obj-sym (my-gensym 'obj))
+         (obj-sym-static (new-PycStatic (PycNode-loc obj) obj-sym obj-sym))
+         (field (PycAccess-field method-access))
+         (method-access-with-obj-sym
+           (new-PycAccess
+             (PycNode-loc method-access)
+             obj-sym-static
+             field
+             %info: (PycNode-%info method-access)
+             cps: (PycNode-cps method-access)
+             type: (PycExpr-type method-access)
+             usage: (PycAccess-usage method-access)
+             cache: (PycAccess-cache method-access))))
+  `(let ((,obj-sym ,(scheme obj conf)))
+    ;; TODO implement PycNode-copy to not have to do that:
+    ,(call-to-scheme
+      (new-PycCall
+        (PycNode-loc call)
+        (new-PycStatic (PycNode-loc method-access)
+                       'unbound-attribute
+                       (access-to-scheme method-access conf (cons* skip-binding: #t params)))
+        (cons obj-sym-static (PycCall-args call))
+        %info: (PycNode-%info call)
+        cps: (PycNode-cps call)
+        type: (PycExpr-type call)
+        keywords-values: (PycCall-keywords-values call)
+        keywords-names: (PycCall-keywords-names call)
+        can-be-super: (PycCall-can-be-super call))
+      conf
+      params))))
 
 ;; Dispatch
 

@@ -201,17 +201,18 @@
     (else
       (,(fallback (length args)) ,(- 0 X 1) ,(gen-method) ,@args))))
 
-(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity scheme-arity signature)
-  `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,scheme-arity ,signature))
+(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity scheme-arity signature pending-binding)
+  `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,scheme-arity ,signature, pending-binding))
 
-(define-macro ($py-make-PyObjectFunction specialized-args-limit hclass elements cls procedure arity scheme-arity signature)
+(define-macro ($py-make-PyObjectFunction specialized-args-limit hclass elements cls procedure arity scheme-arity signature pending-binding)
   `(let (($hclass ,hclass)
          ($elements ,elements)
          ($cls ,cls)
          ($procedure procedure)
          ($arity ,arity)
          ($scheme-arity ,scheme-arity)
-         ($signature ,signature))
+         ($signature ,signature)
+         ($pending-binding ,pending-binding))
       (cond
         ,@(let loop ((i 0))
             (if (> i specialized-args-limit)
@@ -219,9 +220,177 @@
               (cons
                 `((eqv? $arity ,i)
                     (,(string->symbol (string-append "make-PyObjectFunctionArity" (number->string i)))
-                        $hclass $elements $cls $procedure $arity $scheme-arity $signature))
+                        $hclass $elements $cls $procedure $arity $scheme-arity $signature $pending-binding))
                 (loop (+ i 1)))))
-        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $scheme-arity $signature)))))
+        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $scheme-arity $signature $pending-binding)))))
+
+(define-macro (define-method signature . body)
+  (define method-signature #f)
+  (define method-body #f)
+  (define binding #f)
+  (define guards '())
+
+  (define (parse-error message body)
+    (error "define-method" message (car body)))
+
+  (define (parse body)
+    (if (null? body)
+      (parse-end body)
+      (case (car body)
+        ((signature:) (parse-signature (cdr body)))
+        ((body:) (parse-body (cdr body)))
+        ((guard:) (parse-guard (cdr body)))
+        ((binding:) (parse-binding (cdr body)))
+        (else (parse-error "unknown keyword" body)))))
+
+  (define (parse-binding body)
+    (if (or (null? body) (keyword? (car body)))
+      (parse-error "binding: keyword without value" body)
+      (if binding
+        (parse-error "duplicate keyword binding:" body)
+        (begin
+          (set! binding (car body))
+          (parse (cdr body))))))
+
+  (define (parse-signature body)
+    (if (or (null? body) (keyword? (car body)))
+      (parse-error "signature: keyword without value" body)
+      (if method-signature
+        (parse-error "duplicate keyword signature:" body)
+        (begin
+          (set! method-signature (car body))
+          (parse (cdr body))))))
+
+  (define (parse-body body)
+    (if (or (null? body) (keyword? (car body)))
+      (parse-error "body: keyword without value" body)
+      (if method-body
+        (parse-error "duplicate keyword body:" body)
+        (let loop ((body body))
+          (if (or (null? body) (keyword? (car body)))
+            (parse body)
+            (begin
+              (set! method-body (append (or method-body '()) (list (car body))))
+              (loop (cdr body))))))))
+
+  (define (parse-guard body)
+    (if (or (null? body) (null? (cdr body))
+            (keyword? (car body)) (keyword? (cadr body)))
+      (parse-error "guard: must be followed by a condition and an exception throw" body)
+      (begin
+        (set! guards (append guards (list (list (car body) (cadr body)))))
+        (parse (cddr body)))))
+
+  (define (parse-end body)
+    (set! binding (or binding 'method))
+    (cond
+      ((not method-signature)
+        (parse-error "missing signature:" body))
+      ((not method-body)
+        (parse-error "missing body:" body))
+      ((not (memq binding '(method classmethod staticmethod)))
+        (parse-error "binding: must be method, classmethod or staticmethod" body))))
+
+  (define (make-signature-for-pending-binding)
+    ;; TODO add a check that the function arity supports binding, otherwise abort
+    (define must-move-first-arg-to-posonly #f)
+
+    (define bound-signature
+      (let* ((posonlyargs-cons (memq posonlyargs: method-signature))
+             (posonlyargs (if posonlyargs-cons (cadr method-signature) '()))
+             (bound-posonlyargs
+               (list
+                 posonlyargs:
+                 (case binding
+                   ((method)
+                     (let ((first-argument
+                             (if (null? posonlyargs)
+                               (begin
+                                 (set! must-move-first-arg-to-posonly 0) ;; move to index 0
+                                 #f)
+                               (car posonlyargs)))
+                           (rest (if (null? posonlyargs) '() (cdr posonlyargs))))
+                       (cons first-argument (cons (gensym '_) rest))))
+                   ((classmethod)
+                     (let ((first-argument
+                             (if (null? posonlyargs)
+                               (begin
+                                 (set! must-move-first-arg-to-posonly 1) ;; move to index 1
+                                 #f)
+                               (car posonlyargs)))
+                           (rest (if (null? posonlyargs) '() (cdr posonlyargs))))
+                       (cons (gensym '_) (cons first-argument rest))))
+                   ((staticmethod)
+                     (cons (gensym '_) (cons (gensym '_) posonlyargs)))))))
+
+      (append
+        (let loop ((method-signature method-signature))
+          (cond
+            ((null? method-signature)
+              '())
+            ((eq? (car method-signature) posonlyargs:)
+              (loop (cddr method-signature)))
+            (else
+              (cons (car method-signature) (loop (cdr method-signature))))))
+        bound-posonlyargs)))
+
+    (if must-move-first-arg-to-posonly
+      (begin
+        (let* ((posonlyargs (cadr (memq posonlyargs: bound-signature)))
+               (args-cons (memq args: bound-signature))
+               (args (cadr args-cons))
+               (first-arg (car args)))
+          (list-set! posonlyargs must-move-first-arg-to-posonly first-arg)
+          (set-car! (cdr args-cons) (cdr args)))))
+
+    bound-signature)
+
+  (parse body)
+
+  (let* ((name (car signature))
+         (arguments (cdr signature))
+         (name-string (symbol->string name))
+         (procedure-name (string->symbol (string-append name-string ":procedure")))
+         (unsafe-name (string->symbol (string-append name-string ":unsafe")))
+         (binding-procedure-name (string->symbol (string-append name-string ":pending-binding:procedure")))
+         (binding-method-name (string->symbol (string-append name-string ":pending-binding")))
+         (procedure-signature (cons procedure-name arguments))
+         (unsafe-signature (cons unsafe-name arguments))
+         (binding-arguments
+           ;; two first arguments of a pending-binding function are always instance and class
+           ;; we move the first argument of the procedure at the right location and add gensym
+           ;; on the other such that the second argument is ignored in case of method call,
+           ;; the first is ignored in case of a classmethod and both are ignored in case of
+           ;; a static method
+           (case binding
+             ((method) (cons (car arguments) (cons (gensym '_) (cdr arguments))))
+             ((classmethod) (cons (gensym '_) (cons (car arguments) (cdr arguments))))
+             ((staticmethod) (cons (gensym '_) (cons (gensym '_) arguments)))))
+         (binding-method-signature (make-signature-for-pending-binding))
+         (binding-signature (cons binding-procedure-name binding-arguments)))
+
+  `(begin
+    (define-rts ,signature
+      (cond
+        ,@guards
+        (else ,@method-body)))
+
+    (define-rts ,unsafe-signature
+      ,@method-body)
+
+    (define-rts ,binding-signature
+      ,@method-body)
+
+    (define-rts ,name
+      (procedure->py-function
+        ,procedure-name
+        ,method-signature))
+
+    (define-rts ,binding-method-name
+      (procedure->py-function
+        ,binding-procedure-name
+        ,binding-method-signature)))))
+
 
 ;; executions points in the type.__call__ method
 (define-macro (type-call-from-instance self instance args-w/-instance) ;;args should contain instance

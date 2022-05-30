@@ -569,6 +569,7 @@
 ;; is created, we can recover these functions and add their type.
 
 (define-rts functions-awaiting-bootstap '())
+(define-rts pending-binding-functions-awaiting-bootstap '())
 
 ;; signature: '#(args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
 ;; takes in a signature and returns an arity.
@@ -617,7 +618,8 @@
             procedure
             (signature->arity signature)
             (signature->scheme-arity signature)
-            signature)))
+            signature
+            #f)))
     (set!
       functions-awaiting-bootstap
       (cons py-function functions-awaiting-bootstap))
@@ -631,9 +633,18 @@
     procedure
     (signature->arity signature)
     (signature->scheme-arity signature)
-    signature))
+    signature
+    #f))
 
 (define-rts procedure->py-function prebootstrap-procedure->py-function)
+
+(define-rts (bootstrap-functions)
+  (set! procedure->py-function postbootstrap-procedure->py-function)
+  (let loop ((functions functions-awaiting-bootstap))
+    (if (not (null? functions))
+      (begin
+        (PyObject-class-set! (car functions) py-function-class)
+        (loop (cdr functions))))))
 
 (define-rts (bootstrap-functions)
   (set! procedure->py-function postbootstrap-procedure->py-function)
@@ -1830,7 +1841,10 @@
               cls-attr
               owner))
           (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) cls-attr owner)))
-        (py-descriptor-get cls-attr obj owner))
+        cls-attr
+        ;;(py-descriptor-get cls-attr obj owner)  ;; TODO: use a special slot for PrendingBindingFunction
+                                                  ;; this here will not work for objects other than bound methods
+        )
       (lambda ()
         ;; TODO: replace this hack by something better
         ;; NOTE: __class__ should get a getset_descriptor on object

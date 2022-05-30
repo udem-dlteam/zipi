@@ -236,6 +236,7 @@
     $py-callMethodX
 
     object.__getattribute__
+    object-getattribute-skip-binding
 
     AttributeCache-object-hclass
     AttributeCache-mro-hclass
@@ -250,7 +251,13 @@
     py-own-attr-set!
     getattribute-from-obj-mro
     getattribute-from-obj-mro-fallback
+    py-getattribute-from-obj-mro-2cont
+    $py-getattribute-from-obj-mro-2cont
+    get-magic-attribute-from-cls-mro-with-owner-2cont
     py-own-attr-ref-2cont
+    PyObjectType-mro
+    magic-attr-ref
+    PyObjectType-magic-attrs
 
     py-descriptor-get
 
@@ -453,6 +460,7 @@
     py-descriptor-get-behavior-call-fallback
 
     procedure->py-function
+    define-method
 
     py-if-specialized-sint-representation
     py-if-specialized-float-representation
