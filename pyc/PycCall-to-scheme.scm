@@ -181,6 +181,7 @@
          (obj (PycAccess-obj method-access))
          (obj-sym (my-gensym 'obj))
          (obj-sym-static (new-PycStatic (PycNode-loc obj) obj-sym obj-sym))
+         (method-symbol (my-gensym 'unbound-method))
          (field (PycAccess-field method-access))
          (method-access-with-obj-sym
            (new-PycAccess
@@ -192,15 +193,21 @@
              type: (PycExpr-type method-access)
              usage: (PycAccess-usage method-access)
              cache: (PycAccess-cache method-access))))
-  `(let ((,obj-sym ,(scheme obj conf)))
+  `(let ((,obj-sym ,(scheme obj conf))
+         (,method-symbol ,(access-to-scheme method-access conf (cons* skip-binding: #t params))))
     ;; TODO implement PycNode-copy to not have to do that:
+    ;; TODO: this will not work when the access uses the fallback path of object-getattribute
     ,(call-to-scheme
       (new-PycCall
         (PycNode-loc call)
         (new-PycStatic (PycNode-loc method-access)
                        'unbound-attribute
-                       (access-to-scheme method-access conf (cons* skip-binding: #t params)))
-        (cons obj-sym-static (PycCall-args call))
+                       (list 'cdr method-symbol))
+        (cons* obj-sym-static
+               (new-PycStatic (PycNode-loc call)
+                              'class
+                              (list 'car method-symbol))
+               (PycCall-args call))
         %info: (PycNode-%info call)
         cps: (PycNode-cps call)
         type: (PycExpr-type call)
@@ -263,7 +270,7 @@
 (define-method-call-compilation-to-scheme call-method-to-scheme
   ;; method-name     nargs      type               bind   procedure            ;;fast-type-check
   ("append"          1          'py-builtin-list    #t    'list-append:unsafe  #f)
-  ("lower"           0          'py-builtin-str     #t    'str-lower:unsafe    'py-has-type-str?)
+  ("lower"           0          'py-builtin-str     #t    'str.lower:unsafe    'py-has-type-str?)
   (else (default-call-method-with-binding-skip call conf params)))
 
 (define-compilation-to-scheme (call-to-scheme call conf params

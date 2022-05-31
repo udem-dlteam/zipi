@@ -618,8 +618,7 @@
             procedure
             (signature->arity signature)
             (signature->scheme-arity signature)
-            signature
-            #f)))
+            signature)))
     (set!
       functions-awaiting-bootstap
       (cons py-function functions-awaiting-bootstap))
@@ -633,8 +632,7 @@
     procedure
     (signature->arity signature)
     (signature->scheme-arity signature)
-    signature
-    #f))
+    signature))
 
 (define-rts procedure->py-function prebootstrap-procedure->py-function)
 
@@ -2522,18 +2520,11 @@
     str-getitem
     (make-signature posonlyargs: (self index) name: str.__getitem__)))
 
-(define-rts (str-lower:unsafe self)
-  (py-str-from-scheme (string-downcase (py-str-to-scheme self))))
-
-(define-rts (str-lower self)
-  (if (py-subtype-of-str? self)
-      (str-lower:unsafe self)
-      (py-throw-required-type "lower" "str" self)))
-
-(define-rts str.lower
-  (procedure->py-function
-    str-lower
-    (make-signature posonlyargs: (self) name: str.lower)))
+(define-method (str.lower self)
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "lower" "str" self)
+  body: (py-str-from-scheme (string-downcase (py-str-to-scheme self)))
+  signature: (make-signature posonlyargs: (self) name: str.lower))
 
 (define-rts (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))

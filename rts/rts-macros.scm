@@ -201,18 +201,17 @@
     (else
       (,(fallback (length args)) ,(- 0 X 1) ,(gen-method) ,@args))))
 
-(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity scheme-arity signature pending-binding)
-  `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,scheme-arity ,signature, pending-binding))
+(define-macro (py-make-PyObjectFunction hclass elements cls procedure arity scheme-arity signature)
+  `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,scheme-arity ,signature))
 
-(define-macro ($py-make-PyObjectFunction specialized-args-limit hclass elements cls procedure arity scheme-arity signature pending-binding)
+(define-macro ($py-make-PyObjectFunction specialized-args-limit hclass elements cls procedure arity scheme-arity signature)
   `(let (($hclass ,hclass)
          ($elements ,elements)
          ($cls ,cls)
          ($procedure procedure)
          ($arity ,arity)
          ($scheme-arity ,scheme-arity)
-         ($signature ,signature)
-         ($pending-binding ,pending-binding))
+         ($signature ,signature))
       (cond
         ,@(let loop ((i 0))
             (if (> i specialized-args-limit)
@@ -220,9 +219,9 @@
               (cons
                 `((eqv? $arity ,i)
                     (,(string->symbol (string-append "make-PyObjectFunctionArity" (number->string i)))
-                        $hclass $elements $cls $procedure $arity $scheme-arity $signature $pending-binding))
+                        $hclass $elements $cls $procedure $arity $scheme-arity $signature))
                 (loop (+ i 1)))))
-        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $scheme-arity $signature $pending-binding)))))
+        (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $scheme-arity $signature)))))
 
 (define-macro (define-method signature . body)
   (define method-signature #f)
@@ -297,7 +296,7 @@
 
     (define bound-signature
       (let* ((posonlyargs-cons (memq posonlyargs: method-signature))
-             (posonlyargs (if posonlyargs-cons (cadr method-signature) '()))
+             (posonlyargs (if posonlyargs-cons (cadr posonlyargs-cons) '()))
              (bound-posonlyargs
                (list
                  posonlyargs:
