@@ -291,58 +291,42 @@
         (parse-error "binding: must be method, classmethod or staticmethod" body))))
 
   (define (make-signature-for-pending-binding)
-    ;; TODO add a check that the function arity supports binding, otherwise abort
-    (define must-move-first-arg-to-posonly #f)
+    ;; TODO: add a check that the method has enough arguments to be bound
+    ;; otherwise abort and let normal exception at runtime
+    ;; At the moment this will crash if this case arises
+    (define remove-first-argument #f)
 
-    (define bound-signature
-      (let* ((posonlyargs-cons (memq posonlyargs: method-signature))
-             (posonlyargs (if posonlyargs-cons (cadr posonlyargs-cons) '()))
-             (bound-posonlyargs
-               (list
-                 posonlyargs:
-                 (case binding
-                   ((method)
-                     (let ((first-argument
-                             (if (null? posonlyargs)
-                               (begin
-                                 (set! must-move-first-arg-to-posonly 0) ;; move to index 0
-                                 #f)
-                               (car posonlyargs)))
-                           (rest (if (null? posonlyargs) '() (cdr posonlyargs))))
-                       (cons first-argument (cons (gensym '_) rest))))
-                   ((classmethod)
-                     (let ((first-argument
-                             (if (null? posonlyargs)
-                               (begin
-                                 (set! must-move-first-arg-to-posonly 1) ;; move to index 1
-                                 #f)
-                               (car posonlyargs)))
-                           (rest (if (null? posonlyargs) '() (cdr posonlyargs))))
-                       (cons (gensym '_) (cons first-argument rest))))
-                   ((staticmethod)
-                     (cons (gensym '_) (cons (gensym '_) posonlyargs)))))))
+    (let* ((posonlyargs-cons (memq posonlyargs: method-signature))
+           (posonlyargs (if posonlyargs-cons (cadr posonlyargs-cons) '()))
+           (bound-posonlyargs
+             (list
+               posonlyargs:
+               (case binding
+                 ((method)
+                   posonlyargs)
+                 ((classmethod)
+                   (if (null? posonlyargs)
+                     (begin
+                       (set! remove-first-argument #t)
+                       (list (gensym '_)))
+                     (cons (gensym '_) (cdr posonlyargs))))
+                 ((staticmethod)
+                   (cons (gensym '_) posonlyargs))))))
 
-      (append
-        (let loop ((method-signature method-signature))
-          (cond
-            ((null? method-signature)
-              '())
-            ((eq? (car method-signature) posonlyargs:)
-              (loop (cddr method-signature)))
-            (else
-              (cons (car method-signature) (loop (cdr method-signature))))))
-        bound-posonlyargs)))
-
-    (if must-move-first-arg-to-posonly
-      (begin
-        (let* ((posonlyargs (cadr (memq posonlyargs: bound-signature)))
-               (args-cons (memq args: bound-signature))
-               (args (cadr args-cons))
-               (first-arg (car args)))
-          (list-set! posonlyargs must-move-first-arg-to-posonly first-arg)
-          (set-car! (cdr args-cons) (cdr args)))))
-
-    bound-signature)
+    (append
+      (let loop ((method-signature method-signature))
+        (cond
+          ((null? method-signature)
+            '())
+          ((eq? (car method-signature) posonlyargs:)
+            (loop (cddr method-signature))) ;; skip posonlyargs: as we add our own
+          ((and remove-first-argument (eq? (car method-signature) args:))
+            (cons args:
+              (cons (cdadr method-signature) ;; remove first argument in args:
+                    (loop (cdr method-signature)))))
+          (else
+            (cons (car method-signature) (loop (cdr method-signature))))))
+      bound-posonlyargs)))
 
   (parse body)
 
@@ -351,45 +335,55 @@
          (name-string (symbol->string name))
          (procedure-name (string->symbol (string-append name-string ":procedure")))
          (unsafe-name (string->symbol (string-append name-string ":unsafe")))
-         (binding-procedure-name (string->symbol (string-append name-string ":pending-binding:procedure")))
+         (binding-closure-maker-name (string->symbol (string-append name-string ":make-pending-binding-closure")))
          (binding-method-name (string->symbol (string-append name-string ":pending-binding")))
          (procedure-signature (cons procedure-name arguments))
          (unsafe-signature (cons unsafe-name arguments))
+         (first-argument (car arguments))
          (binding-arguments
-           ;; two first arguments of a pending-binding function are always instance and class
-           ;; we move the first argument of the procedure at the right location and add gensym
-           ;; on the other such that the second argument is ignored in case of method call,
-           ;; the first is ignored in case of a classmethod and both are ignored in case of
-           ;; a static method
            (case binding
-             ((method) (cons (car arguments) (cons (gensym '_) (cdr arguments))))
-             ((classmethod) (cons (gensym '_) (cons (car arguments) (cdr arguments))))
-             ((staticmethod) (cons (gensym '_) (cons (gensym '_) arguments)))))
+             ((method) arguments)
+             ((classmethod) (cons (gensym '_) (cdr arguments))) ;; cls will be passed in a pre-computed closure
+             ((staticmethod) (cons (gensym '_) arguments))))
          (binding-method-signature (make-signature-for-pending-binding))
-         (binding-signature (cons binding-procedure-name binding-arguments)))
+         (default-procedure-definition
+           `(define-rts ,procedure-signature
+             (cond
+               ,@guards
+               (else ,@method-body))))
+         (unsafe-procedure-definition
+           `(define-rts ,unsafe-signature
+             ,@method-body))
+         (default-python-function-defintion
+           `(define-rts ,name
+             (procedure->py-function
+               ,procedure-name
+               ,method-signature)))
+          (pending-binding-function-definition
+            (case binding
+              ((classmethod)
+                `(define-rts (,binding-closure-maker-name ,first-argument)
+                  (procedure->py-function
+                    (lambda ,binding-arguments ,@method-body)
+                    ,binding-method-signature)))
+              (else
+                `(define-rts ,binding-method-name
+                  (procedure->py-function
+                    (lambda ,binding-arguments ,@method-body)
+                    ,binding-method-signature))))))
 
   `(begin
-    (define-rts ,signature
-      (cond
-        ,@guards
-        (else ,@method-body)))
+    ,default-procedure-definition
+    ,unsafe-procedure-definition
+    ,default-python-function-defintion
+    ,pending-binding-function-definition)))
 
-    (define-rts ,unsafe-signature
-      ,@method-body)
 
-    (define-rts ,binding-signature
-      ,@method-body)
+(define-macro (binding-skip-success? x)
+  `(not (procedure? x)))
 
-    (define-rts ,name
-      (procedure->py-function
-        ,procedure-name
-        ,method-signature))
-
-    (define-rts ,binding-method-name
-      (procedure->py-function
-        ,binding-procedure-name
-        ,binding-method-signature)))))
-
+(define-macro (binding-skip-fallback x)
+  `(,x))
 
 ;; executions points in the type.__call__ method
 (define-macro (type-call-from-instance self instance args-w/-instance) ;;args should contain instance

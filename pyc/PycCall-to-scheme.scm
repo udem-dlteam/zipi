@@ -181,41 +181,62 @@
          (obj (PycAccess-obj method-access))
          (obj-sym (my-gensym 'obj))
          (obj-sym-static (new-PycStatic (PycNode-loc obj) obj-sym obj-sym))
-         (method-symbol (my-gensym 'unbound-method))
-         (field (PycAccess-field method-access))
-         (method-access-with-obj-sym
-           (new-PycAccess
-             (PycNode-loc method-access)
-             obj-sym-static
-             field
-             %info: (PycNode-%info method-access)
-             cps: (PycNode-cps method-access)
-             type: (PycExpr-type method-access)
-             usage: (PycAccess-usage method-access)
-             cache: (PycAccess-cache method-access))))
+         (unbound-method-symbol (my-gensym 'unbound-method))
+         (getattribute-method-sym (symbol-append obj-sym '.__getattribute__))
+         (field (PycAccess-field method-access)))
   `(let ((,obj-sym ,(scheme obj conf))
-         (,method-symbol ,(access-to-scheme method-access conf (cons* skip-binding: #t params))))
-    ;; TODO implement PycNode-copy to not have to do that:
-    ;; TODO: this will not work when the access uses the fallback path of object-getattribute
-    ,(call-to-scheme
-      (new-PycCall
-        (PycNode-loc call)
-        (new-PycStatic (PycNode-loc method-access)
-                       'unbound-attribute
-                       (list 'cdr method-symbol))
-        (cons* obj-sym-static
-               (new-PycStatic (PycNode-loc call)
-                              'class
-                              (list 'car method-symbol))
-               (PycCall-args call))
-        %info: (PycNode-%info call)
-        cps: (PycNode-cps call)
-        type: (PycExpr-type call)
-        keywords-values: (PycCall-keywords-values call)
-        keywords-names: (PycCall-keywords-names call)
-        can-be-super: (PycCall-can-be-super call))
-      conf
-      params))))
+         (,getattribute-method-sym (getattribute-from-obj-mro ,obj-sym ,(pyc-propname "__getattribute__"))))
+    (if (py-test-is ,getattribute-method-sym object.__getattribute__)
+      (let ((,unbound-method-symbol
+               (object-getattribute-skip-binding
+                 ,obj-sym
+                 ,(pyc-propname field)
+                 #f
+                ,(if (in-semantics? method-access conf params)
+                     #f
+                     (scheme-cache (PycAccess-cache method-access) method-access)))))
+        (if (binding-skip-success? ,unbound-method-symbol)
+          ,(call-to-scheme
+            (new-PycCall
+              (PycNode-loc call)
+              (new-PycStatic (PycNode-loc method-access) unbound-method-symbol unbound-method-symbol)
+              (cons (new-PycStatic (PycNode-loc obj) obj-sym obj-sym) (PycCall-args call))
+              %info: (PycNode-%info call)
+              cps: (PycNode-cps call)
+              type: (PycExpr-type call)
+              keywords-values: (PycCall-keywords-values call)
+              keywords-names: (PycCall-keywords-names call)
+              can-be-super: (PycCall-can-be-super call))
+            conf
+            params)
+          ,(call-to-scheme
+            (new-PycCall
+              (PycNode-loc call)
+              (new-PycStatic (PycNode-loc method-access) 'fallback (list 'binding-skip-fallback unbound-method-symbol))
+              (PycCall-args call)
+              %info: (PycNode-%info call)
+              cps: (PycNode-cps call)
+              type: (PycExpr-type call)
+              keywords-values: (PycCall-keywords-values call)
+              keywords-names: (PycCall-keywords-names call)
+              can-be-super: (PycCall-can-be-super call))
+            conf
+            params)))
+      ,(call-to-scheme
+        (new-PycCall
+          (PycNode-loc call)
+          (new-PycStatic (PycNode-loc method-access)
+                         'bound-method
+                         `(py-getattribute-fallback:normal ,(pyc-propname field) ,obj-sym ,getattribute-method-sym))
+          (PycCall-args call)
+          %info: (PycNode-%info call)
+          cps: (PycNode-cps call)
+          type: (PycExpr-type call)
+          keywords-values: (PycCall-keywords-values call)
+          keywords-names: (PycCall-keywords-names call)
+          can-be-super: (PycCall-can-be-super call))
+        conf
+        params)))))
 
 ;; Dispatch
 

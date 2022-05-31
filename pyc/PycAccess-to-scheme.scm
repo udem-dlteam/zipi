@@ -121,9 +121,6 @@
   (let ((current-fun (config-get conf fun:)))
     (and current-fun (isa? current-fun PycSemantics))))
 
-(define-predicate (must-attempt-to-skip-binding? access conf params)
-  (config-get params skip-binding:))
-
 ;; =====================================================================
 ;; Code generation
 ;; =====================================================================
@@ -143,36 +140,9 @@
         ,(scheme-cache (PycAccess-cache access) access)
         ,(guess-access-types access)))))
 
-(define (access-with-skipped-binding access conf params)
-  (let* ((skip-object-binding-continuation (config-get conf skip-object-binding-with:))
-        (obj (PycAccess-obj access))
-        (obj-sym (my-gensym 'obj))
-        (unbound-attr-sym (my-gensym 'unbound-attr))
-        (getattribute-method-sym (symbol-append obj-sym '.__getattribute__))
-        (field (PycAccess-field access))
-        (skip-obj-binding-cont (config-get conf skip-object-binding-with:))
-        (fallback-binding-cont (config-get conf fallback-to-binding-with:)))
-    `(let* ((,obj-sym ,(scheme obj access))
-            (,getattribute-method-sym (getattribute-from-obj-mro ,obj-sym ,(pyc-propname "__getattribute__"))))
-      (if (py-test-is ,getattribute-method-sym object.__getattribute__)
-        (or
-          (object-getattribute-skip-binding
-            ,obj-sym
-            ,(pyc-propname field)
-            #f
-            ,(if (in-semantics? access conf params) #f (scheme-cache (PycAccess-cache access) access)))
-          ;; TODO check if we can standardize the order of the sub-semantics arguments
-          (py-getattribute-fallback:fallback
-            ,(pyc-propname field)
-            ,obj-sym
-            py-absent))
-        (py-getattribute-fallback:normal ,(pyc-propname field) ,obj-sym ,getattribute-method-sym)))))
-
 ;; Dispatch
 
 (define-compilation-to-scheme (access-to-scheme access conf params)
-  (must-attempt-to-skip-binding?
-    (access-with-skipped-binding access conf params))
   (else
     (default-cached-access access conf params)))
 

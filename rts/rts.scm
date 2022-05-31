@@ -1840,6 +1840,7 @@
               owner))
           (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) cls-attr owner)))
         cls-attr
+        ;; TODO: return callback to py-descriptor-get when fail
         ;;(py-descriptor-get cls-attr obj owner)  ;; TODO: use a special slot for PrendingBindingFunction
                                                   ;; this here will not work for objects other than bound methods
         )
