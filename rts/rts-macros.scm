@@ -339,7 +339,6 @@
          (binding-method-name (string->symbol (string-append name-string ":pending-binding")))
          (procedure-signature (cons procedure-name arguments))
          (unsafe-signature (cons unsafe-name arguments))
-         (first-argument (car arguments))
          (binding-arguments
            (case binding
              ((method) arguments)
@@ -350,7 +349,7 @@
            `(define-rts ,procedure-signature
              (cond
                ,@guards
-               (else ,@method-body))))
+               (else (,unsafe-name ,@arguments)))))
          (unsafe-procedure-definition
            `(define-rts ,unsafe-signature
              ,@method-body))
@@ -361,20 +360,27 @@
                ,method-signature)))
           (pending-binding-function-definition
             (case binding
-              ((classmethod)
-                `(define-rts (,binding-closure-maker-name ,first-argument)
-                  (procedure->py-function
-                    (lambda ,binding-arguments ,@method-body)
-                    ,binding-method-signature)))
-              (else
+              ((method)
                 `(define-rts ,binding-method-name
                   (procedure->py-function
-                    (lambda ,binding-arguments ,@method-body)
+                    ,unsafe-name
+                    ,binding-method-signature)))
+              ((classmethod)
+                (let ((cls-argument (gensym 'cls)))
+                  `(define-rts (,binding-closure-maker-name ,cls-argument)
+                    (procedure->py-function
+                      (lambda ,(cons (gensym '_) (cdr arguments))
+                        (,unsafe-name ,cls-argument ,@(cdr arguments)))
+                      ,binding-method-signature))))
+              ((staticmethod)
+                `(define-rts ,binding-method-name
+                  (procedure->py-function
+                    (lambda ,(cons (gensym '_) arguments) (,unsafe-name ,@arguments))
                     ,binding-method-signature))))))
 
   `(begin
-    ,default-procedure-definition
     ,unsafe-procedure-definition
+    ,default-procedure-definition
     ,default-python-function-defintion
     ,pending-binding-function-definition)))
 
