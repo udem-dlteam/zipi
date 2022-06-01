@@ -1824,6 +1824,7 @@
 (define-rts (getattribute-from-obj-mro-fallback obj name)
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
+;; TODO Must becode py-getattribute-skip-binding
 (define-rts (object-getattribute-skip-binding obj name #!optional (raise? #t) (cache #f))
   (define (getattribute-from-mro index-hit-on-object-hclass)
     (getattribute-from-obj-mro-with-index/owner-2cont

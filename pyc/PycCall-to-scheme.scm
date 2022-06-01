@@ -1,3 +1,15 @@
+(define (PycCall-copy call)
+  (new-PycCall
+    (PycNode-loc call)
+    (PycCall-fun call)
+    (PycCall-args call)
+    %info: (PycNode-%info call)
+    cps: (PycNode-cps call)
+    type: (PycExpr-type call)
+    keywords-values: (PycCall-keywords-values call)
+    keywords-names: (PycCall-keywords-names call)
+    can-be-super: (PycCall-can-be-super call)))
+
 ;; =====================================================================
 ;; Predicates
 ;; =====================================================================
@@ -46,6 +58,12 @@
 
 (define-predicate (ignore-global-functions? call conf params)
   (config-get params ignore-global-functions:))
+
+(define-predicate (ignore-arity-check? call conf params)
+  (config-get params ignore-arity-check:))
+
+(define-predicate (call-after-skipped-binding? call conf params)
+  (config-get params skipped-binding:))
 
 (define-predicate (call-with-no-arguments? call conf params)
   (and (null? (PycCall-args call)) (null? (PycCall-keywords-names call))))
@@ -111,12 +129,23 @@
              '())))
     `(let* ,bindings
       ;; TODO: limit X to what the rts can handle
-      (cond
-        ((,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) ,fun-sym)
-          ((PyObjectFunction-procedure ,fun-sym) ,@args-sym))
-        ,@cond-to-call-super-if-needed
-        (else
-          (py-callX-fallback ,min-negative-arity ,fun-sym ,@args-sym))))))
+      (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) ,fun-sym)
+          ((PyObjectFunction-procedure ,fun-sym) ,@args-sym)
+          ,(call-to-scheme
+            (new-PycCall
+              (PycNode-loc call)
+              (new-PycStatic (PycNode-loc fun) fun-sym fun-sym)
+              (PycCall-args call)
+              %info: (PycNode-%info call)
+              cps: (PycNode-cps call)
+              type: (PycExpr-type call)
+              keywords-values: (PycCall-keywords-values call)
+              keywords-names: (PycCall-keywords-names call)
+              can-be-super: (PycCall-can-be-super call))
+            conf
+            (cons* minimum-negative-arity: min-negative-arity
+                   ignore-arity-check: #t
+                   params))))))
 
 (define (dynamic-super-call? call conf params)
   ;; A dynamic super call occurs when the user calls super()
@@ -142,20 +171,76 @@
         conf params)
       #f)))
 
-(define (default-call-no-super-check fun args keywords-names keywords-values conf params)
-  `(py-call
-    ,(scheme fun conf)
-    ,@(flatten
-        (map (lambda (a)
-               (if (isa? a PycStarredExpr)
-                   (list *: (scheme (PycStarredExpr-expr a) conf))
-                   (list (scheme a conf))))
-             args))
-    ,@(interleave
-        (map (lambda (n) (if n (string->keyword (symbol->string n)) **:)) keywords-names)
-        (map (lambda (v) (scheme v conf)) keywords-values))))
-
 (define (default-call call conf params)
+  (define (default-call-no-super-check fun args keywords-names keywords-values conf params)
+    (let ((minimum-negative-arity (config-get params minimum-negative-arity:))
+          (call-after-skipped-binding (call-after-skipped-binding? call conf params))
+          (fun-sym (my-gensym 'fun)))
+      (if minimum-negative-arity
+        (if call-after-skipped-binding
+          `(let ((,fun-sym ,(scheme (PycCall-fun call) conf)))
+            (if (binding-skip-success? ,fun-sym)
+              (py-callX-fallback
+                ,minimum-negative-arity
+                ,fun-sym
+                ,@(flatten
+                    (map (lambda (a)
+                           (if (isa? a PycStarredExpr)
+                               (list *: (scheme (PycStarredExpr-expr a) conf))
+                               (list (scheme a conf))))
+                         args)))
+              ,(let ((call-copy (PycCall-copy call)))
+                (PycCall-fun-set!
+                  call-copy
+                  (new-PycStatic (PycNode-loc (PycCall-fun call)) 'binding-callback `(binding-skip-callback ,fun-sym)))
+                (PycCall-args-set! call-copy (cdr (PycCall-args call)))
+                (call-to-scheme call-copy
+                  conf
+                  (cons* skipped-binding: #f
+                         minimum-negative-arity: (+ minimum-negative-arity 1)
+                         params)))))
+          ;; TODO this does not add a call to super when required
+          `(py-callX-fallback
+            ,minimum-negative-arity
+            ,(scheme fun conf)
+            ,@(flatten
+                (map (lambda (a)
+                       (if (isa? a PycStarredExpr)
+                           (list *: (scheme (PycStarredExpr-expr a) conf))
+                           (list (scheme a conf))))
+                     args))))
+        (if call-after-skipped-binding
+          `(let ((,fun-sym ,(scheme (PycCall-fun call) conf)))
+            (if (binding-skip-success? ,fun-sym)
+              (py-call
+                ,fun-sym
+                ,@(flatten
+                    (map (lambda (a)
+                           (if (isa? a PycStarredExpr)
+                               (list *: (scheme (PycStarredExpr-expr a) conf))
+                               (list (scheme a conf))))
+                         args))
+                ,@(interleave
+                    (map (lambda (n) (if n (string->keyword (symbol->string n)) **:)) keywords-names)
+                    (map (lambda (v) (scheme v conf)) keywords-values)))
+              ,(let ((call-copy (PycCall-copy call)))
+                (PycCall-fun-set!
+                  call-copy
+                  (new-PycStatic (PycNode-loc (PycCall-fun call)) 'binding-callback `(binding-skip-callback ,fun-sym)))
+                (PycCall-args-set! call-copy (cdr (PycCall-args call)))
+                (call-to-scheme call-copy conf (cons* skipped-binding: #f params)))))
+          `(py-call
+            ,(scheme fun conf)
+            ,@(flatten
+                (map (lambda (a)
+                       (if (isa? a PycStarredExpr)
+                           (list *: (scheme (PycStarredExpr-expr a) conf))
+                           (list (scheme a conf))))
+                     args))
+            ,@(interleave
+                (map (lambda (n) (if n (string->keyword (symbol->string n)) **:)) keywords-names)
+                (map (lambda (v) (scheme v conf)) keywords-values)))))))
+
   (let* ((fun (PycCall-fun call))
          (fun-loc (PycNode-loc fun))
          (args (PycCall-args call))
@@ -181,62 +266,31 @@
          (obj (PycAccess-obj method-access))
          (obj-sym (my-gensym 'obj))
          (obj-sym-static (new-PycStatic (PycNode-loc obj) obj-sym obj-sym))
-         (unbound-method-symbol (my-gensym 'unbound-method))
+         (unbound-method-or-callback-sym (my-gensym 'unbound-method-or-callback))
          (getattribute-method-sym (symbol-append obj-sym '.__getattribute__))
          (field (PycAccess-field method-access)))
-  `(let ((,obj-sym ,(scheme obj conf))
-         (,getattribute-method-sym (getattribute-from-obj-mro ,obj-sym ,(pyc-propname "__getattribute__"))))
-    (if (py-test-is ,getattribute-method-sym object.__getattribute__)
-      (let ((,unbound-method-symbol
-               (object-getattribute-skip-binding
-                 ,obj-sym
-                 ,(pyc-propname field)
-                 #f
-                ,(if (in-semantics? method-access conf params)
-                     #f
-                     (scheme-cache (PycAccess-cache method-access) method-access)))))
-        (if (binding-skip-success? ,unbound-method-symbol)
-          ,(call-to-scheme
-            (new-PycCall
-              (PycNode-loc call)
-              (new-PycStatic (PycNode-loc method-access) unbound-method-symbol unbound-method-symbol)
-              (cons (new-PycStatic (PycNode-loc obj) obj-sym obj-sym) (PycCall-args call))
-              %info: (PycNode-%info call)
-              cps: (PycNode-cps call)
-              type: (PycExpr-type call)
-              keywords-values: (PycCall-keywords-values call)
-              keywords-names: (PycCall-keywords-names call)
-              can-be-super: (PycCall-can-be-super call))
-            conf
-            params)
-          ,(call-to-scheme
-            (new-PycCall
-              (PycNode-loc call)
-              (new-PycStatic (PycNode-loc method-access) 'fallback (list 'binding-skip-fallback unbound-method-symbol))
-              (PycCall-args call)
-              %info: (PycNode-%info call)
-              cps: (PycNode-cps call)
-              type: (PycExpr-type call)
-              keywords-values: (PycCall-keywords-values call)
-              keywords-names: (PycCall-keywords-names call)
-              can-be-super: (PycCall-can-be-super call))
-            conf
-            params)))
-      ,(call-to-scheme
-        (new-PycCall
-          (PycNode-loc call)
-          (new-PycStatic (PycNode-loc method-access)
-                         'bound-method
-                         `(py-getattribute-fallback:normal ,(pyc-propname field) ,obj-sym ,getattribute-method-sym))
-          (PycCall-args call)
-          %info: (PycNode-%info call)
-          cps: (PycNode-cps call)
-          type: (PycExpr-type call)
-          keywords-values: (PycCall-keywords-values call)
-          keywords-names: (PycCall-keywords-names call)
-          can-be-super: (PycCall-can-be-super call))
-        conf
-        params)))))
+  `(let* ((,obj-sym ,(scheme obj conf))
+          (,unbound-method-or-callback-sym
+            (py-getattribute-skip-binding
+              ,obj-sym
+              ,(pyc-propname field)
+              #f
+             ,(if (in-semantics? method-access conf params)
+                  #f
+                  (scheme-cache (PycAccess-cache method-access) method-access)))))
+    ,(call-to-scheme
+      (new-PycCall
+        (PycNode-loc call)
+        (new-PycStatic (PycNode-loc method-access) unbound-method-or-callback-sym unbound-method-or-callback-sym)
+        (cons (new-PycStatic (PycNode-loc obj) obj-sym obj-sym) (PycCall-args call))
+        %info: (PycNode-%info call)
+        cps: (PycNode-cps call)
+        type: (PycExpr-type call)
+        keywords-values: (PycCall-keywords-values call)
+        keywords-names: (PycCall-keywords-names call)
+        can-be-super: (PycCall-can-be-super call))
+      conf
+      (cons* skipped-binding: #t params)))))
 
 ;; Dispatch
 
@@ -306,7 +360,9 @@
     (py-global-call call conf params))
   (call-to-an-attribute?
     (call-method-to-scheme call conf params))
-  ((and (not call-has-keyword-arguments?)
+  ;; NOTE: cases below must handle call-after-skipped-binding?
+  ((and (not ignore-arity-check?)
+        (not call-has-keyword-arguments?)
         call-has-fixed-arity?)
     (py-call-with-arity-check call conf params))
   (else

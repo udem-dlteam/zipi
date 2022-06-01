@@ -388,7 +388,10 @@
 (define-macro (binding-skip-success? x)
   `(not (procedure? x)))
 
-(define-macro (binding-skip-fallback x)
+(define-macro (binding-skip-fail? x)
+  `(procedure? x))
+
+(define-macro (binding-skip-callback x)
   `(,x))
 
 ;; executions points in the type.__call__ method

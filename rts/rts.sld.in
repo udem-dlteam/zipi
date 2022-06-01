@@ -238,7 +238,8 @@
     object.__getattribute__
     object-getattribute-skip-binding
     binding-skip-success?
-    binding-skip-fallback
+    binding-skip-fail?
+    binding-skip-callback
 
     AttributeCache-object-hclass
     AttributeCache-mro-hclass
