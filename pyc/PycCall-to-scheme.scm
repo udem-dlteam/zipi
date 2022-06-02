@@ -216,13 +216,13 @@
          (field (PycAccess-field method-access)))
   `(let* ((,obj-sym ,(scheme obj conf))
           (,unbound-method-or-callback-sym
-            (py-getattribute-skip-binding
+            (py-getattribute-skip-binding-cached
               ,obj-sym
               ,(pyc-propname field)
-              #f
              ,(if (in-semantics? method-access conf params)
                   #f
-                  (scheme-cache (PycAccess-cache method-access) method-access)))))
+                  (scheme-cache (PycAccess-cache method-access) method-access))
+             '(mro)))) ;; change inline priority based on attribute name, etc.
     ,(call-to-scheme
       (new-PycCall
         (PycNode-loc call)
