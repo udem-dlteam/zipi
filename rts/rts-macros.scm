@@ -152,6 +152,11 @@
       (else
        (,(fallback (length args)) ,(- 0 X 1) ,fun ,@args))))
 
+(define-macro (py-callX-no-fixed-arity fun . args)
+  (let ((X (length args))
+        (min-neg-arity (- 0 X 1)))
+    `(py-callX-fallback min-neg-arity ,fun ,@args)))
+
 (define-macro (py-getattribute-and-callX X obj attr args . opts)
    (let ((cache (if (null? opts) #f (car opts)))
          (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))

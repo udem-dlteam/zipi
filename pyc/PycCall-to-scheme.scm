@@ -117,16 +117,10 @@
          ;; function such as f(x, y, *args) have a negative arity to mark the *args
          ;; the function f(x1, x2, ..., xn, *args) has an arity N = -(n + 1), thus
          ;; the number of arguments A must be A > n = -(N + 1)
-         (min-negative-arity (- 0 X 1))
          (args-code (map (lambda (a) (scheme a conf)) args))
          (args-sym (map (lambda (_) (my-gensym 'arg)) args))
          (args-bindings (map list args-sym args-code))
-         (bindings (cons (list fun-sym fun-code) args-bindings))
-         (dynamic-super-call (dynamic-super-call? call conf params))
-         (cond-to-call-super-if-needed
-           (if dynamic-super-call
-             (list `((py-test-is ,fun-sym py-builtin-super) ,dynamic-super-call))
-             '())))
+         (bindings (cons (list fun-sym fun-code) args-bindings)))
     `(let* ,bindings
       ;; TODO: limit X to what the rts can handle
       (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) ,fun-sym)
@@ -143,8 +137,7 @@
               keywords-names: (PycCall-keywords-names call)
               can-be-super: (PycCall-can-be-super call))
             conf
-            (cons* minimum-negative-arity: min-negative-arity
-                   ignore-arity-check: #t
+            (cons* ignore-arity-check: #t
                    params))))))
 
 (define (dynamic-super-call? call conf params)
@@ -162,6 +155,7 @@
               (scheme-var-name (list-ref caller-args 0) conf)
               #f)))
     (if (and (call-with-no-arguments? call conf params)
+             (PycCall-can-be-super call)
              class-key
              super-instance)
       (call-to-scheme
@@ -172,63 +166,34 @@
       #f)))
 
 (define (default-call call conf params)
-  (define (default-call-no-super-check fun args keywords-names keywords-values conf params)
-    (let ((minimum-negative-arity (config-get params minimum-negative-arity:))
-          (call-after-skipped-binding (call-after-skipped-binding? call conf params))
-          (fun-sym (my-gensym 'fun)))
-      (if minimum-negative-arity
-        (if call-after-skipped-binding
-          `(let ((,fun-sym ,(scheme (PycCall-fun call) conf)))
-            (if (binding-skip-success? ,fun-sym)
-              (py-callX-fallback
-                ,minimum-negative-arity
-                ,fun-sym
-                ,@(flatten
-                    (map (lambda (a)
-                           (if (isa? a PycStarredExpr)
-                               (list *: (scheme (PycStarredExpr-expr a) conf))
-                               (list (scheme a conf))))
-                         args)))
-              ,(let ((call-copy (PycCall-copy call)))
-                (PycCall-fun-set!
-                  call-copy
-                  (new-PycStatic (PycNode-loc (PycCall-fun call)) 'binding-callback `(binding-skip-callback ,fun-sym)))
-                (PycCall-args-set! call-copy (cdr (PycCall-args call)))
-                (call-to-scheme call-copy
-                  conf
-                  (cons* skipped-binding: #f
-                         minimum-negative-arity: (+ minimum-negative-arity 1)
-                         params)))))
-          ;; TODO this does not add a call to super when required
-          `(py-callX-fallback
-            ,minimum-negative-arity
-            ,(scheme fun conf)
-            ,@(flatten
-                (map (lambda (a)
-                       (if (isa? a PycStarredExpr)
-                           (list *: (scheme (PycStarredExpr-expr a) conf))
-                           (list (scheme a conf))))
-                     args))))
-        (if call-after-skipped-binding
-          `(let ((,fun-sym ,(scheme (PycCall-fun call) conf)))
-            (if (binding-skip-success? ,fun-sym)
-              (py-call
-                ,fun-sym
-                ,@(flatten
-                    (map (lambda (a)
-                           (if (isa? a PycStarredExpr)
-                               (list *: (scheme (PycStarredExpr-expr a) conf))
-                               (list (scheme a conf))))
-                         args))
-                ,@(interleave
-                    (map (lambda (n) (if n (string->keyword (symbol->string n)) **:)) keywords-names)
-                    (map (lambda (v) (scheme v conf)) keywords-values)))
-              ,(let ((call-copy (PycCall-copy call)))
-                (PycCall-fun-set!
-                  call-copy
-                  (new-PycStatic (PycNode-loc (PycCall-fun call)) 'binding-callback `(binding-skip-callback ,fun-sym)))
-                (PycCall-args-set! call-copy (cdr (PycCall-args call)))
-                (call-to-scheme call-copy conf (cons* skipped-binding: #f params)))))
+  (let* ((fun (PycCall-fun call))
+         (fun-loc (PycNode-loc fun))
+         (args (PycCall-args call))
+         (keywords-names (PycCall-keywords-names call))
+         (keywords-values (PycCall-keywords-values call))
+         (call-after-skipped-binding (call-after-skipped-binding? call conf params)))
+    (if call-after-skipped-binding
+      ;; NOTE: we do not have to assign fun to a symbol because it is always done in the case of a binding-skip attempt
+      `(if (binding-skip-success? ,(scheme (PycCall-fun call) conf))
+          ,(default-call call conf (cons* skipped-binding: #f params))
+          ;; Otherwise invoke the binding callback and do a call without the instance as argument
+          ,(let ((call-copy (PycCall-copy call)))
+            (PycCall-fun-set!
+              call-copy
+              (new-PycStatic
+                (PycNode-loc (PycCall-fun call))
+                'binding-callback
+                `(binding-skip-callback ,(scheme (PycCall-fun call) conf))))
+            (PycCall-args-set! call-copy (cdr (PycCall-args call)))
+            (default-call call-copy conf (cons* skipped-binding: #f params))))
+      (let* ((dynamic-super-call (dynamic-super-call? call conf params)))
+        (if dynamic-super-call
+          (let ((fn-sym (my-gensym 'fun-maybe-super)))
+            `(let ((,fn-sym ,(scheme fun conf)))
+               (if (py-test-is ,fn-sym py-builtin-super)
+                  ,dynamic-super-call
+                  ;; NOTE: dynamic super call only happend when there is no argument
+                  (py-call ,fn-sym))))
           `(py-call
             ,(scheme fun conf)
             ,@(flatten
@@ -239,27 +204,7 @@
                      args))
             ,@(interleave
                 (map (lambda (n) (if n (string->keyword (symbol->string n)) **:)) keywords-names)
-                (map (lambda (v) (scheme v conf)) keywords-values)))))))
-
-  (let* ((fun (PycCall-fun call))
-         (fun-loc (PycNode-loc fun))
-         (args (PycCall-args call))
-         (keywords-names (PycCall-keywords-names call))
-         (keywords-values (PycCall-keywords-values call))
-         (dynamic-super-call (dynamic-super-call? call conf params)))
-    (if dynamic-super-call
-      (let ((fn-sym (my-gensym 'fun-maybe-super)))
-        `(let ((,fn-sym ,(scheme fun conf)))
-           (if (py-test-is ,fn-sym py-builtin-super)
-              ,dynamic-super-call
-              ,(default-call-no-super-check
-                (new-PycStatic fun-loc fn-sym fn-sym)
-                args
-                keywords-names
-                keywords-values
-                conf
-                params))))
-      (default-call-no-super-check fun args keywords-names keywords-values conf params))))
+                (map (lambda (v) (scheme v conf)) keywords-values))))))))
 
 (define (default-call-method-with-binding-skip call conf params)
   (let* ((method-access (PycCall-fun call))

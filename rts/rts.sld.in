@@ -47,6 +47,7 @@
     py-call2-fallback
     py-call3-fallback
     py-callX
+    py-callX-no-fixed-arity
     py-callX-fallback
     $py-callX
     py-call-wrong-arity
