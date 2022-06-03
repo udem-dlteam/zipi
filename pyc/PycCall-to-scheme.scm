@@ -211,18 +211,24 @@
          (obj (PycAccess-obj method-access))
          (obj-sym (my-gensym 'obj))
          (obj-sym-static (new-PycStatic (PycNode-loc obj) obj-sym obj-sym))
+         (cache-sym (my-gensym 'cache))
+         (hclass-sym (my-gensym 'hclass))
          (unbound-method-or-callback-sym (my-gensym 'unbound-method-or-callback))
          (getattribute-method-sym (symbol-append obj-sym '.__getattribute__))
          (field (PycAccess-field method-access)))
   `(let* ((,obj-sym ,(scheme obj conf))
+          (,cache-sym ,(scheme-cache (PycAccess-cache method-access) method-access))
+          (,hclass-sym (py-obj-hclass-general ,obj-sym))
           (,unbound-method-or-callback-sym
-            (py-getattribute-skip-binding-cached
-              ,obj-sym
-              ,(pyc-propname field)
-             ,(if (in-semantics? method-access conf params)
-                  #f
-                  (scheme-cache (PycAccess-cache method-access) method-access))
-             '(mro)))) ;; change inline priority based on attribute name, etc.
+            (if (eq? ,hclass-sym (AttributeCache-mro-hclass ,cache-sym))
+              (AttributeCache-attr ,cache-sym)
+              (py-getattribute-skip-binding-cached-fallback
+                ,obj-sym
+                ,(pyc-propname field)
+               ,(if (in-semantics? method-access conf params)
+                    #f
+                    (scheme-cache (PycAccess-cache method-access) method-access))
+               '(type module object))))) ;; change inline priority based on attribute name, etc.
     ,(call-to-scheme
       (new-PycCall
         (PycNode-loc call)

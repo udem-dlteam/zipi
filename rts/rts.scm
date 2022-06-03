@@ -1835,9 +1835,10 @@
           (index (AttributeCache-index $cache)))
     (if (fx= index -1)
       (py-getattribute-from-mro-cache-skip-binding $obj $cache)
-      (or
-        (PyObject-global-elements-ref $obj index)
-        (py-getattribute-from-mro-cache-skip-binding $obj $cache)))))
+      (let (($attr (PyObject-global-elements-ref $obj index)))
+        (if $attr
+          (lambda () $attr)
+          (py-getattribute-from-mro-cache-skip-binding $obj $cache))))))
 
 (define-macro (py-getattribute-from-object-cache-skip-binding obj cache)
   `(let* (($cache ,cache)
@@ -1848,61 +1849,20 @@
       (let ((attr (PyObject-elements-ref $obj index)))
         (if (eq? attr py-absent)
           (py-getattribute-from-mro-cache-skip-binding $obj $cache)
-          attr)))))
+          (lambda () attr))))))
 
 (define-macro (py-getattribute-from-mro-cache-skip-binding obj cache)
-  ;; obj should never be a sint or float, those case can be resolved statically
-  `(let (($cache ,cache))
-      (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))))
+  `(AttributeCache-attr ,cache))
 
 (define-macro (py-getattribute-from-type-cache-skip-binding obj cache)
-  ;; obj should never be a sint or float, those are not types
+  ;; TODO: actually skip binding
   `(let (($obj ,obj)
          ($cache ,cache))
     (if (eq? (AttributeCache-bind $cache) 'self)
         (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))
         (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)))))
 
-
-(define-macro (py-getattribute-skip-binding-cached obj attr cache inline-priorities)
-  ;; attr should always be a string literal
-  `(py-specialized-sint-float-dispatch-let
-     $OBJ
-     ,obj
-     ;; TODO: use macro to determine exact attribute in case of
-     ;; int and float, those can be determined statically
-     (py-getattribute-skip-binding $OBJ ,attr ,cache)
-     (py-getattribute-skip-binding $OBJ ,attr ,cache)
-     ,(let loop ((inlines inline-priorities))
-       (if (null? inlines)
-         `(py-getattribute-cached-modular-fallback
-            $OBJ (py-obj-hclass-general $OBJ) ,attr ,cache
-            ,(not (not (memq 'object inline-priorities)))
-            ,(not (not (memq 'mro inline-priorities)))
-            ,(not (not (memq 'type inline-priorities)))
-            ,(not (not (memq 'module inline-priorities))))
-         `(let (($cache ,cache)
-                ($hclass (py-obj-hclass-general $OBJ)))
-             ,(case (car inlines)
-                ((object)
-                  `(if (eq? $hclass (AttributeCache-object-hclass $cache))
-                       (py-getattribute-from-object-cache $OBJ $cache)
-                       ,(loop (cdr inlines))))
-                ((mro)
-                  `(if (eq? $hclass (AttributeCache-mro-hclass $cache))
-                       (py-getattribute-from-mro-cache $OBJ $cache)
-                       ,(loop (cdr inlines))))
-                ((type)
-                  `(if (eq? $hclass (AttributeCache-type-hclass $cache))
-                       (py-getattribute-from-type-cache $OBJ $cache)
-                       ,(loop (cdr inlines))))
-                ((module)
-                  `(if (eq? $hclass (AttributeCache-module-hclass $cache))
-                       (py-getattribute-from-module-cache $OBJ $cache)
-                       ,(loop (cdr inlines))))
-                (else (error "py-getattribute-cached" "unknown inlining priority" (car inlines)))))))))
-
-(define-rts (py-getattribute-skip-binding-cached-modular-fallback obj hclass name cache
+(define-rts (py-getattribute-skip-binding-cached-fallback obj hclass name cache
 	       include-object include-mro include-type include-module)
   (cond
     ((and include-object
@@ -1920,7 +1880,7 @@
     (else
       (py-getattribute-cached/miss obj name cache))))
 
-(define-rts (py-getattribute-skip-binding obj name cache)
+(define-rts (py-getattribute-skip-binding-cached/miss obj name cache)
   (py-getattribute-from-obj-mro-2cont
     obj
     (& "__getattribute__")
@@ -1989,7 +1949,7 @@
 
 
 
-    
+
 
 (define-rts (object-getattribute obj name #!optional (raise? #t) (cache #f))
   (define (getattribute-from-mro index-hit-on-object-hclass)
