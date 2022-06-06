@@ -209,6 +209,37 @@
             (PyObject-hclass-set! obj new-hclass)
             (PyObject-elements-set! obj index val)))))))
 
+(define-rts (py-cls-own-attr-set! cls attr val)
+  (py-cls-own-attr-set-with-pending-binding! cls attr val (lambda () val)))
+
+(define-rts (py-cls-own-attr-set-with-pending-binding! cls attr val pb-val)
+  ;; TODO: fix case when obj is not represented with a PyObject
+  (declare-fixnum)
+  (let* ((attr-representative (py-str-representative attr)))
+    (if (PyObjectStrRep-magic-index attr-representative)
+      ;; set a magic method
+      (begin
+        (magic-attr-set!
+          obj
+          (PyObjectStrRep-magic-index attr-representative)
+          val)
+        (pending-binding-magic-attr-set!
+          obj
+          (PyObjectStrRep-magic-index attr-representative)
+          pb-val))
+      ;; set a normal attribute
+      (py-own-attr-index-2cont obj attr
+        (lambda (i)
+          (PyObject-elements-set! obj i val)
+          (PyObjectType-pending-binding-elements-set! obj i val))
+        (lambda ()
+          (let* ((hclass (py-obj-hclass obj))
+                 (new-hclass (HClass-next hclass attr-representative '+))
+                 (index (HClass-last-index new-hclass)))
+            (PyObject-hclass-set! obj new-hclass)
+            (PyObject-elements-set! obj index val)
+            (PyObjectType-pending-binding-elements-set! obj index pb-val)))))))
+
 ;;----------------------------------------------------------------------------
 
 
@@ -324,7 +355,9 @@
     hclass-of-instance
     #f ;; is-builtin
     can-have-getter
-    (make-vector magic-attrs-length #f)))
+    (make-vector magic-attrs-length #f)
+    (make-vector magic-attrs-length #f)
+    '#()))
 
 (define-rts (py-builtin-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
   (let ((cls
@@ -1825,10 +1858,6 @@
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
 
-
-
-
-
 (define-macro (py-getattribute-from-module-cache-skip-binding obj cache)
   `(let* (($cache ,cache)
           ($obj ,obj)
@@ -1881,32 +1910,8 @@
       (py-getattribute-cached/miss obj name cache))))
 
 (define-rts (py-getattribute-skip-binding-cached/miss obj name cache)
-  (py-getattribute-from-obj-mro-2cont
-    obj
-    (& "__getattribute__")
-    (lambda (__getattribute__)
-      (if (py-test-is __getattribute__ object.__getattribute__)
-        (py-own-attr-index/ref-2cont
-          obj
-          name
-          (lambda (index val)
-            (if (eq? val py-absent)
-              (getattribute-from-mro #t)
-              (begin
-                (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
-                ;; return a callback since there is no binding to do
-                (lambda () val))))
-          (lambda () (getattribute-from-mro #f)))
-        ;;callback
-        (lambda ()
-          ;; TODO: standardize order of parameters of getattribute semantics
-          (py-getattribute-fallback:normal name obj __getattribute__))))
-    (lambda () (error "py-getattribute-skip-binding" "__getattribute__ should always exist" obj))))
-
-;; TODO Must becode py-getattribute-skip-binding
-(define-rts (object-getattribute-skip-binding obj name #!optional (raise? #t) (cache #f))
   (define (getattribute-from-mro index-hit-on-object-hclass)
-    (getattribute-from-obj-mro-with-index/owner-2cont
+    (getattribute-from-obj-mro-with-index/owner-pending-binding-2cont
       obj
       name
       (lambda (index cls-attr owner)
@@ -1919,36 +1924,32 @@
               cls-attr
               owner))
           (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) cls-attr owner)))
-        cls-attr
-        ;; TODO: return callback to py-descriptor-get when fail
-        ;;(py-descriptor-get cls-attr obj owner)  ;; TODO: use a special slot for PrendingBindingFunction
-                                                  ;; this here will not work for objects other than bound methods
-        )
+        cls-attr)
+      ;; TODO: standardize order of parameters of getattribute semantics
       (lambda ()
-        ;; TODO: replace this hack by something better
-        ;; NOTE: __class__ should get a getset_descriptor on object
-        (if (eq? (py-str-representative name) (& "__class__"))
-            (py-obj-cls obj)
-            (begin
-              (and
-                raise?
-                (py-throw-object-getattribute-error obj name)))))))
+        (lambda () (py-getattribute-fallback:fallback name obj py-absent)))))
 
-  (py-own-attr-index/ref-2cont
+  (py-getattribute-from-obj-mro-2cont
     obj
-    name
-    (lambda (index val)
-      (if (eq? val py-absent)
-        (getattribute-from-mro #t)
-        (begin
-          (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
-          val)))
-    (lambda () (getattribute-from-mro #f))))
-
-
-
-
-
+    (& "__getattribute__")
+    (lambda (__getattribute__)
+      (cond
+        ;; TODO support module.__getattribute__ and type.__getattribute__
+        ((py-test-is __getattribute__ object.__getattribute__)
+          (py-own-attr-index/ref-2cont
+            obj
+            name
+            (lambda (index val)
+              (if (eq? val py-absent)
+                (getattribute-from-mro #t)
+                (begin
+                  (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
+                  (lambda () val))))
+            (getattribute-from-mro #f)))
+        (else
+          ;; TODO: cache?
+          (lambda () (py-getattribute-fallback:normal name obj __getattribute__)))))
+    (lambda () (error "py-getattribute-skip-binding" "__getattribute__ should always exist" obj))))
 
 
 (define-rts (object-getattribute obj name #!optional (raise? #t) (cache #f))
@@ -2196,7 +2197,7 @@
     (if (py-subtype-of-str? name)
       (begin
         (reset-mro-caches!)
-        (py-own-attr-set! self name val))
+        (py-cls-own-attr-set! self name val))
       (py-throw-exception-with-message
        py-builtin-TypeError
        "attribute name must be string"))

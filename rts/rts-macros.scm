@@ -1710,6 +1710,20 @@
              ($loop-mro (fx+ $cls-index 1)))))
                (,fail)))))
 
+(define-macro (getattribute-from-cls-mro-with-index/owner-pending-binding-2cont cls name succeed fail)
+ `(let (($mro (PyObjectType-mro ,cls)))
+    (let $loop-mro (($cls-index 0))
+      (if (fx< $cls-index (vector-length $mro))
+           (let (($cls (vector-ref $mro $cls-index)))
+          (py-cls-own-attr-index/ref-pending-binding-2cont
+           $cls
+           ,name
+           (lambda ($index $val)
+             (,succeed $index $val $cls))
+           (lambda ()
+             ($loop-mro (fx+ $cls-index 1)))))
+               (,fail)))))
+
 (define-macro (getattribute-from-cls-mro cls name)
   `(getattribute-from-cls-mro-with-owner-2cont
     ,cls
@@ -1740,21 +1754,19 @@
 (define-macro (py-cls-own-attr-index/ref-2cont cls attr succeed fail)
   `(let* (($cls ,cls)
           ($attr ,attr)
-;*           ($succeed ,succeed)                                       */
-;*           ($fail ,fail)                                             */
           ($attr-representative (py-str-representative $attr))
           ($magic-index (PyObjectStrRep-magic-index $attr-representative)))
     (if $magic-index
       (let (($val
-            (magic-attr-ref
+            (pending-binding-magic-attr-ref
               $obj
               $magic-index)))
         (if $val (,succeed -1 $val) (,fail)))
-      (py-own-attr-index-2cont-from-representative
+      (py-own-attr-index-2cont-from-representative-pending-binding
         $obj
         $attr-representative
         (lambda ($attr-index)
-          (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+          (,succeed $attr-index (PyObjectType-pending-binding-elements-ref $obj $attr-index)))
         ,fail))))
 
 (define-macro (py-own-attr-ref-2cont obj attr succeed fail)
@@ -1787,13 +1799,31 @@
         (lambda ($attr-index) (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
         ,fail))))
 
-(define-macro (magic-attr-set! cls attr-index val)
+(define-macro (pending-binding-magic-attr-set! cls attr-index val)
  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
+
+(define-macro (magic-attr-set! cls attr-index val)
+ `(vector-set! (PyObjectType-pending-binding-magic-attrs ,cls) ,attr-index ,val))
 
 (define-macro (magic-attr-ref cls attr-index)
  `(vector-ref (PyObjectType-magic-attrs ,cls) ,attr-index))
 
+(define-macro (pending-binding-magic-attr-ref cls attr-index)
+ `(vector-ref (PyObjectType-pending-binding-magic-attrs ,cls) ,attr-index))
+
 (define-macro (py-own-attr-index-2cont-from-representative obj rep succeed fail)
+ `(let* (($hclass (py-obj-hclass ,obj))
+         ($names (HClass-names $hclass))
+         ($attr-representative ,rep))
+    (let $loop-names (($attr-index (fx- (vector-length $names) 1)))
+      (cond ((fx< $attr-index 0)
+             (,fail))
+            ((eq? $attr-representative (vector-ref $names $attr-index))
+             (,succeed $attr-index))
+            (else
+             ($loop-names (fx- $attr-index 1)))))))
+
+(define-macro (py-own-attr-index-2cont-from-representative-pending-binding obj rep succeed fail)
  `(let* (($hclass (py-obj-hclass ,obj))
          ($names (HClass-names $hclass))
          ($attr-representative ,rep))
@@ -1817,6 +1847,9 @@
 
 (define-macro (getattribute-from-obj-mro-with-index/owner-2cont obj name succeed fail)
 `(getattribute-from-cls-mro-with-index/owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
+
+(define-macro (getattribute-from-obj-mro-with-index/owner-pending-binding-2cont obj name succeed fail)
+`(getattribute-from-cls-mro-with-index/owner-pending-binding-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
 ;* (define-expander py-throw                                           */
 ;*    (lambda (x e)                                                    */
