@@ -220,25 +220,25 @@
       ;; set a magic method
       (begin
         (magic-attr-set!
-          obj
+          cls
           (PyObjectStrRep-magic-index attr-representative)
           val)
         (pending-binding-magic-attr-set!
-          obj
+          cls
           (PyObjectStrRep-magic-index attr-representative)
           pb-val))
       ;; set a normal attribute
-      (py-own-attr-index-2cont obj attr
+      (py-own-attr-index-2cont cls attr
         (lambda (i)
-          (PyObject-elements-set! obj i val)
-          (PyObjectType-pending-binding-elements-set! obj i val))
+          (PyObject-elements-set! cls i val)
+          (PyObjectType-pending-binding-elements-set! cls i val))
         (lambda ()
-          (let* ((hclass (py-obj-hclass obj))
+          (let* ((hclass (py-obj-hclass cls))
                  (new-hclass (HClass-next hclass attr-representative '+))
                  (index (HClass-last-index new-hclass)))
-            (PyObject-hclass-set! obj new-hclass)
-            (PyObject-elements-set! obj index val)
-            (PyObjectType-pending-binding-elements-set! obj index pb-val)))))))
+            (PyObject-hclass-set! cls new-hclass)
+            (PyObject-elements-set! cls index val)
+            (PyObjectType-pending-binding-elements-set! cls index pb-val)))))))
 
 ;;----------------------------------------------------------------------------
 
@@ -3121,7 +3121,7 @@
     (py-own-attr-set! str-class (& "__repr__") str.__repr__)
     (py-own-attr-set! str-class (& "__getitem__") str.__getitem__)
     (py-own-attr-set! str-class (& "__str__") str.__str__)
-    (py-own-attr-set! str-class (& "lower") str.lower)))
+    (str.lower:assign str-class (& "lower"))))
 
 (bootstrap-type-hierarchy-phase1)
 

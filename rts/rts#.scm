@@ -173,19 +173,19 @@
   (%pending-binding-elements unprintable:))
 
 (define-macro (PyObjectType-pending-binding-elements-ref tp offset)
-  `(vector-ref (PyObject-%pending-binding-elements ,tp) ,offset))
+  `(vector-ref (PyObjectType-%pending-binding-elements ,tp) ,offset))
 
 (define-macro (PyObjectType-pending-binding-elements-set! obj offset val)
   `(let* (($obj ,obj)
           ($offset ,offset)
           ($val ,val)
-          ($elements (PyObject-%pending-binding-elements $obj))
+          ($elements (PyObjectType-%pending-binding-elements $obj))
           ($elements-len (vector-length $elements)))
      (if (fx>= $offset $elements-len)
          (let (($elements-new (make-vector (max 1 (fx* 2 $offset)) py-absent)))
            (subvector-move! $elements 0 $elements-len $elements-new 0)
            (vector-set! $elements-new $offset $val)
-           (PyObject-%pending-binding-elements-set! $obj $elements-new))
+           (PyObjectType-%pending-binding-elements-set! $obj $elements-new))
          (vector-set! $elements $offset $val))))
 
 (define-type-of-PyObject PyObjectModule

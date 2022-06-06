@@ -342,6 +342,7 @@
          (unsafe-name (string->symbol (string-append name-string ":unsafe")))
          (binding-closure-maker-name (string->symbol (string-append name-string ":make-pending-binding-closure")))
          (binding-method-name (string->symbol (string-append name-string ":pending-binding")))
+         (assigner-procedure-name (string->symbol (string-append name-string ":assign")))
          (procedure-signature (cons procedure-name arguments))
          (unsafe-signature (cons unsafe-name arguments))
          (binding-arguments
@@ -381,13 +382,33 @@
                 `(define-rts ,binding-method-name
                   (procedure->py-function
                     (lambda ,(cons (gensym '_) arguments) (,unsafe-name ,@arguments))
-                    ,binding-method-signature))))))
+                    ,binding-method-signature)))))
+          (assigner-macro-body
+            (case binding
+              ((classmethod)
+                (let ((type-sym (gensym 'type)))
+                  `(let ((,type-sym (,'unquote type)))
+                    (py-cls-own-attr-set-with-pending-binding!
+                      ,type-sym
+                      (,'unquote name)
+                      ,name
+                      (,binding-closure-maker-name ,type-sym)))))
+              (else
+                `(py-cls-own-attr-set-with-pending-binding!
+                  (,'unquote type)
+                  (,'unquote name)
+                  ,name
+                  ,binding-method-name))))
+          (assigner-macro-definition
+            `(define-macro (,assigner-procedure-name type name)
+              (,'quasiquote ,assigner-macro-body))))
 
   `(begin
     ,unsafe-procedure-definition
     ,default-procedure-definition
     ,default-python-function-defintion
-    ,pending-binding-function-definition)))
+    ,pending-binding-function-definition
+    ,assigner-macro-definition)))
 
 
 (define-macro (binding-skip-success? x)
