@@ -210,7 +210,13 @@
             (PyObject-elements-set! obj index val)))))))
 
 (define-rts (py-cls-own-attr-set! cls attr val)
-  (py-cls-own-attr-set-with-pending-binding! cls attr val (lambda (obj) (py-descriptor-get val obj cls))))
+  (py-cls-own-attr-set-with-pending-binding!
+    cls
+    attr
+    val
+    (if (PyObjectType-can-have-getter (py-obj-cls val))
+      (lambda (obj) (py-descriptor-get val obj cls))
+      (lambda (_) val))))
 
 (define-rts (py-cls-own-attr-set-with-pending-binding! cls attr val pb-val)
   ;; TODO: fix case when obj is not represented with a PyObject
@@ -2510,109 +2516,85 @@
 (define-rts (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define-rts (str-new cls value)
-  (cond
-    ((eq? cls py-str-class)
-     (if (eq? value py-absent)
-         (&& "")
-         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
-                (result (py-call __str__ value)))
-           (if (py-subtype-of-str? result)
-               result
-               (throw-returned-wrong-type "__str__" value "non-string")))))
-    ((py-issubclass? cls py-str-class)
-     (if (eq? value py-absent)
-         (py-subtype-of-str-from-scheme
-           ""
-           cls)
-         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
-                (result (py-call __str__ value)))
-           (if (py-subtype-of-str? result)
-               (py-subtype-of-str-from-scheme
-                 (py-str-to-scheme result)
-                 cls)
-               (throw-returned-wrong-type "__str__" value "non-string")))))
-    (else
-      (py-throw-wrong-new-argument "str" cls))))
+(define-method (str.__new__ cls value)
+  binding: staticmethod
+  guard: (not (py-issubclass? cls py-str-class))
+         (py-throw-wrong-new-argument "str" cls)
+  body: (if (eq? cls py-str-class)
+            (if (eq? value py-absent)
+              (&& "")
+              (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+                     (result (py-call __str__ value)))
+                (if (py-subtype-of-str? result)
+                    result
+                    (throw-returned-wrong-type "__str__" value "non-string"))))
+            (if (eq? value py-absent)
+              (py-subtype-of-str-from-scheme "" cls)
+              (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+                     (result (py-call __str__ value)))
+                (if (py-subtype-of-str? result)
+                    (py-subtype-of-str-from-scheme (py-str-to-scheme result) cls)
+                    (throw-returned-wrong-type "__str__" value "non-string")))))
+  signature: (make-signature posonlyargs: (cls value) defaults: (vector py-absent)))
 
-(define-rts str.__new__
-  (procedure->py-function
-    str-new
-    (make-signature posonlyargs: (cls value) defaults: (vector py-absent) name: str.__new__)))
 
 (define-rts (str-hash-value str)
   (PyObjectStrRep-hash (py-str-representative str)))
 
-(define-rts (str-hash self)
-  (if (py-subtype-of-str? self)
-      (py-int-from-scheme (str-hash-value self))
-      (py-throw-required-type "__hash__" "str" self)))
+(define-method (str.__hash__ self)
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "__hash__" "str" self)
+  body: (py-int-from-scheme (str-hash-value self))
+  signature: (make-signature posonlyargs: (self)))
 
-(define-rts str.__hash__
-  (procedure->py-function
-    str-hash
-    (make-signature posonlyargs: (self) name: str.__hash__)))
+(define-method (str.__str__ self)
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "__str__" "str" self)
+  body: self ;; TODO handle case of subtype of str (return representative?)
+  signature: (make-signature posonlyargs: (self)))
 
-(define-rts (str-str self)
-  (if (py-subtype-of-str? self)
-      self
-      (py-throw-required-type "__str__" "str" self)))
+(define-method (str.__repr__ self)
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "__repr__" "str" self)
+  body: (let* ((string (py-str-to-scheme self))
+               (string-repr (py-str-repr-scheme string)))
+          (py-str-from-scheme string-repr))
+  signature: (make-signature posonlyargs: (self)))
 
-(define-rts str.__str__
-  (procedure->py-function
-    str-str
-    (make-signature posonlyargs: (self) name: str.__str__)))
-
-(define-rts (str-repr self)
-  (if (py-subtype-of-str? self)
-      (let* ((string (py-str-to-scheme self))
-             (string-repr (py-str-repr-scheme string)))
-        (py-str-from-scheme string-repr))
-      (py-throw-required-type "__repr__" "str" self)))
-
-(define-rts str.__repr__
-  (procedure->py-function
-    str-repr
-    (make-signature posonlyargs: (self) name: str.__repr__)))
-
-(define-rts (str-getitem self index)
-  (if (py-subtype-of-str? self)
-    (cond
-      ((py-subtype-of-int? index)
-        (let* ((string-content (py-str-to-scheme self))
-               (len (py-str-len-to-scheme self))
-               (i (py-subtype-of-int-to-scheme index)))
-          (if (index-in-length-range i len)
-            (py-str-from-scheme (string (string-ref string-content (modulo i len))))
-            (py-throw-index-out-of-range "str"))))
-      ((py-isinstance? index py-slice-class)
-        (let* ((string-content (py-str-to-scheme self))
-               (len (py-str-len-to-scheme self))
-               (slice-indices (py-slice-indices index len))
-               (start (vector-ref slice-indices 0))
-               (stop (vector-ref slice-indices 1))
-               (step (vector-ref slice-indices 2))
-               (slice-len (get-slice-length start stop step))
-               (slice-string (make-string slice-len)))
-          (let loop ((source start) (target 0))
-            (if (< target slice-len)
-              (begin
-                (string-set! slice-string target (string-ref string-content source))
-                (loop (+ source step) (+ target 1)))
-              (py-str-from-scheme slice-string)))))
-      (else (py-throw-wrong-index-type "str" "integers or slices" index)))
-    (py-throw-not-a-type-object "str.__getitem__" self)))
-
-(define-rts str.__getitem__
-  (procedure->py-function
-    str-getitem
-    (make-signature posonlyargs: (self index) name: str.__getitem__)))
+(define-method (str.__getitem__ self)
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "__getitem__" "str" self)
+  body: (cond
+          ((py-subtype-of-int? index)
+            (let* ((string-content (py-str-to-scheme self))
+                   (len (py-str-len-to-scheme self))
+                   (i (py-subtype-of-int-to-scheme index)))
+              (if (index-in-length-range i len)
+                (py-str-from-scheme (string (string-ref string-content (modulo i len))))
+                (py-throw-index-out-of-range "str"))))
+          ((py-isinstance? index py-slice-class)
+            (let* ((string-content (py-str-to-scheme self))
+                   (len (py-str-len-to-scheme self))
+                   (slice-indices (py-slice-indices index len))
+                   (start (vector-ref slice-indices 0))
+                   (stop (vector-ref slice-indices 1))
+                   (step (vector-ref slice-indices 2))
+                   (slice-len (get-slice-length start stop step))
+                   (slice-string (make-string slice-len)))
+              (let loop ((source start) (target 0))
+                (if (< target slice-len)
+                  (begin
+                    (string-set! slice-string target (string-ref string-content source))
+                    (loop (+ source step) (+ target 1)))
+                  (py-str-from-scheme slice-string)))))
+          (else (py-throw-wrong-index-type "str" "integers or slices" index)))
+  signature: (make-signature posonlyargs: (self index)))
 
 (define-method (str.lower self)
   guard: (not (py-subtype-of-str? self))
          (py-throw-required-type "lower" "str" self)
   body: (py-str-from-scheme (string-downcase (py-str-to-scheme self)))
-  signature: (make-signature posonlyargs: (self) name: str.lower))
+  signature: (make-signature posonlyargs: (self)))
 
 (define-rts (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
@@ -3114,13 +3096,13 @@
     (PyObject-class-set! str-class type-class)
     (PyObjectType-bases-set! str-class (vector object-class))
     (PyObjectType-mro-set! str-class (vector str-class object-class))
-    (py-own-attr-set! str-class (& "__name__") (&& "str"))
-    (py-own-attr-set! str-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! str-class (& "__new__") str.__new__)
-    (py-own-attr-set! str-class (& "__hash__") str.__hash__)
-    (py-own-attr-set! str-class (& "__repr__") str.__repr__)
-    (py-own-attr-set! str-class (& "__getitem__") str.__getitem__)
-    (py-own-attr-set! str-class (& "__str__") str.__str__)
+    (py-cls-own-attr-set! str-class (& "__name__") (&& "str"))
+    (py-cls-own-attr-set! str-class (& "__module__") (&& "builtins"))
+    (str.__new__:assign str-class (& "__new__"))
+    (str.__hash__:assign str-class (& "__hash__"))
+    (str.__repr__:assign str-class (& "__repr__"))
+    (str.__getitem__:assign str-class (& "__getitem__"))
+    (str.__str__:assign str-class (& "__str__"))
     (str.lower:assign str-class (& "lower"))))
 
 (bootstrap-type-hierarchy-phase1)

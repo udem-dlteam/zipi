@@ -331,7 +331,8 @@
                     (loop (cdr method-signature)))))
           (else
             (cons (car method-signature) (loop (cdr method-signature))))))
-      bound-posonlyargs)))
+      bound-posonlyargs
+      (list name: (car signature)))))
 
   (parse body)
 
