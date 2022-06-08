@@ -155,7 +155,7 @@
     (cond
       ((eq? __getattribute__ object.__getattribute__)
         (or
-          (object-getattribute obj name #f cache)
+          (py-object-getattribute obj name #f cache)
           (getattribute-from-getattr
             (lambda () (py-throw-object-getattribute-error obj name)))))
       ((eq? __getattribute__ type.__getattribute__)
@@ -166,7 +166,7 @@
               (lambda () (py-throw-type-getattribute-error obj name))))))
       ((eq? __getattribute__ module.__getattribute__)
         (or
-          (module-getattribute obj name #f cache)
+          (py-module-getattribute obj name #f cache)
           (getattribute-from-getattr
             (lambda () (py-throw-module-getattribute-error obj name)))))
       (else
@@ -185,6 +185,20 @@
   attr
   (lambda (val) val)
   (lambda () py-absent)))
+
+(define-rts (py-generic-own-attr-set! obj attr val)
+  (cond
+    ((PyObjectType? obj)
+      (py-cls-own-attr-set! obj attr val))
+    (else
+      (py-generic-non-type-own-attr-set! obj attr val))))
+
+(define-rts (py-generic-non-type-own-attr-set! obj attr val)
+  (cond
+    ((PyObjectModule? obj)
+      (global-own-attr-put-no-cache! obj name val))
+    (else
+      (py-own-attr-set! obj attr val))))
 
 (define-rts (py-own-attr-set! obj attr val)
   ;; TODO: fix case when obj is not represented with a PyObject
@@ -1951,7 +1965,7 @@
     (lambda () (error "py-getattribute-skip-binding" "__getattribute__ should always exist" obj))))
 
 
-(define-rts (object-getattribute obj name #!optional (raise? #t) (cache #f))
+(define-rts (py-object-getattribute obj name raise? cache)
   (define (getattribute-from-mro index-hit-on-object-hclass)
     (getattribute-from-obj-mro-with-index/owner-2cont
       obj
@@ -1988,25 +2002,31 @@
           val)))
     (lambda () (getattribute-from-mro #f))))
 
-(define-rts object.__getattribute__
-  (procedure->py-function
-    object-getattribute
-    (make-signature posonlyargs: (obj name) name: object.__getattribute__)))
+(define-rts (py-generic-getattribute self name)
+  (cond
+    ((PyObjectType? self)
+      (py-type-getattribute self name #t #f))
+    ((PyObjectModule? self)
+      (py-module-getattribute self name #t #f))
+    (else
+      (py-object-getattribute self name #t #f))))
 
-(define-rts (object-setattr obj name val)
-  ;; TODO: add check that obj does not has it own setattr method
-  (if (py-subtype-of-str? name)
-    (begin
-      (if (PyObjectType? obj) (reset-mro-caches!))
-      (py-own-attr-set! obj name val))
-    (py-throw-exception-with-message
-     py-builtin-TypeError
-     "attribute name must be string")))
+(define-method (object.__getattribute__ self name)
+  body: (py-generic-getattribute self name)
+  signature: (make-signature posonlyargs: (obj name)))
 
-(define-rts object.__setattr__
-  (procedure->py-function
-    object-setattr
-    (make-signature posonlyargs: (obj name val) name: object.__setattr__)))
+(define-method (object.__setattr__ self name val)
+  guard: (not (py-subtype-of-str? name))
+         (py-throw-exception-with-message
+           py-builtin-TypeError
+           "attribute name must be string")
+  guard: (PyObjectType? self)
+         (py-throw-exception-with-message
+           py-builtin-TypeError
+           "can't apply this __setattr__ to type object")
+  body: (py-generic-non-type-own-attr-set! self name val)
+        py-None
+  signature: (make-signature posonlyargs: (self name val)))
 
 ;; Implements attribute access on types with binding
 (define-rts (py-type-getattribute self name raise? cache)
@@ -2232,25 +2252,19 @@
                  (py-tuple-subtype-from-scheme (vector-copy content) cls))))))
   signature: (make-signature posonlyargs: (cls iterable) defaults: (vector py-absent)))
 
+
 ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
 ;; this should be done concurrently in py-call-generic
 ;; TODO: raise TypeError when cannot create, ex: list_iterator.__new__()
 ;; TODO: raise TypeError when object() is called with arguments
-(define-rts (object-new cls args kwargs)
-  (if (py-isinstance? cls py-type-class)
-    (py-obj-alloc cls)
-    (py-throw
-      (py-call py-builtin-TypeError
-        (&& "object.__new__(X): X is not a type object")))))
-
-(define-rts object.__new__
-  (procedure->py-function
-    object-new
-    (make-signature
-      posonlyargs: (cls)
-      vararg: args
-      kwarg: kwargs
-      name: object.__new__)))
+(define-method (object.__new__ cls args kwargs)
+  binding: staticmethod
+  guard: (not (py-isinstance? cls py-type-class))
+         (py-throw
+           (py-call py-builtin-TypeError
+             (&& "object.__new__(X): X is not a type object")))
+  body: (py-obj-alloc cls)
+  signature: (make-signature posonlyargs: (cls) vararg: args kwarg: kwargs))
 
 ;; object.__init__ exists but does nothing
 ;; its purpose is that super().__init__ does not raise and AttributeError
@@ -2261,6 +2275,10 @@
       posonlyargs: (self)
       vararg: args
       name: object.__init__)))
+
+(define-method (object.__init__ self args)
+  body: py-None
+  signature: (make-signature posonlyargs: (self) vararg: args))
 
 
 ;; =============================================================================
@@ -2608,21 +2626,13 @@
   (let ((table (apply global*-hclass->hashtable objs)))
     (map car (table->list table))))
 
-;; TODO need some type checks in those dir methods
-(define-rts (object-dir self)
-  (py-make-list-from-elems
-    (if (PyObject? self)
-      (py-get-list-of-obj*-str-attr
-        self
-        (py-obj-cls self))
-      ;; Non-PyObject such as fixnums have no attributes
-      (py-get-list-of-obj*-str-attr
-        (py-obj-cls self)))))
-
-(define-rts object.__dir__
-  (procedure->py-function
-    object-dir
-    (make-signature posonlyargs: (self) name: object.__dir__)))
+(define-method (object.__dir__ self)
+  body: (py-make-list-from-elems
+          (if (PyObject? self)
+            (py-get-list-of-obj*-str-attr self (py-obj-cls self))
+            ;; Non-PyObject such as fixnums have no attributes
+            (py-get-list-of-obj*-str-attr (py-obj-cls self))))
+  signature: (make-signature posonlyargs: (self)))
 
 (define-method (type.__dir__ self)
   guard: (not (py-isinstance? self py-type-class))
@@ -2638,25 +2648,17 @@
           (py-str-from-scheme result))
   signature: (make-signature posonlyargs: (self)))
 
-(define-rts (object-repr self)
-  (let* ((self-type (py-type self))
-         (self-type-name (py-str-to-scheme (py-own-attr-ref self-type (& "__name__"))))
-         (addr (integer->hex-string (object->serial-number self)))
-         (result (string-append "<" self-type-name " object #" addr ">")))
-    (py-str-from-scheme result)))
+(define-method (object.__repr__ self)
+  body: (let* ((self-type (py-type self))
+               (self-type-name (py-str-to-scheme (py-own-attr-ref self-type (& "__name__"))))
+               (addr (integer->hex-string (object->serial-number self)))
+               (result (string-append "<" self-type-name " object #" addr ">")))
+          (py-str-from-scheme result))
+  signature: (make-signature posonlyargs: (self)))
 
-(define-rts object.__repr__
-  (procedure->py-function
-    object-repr
-    (make-signature posonlyargs: (self) name: object.__repr__)))
-
-(define-rts (object-str self)
-  (py-repr self))
-
-(define-rts object.__str__
-  (procedure->py-function
-    object-str
-    (make-signature posonlyargs: (self) name: object.__str__)))
+(define-method (object.__str__ self)
+  body: (py-repr self)
+  signature: (make-signature posonlyargs: (self)))
 
 (define-rts (float->string-with-padded-zeros value)
   (let ((s (number->string value)))
@@ -3020,15 +3022,15 @@
     (PyObject-class-set! object-class type-class)
     (PyObjectType-bases-set! object-class '#())
     (PyObjectType-mro-set! object-class (vector object-class))
-    (py-own-attr-set! object-class (& "__name__") (&& "object"))
-    (py-own-attr-set! object-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! object-class (& "__new__") object.__new__)
-    (py-own-attr-set! object-class (& "__init__") object.__init__)
-    (py-own-attr-set! object-class (& "__getattribute__") object.__getattribute__)
-    (py-own-attr-set! object-class (& "__setattr__") object.__setattr__)
-    (py-own-attr-set! object-class (& "__repr__") object.__repr__)
-    (py-own-attr-set! object-class (& "__str__") object.__str__)
-    (py-own-attr-set! object-class (& "__dir__") object.__dir__)
+    (py-cls-own-attr-set! object-class (& "__name__") (&& "object"))
+    (py-cls-own-attr-set! object-class (& "__module__") (&& "builtins"))
+    (object.__new__:assign object-class (& "__new__"))
+    (object.__init__:assign object-class (& "__init__"))
+    (object.__getattribute__:assign object-class (& "__getattribute__"))
+    (object.__setattr__:assign object-class (& "__setattr__"))
+    (object.__repr__:assign object-class (& "__repr__"))
+    (object.__str__:assign object-class (& "__str__"))
+    (object.__dir__:assign object-class (& "__dir__"))
 
 
     ;; Fill in type class
@@ -3202,8 +3204,8 @@
     (make-signature posonlyargs: (self) name: module.__dir__)))
 
 
-(define-rts (module-getattribute obj name #!optional (raise? #t) (cache #f))
-  (define (getattribute-from-mro #!optional (index-of-hit-on-module #f))
+(define-rts (py-module-getattribute obj name raise? cache)
+  (define (getattribute-from-mro index-of-hit-on-module)
     (getattribute-from-obj-mro-with-owner-2cont
       obj
       name
@@ -3215,29 +3217,27 @@
      (lambda ()
         (and raise? (py-throw-module-getattribute-error obj name)))))
 
-  (if (py-isinstance? obj py-module-class)
-    (if (py-isinstance? name py-builtin-str)
-      (py-own-attr-index-2cont
-        obj
-        name
-        (lambda (index)
-          (let ((val (PyObject-global-elements-ref obj index)))
-            (if val
-              (begin
-                (if cache (AttributeCache-module-hit! cache (py-obj-hclass obj) index))
-                val)
-              (getattribute-from-mro index))))
-        getattribute-from-mro)
-      (py-throw-exception-with-message
-       py-builtin-TypeError
-       "attribute name must be string"))
-    (throw-returned-wrong-type "__getattribute__" obj "not a module")))
+  (py-own-attr-index-2cont
+    obj
+    name
+    (lambda (index)
+      (let ((val (PyObject-global-elements-ref obj index)))
+        (if val
+          (begin
+            (if cache (AttributeCache-module-hit! cache (py-obj-hclass obj) index))
+            val)
+          (getattribute-from-mro index))))
+    (lambda () (getattribute-from-mro #f))))
 
-(define-rts module.__getattribute__
-  (procedure->py-function
-    module-getattribute
-    (make-signature posonlyargs: (self name) name: module.__getattribute__)))
-
+(define-method (module.__getattribute__ self name)
+  guard: (not (py-isinstance? obj py-module-class))
+         (py-throw-required-type "__getattribute__" "module" self)
+  guard: (not (py-isinstance? name py-builtin-str))
+         (py-throw-exception-with-message
+           py-builtin-TypeError
+           "attribute name must be string")
+  body: (py-module-getattribute self name #t #f)
+  signature: (make-signature posonlyargs: (self name)))
 
 (define-rts (module-setattr self name val)
   (if (py-isinstance? self py-module-class)
@@ -8111,7 +8111,7 @@
          (lambda (attr owner)
            (py-descriptor-get attr this-self owner))
          (lambda ()
-           (object-getattribute self name))))))
+           (py-object-getattribute self name #t #f))))))
 
 (define-rts (py-super-getattribute-for-getattribute name cls instance)
   (if (eq? (py-str-representative name) (& "__class__"))
@@ -8126,7 +8126,7 @@
          (lambda (attr owner)
            (py-descriptor-get attr this-self owner))
          (lambda ()
-	    (object-getattribute instance name))))))
+	    (py-object-getattribute instance name #t #f))))))
 
 (define-rts super.__getattribute__
   (procedure->py-function
