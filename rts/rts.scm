@@ -210,7 +210,7 @@
             (PyObject-elements-set! obj index val)))))))
 
 (define-rts (py-cls-own-attr-set! cls attr val)
-  (py-cls-own-attr-set-with-pending-binding! cls attr val (lambda () val)))
+  (py-cls-own-attr-set-with-pending-binding! cls attr val (lambda (obj) (py-descriptor-get val obj cls))))
 
 (define-rts (py-cls-own-attr-set-with-pending-binding! cls attr val pb-val)
   ;; TODO: fix case when obj is not represented with a PyObject
@@ -1866,7 +1866,7 @@
       (py-getattribute-from-mro-cache-skip-binding $obj $cache)
       (let (($attr (PyObject-global-elements-ref $obj index)))
         (if $attr
-          (lambda () $attr)
+          (lambda (_) $attr)
           (py-getattribute-from-mro-cache-skip-binding $obj $cache))))))
 
 (define-macro (py-getattribute-from-object-cache-skip-binding obj cache)
@@ -1878,7 +1878,7 @@
       (let ((attr (PyObject-elements-ref $obj index)))
         (if (eq? attr py-absent)
           (py-getattribute-from-mro-cache-skip-binding $obj $cache)
-          (lambda () attr))))))
+          (lambda (_) attr))))))
 
 (define-macro (py-getattribute-from-mro-cache-skip-binding obj cache)
   `(AttributeCache-attr ,cache))
@@ -1927,7 +1927,7 @@
         cls-attr)
       ;; TODO: standardize order of parameters of getattribute semantics
       (lambda ()
-        (lambda () (py-getattribute-fallback:fallback name obj py-absent)))))
+        (lambda (obj) (py-getattribute-fallback:fallback name obj py-absent)))))
 
   (py-getattribute-from-obj-mro-2cont
     obj
@@ -1944,11 +1944,11 @@
                 (getattribute-from-mro #t)
                 (begin
                   (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
-                  (lambda () val))))
+                  (lambda (_) val))))
             (getattribute-from-mro #f)))
         (else
           ;; TODO: cache?
-          (lambda () (py-getattribute-fallback:normal name obj __getattribute__)))))
+          (lambda (obj) (py-getattribute-fallback:normal name obj __getattribute__)))))
     (lambda () (error "py-getattribute-skip-binding" "__getattribute__ should always exist" obj))))
 
 

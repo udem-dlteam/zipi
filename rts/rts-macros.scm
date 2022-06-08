@@ -417,8 +417,8 @@
 (define-macro (binding-skip-fail? x)
   `(procedure? x))
 
-(define-macro (binding-skip-callback x)
-  `(,x))
+(define-macro (binding-skip-callback callback obj)
+  `(,callback ,obj))
 
 ;; executions points in the type.__call__ method
 (define-macro (type-call-from-instance self instance args-w/-instance) ;;args should contain instance

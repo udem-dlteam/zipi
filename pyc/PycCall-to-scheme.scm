@@ -183,7 +183,7 @@
               (new-PycStatic
                 (PycNode-loc (PycCall-fun call))
                 'binding-callback
-                `(binding-skip-callback ,(scheme (PycCall-fun call) conf))))
+                `(binding-skip-callback ,(scheme (PycCall-fun call) conf) ,call-after-skipped-binding)))
             (PycCall-args-set! call-copy (cdr (PycCall-args call)))
             (default-call call-copy conf (cons* skipped-binding: #f params))))
       (let* ((dynamic-super-call (dynamic-super-call? call conf params)))
@@ -241,7 +241,7 @@
         keywords-names: (PycCall-keywords-names call)
         can-be-super: (PycCall-can-be-super call))
       conf
-      (cons* skipped-binding: #t params)))))
+      (cons* skipped-binding: obj-sym params)))))
 
 ;; Dispatch
 
