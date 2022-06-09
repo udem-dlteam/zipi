@@ -1812,35 +1812,23 @@
      (py-int-from-scheme (|##modulo| x y)))
 ))
 
-(define-rts (int-repr self)
-  (if (py-subtype-of-int? self)
-      (py-str-from-scheme (number->string (py-subtype-of-int-to-scheme self)))
-      (py-throw-required-type "__repr__" "int" self)))
+(define-method (int.__repr__ self)
+  guard: (not (py-subtype-of-int? self))
+         (py-throw-required-type "__repr__" "int" self)
+  body: (py-str-from-scheme (number->string (py-subtype-of-int-to-scheme self)))
+  signature: (make-signature posonlyargs: (self)))
 
-(define-rts int.__repr__
-  (procedure->py-function
-    int-repr
-    (make-signature posonlyargs: (self) name: int.__repr__)))
+(define-method (int.__hash__ self)
+  guard: (not (py-subtype-of-int? self))
+         (py-throw-required-type "__hash__" "int" self)
+  body: (py-int-from-scheme (truncate-hash (py-subtype-of-int-to-scheme self)))
+  signature: (make-signature posonlyargs: (self)))
 
-(define-rts (int-hash self)
-  (if (py-subtype-of-int? self)
-      (py-int-from-scheme (truncate-hash (py-subtype-of-int-to-scheme self)))
-      (py-throw-required-type "__hash__" "int" self)))
-
-(define-rts int.__hash__
-  (procedure->py-function
-    int-hash
-    (make-signature posonlyargs: (self) name: int.__hash__)))
-
-(define-rts (int-int self)
-  (if (py-subtype-of-int? self)
-      (py-int-from-scheme (py-subtype-of-int-to-scheme self))
-      (py-throw-required-type "__int__" "int" self)))
-
-(define-rts int.__int__
-  (procedure->py-function
-    int-int
-    (make-signature posonlyargs: (self) name: int.__int__)))
+(define-method (int.__int__ self)
+  guard: (not (py-subtype-of-int? self))
+         (py-throw-required-type "__int__" "int" self)
+  body: (py-int-from-scheme (py-subtype-of-int-to-scheme self))
+  signature: (make-signature posonlyargs: (self)))
 
 (define-rts (int-bool self)
   (if (py-subtype-of-int? self)
@@ -2176,20 +2164,13 @@
 
 ;; slow way to call function through function.__call__
 ;; interfaces between manual __call__ and py-call
-(define-rts (function-call self args)
-  (if (eq? (py-type self) py-function-class)
-      (let ((args-list (vector->list (PyObjectTuple-value args))))
-	 (tprint "function-call " (length args-list))
-      (py-call-generic self args-list))
-    (py-throw-required-type "__call__" "method" self)))
-
-(define-rts function.__call__
-  (procedure->py-function
-    function-call
-    (make-signature
-      posonlyargs: (self)
-      vararg: args
-      name: function.__call__)))
+;; TODO: add **kwargs?
+(define-method (function.__call__ self args)
+  guard: (not (eq? (py-obj-cls self) py-function-class))
+         (py-throw-required-type "__call__" "method" self)
+  body: (let ((args-list (vector->list (PyObjectTuple-value args))))
+          (py-call-generic self args-list))
+  signature: (make-signature posonlyargs: (self) vararg: args))
 
 (define-rts (type-call-from-new-method-fallback self args __new__)
   (type-call-from-new-method self args __new__))
@@ -2672,49 +2653,37 @@
           (else
            s))))
 
-(define-rts (float-repr self)
-  (if (py-subtype-of-float? self)
-    (let ((value (py-subtype-of-float-to-scheme self)))
-      (cond
-        ((infinite? value)
-          (if (fl> value 0.) (&& "inf") (&& "-inf")))
-        ((nan? value)
-           (&& "nan"))
-        (else
-          (py-str-from-scheme (float->string-with-padded-zeros value)))))
-    (py-throw-required-type "__repr__" "float" self)))
+(define-method (float.__repr__ self)
+  guard: (not (py-subtype-of-float? self))
+         (py-throw-required-type "__repr__" "float" self)
+  body: (let ((value (py-subtype-of-float-to-scheme self)))
+          (cond
+            ((infinite? value)
+              (if (fl> value 0.) (&& "inf") (&& "-inf")))
+            ((nan? value)
+               (&& "nan"))
+            (else
+              (py-str-from-scheme (float->string-with-padded-zeros value)))))
+  signature: (make-signature posonlyargs: (self)))
 
-(define-rts float.__repr__
-  (procedure->py-function
-   float-repr
-   (make-signature posonlyargs: (self) name: float.__repr__)))
+(define-method (float.__int__ self)
+    guard: (not (py-subtype-of-float? self))
+           (py-throw-required-type "__int__" "float" self)
+    body: (let ((value (py-subtype-of-float-to-scheme self)))
+            (if (flfinite? value)
+                (py-int-from-scheme (inexact->exact (fltruncate value)))
+                (py-throw-exception-with-message
+                 py-builtin-OverflowError
+                 (if (flinfinite? value)
+                     "cannot convert float infinity to integer"
+                     "cannot convert float NaN to integer"))))
+    signature: (make-signature posonlyargs: (self)))
 
-(define-rts (float-int self)
-  (if (py-subtype-of-float? self)
-      (let ((value (py-subtype-of-float-to-scheme self)))
-        (if (flfinite? value)
-            (py-int-from-scheme (inexact->exact (fltruncate value)))
-            (py-throw-exception-with-message
-             py-builtin-OverflowError
-             (if (flinfinite? value)
-                 "cannot convert float infinity to integer"
-                 "cannot convert float NaN to integer"))))
-      (py-throw-required-type "__int__" "float" self)))
-
-(define-rts float.__int__
-  (procedure->py-function
-    float-int
-    (make-signature posonlyargs: (self) name: float.__int__)))
-
-(define-rts (float-abs self)
-  (if (py-subtype-of-float? self)
-      (py-float-from-scheme (flabs (py-subtype-of-float-to-scheme self)))
-      (py-throw-required-type "__abs__" "float" self)))
-
-(define-rts float.__abs__
-  (procedure->py-function
-    float-abs
-    (make-signature posonlyargs: (self) name: float.__abs__)))
+(define-method (float.__abs__ self)
+  guard: (not (py-subtype-of-float? self))
+         (py-throw-required-type "__abs__" "float" self)
+  body: (py-float-from-scheme (flabs (py-subtype-of-float-to-scheme self)))
+  signature: (make-signature posonlyargs: (self)))
 
 (define-rts (py-display obj port)
   (display (py-str-to-scheme (py-str obj)) port))
@@ -3156,12 +3125,8 @@
             (begin
               (py-own-attr-set! cls (car attr-names) (car attr-values))
               (loop (cdr attr-names) (cdr attr-values)))))
-      (py-own-attr-set! cls
-        (& "__module__")
-        module)
-      (py-own-attr-set! cls
-        (& "__name__")
-        name)
+      (py-cls-own-attr-set! cls (& "__module__") module)
+      (py-cls-own-attr-set! cls (& "__name__") name)
       cls))
     (let ((parsed-attrs (py-class-parse-attributes attrs)))
       (make-cls (car parsed-attrs) (cdr parsed-attrs))))
@@ -5509,33 +5474,33 @@
     ;; int
     (set! py-int-class int-class)
     (PyObjectType-mro-set! int-class (vector int-class py-object-class))
-    (py-own-attr-set! int-class (& "__name__") (&& "int"))
-    (py-own-attr-set! int-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! int-class (& "__repr__") int.__repr__)
-    (py-own-attr-set! int-class (& "__hash__") int.__hash__)
-    (py-own-attr-set! int-class (& "__int__") int.__int__)
+    (py-cls-own-attr-set! int-class (& "__name__") (&& "int"))
+    (py-cls-own-attr-set! int-class (& "__module__") (&& "builtins"))
+    (int.__repr__:assign int-class (& "__repr__"))
+    (int.__hash__:assign int-class (& "__hash__"))
+    (int.__int___assign int-class (& "__int__"))
 
     ;; bool
     (set! py-bool-class bool-class)
     (PyObjectType-mro-set! bool-class (vector bool-class int-class py-object-class))
-    (py-own-attr-set! bool-class (& "__name__") (&& "bool"))
-    (py-own-attr-set! bool-class (& "__module__") (&& "builtins"))
+    (py-cls-own-attr-set! bool-class (& "__name__") (&& "bool"))
+    (py-cls-own-attr-set! bool-class (& "__module__") (&& "builtins"))
 
     ;;float
     (set! py-float-class float-class)
     (PyObjectType-mro-set! float-class (vector float-class py-object-class))
-    (py-own-attr-set! float-class (& "__name__") (&& "float"))
-    (py-own-attr-set! float-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! float-class (& "__repr__") float.__repr__)
-    (py-own-attr-set! float-class (& "__int__") float.__int__)
-    (py-own-attr-set! float-class (& "__abs__") float.__abs__)
+    (py-cls-own-attr-set! float-class (& "__name__") (&& "float"))
+    (py-cls-own-attr-set! float-class (& "__module__") (&& "builtins"))
+    (float.__repr__:assign float-class (& "__repr__"))
+    (float.__int__:assign float-class (& "__int__"))
+    (float.__abs__:assign float-class (& "__abs__"))
 
     ;; function
     (set! py-function-class function-class)
     (PyObjectType-mro-set! function-class (vector function-class py-object-class))
-    (py-own-attr-set! function-class (& "__name__") (&& "function"))
-    (py-own-attr-set! function-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! function-class (& "__call__") function.__call__))
+    (py-cls-own-attr-set! function-class (& "__name__") (&& "function"))
+    (py-cls-own-attr-set! function-class (& "__module__") (&& "builtins"))
+    (function.__call__:assign function-class (& "__call__")))
 
   ;; Fill in tuple class
   (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
