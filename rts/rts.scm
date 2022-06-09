@@ -306,6 +306,7 @@
 
 (define-hclass-of-instances-preallocations
   py-object-hclass-of-instances
+  py-type-hclass-of-instances
   py-str-hclass-of-instances
   py-tuple-hclass-of-instances
   py-int-hclass-of-instances
@@ -614,15 +615,96 @@
           index
           (vector getter setter))))))
 
-;; Boostrap functions
-;; Functions are objects of type 'function', but their type cannot be assigned
-;; as long as the py-function-class has not been created.
-;; Before the creation of py-function-class, we instantiate class-less objects
-;; which we keep in the functions-awaiting-bootstap list. Once py-function-class
-;; is created, we can recover these functions and add their type.
 
-(define-rts functions-awaiting-bootstap '())
-(define-rts pending-binding-functions-awaiting-bootstap '())
+;; Bootstraps type and object
+;; Create barebone object, type, str and tuple classes
+;; These will need to be filled in later
+
+;; core types (must be created in 1st bootstrap phase)
+(define-rts py-object-class #f)
+(define-rts py-type-class   #f)
+(define-rts py-str-class    #f)
+(define-rts py-tuple-class  #f)
+(define-rts py-function-class  #f)
+
+(define-rts (bootstrap-type-hierarchy-phase1)
+  (set! py-object-class
+    (py-builtin-type-alloc
+      #f ;; cls
+      (get-behavior-type-index object)
+      #f ;; can-have-getter
+      #f ;; bases
+      #f ;; mro
+      py-object-hclass-of-instances))
+
+  (set! py-type-class
+    (py-builtin-type-alloc
+      #f ;; cls
+      (get-behavior-type-index type)
+      #f ;; can-have-getter
+      #f ;; bases
+      #f ;; mro
+      py-type-hclass-of-instances))
+
+  (set! py-str-class
+    (py-builtin-type-alloc
+      #f ;; cls
+      (get-behavior-type-index str)
+      #f ;; can-have-getter
+      #f ;; bases
+      #f ;; mro
+      py-str-hclass-of-instances))
+
+  (set! py-tuple-class
+    (py-builtin-type-alloc
+      #f ;; cls
+      (get-behavior-type-index tuple)
+      #f ;; can-have-getter
+      #f ;; bases
+      #f ;; mro
+      py-tuple-hclass-of-instances))
+
+  (set! py-function-class
+    (py-builtin-type-alloc
+       #f ;; type must be filled in later
+       (get-behavior-type-index function) ;; class index
+       #t ;; can-have-getter
+       #f ;; bases must be filled in later
+       #f ;; mro must be filled in later
+       py-function-hclass-of-instances)) ;; hclass
+
+  ;; init all object (& ...) to a py-str object
+  (init-registered-constants)
+
+  ;; set the magic-index (for attribute fast access on types) on magic attributes (__add__, __next__, etc.)
+  (fill-representatives-magic-index)
+
+  ;; Fill in object class
+  (PyObject-class-set! py-object-class py-type-class)
+  (PyObjectType-bases-set! py-object-class '#())
+  (PyObjectType-mro-set! py-object-class (vector py-object-class))
+
+  ;; Fill in type class
+  (PyObject-class-set! py-type-class py-type-class)
+  (PyObjectType-bases-set! py-type-class (vector py-object-class))
+  (PyObjectType-mro-set! py-type-class (vector py-type-class py-object-class))
+
+  ;; Fill in tuple class
+  (PyObject-class-set! py-tuple-class py-type-class)
+  (PyObjectType-bases-set! py-tuple-class (vector py-object-class))
+  (PyObjectType-mro-set! py-tuple-class (vector py-tuple-class py-object-class))
+
+  ;; Fill in str class
+  (PyObject-class-set! py-str-class py-type-class)
+  (PyObjectType-bases-set! py-str-class (vector py-object-class))
+  (PyObjectType-mro-set! py-str-class (vector py-str-class py-object-class))
+
+  ;; Fill in function class
+  (PyObject-class-set! py-function-class py-type-class)
+  (PyObjectType-bases-set! py-function-class (vector py-object-class))
+  (PyObjectType-mro-set! py-function-class (vector py-function-class py-object-class)))
+
+(bootstrap-type-hierarchy-phase1)
 
 ;; signature: '#(args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
 ;; takes in a signature and returns an arity.
@@ -662,22 +744,7 @@
 	 (+ (vector-length args) (vector-length posonlyargs))
 	 #f)))
 
-(define-rts (prebootstrap-procedure->py-function procedure signature)
-  (let ((py-function
-          (py-make-PyObjectFunction
-            py-function-hclass-of-instances
-            '#()
-            #f
-            procedure
-            (signature->arity signature)
-            (signature->scheme-arity signature)
-            signature)))
-    (set!
-      functions-awaiting-bootstap
-      (cons py-function functions-awaiting-bootstap))
-    py-function))
-
-(define-rts (postbootstrap-procedure->py-function procedure signature)
+(define-rts (procedure->py-function procedure signature)
   (py-make-PyObjectFunction
     py-function-hclass-of-instances
     '#()
@@ -686,24 +753,6 @@
     (signature->arity signature)
     (signature->scheme-arity signature)
     signature))
-
-(define-rts procedure->py-function prebootstrap-procedure->py-function)
-
-(define-rts (bootstrap-functions)
-  (set! procedure->py-function postbootstrap-procedure->py-function)
-  (let loop ((functions functions-awaiting-bootstap))
-    (if (not (null? functions))
-      (begin
-        (PyObject-class-set! (car functions) py-function-class)
-        (loop (cdr functions))))))
-
-(define-rts (bootstrap-functions)
-  (set! procedure->py-function postbootstrap-procedure->py-function)
-  (let loop ((functions functions-awaiting-bootstap))
-    (if (not (null? functions))
-      (begin
-        (PyObject-class-set! (car functions) py-function-class)
-        (loop (cdr functions))))))
 
 (define-rts (pack-extra-args arity args)
   (if (= arity -1)
@@ -2864,11 +2913,6 @@
 ;;  BUILTIN CLASSES
 ;; =============================================================================
 
-;; core types (must be created in 1st bootstrap phase)
-(define-rts py-object-class #f)
-(define-rts py-type-class   #f)
-(define-rts py-str-class    #f)
-(define-rts py-tuple-class  #f)
 (define-rts py-int-class #f)
 (define-rts py-bool-class #f)
 (define-rts py-float-class #f)
@@ -2877,7 +2921,6 @@
 (define-rts py-complex-class #f)
 (define-rts py-slice-class  #f)
 (define-rts py-method-class #f)
-(define-rts py-function-class #f)
 (define-rts py-list-class   #f)
 (define-rts py-dict-class   #f)
 (define-rts py-set-class    #f)
@@ -2937,106 +2980,6 @@
     '#()
     bytearray-subtype
     len-vec-pair))
-
-;; Bootstraps type and object
-;; Create barebone object, type, str and tuple classes
-;; These will need to be filled in later
-(define-rts (bootstrap-type-hierarchy-phase1)
-  (let* ((type-class
-          (py-builtin-type-alloc
-            #f ;; cls
-            (get-behavior-type-index type)
-            #f ;; can-have-getter
-            #f ;; bases
-            #f ;; mro
-            #f)) ;; NOTE: this is ok! each type should have a different hclass for attribute caching purpose
-                 ;; for this reasons there is no "py-type-hclass-of-instances"
-        (object-class
-          (py-builtin-type-alloc
-            #f ;; cls
-            (get-behavior-type-index object)
-            #f ;; can-have-getter
-            #f ;; bases
-            #f ;; mro
-            py-object-hclass-of-instances))
-        (str-class
-          (py-builtin-type-alloc
-            #f ;; cls
-            (get-behavior-type-index str)
-            #f ;; can-have-getter
-            #f ;; bases
-            #f ;; mro
-            py-str-hclass-of-instances))
-        (tuple-class
-          (py-builtin-type-alloc
-            #f ;; cls
-            (get-behavior-type-index tuple)
-            #f ;; can-have-getter
-            #f ;; bases
-            #f ;; mro
-            py-tuple-hclass-of-instances)))
-
-    (set! py-object-class object-class)
-    (set! py-type-class type-class)
-    (set! py-str-class str-class)
-    (set! py-tuple-class tuple-class)
-
-    ;; init all object (& ...) to a py-str object
-    (init-registered-constants)
-
-    ;; set the magic-index (for attribute fast access on types) on magic attributes (__add__, __next__, etc.)
-    (fill-representatives-magic-index)
-
-    ;; Fill in object class
-    (PyObject-class-set! object-class type-class)
-    (PyObjectType-bases-set! object-class '#())
-    (PyObjectType-mro-set! object-class (vector object-class))
-    (py-cls-own-attr-set! object-class (& "__name__") (&& "object"))
-    (py-cls-own-attr-set! object-class (& "__module__") (&& "builtins"))
-    (object.__new__:assign object-class (& "__new__"))
-    (object.__init__:assign object-class (& "__init__"))
-    (object.__getattribute__:assign object-class (& "__getattribute__"))
-    (object.__setattr__:assign object-class (& "__setattr__"))
-    (object.__repr__:assign object-class (& "__repr__"))
-    (object.__str__:assign object-class (& "__str__"))
-    (object.__dir__:assign object-class (& "__dir__"))
-
-
-    ;; Fill in type class
-    (PyObject-class-set! type-class type-class)
-    (PyObjectType-bases-set! type-class (vector object-class))
-    (PyObjectType-mro-set! type-class (vector type-class object-class))
-    (py-cls-own-attr-set! type-class (& "__name__") (&& "type"))
-    (py-cls-own-attr-set! type-class (& "__module__") (&& "builtins"))
-    (type.__new__:assign type-class (& "__new__"))
-    (type.__call__:assign type-class (& "__call__"))
-    (type.__setattr__:assign type-class (& "__setattr__"))
-    (type.__getattribute__:assign type-class (& "__getattribute__"))
-    (type.__dir__:assign type-class (& "__dir__"))
-    (type.__repr__:assign type-class (& "__repr__"))
-
-    ;; Fill in tuple class
-    (PyObject-class-set! tuple-class type-class)
-    (PyObjectType-bases-set! tuple-class (vector object-class))
-    (PyObjectType-mro-set! tuple-class (vector tuple-class object-class))
-    (py-cls-own-attr-set! tuple-class (& "__name__") (&& "tuple"))
-    (py-cls-own-attr-set! tuple-class (& "__module__") (&& "builtins"))
-    (tuple.__new__:assign tuple-class (& "__new__"))
-
-    ;; Fill in str class
-    (PyObject-class-set! str-class type-class)
-    (PyObjectType-bases-set! str-class (vector object-class))
-    (PyObjectType-mro-set! str-class (vector str-class object-class))
-    (py-cls-own-attr-set! str-class (& "__name__") (&& "str"))
-    (py-cls-own-attr-set! str-class (& "__module__") (&& "builtins"))
-    (str.__new__:assign str-class (& "__new__"))
-    (str.__hash__:assign str-class (& "__hash__"))
-    (str.__repr__:assign str-class (& "__repr__"))
-    (str.__getitem__:assign str-class (& "__getitem__"))
-    (str.__str__:assign str-class (& "__str__"))
-    (str.lower:assign str-class (& "lower"))))
-
-(bootstrap-type-hierarchy-phase1)
 
 (define-rts (py-getitem-listX-sintY-fallback obj item)
   (py-getitem-listX-sintY obj item))
@@ -5425,15 +5368,48 @@
                   #f ;; can-have-getter
                   (vector py-object-class) ;; bases
                   #f ;; mro
-                  py-float-hclass-of-instances))
-           (function-class
-              (py-builtin-type-alloc
-                 py-type-class
-                 (get-behavior-type-index function)
-                 #t ;; can-have-getter
-                 (vector py-object-class) ;; bases
-                 #f ;; mro
-                 py-function-hclass-of-instances)))
+                  py-float-hclass-of-instances)))
+
+    ;; fill object attributes
+    (py-cls-own-attr-set! py-object-class (& "__name__") (&& "object"))
+    (py-cls-own-attr-set! py-object-class (& "__module__") (&& "builtins"))
+    (object.__new__:assign py-object-class (& "__new__"))
+    (object.__init__:assign py-object-class (& "__init__"))
+    (object.__getattribute__:assign py-object-class (& "__getattribute__"))
+    (object.__setattr__:assign py-object-class (& "__setattr__"))
+    (object.__repr__:assign py-object-class (& "__repr__"))
+    (object.__str__:assign py-object-class (& "__str__"))
+    (object.__dir__:assign py-object-class (& "__dir__"))
+
+    ;; fill type attributes
+    (py-cls-own-attr-set! py-type-class (& "__name__") (&& "type"))
+    (py-cls-own-attr-set! py-type-class (& "__module__") (&& "builtins"))
+    (type.__new__:assign py-type-class (& "__new__"))
+    (type.__call__:assign py-type-class (& "__call__"))
+    (type.__setattr__:assign py-type-class (& "__setattr__"))
+    (type.__getattribute__:assign py-type-class (& "__getattribute__"))
+    (type.__dir__:assign py-type-class (& "__dir__"))
+    (type.__repr__:assign py-type-class (& "__repr__"))
+
+    ;; fill tuple attributes
+    (py-cls-own-attr-set! py-tuple-class (& "__name__") (&& "tuple"))
+    (py-cls-own-attr-set! py-tuple-class (& "__module__") (&& "builtins"))
+    (tuple.__new__:assign py-tuple-class (& "__new__"))
+
+    ;; fill str attributes
+    (py-cls-own-attr-set! py-str-class (& "__name__") (&& "str"))
+    (py-cls-own-attr-set! py-str-class (& "__module__") (&& "builtins"))
+    (str.__new__:assign py-str-class (& "__new__"))
+    (str.__hash__:assign py-str-class (& "__hash__"))
+    (str.__repr__:assign py-str-class (& "__repr__"))
+    (str.__getitem__:assign py-str-class (& "__getitem__"))
+    (str.__str__:assign py-str-class (& "__str__"))
+    (str.lower:assign py-str-class (& "lower"))
+
+    ;; fill function attributes
+    (py-cls-own-attr-set! py-function-class (& "__name__") (&& "function"))
+    (py-cls-own-attr-set! py-function-class (& "__module__") (&& "builtins"))
+    (function.__call__:assign py-function-class (& "__call__"))
 
     ;; int
     (set! py-int-class int-class)
@@ -5457,14 +5433,7 @@
     (py-cls-own-attr-set! float-class (& "__module__") (&& "builtins"))
     (float.__repr__:assign float-class (& "__repr__"))
     (float.__int__:assign float-class (& "__int__"))
-    (float.__abs__:assign float-class (& "__abs__"))
-
-    ;; function
-    (set! py-function-class function-class)
-    (PyObjectType-mro-set! function-class (vector function-class py-object-class))
-    (py-cls-own-attr-set! function-class (& "__name__") (&& "function"))
-    (py-cls-own-attr-set! function-class (& "__module__") (&& "builtins"))
-    (function.__call__:assign function-class (& "__call__")))
+    (float.__abs__:assign float-class (& "__abs__")))
 
   ;; Fill in tuple class
   (tuple.__iter__:assign py-tuple-class (& "__iter__"))
@@ -5553,8 +5522,6 @@
      (& "insert") list.insert
      (& "extend") list.extend
      (& "reverse") list.reverse
-     (& "sort") #f ;; set later from py-builtin-sorted
-
      ))
 
   (set! py-dict-class
@@ -5612,8 +5579,6 @@
 
 (define-rts py-True (py-subtype-of-int-from-scheme 1 py-bool-class))
 (define-rts py-False (py-subtype-of-int-from-scheme 0 py-bool-class))
-
-(bootstrap-functions)
 
 ;; =============================================================================
 ;;  IO
