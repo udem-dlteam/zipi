@@ -2247,7 +2247,7 @@
 
 (define-method (type.__new__ metacls obj-or-name bases attrs)
   binding: staticmethod
-  guard: (not (py-issubclass? cls py-type-class))
+  guard: (not (py-issubclass? metacls py-type-class))
          (py-throw-wrong-new-argument "type" metacls)
   body: (cond
           ((not bases)
