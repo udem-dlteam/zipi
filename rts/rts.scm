@@ -8015,7 +8015,9 @@
 
 (define-rts (super-init self type object)
   (if (eq? object py-absent)
-    (error "super not implemented for 1 argument")
+    (py-throw-exception-with-message
+      py-builtin-NotImplementedError
+      "super not implemented for 1 argument")
     (begin
       (py-own-attr-set! self (& "__thisclass__") type)
       (py-own-attr-set! self (& "__self__") object))))
