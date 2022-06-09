@@ -4023,46 +4023,35 @@
 
 ;; tuple class
 
-(define-rts (tuple-iter self)
-  (if (py-isinstance? self py-tuple-class)
-    (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
-    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 12)")))
+(define-method (tuple.__iter__ self)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__iter__" "tuple" self)
+  body: (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
+  signature: (make-signature posonlyargs: (self)))
 
-(define-rts tuple.__iter__
-  (procedure->py-function
-    tuple-iter
-    (make-signature posonlyargs: (self) name: tuple.__iter__)))
+(define-method (tuple.__contains__ self item)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__contains__" "tuple" self)
+  body: (let* ((vec (PyObjectTuple-value self))
+               (vec-len (vector-length vec)))
+          (let loop ((i 0))
+            (if (< i vec-len)
+              (if (py-test (py-eq item (vector-ref vec i)))
+                py-True
+                (loop (+ i 1)))
+              py-False)))
+  signature: (make-signature posonlyargs: (self item)))
 
-(define-rts (tuple-contains self item)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self))
-           (vec-len (vector-length vec)))
-      (let loop ((i 0))
-        (if (< i vec-len)
-          (if (py-test (py-eq item (vector-ref vec i)))
-            py-True
-            (loop (+ i 1)))
-          py-False)))
-    (py-throw-not-a-type-object "tuple.__contains__" self)))
-
-(define-rts tuple.__contains__
-  (procedure->py-function
-    tuple-contains
-    (make-signature posonlyargs: (self item) name: tuple.__contains__)))
-
-(define-rts (tuple-add self other)
-  (if (py-isinstance? self py-tuple-class)
-    (if (py-isinstance? other py-tuple-class)
-      (let ((v1 (PyObjectTuple-value self))
-            (v2 (PyObjectTuple-value other)))
-        (py-tuple-from-scheme (vector-append v1 v2)))
-      py-NotImplemented)
-    (py-throw-not-a-type-object "tuple.__add__" self)))
-
-(define-rts tuple.__add__
-  (procedure->py-function
-    tuple-add
-    (make-signature posonlyargs: (self other) name: tuple.__add__)))
+(define-method (tuple.__add__ self)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__add__" "tuple" self)
+  guard: (not (py-isinstance? other py-tuple-class))
+         py-NotImplemented
+  body: (py-tuple-from-scheme
+          (vector-append
+            (PyObjectTuple-value self)
+            (PyObjectTuple-value other)))
+  signature: (make-signature posonlyargs: (self other)))
 
 (define-rts (vector*n v n)
   (let* ((v-len (vector-length v))
@@ -4078,24 +4067,27 @@
             (loop (+ target-pos v-len))))
         out))))
 
-(define-rts (tuple-mul self n)
-  (if (py-isinstance? self py-tuple-class)
-    (if (py-subtype-of-int? n)
-      (let ((v (PyObjectTuple-value self))
-            (n (py-subtype-of-int-to-scheme n)))
-        (py-tuple-from-scheme (vector*n v n)))
-      py-NotImplemented)
-    (py-throw-not-a-type-object "tuple.__mul__" self)))
+(define-method (tuple.__mul__ self n)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__mul__" "tuple" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (py-tuple-from-scheme
+          (vector*n
+            (PyObjectTuple-value self)
+            (py-subtype-of-int-to-scheme n)))
+  signature: (make-signature posonlyargs: (self n)))
 
-(define-rts tuple.__mul__
-  (procedure->py-function
-    tuple-mul
-    (make-signature posonlyargs: (self n) name: tuple.__mul__)))
-
-(define-rts tuple.__rmul__
-  (procedure->py-function
-    tuple-mul
-    (make-signature posonlyargs: (self n) name: tuple.__rmul__)))
+(define-method (tuple.__rmul__ self n)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__rmul__" "tuple" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (py-tuple-from-scheme
+          (vector*n
+            (PyObjectTuple-value self)
+            (py-subtype-of-int-to-scheme n)))
+  signature: (make-signature posonlyargs: (self n)))
 
 (define-rts (vector-py-eq? v1 v2)
   (let ((v1-len (vector-length v1))
@@ -4138,66 +4130,49 @@
 
 (define-vector-comparator vector-py-ge? py-gt >=)
 
-(define-macro (define-tuple-binary-comparator name py-name vector-comparator)
-  `(begin
-    (define-rts (,name self other)
-      (if (py-isinstance? self py-tuple-class)
-        (if (py-isinstance? other py-tuple-class)
-          (let ((v1 (PyObjectTuple-value self))
-                (v2 (PyObjectTuple-value other)))
-            (if (,vector-comparator v1 v2)
-              py-True
-              py-False))
-          py-NotImplemented)
-        (py-throw-not-a-type-object ,(symbol->string py-name) self)))
+(define-macro (define-tuple-binary-comparator magic-method-name vector-comparator)
+  (let* ((magic-method-name-string (symbol->string magic-method-name))
+         (qualname (string->symbol (string-append "tuple." magic-method-name-string))))
 
-    (define-rts ,py-name
-      (procedure->py-function
-        ,name
-        (make-signature posonlyargs: (self other) name: ,py-name)))))
+    `(define-method (,qualname self other)
+      guard: (not (py-isinstance? self py-tuple-class))
+             (py-throw-required-type ,magic-method-name-string "tuple" self)
+      guard: (not (py-isinstance? other py-tuple-class))
+             py-NotImplemented
+      body: (py-bool-from-scheme-bool
+              (,vector-comparator
+                (PyObjectTuple-value self)
+                (PyObjectTuple-value other)))
+      signature: (make-signature posonlyargs: (self other)))))
 
-(define-tuple-binary-comparator tuple-eq tuple.__eq__ vector-py-eq?)
+(define-tuple-binary-comparator __eq__ vector-py-eq?)
+(define-tuple-binary-comparator __ne__ vector-py-ne?)
+(define-tuple-binary-comparator __lt__ vector-py-lt?)
+(define-tuple-binary-comparator __le__ vector-py-le?)
+(define-tuple-binary-comparator __gt__ vector-py-gt?)
+(define-tuple-binary-comparator __ge__ vector-py-ge?)
 
-(define-tuple-binary-comparator tuple-ne tuple.__ne__ vector-py-ne?)
+;; TODO: handle cyclic structures
+(define-method (tuple.__repr__ self)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__repr__" "tuple" self)
+  body: (let* ((vec (PyObjectTuple-value self))
+               (content-strs (vector-map py-repr vec))
+               (content-strings
+                (vector-map (lambda (x) (py-str-to-scheme x))
+                            content-strs)))
+          (py-str-from-scheme
+            (string-append
+              "("
+              (string-join-vector ", " content-strings)
+              (if (= (vector-length vec) 1) ",)" ")"))))
+  signature: (make-signature posonlyargs: (self)))
 
-(define-tuple-binary-comparator tuple-lt tuple.__lt__ vector-py-lt?)
-
-(define-tuple-binary-comparator tuple-le tuple.__le__ vector-py-le?)
-
-(define-tuple-binary-comparator tuple-gt tuple.__gt__ vector-py-gt?)
-
-(define-tuple-binary-comparator tuple-ge tuple.__ge__ vector-py-ge?)
-
-;; TODO: print cyclic structures
-(define-rts (tuple-repr self)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self))
-           (content-strs (vector-map py-repr vec))
-           (content-strings
-            (vector-map (lambda (x) (py-str-to-scheme x))
-                        content-strs)))
-      (py-str-from-scheme
-        (string-append
-          "("
-          (string-join-vector ", " content-strings)
-          (if (= (vector-length vec) 1) ",)" ")"))))
-    (py-throw-not-a-type-object "tuple.__repr__" self)))
-
-(define-rts tuple.__repr__
-  (procedure->py-function
-    tuple-repr
-    (make-signature posonlyargs: (self) name: tuple.__repr__)))
-
-(define-rts (tuple-len self)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self)))
-      (py-int-from-scheme (vector-length vec)))
-    (py-throw-not-a-type-object "tuple.__len__" self)))
-
-(define-rts tuple.__len__
-  (procedure->py-function
-    tuple-len
-    (make-signature posonlyargs: (self) name: tuple.__len__)))
+(define-method (tuple.__len__ self)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__len__" "tuple" self)
+  body: (py-int-from-scheme (vector-length (PyObjectTuple-value self)))
+  signature: (make-signature posonlyargs: (self)))
 
 (define-rts (vector-slice vec start stop step)
   (let* ((len (get-slice-length start stop step))
@@ -4218,86 +4193,75 @@
       (vector-ref slice-indices 1)
       (vector-ref slice-indices 2))))
 
-(define-rts (tuple-getitem self item)
-  (if (py-isinstance? self py-tuple-class)
-    (cond
-      ((py-subtype-of-int? item)
-        (let* ((vec (PyObjectTuple-value self))
-               (len (vector-length vec))
-               (i (py-subtype-of-int-to-scheme item)))
-          (if (index-in-length-range i len)
-            (vector-ref vec (modulo i len))
-            (py-throw-index-out-of-range "tuple"))))
-      ((py-isinstance? item py-slice-class)
-        (py-tuple-from-scheme
-          (vector-py-slice
-            (PyObjectTuple-value self)
-            item)))
-      (py-throw-wrong-index-type "tuple" "integers or slices" item))
-    (py-throw-not-a-type-object "tuple.__getitem__" self)))
-
-(define-rts tuple.__getitem__
-  (procedure->py-function
-    tuple-getitem
-    (make-signature posonlyargs: (self item) name: tuple.__getitem__)))
-
-(define-rts (tuple-count self item)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self))
-           (vec-len (vector-length vec)))
-      (let loop ((i 0) (count 0))
-        (cond
-          ((= i vec-len)
-            (py-int-from-scheme count))
-          ((py-test (py-eq (vector-ref vec i) item))
-            (loop (+ i 1) (+ count 1)))
+(define-method (tuple.__getitem__ self item)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__getitem__" "tuple" self)
+  body: (cond
+          ((py-subtype-of-int? item)
+            (let* ((vec (PyObjectTuple-value self))
+                   (len (vector-length vec))
+                   (i (py-subtype-of-int-to-scheme item)))
+              (if (index-in-length-range i len)
+                (vector-ref vec (modulo i len))
+                (py-throw-index-out-of-range "tuple"))))
+          ((py-isinstance? item py-slice-class)
+            (py-tuple-from-scheme
+              (vector-py-slice
+                (PyObjectTuple-value self)
+                item)))
           (else
-            (loop (+ i 1) count)))))
-    (py-throw-not-a-type-object "tuple.count" self)))
+            (py-throw-wrong-index-type "tuple" "integers or slices" item)))
+  signature: (make-signature posonlyargs: (self item)))
 
-(define-rts tuple.count
-  (procedure->py-function
-    tuple-count
-    (make-signature posonlyargs: (self item) name: tuple.count)))
+(define-method (tuple.count self item)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "count" "tuple" self)
+  body: (let* ((vec (PyObjectTuple-value self))
+               (vec-len (vector-length vec)))
+          (let loop ((i 0) (count 0))
+            (cond
+              ((fx= i vec-len)
+                ;; count cannot exceed length, so always sint
+                (py-sint-from-scheme count))
+              ((py-test-eq (vector-ref vec i) item)
+                (loop (fx+ i 1) (fx+ count 1)))
+              (else
+                (loop (fx+ i 1) count)))))
+  signature: (make-signature posonlyargs: (self item)))
 
-(define-rts (tuple-index self item start stop)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self))
-           (len (vector-length vec))
-           (start-index
-            (if (eq? start py-absent)
-              0
-              (if (py-subtype-of-int? start)
-                (let ((val (py-subtype-of-int-to-scheme start)))
-                  (if (< val 0)
-                    (modulo (max (- len) val) len)
-                    (min len val)))
-                    (py-throw-wrong-index-type "tuple" "integers" start))))
-           (stop-index
-             (if (eq? stop py-absent)
-               len
-               (if (py-subtype-of-int? stop)
-                 (let ((val (py-subtype-of-int-to-scheme stop)))
-                   (if (< val 0)
-                     (modulo (max (- len) val) len)
-                     (min len val)))
-                     (py-throw-wrong-index-type "tuple" "integers" stop)))))
-      (let ((res (py-index-in-subvector item vec start-index stop-index)))
-        (if res
-          (py-int-from-scheme res)
-          (py-throw
-            (py-call
+(define-method (tuple.index self item start stop)
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "index" "tuple" self)
+  body: (let* ((vec (PyObjectTuple-value self))
+               (len (vector-length vec))
+               (start-index
+                (if (eq? start py-absent)
+                  0
+                  (if (py-subtype-of-int? start)
+                    (let ((val (py-subtype-of-int-to-scheme start)))
+                      (if (< val 0)
+                        (modulo (max (- len) val) len)
+                        (min len val)))
+                        (py-throw-wrong-index-type "tuple" "integers" start))))
+               (stop-index
+                 (if (eq? stop py-absent)
+                   len
+                   (if (py-subtype-of-int? stop)
+                     (let ((val (py-subtype-of-int-to-scheme stop)))
+                       (if (< val 0)
+                         (modulo (max (- len) val) len)
+                         (min len val)))
+                         (py-throw-wrong-index-type "tuple" "integers" stop))))
+                (res (py-index-in-subvector item vec start-index stop-index)))
+          (if res
+            ;; count cannot exceed length, so always sint
+            (py-sint-from-scheme res)
+            (py-throw-exception-with-message
               py-builtin-ValueError
-              (&& "tuple.index(x): x not in tuple"))))))
-    (py-throw-not-a-type-object "tuple.index" self)))
-
-(define-rts tuple.index
-  (procedure->py-function
-    tuple-index
-    (make-signature
-      posonlyargs: (self item start stop)
-      defaults: (vector py-absent py-absent)
-      name: tuple.index)))
+              "tuple.index(x): x not in tuple")))
+  signature: (make-signature
+                posonlyargs: (self item start stop)
+                defaults: (vector py-absent py-absent)))
 
 ;; slices
 
@@ -5478,7 +5442,7 @@
     (py-cls-own-attr-set! int-class (& "__module__") (&& "builtins"))
     (int.__repr__:assign int-class (& "__repr__"))
     (int.__hash__:assign int-class (& "__hash__"))
-    (int.__int___assign int-class (& "__int__"))
+    (int.__int__:assign int-class (& "__int__"))
 
     ;; bool
     (set! py-bool-class bool-class)
@@ -5503,22 +5467,22 @@
     (function.__call__:assign function-class (& "__call__")))
 
   ;; Fill in tuple class
-  (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
-  (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
-  (py-own-attr-set! py-tuple-class (& "__add__") tuple.__add__)
-  (py-own-attr-set! py-tuple-class (& "__mul__") tuple.__mul__)
-  (py-own-attr-set! py-tuple-class (& "__rmul__") tuple.__rmul__)
-  (py-own-attr-set! py-tuple-class (& "__eq__") tuple.__eq__)
-  (py-own-attr-set! py-tuple-class (& "__ne__") tuple.__ne__)
-  (py-own-attr-set! py-tuple-class (& "__lt__") tuple.__lt__)
-  (py-own-attr-set! py-tuple-class (& "__le__") tuple.__le__)
-  (py-own-attr-set! py-tuple-class (& "__gt__") tuple.__gt__)
-  (py-own-attr-set! py-tuple-class (& "__ge__") tuple.__ge__)
-  (py-own-attr-set! py-tuple-class (& "__repr__") tuple.__repr__)
-  (py-own-attr-set! py-tuple-class (& "__len__") tuple.__len__)
-  (py-own-attr-set! py-tuple-class (& "__getitem__") tuple.__getitem__)
-  (py-own-attr-set! py-tuple-class (& "count") tuple.count)
-  (py-own-attr-set! py-tuple-class (& "index") tuple.index)
+  (tuple.__iter__:assign py-tuple-class (& "__iter__"))
+  (tuple.__contains__:assign py-tuple-class (& "__contains__"))
+  (tuple.__add__:assign py-tuple-class (& "__add__"))
+  (tuple.__mul__:assign py-tuple-class (& "__mul__"))
+  (tuple.__rmul__:assign py-tuple-class (& "__rmul__"))
+  (tuple.__eq__:assign py-tuple-class (& "__eq__"))
+  (tuple.__ne__:assign py-tuple-class (& "__ne__"))
+  (tuple.__lt__:assign py-tuple-class (& "__lt__"))
+  (tuple.__le__:assign py-tuple-class (& "__le__"))
+  (tuple.__gt__:assign py-tuple-class (& "__gt__"))
+  (tuple.__ge__:assign py-tuple-class (& "__ge__"))
+  (tuple.__repr__:assign py-tuple-class (& "__repr__"))
+  (tuple.__len__:assign py-tuple-class (& "__len__"))
+  (tuple.__getitem__:assign py-tuple-class (& "__getitem__"))
+  (tuple.count:assign py-tuple-class (& "count"))
+  (tuple.index:assign py-tuple-class (& "index"))
 
   (set! py-module-class
     (py-make-builtin-class
