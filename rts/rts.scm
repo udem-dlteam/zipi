@@ -3123,7 +3123,7 @@
       (let loop ((attr-names attr-names) (attr-values attr-values))
         (if (pair? attr-names)
             (begin
-              (py-own-attr-set! cls (car attr-names) (car attr-values))
+              (py-cls-own-attr-set! cls (car attr-names) (car attr-values))
               (loop (cdr attr-names) (cdr attr-values)))))
       (py-cls-own-attr-set! cls (& "__module__") module)
       (py-cls-own-attr-set! cls (& "__name__") name)
@@ -3146,7 +3146,7 @@
     (let loop ((attr-names attr-names) (attr-values attr-values))
       (if (pair? attr-names)
         (begin
-          (py-own-attr-set! cls (car attr-names) (car attr-values))
+          (py-cls-own-attr-set! cls (car attr-names) (car attr-values))
           (loop (cdr attr-names) (cdr attr-values)))))
         cls)
 
