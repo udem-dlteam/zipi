@@ -712,18 +712,17 @@
 ;; negative arity: functions takes x arguments, last argument is a *args
 ;; #f arity: unknown arity due to defaults value
 (define-rts (signature->arity signature)
-   (let ((args (vector-ref signature 0))
-	 (posonlyargs (vector-ref signature 1))
-	 (vararg (vector-ref signature 2))
-	 (kwonlyargs (vector-ref signature 3))
-	 (kw-defaults (vector-ref signature 4))
-	 (kwarg (vector-ref signature 5))
-	 (defaults (vector-ref signature 6)))
-      (if (and
-	   (eq? (vector-length kwonlyargs) 0)
-	   (eq? (vector-length kw-defaults) 0)
-	   (not kwarg)
-	   (eq? (vector-length defaults) 0))
+  (let ((args (vector-ref signature 0))
+    	  (posonlyargs (vector-ref signature 1))
+    	  (vararg (vector-ref signature 2))
+    	  (kwonlyargs (vector-ref signature 3))
+    	  (kw-defaults (vector-ref signature 4))
+    	  (kwarg (vector-ref signature 5))
+    	  (defaults (vector-ref signature 6)))
+  (if (and (eq? (vector-length kwonlyargs) 0)
+      	   (eq? (vector-length kw-defaults) 0)
+      	   (not kwarg)
+      	   (eq? (vector-length defaults) 0))
 	  (if vararg
 	      (- -1 (vector-length args) (vector-length posonlyargs))
 	      (+ (vector-length args) (vector-length posonlyargs)))
@@ -2071,8 +2070,8 @@
     self
     name
     (lambda (attr owner)
-      (if cache (AttributeCache-type-hit! cache (py-obj-hclass obj) attr owner))
-      (py-descriptor-get attr py-None obj))
+      (if cache (AttributeCache-type-hit! cache (py-obj-hclass self) attr owner))
+      (py-descriptor-get attr py-None self))
     (lambda ()
       (getattribute-from-obj-mro-with-owner-2cont
        self
@@ -2081,7 +2080,11 @@
          (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass self) cls-attr owner))
          (py-descriptor-get cls-attr self owner))
        (lambda ()
-         (and raise? (py-throw-type-getattribute-error self name)))))))
+         ;; TODO: replace this hack by something better
+         ;; NOTE: __class__ should get a getset_descriptor on object
+         (if (eq? (py-str-representative name) (& "__class__"))
+             (py-obj-cls self)
+             (and raise? (py-throw-type-getattribute-error self name))))))))
 
 (define-method (type.__getattribute__ self name)
   guard: (not (py-isinstance? self py-type-class))

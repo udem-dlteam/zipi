@@ -1821,10 +1821,10 @@
         (lambda ($attr-index) (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
         ,fail))))
 
-(define-macro (pending-binding-magic-attr-set! cls attr-index val)
+(define-macro (magic-attr-set! cls attr-index val)
  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
 
-(define-macro (magic-attr-set! cls attr-index val)
+(define-macro (pending-binding-magic-attr-set! cls attr-index val)
  `(vector-set! (PyObjectType-pending-binding-magic-attrs ,cls) ,attr-index ,val))
 
 (define-macro (magic-attr-ref cls attr-index)
