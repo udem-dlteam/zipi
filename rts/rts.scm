@@ -2758,6 +2758,9 @@
         repr
         (throw-returned-wrong-type "__repr__" obj "non-string"))))
 
+(define-rts (py-repr-to-string obj)
+  (py-str-to-scheme (py-repr obj)))
+
 (define-rts (py-str-repr-scheme str)
   (let* ((quote-style #f)
          (chars (string->list str)))
@@ -4259,6 +4262,22 @@
     slice-indices
     (make-signature posonlyargs: (self len) name: slice.indices)))
 
+;; TODO: handle circular structures
+(define-method (slice.__repr__ self)
+  guard: (not (py-isinstance? self py-slice-class))
+         (py-throw-required-type "__repr__" "slice" self)
+  body: (py-str-from-scheme
+          (string-append
+            "slice("
+            (py-repr-to-string (PyObjectSlice-start self))
+            ", "
+            (py-repr-to-string (PyObjectSlice-stop self))
+            ", "
+            (py-repr-to-string (PyObjectSlice-step self))
+            ")"))
+  signature: (make-signature posonlyargs: (self)))
+
+
 ;; ===========================================
 ;; dynamic vector operations used by bytearray
 ;; ===========================================
@@ -5495,6 +5514,8 @@
      (& "__new__") slice.__new__
      (& "indices") slice.indices))
 
+  (slice.__repr__:assign py-slice-class (& "__repr__"))
+
   (set! py-list-class
     (py-make-builtin-class
      (&& "list")
@@ -5579,8 +5600,7 @@
         (& "__ge__") bytearray.__ge__
         (& "__ne__") bytearray.__ne__
         (& "__iter__") bytearray.__iter__
-        ))
-      )
+        )))
 
 (bootstrap-type-hierarchy-phase2)
 
