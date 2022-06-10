@@ -3992,7 +3992,7 @@
               py-False)))
   signature: (make-signature posonlyargs: (self item)))
 
-(define-method (tuple.__add__ self)
+(define-method (tuple.__add__ self other)
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "__add__" "tuple" self)
   guard: (not (py-isinstance? other py-tuple-class))

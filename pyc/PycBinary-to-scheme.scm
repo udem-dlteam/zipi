@@ -242,14 +242,14 @@
 (define-operator (unboxed-real% left right)
   ((gambit:
     (let (($temp (|##/2| left right)))
-      (|##fl-| left
+      (|##-2| left
                (|##*2| right
                         (if (|##<2| 0.0 left)
                             (|##flfloor| $temp)
                             (|##flceiling| $temp))))))
    (bigloo:
      (let (($temp (/ left right)))
-       (-fl left
+       (- left
             (* right
                  (if (< 0.0 left)
                      (floorfl $temp)
