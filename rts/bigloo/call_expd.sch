@@ -288,13 +288,6 @@
 		    (call nargs f pos-args))))))))
 
    (match-case x
-      ((py-call (and (py-getattribute (py-call (global-get %global (& "super") ?-) ?cls ?instance) ?attr . ?opts) ?f) . ?args)
-       (e `(let (($f ,f)) (py-call $f ,@args)) e))
-      ((py-call (and (py-getattribute ?obj ?attr . ?opts) ?f) . ?args)
-       (e (call-expander
-	     (lambda (X fun args)
-		`(py-getattribute-and-callX ,X ,obj ,attr ,args ,@opts))
-	     f args) e))
       ((py-call ?f . ?args)
        (e (call-expander
 	     (lambda (X fun args)

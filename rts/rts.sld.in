@@ -42,17 +42,11 @@
     py-call-hashed-kwargs
     py-call-generic-kwargs
     py-call0
-    py-call0-fallback
-    py-call1-fallback
-    py-call2-fallback
-    py-call3-fallback
     py-callX
     py-callX-no-fixed-arity
     py-callX-fallback
     $py-callX
     py-call-wrong-arity
-    py-call0-maybe-super
-    py-getattribute-and-call0-maybe-super-cached
     py-global-call
 
     with-specialized-PyObjectFunction-args-limit
@@ -230,13 +224,6 @@
     py-getattribute-from-mro-cache
     py-getattribute-from-type-cache
     py-getattribute-from-module-cache
-    py-getattribute-and-callX
-    py-getattribute-and-callX-cached
-    py-getattribute-and-callX-from-mro-cache
-    py-getattribute-and-callX-from-type-cache
-    py-descriptor-get-and-callX
-    py-callMethodX
-    $py-callMethodX
 
     object.__getattribute__
     object-getattribute-skip-binding

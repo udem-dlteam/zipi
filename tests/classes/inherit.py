@@ -9,10 +9,8 @@ class B(A):
     b = 33
 
 print(A.__class__ is type)
-print(A.__mro__)
 
 print(B.__class__ is type)
-print(B.__mro__)
 
 o = B()
 
