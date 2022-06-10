@@ -413,10 +413,10 @@
 
 
 (define-macro (binding-skip-success? x)
-  `(not (procedure? x)))
+  `(not (procedure? ,x)))
 
 (define-macro (binding-skip-fail? x)
-  `(procedure? x))
+  `(procedure? ,x))
 
 (define-macro (binding-skip-callback callback obj)
   `(,callback ,obj))
@@ -1736,15 +1736,13 @@
  `(let (($mro (PyObjectType-mro ,cls)))
     (let $loop-mro (($cls-index 0))
       (if (fx< $cls-index (vector-length $mro))
-           (let (($cls (vector-ref $mro $cls-index)))
-          (py-cls-own-attr-index/ref-pending-binding-2cont
-           $cls
-           ,name
-           (lambda ($index $val)
-             (,succeed $index $val $cls))
-           (lambda ()
-             ($loop-mro (fx+ $cls-index 1)))))
-               (,fail)))))
+          (let (($cls (vector-ref $mro $cls-index)))
+            (py-cls-own-attr-index/ref-pending-binding-2cont
+              $cls
+              ,name
+              (lambda ($index $val) (,succeed $index $val $cls))
+              (lambda () ($loop-mro (fx+ $cls-index 1)))))
+          (,fail)))))
 
 (define-macro (getattribute-from-cls-mro cls name)
   `(getattribute-from-cls-mro-with-owner-2cont
@@ -1773,7 +1771,7 @@
           (,succeed (PyObject-elements-ref $obj $attr-index)))
         ,fail))))
 
-(define-macro (py-cls-own-attr-index/ref-2cont cls attr succeed fail)
+(define-macro (py-cls-own-attr-index/ref-pending-binding-2cont cls attr succeed fail)
   `(let* (($cls ,cls)
           ($attr ,attr)
           ($attr-representative (py-str-representative $attr))
@@ -1781,14 +1779,14 @@
     (if $magic-index
       (let (($val
             (pending-binding-magic-attr-ref
-              $obj
+              $cls
               $magic-index)))
         (if $val (,succeed -1 $val) (,fail)))
-      (py-own-attr-index-2cont-from-representative-pending-binding
-        $obj
+      (py-own-attr-index-2cont-from-representative
+        $cls
         $attr-representative
         (lambda ($attr-index)
-          (,succeed $attr-index (PyObjectType-pending-binding-elements-ref $obj $attr-index)))
+          (,succeed $attr-index (PyObjectType-pending-binding-elements-ref $cls $attr-index)))
         ,fail))))
 
 (define-macro (py-own-attr-ref-2cont obj attr succeed fail)
@@ -1808,18 +1806,12 @@
 
 (define-macro (py-own-attr-index/ref-2cont obj attr succeed fail)
  ;; TODO: fix case when obj is not represented with a PyObject
- `(let* (($obj ,obj)
-         ($attr ,attr)
-;*          ($succeed ,succeed)                                        */
-;*          ($fail ,fail))                                             */
-	 )
-     (if (PyObjectType? $obj)
-       (py-cls-own-attr-index/ref-2cont $obj $attr ,succeed ,fail)
-       (py-own-attr-index-2cont
-        $obj
-        $attr
-        (lambda ($attr-index) (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
-        ,fail))))
+ `(let* (($obj ,obj))
+   (py-own-attr-index-2cont
+    $obj
+    ,attr
+    (lambda ($attr-index) (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+    ,fail)))
 
 (define-macro (magic-attr-set! cls attr-index val)
  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
@@ -1834,18 +1826,6 @@
  `(vector-ref (PyObjectType-pending-binding-magic-attrs ,cls) ,attr-index))
 
 (define-macro (py-own-attr-index-2cont-from-representative obj rep succeed fail)
- `(let* (($hclass (py-obj-hclass ,obj))
-         ($names (HClass-names $hclass))
-         ($attr-representative ,rep))
-    (let $loop-names (($attr-index (fx- (vector-length $names) 1)))
-      (cond ((fx< $attr-index 0)
-             (,fail))
-            ((eq? $attr-representative (vector-ref $names $attr-index))
-             (,succeed $attr-index))
-            (else
-             ($loop-names (fx- $attr-index 1)))))))
-
-(define-macro (py-own-attr-index-2cont-from-representative-pending-binding obj rep succeed fail)
  `(let* (($hclass (py-obj-hclass ,obj))
          ($names (HClass-names $hclass))
          ($attr-representative ,rep))
@@ -2834,7 +2814,9 @@
       (py-le py-test-le)
       (py-lt py-test-lt)
       (py-is py-test-is)
-      (py-isnot py-test-isnot)))
+      (py-isnot py-test-isnot)
+      (py-in py-test-in)
+      (py-notin py-test-notin)))
 
   (let* ((type (memq type: params))
          (obj-type (and type (cadr type))))

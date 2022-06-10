@@ -841,6 +841,24 @@
   (else
     `(py-is ,(scheme lhs conf) ,(scheme rhs conf))))
 
+(define-compilation-to-scheme (isnot-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  (must-return-host-bool
+    `(py-test-isnot ,(scheme lhs conf) ,(scheme rhs conf)))
+  (else
+    `(py-isnot ,(scheme lhs conf) ,(scheme rhs conf))))
+
+(define-compilation-to-scheme (in-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  (must-return-host-bool
+    `(py-test-in ,(scheme lhs conf) ,(scheme rhs conf)))
+  (else
+    `(py-in ,(scheme lhs conf) ,(scheme rhs conf))))
+
+(define-compilation-to-scheme (notin-to-scheme this conf params (lhs (PycBinary-lhs this)) (rhs (PycBinary-rhs this)))
+  (must-return-host-bool
+    `(py-test-notin ,(scheme lhs conf) ,(scheme rhs conf)))
+  (else
+    `(py-notin ,(scheme lhs conf) ,(scheme rhs conf))))
+
 ;; Dispatch
 (define (default-python-op binop conf params)
   `(,(symbol-append 'py- (PycBinary-op binop))
@@ -878,5 +896,8 @@
           ((eq? op 'lt) (lt-to-scheme pycbinary conf params))
           ((eq? op 'le) (le-to-scheme pycbinary conf params))
           ((eq? op 'is) (is-to-scheme pycbinary conf params))
+          ((eq? op 'isnot) (isnot-to-scheme pycbinary conf params))
+          ((eq? op 'in) (in-to-scheme pycbinary conf params))
+          ((eq? op 'notin) (notin-to-scheme pycbinary conf params))
 
           (else (default-python-op pycbinary conf params)))))

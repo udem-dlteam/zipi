@@ -224,11 +224,11 @@
               (AttributeCache-attr ,cache-sym)
               (py-getattribute-skip-binding-cached-fallback
                 ,obj-sym
+                ,hclass-sym
                 ,(pyc-propname field)
                ,(if (in-semantics? method-access conf params)
                     #f
-                    (scheme-cache (PycAccess-cache method-access) method-access))
-               '(type module object))))) ;; change inline priority based on attribute name, etc.
+                    (scheme-cache (PycAccess-cache method-access) method-access))))))
     ,(call-to-scheme
       (new-PycCall
         (PycNode-loc call)

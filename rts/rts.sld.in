@@ -125,6 +125,8 @@
     py-isnot
     py-in
     py-notin
+    py-test-in
+    py-test-notin
 
     py-iadd
     py-ibitand
@@ -238,6 +240,7 @@
 
     object.__getattribute__
     object-getattribute-skip-binding
+    py-getattribute-skip-binding-cached-fallback
     binding-skip-success?
     binding-skip-fail?
     binding-skip-callback
