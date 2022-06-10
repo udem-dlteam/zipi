@@ -140,11 +140,11 @@
    ;;    2. cps-stmt*@__pyc_cps, ../../prgm/project/zipi/zipi/pyc/cps.scm:118
    ;;    3. cps-stmt*@__pyc_cps, ../../prgm/project/zipi/zipi/pyc/cps.scm:118
    ;;    4. cps-stmt*@__pyc_cps, ../../prgm/project/zipi/zipi/pyc/cps.scm:118
-   (if (not k)
-       this
-       (new-PycSeq
+   ;; OM 10 june 2022: I am not sure why this fails for bigloo. It works for gambit.
+   ;; I reverted to previous logic as it is normal that k be #f
+   (new-PycSeq
 	  (PycNode-loc this)
-	  (cps-stmt* (PycSeq-nodes this) k kbreak kcontinue kraise))))
+	  (cps-stmt* (PycSeq-nodes this) k kbreak kcontinue kraise)))
 
 (define-walk-method (cps-stmt this::PycReturn k kbreak kcontinue kraise)
   (if kraise
