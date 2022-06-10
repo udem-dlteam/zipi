@@ -256,6 +256,9 @@
 
 ;; homebrewed exception handling
 
+(define (native-exception? exc)
+  (uncaught-exception? exc))
+
 ;; WARNING exception are returned inside a pair
 ;; using py-try-except to return a pair will fail
 (define-macro (py-try-except-else handler body orelse)

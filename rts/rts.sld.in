@@ -848,8 +848,8 @@
     str-representatives
 
     ;; methods for quick calls
-    list-append:unsafe
-    str-lower:unsafe
+    list.append:unsafe
+    str.lower:unsafe
 
     ;; semantics & behaviors
     @placeholder@

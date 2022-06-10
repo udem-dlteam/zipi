@@ -1514,10 +1514,9 @@
            (py-is-in-mro? parent (PyObjectType-mro cls)))))
 
 (define-rts (py-throw-with-values exc . values)
-   (cond ((not (PyObject? exc))
-	  (if (native-exception? exc)
-	      (py-throw-unsafe exc)
-	      (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))
+ (cond
+   ((not (PyObject? exc))
+	  (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))
 	 ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
           (if (null? values)
 	      (py-throw-unsafe exc)
@@ -1530,13 +1529,13 @@
 	  (py-throw-unsafe (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
 
 (define-rts (py-throw exc)
-   (cond ((not (PyObject? exc))
-	  (if (native-exception? exc)
-	      (py-throw-unsafe exc)
-	      (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))
+ (cond
+   ((not (PyObject? exc))
+	  (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))
 	 ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
 	  (py-throw-unsafe exc))
-	 ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
+	 ((and (PyObjectType? exc)
+         (py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc)))
 	  (py-throw-unsafe (py-call exc)))
 	 (else
 	  (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))))
@@ -3148,7 +3147,7 @@
     (lambda () (getattribute-from-mro #f))))
 
 (define-method (module.__getattribute__ self name)
-  guard: (not (py-isinstance? obj py-module-class))
+  guard: (not (py-isinstance? self py-module-class))
          (py-throw-required-type "__getattribute__" "module" self)
   guard: (not (py-isinstance? name py-builtin-str))
          (py-throw-exception-with-message
@@ -3754,26 +3753,19 @@
     list-pop
     (make-signature posonlyargs: (self index) defaults: (vector py-absent) name: list.pop)))
 
-(define-rts (list-append:unsafe self value)
-  (let* ((len (PyObjectList-len self))
-        (vec
-          (let ((vec (PyObjectList-vector self)))
-            (if (= len (vector-length vec))
-               (list-grow! self)
-               vec))))
-   (vector-set! vec len value)
-   (PyObjectList-len-set! self (+ len 1))
-   py-None))
-
-(define-rts (list-append self value)
-  (if (py-isinstance? self py-list-class)
-    (list-append:unsafe self value)
-    (py-throw-not-a-type-object "list.append" self)))
-
-(define-rts list.append
-  (procedure->py-function
-    list-append
-    (make-signature posonlyargs: (self value) name: list.append)))
+(define-method (list.append self value)
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "append" "list" self)
+  body: (let* ((len (PyObjectList-len self))
+               (vec
+                 (let ((vec (PyObjectList-vector self)))
+                   (if (= len (vector-length vec))
+                      (list-grow! self)
+                      vec))))
+          (vector-set! vec len value)
+          (PyObjectList-len-set! self (+ len 1))
+          py-None)
+  signature: (make-signature posonlyargs: (self value)))
 
 (define-rts (list-clear self)
   (if (py-isinstance? self py-list-class)
@@ -5541,7 +5533,6 @@
      (& "__rmul__") list.__rmul__
      (& "__imul__") list.__imul__
      (& "pop") list.pop
-     (& "append") list.append
      (& "clear") list.clear
      (& "copy") list.copy
      (& "count") list.count
@@ -5549,8 +5540,8 @@
      (& "remove") list.remove
      (& "insert") list.insert
      (& "extend") list.extend
-     (& "reverse") list.reverse
-     ))
+     (& "reverse") list.reverse))
+  (list.append:assign py-list-class (& "append"))
 
   (set! py-dict-class
     (py-make-builtin-class
@@ -6070,7 +6061,7 @@
   (module-search-order-add! (cache-location-get))
 
   (let ((sys.modules (sys.modules-get)))
-     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+     (list.append:unsafe (sys.path-get) (py-str-from-scheme (path-directory path)))
      (py-try-except
 	(lambda (e)
 	   (print-exception e (current-error-port))
@@ -6090,7 +6081,7 @@
   (module-search-order-add! (cache-location-get))
 
   (let ((sys.modules (sys.modules-get)))
-     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+     (list.append:unsafe (sys.path-get) (py-str-from-scheme (path-directory path)))
 
      (if profile-flag
 	 (statprof-begin profile-flag))

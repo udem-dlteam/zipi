@@ -300,7 +300,7 @@
 
 (define-method-call-compilation-to-scheme call-method-to-scheme
   ;; method-name     nargs      type               bind   procedure            ;;fast-type-check
-  ("append"          1          'py-builtin-list    #t    'list-append:unsafe  #f)
+  ("append"          1          'py-builtin-list    #t    'list.append:unsafe  #f)
   ("lower"           0          'py-builtin-str     #t    'str.lower:unsafe    'py-has-type-str?)
   (else (default-call-method-with-binding-skip call conf params)))
 
