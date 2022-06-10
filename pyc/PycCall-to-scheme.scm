@@ -120,6 +120,11 @@
          (args-code (map (lambda (a) (scheme a conf)) args))
          (args-sym (map (lambda (_) (my-gensym 'arg)) args))
          (args-bindings (map list args-sym args-code))
+         (args-sym-nodes
+           (map
+             (lambda (symbol arg)
+               (new-PycStatic (PycNode-loc arg) symbol symbol))
+              args-sym args))
          (bindings (cons (list fun-sym fun-code) args-bindings)))
     `(let* ,bindings
       ;; TODO: limit X to what the rts can handle
@@ -129,7 +134,7 @@
             (new-PycCall
               (PycNode-loc call)
               (new-PycStatic (PycNode-loc fun) fun-sym fun-sym)
-              (PycCall-args call)
+              args-sym-nodes
               %info: (PycNode-%info call)
               cps: (PycNode-cps call)
               type: (PycExpr-type call)
