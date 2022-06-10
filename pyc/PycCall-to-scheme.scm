@@ -218,7 +218,7 @@
          (field (PycAccess-field method-access)))
   `(let* ((,obj-sym ,(scheme obj conf))
           (,cache-sym ,(scheme-cache (PycAccess-cache method-access) method-access))
-          (,hclass-sym (py-obj-hclass-general ,obj-sym))
+          (,hclass-sym (py-obj-hclass ,obj-sym))
           (,unbound-method-or-callback-sym
             (if (eq? ,hclass-sym (AttributeCache-mro-hclass ,cache-sym))
               (AttributeCache-attr ,cache-sym)

@@ -1695,7 +1695,7 @@
      (let $loop-mro (($cls-index 0))
        (if (fx< $cls-index $mro-length)
            (let (($cls (vector-ref $mro $cls-index)))
-           (py-own-attr-ref-2cont
+           (py-cls-own-attr-ref-2cont
             $cls
             ,name
             (lambda ($val)
@@ -1754,21 +1754,19 @@
 (define-macro (py-cls-own-attr-ref-2cont cls attr succeed fail)
   `(let* (($cls ,cls)
           ($attr ,attr)
-;*           ($succeed ,succeed)                                       */
-;*           ($fail ,fail)                                             */
           ($attr-representative (py-str-representative $attr))
           ($magic-index (PyObjectStrRep-magic-index $attr-representative)))
     (if $magic-index
       (let (($val
             (magic-attr-ref
-              $obj
+              $cls
               $magic-index)))
         (if $val (,succeed $val) (,fail)))
       (py-own-attr-index-2cont-from-representative
-        $obj
+        $cls
         $attr-representative
         (lambda ($attr-index)
-          (,succeed (PyObject-elements-ref $obj $attr-index)))
+          (,succeed (PyObject-elements-ref $cls $attr-index)))
         ,fail))))
 
 (define-macro (py-cls-own-attr-index/ref-pending-binding-2cont cls attr succeed fail)
@@ -1790,28 +1788,20 @@
         ,fail))))
 
 (define-macro (py-own-attr-ref-2cont obj attr succeed fail)
-  ;; TODO: fix case when obj is not represented with a PyObject
-  `(let* (($obj ,obj)
-          ($attr ,attr)
-;*           ($succeed ,succeed)                                       */
-;*           ($fail ,fail)                                             */
-	  )
-      (if (PyObjectType? $obj)
-        (py-cls-own-attr-ref-2cont $obj $attr ,succeed ,fail)
-        (py-own-attr-index-2cont
-         $obj
-         $attr
-         (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index)))
-         ,fail))))
+  `(let (($obj ,obj))
+    (py-own-attr-index-2cont
+      $obj
+      ,attr
+      (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index)))
+      ,fail)))
 
 (define-macro (py-own-attr-index/ref-2cont obj attr succeed fail)
- ;; TODO: fix case when obj is not represented with a PyObject
- `(let* (($obj ,obj))
-   (py-own-attr-index-2cont
-    $obj
-    ,attr
-    (lambda ($attr-index) (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
-    ,fail)))
+  `(let (($obj ,obj))
+     (py-own-attr-index-2cont
+       $obj
+       ,attr
+       (lambda ($attr-index) (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+       ,fail)))
 
 (define-macro (magic-attr-set! cls attr-index val)
  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
@@ -3062,16 +3052,14 @@
 
 (define-macro (py-getattribute-from-type-cache obj cache)
   ;; obj should never be a sint or float, those are not types
-  `(let (($obj ,obj)
-         ($cache ,cache))
+  `(let (($cache ,cache))
     (if (eq? (AttributeCache-bind $cache) 'self)
         (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))
         (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)))))
 
 (define-macro (py-getattribute-and-callX-from-type-cache obj X args cache)
   ;; obj should never be a sint or float, those are not types
-  `(let (($obj ,obj)
-         ($cache ,cache))
+  `(let (($cache ,cache))
     (if (eq? (AttributeCache-bind $cache) 'self)
         (py-descriptor-get-and-callX (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,X ,args)
         (py-callX ,X (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)) ,@args))))
@@ -3079,15 +3067,15 @@
 (define-macro (py-getattribute-and-call0-from-type-maybe-super-cache obj cls instance cache)
    ;; obj should never be a sint or float, those are not types
    `(let (($obj ,obj)
-	  ($cache ,cache))
-       (if (eq? (AttributeCache-bind $cache) 'self)
-	   (py-descriptor-get-and-call0-maybe-super (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,cls ,instance)
-	   (let (($fn (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache))))
-	      (if (eq? $fn py-builtin-super)
-		  ,(if (and cls instance)
-		       `(py-call py-builtin-super ,cls ,instance)
-		       `(py-throw-super-no-arguments-error))
-		  (py-callX 0 $fn))))))
+  	  ($cache ,cache))
+         (if (eq? (AttributeCache-bind $cache) 'self)
+  	   (py-descriptor-get-and-call0-maybe-super (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,cls ,instance)
+  	   (let (($fn (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache))))
+  	      (if (eq? $fn py-builtin-super)
+  		  ,(if (and cls instance)
+  		       `(py-call py-builtin-super ,cls ,instance)
+  		       `(py-throw-super-no-arguments-error))
+  		  (py-callX 0 $fn))))))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
