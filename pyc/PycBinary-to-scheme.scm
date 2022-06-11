@@ -564,13 +564,13 @@
     (let ((result (* (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-int-or-float-literals?
-    (* (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
+    (exact->inexact (* (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx* (scheme lhs conf) (scheme rhs conf)))
   (operands-are-sint?
     (py-fx* (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-reals?
-    `(* ,(scheme lhs conf) ,(scheme rhs conf)))
+    `(exact->inexact (* ,(scheme lhs conf) ,(scheme rhs conf))))
   (operands-are-unboxed-flonums?
     (py-fl* (scheme lhs conf) (scheme rhs conf)))
   ((and lhs-is-a-str-literal? rhs-is-a-sint-literal?)
@@ -589,13 +589,13 @@
     (let ((result (expt (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-int-or-float-literals?
-    (expt (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
+    (exact->inexact (expt (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx** (scheme lhs conf) (scheme rhs conf)))
   (operands-are-sint?
     (py-fx** (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-reals?
-    `(expt ,(scheme lhs conf) ,(scheme rhs conf)))
+    `(exact->inexact (expt ,(scheme lhs conf) ,(scheme rhs conf))))
   (operands-are-unboxed-flonums?
     (py-fl** (scheme lhs conf) (scheme rhs conf)))
   (else
