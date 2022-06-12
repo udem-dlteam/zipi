@@ -1590,23 +1590,23 @@
      (py-int-from-scheme (|##modulo| x y)))
 ))
 
-(define-method (int.__repr__ self)
+(define-method int.__repr__
   guard: (not (py-subtype-of-int? self))
          (py-throw-required-type "__repr__" "int" self)
   body: (py-str-from-scheme (number->string (py-subtype-of-int-to-scheme self)))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (int.__hash__ self)
+(define-method int.__hash__
   guard: (not (py-subtype-of-int? self))
          (py-throw-required-type "__hash__" "int" self)
   body: (py-int-from-scheme (truncate-hash (py-subtype-of-int-to-scheme self)))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (int.__int__ self)
+(define-method int.__int__
   guard: (not (py-subtype-of-int? self))
          (py-throw-required-type "__int__" "int" self)
   body: (py-int-from-scheme (py-subtype-of-int-to-scheme self))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
 (define-rts (int-bool self)
   (if (py-subtype-of-int? self)
@@ -1772,11 +1772,11 @@
     (else
       (py-object-getattribute self name #t #f))))
 
-(define-method (object.__getattribute__ self name)
+(define-method object.__getattribute__
   body: (py-generic-getattribute self name)
-  signature: (make-signature posonlyargs: (obj name)))
+  signature: (posonlyargs: (self name)))
 
-(define-method (object.__setattr__ self name val)
+(define-method object.__setattr__
   guard: (not (py-subtype-of-str? name))
          (py-throw-exception-with-message
            py-builtin-TypeError
@@ -1787,7 +1787,7 @@
            "can't apply this __setattr__ to type object")
   body: (py-generic-non-type-own-attr-set! self name val)
         py-None
-  signature: (make-signature posonlyargs: (self name val)))
+  signature: (posonlyargs: (self name val)))
 
 ;; Implements attribute access on types with binding
 (define-rts (py-type-getattribute self name raise? cache)
@@ -1811,11 +1811,11 @@
              (py-obj-cls self)
              (and raise? (py-throw-type-getattribute-error self name))))))))
 
-(define-method (type.__getattribute__ self name)
+(define-method type.__getattribute__
   guard: (not (py-isinstance? self py-type-class))
          (py-throw-required-type "__getattribute__" "type" self)
   body: (py-type-getattribute self name #t #f)
-  signature: (make-signature posonlyargs: (self name)))
+  signature: (posonlyargs: (self name)))
 
 (define-rts (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
@@ -1942,42 +1942,42 @@
 ;; slow way to call function through function.__call__
 ;; interfaces between manual __call__ and py-call
 ;; TODO: add **kwargs?
-(define-method (function.__call__ self args)
+(define-method function.__call__
   guard: (not (eq? (py-obj-cls self) py-function-class))
          (py-throw-required-type "__call__" "method" self)
   body: (let ((args-list (vector->list (PyObjectTuple-value args))))
           (py-call-generic self args-list))
-  signature: (make-signature posonlyargs: (self) vararg: args))
+  signature: (posonlyargs: (self) vararg: args))
 
 (define-rts (type-call-from-new-method-fallback self args __new__)
   (type-call-from-new-method self args __new__))
 
-(define-method (type.__call__ self args) ;; TODO add kwargs
+(define-method type.__call__ ;; TODO add kwargs
   guard: (not (py-isinstance? self py-builtin-type))
          (py-throw-required-type "__call__" "type" self)
   body: (type-call-from-new-method
           self
           (vector->list (PyObjectTuple-value args))
           (getattribute-from-cls-mro self (& "__new__")))
-  signature: (make-signature posonlyargs: (self) vararg: args))
+  signature: (posonlyargs: (self) vararg: args))
 
-(define-method (type.__setattr__ self name val)
+(define-method type.__setattr__
   guard: (not (py-isinstance? self py-builtin-type))
          (py-throw-required-type "__setattr__" "type" self)
   guard: (not (py-subtype-of-str? name))
          (py-throw-exception-with-message py-builtin-TypeError "attribute name must be string")
   body: (reset-mro-caches!)
         (py-cls-own-attr-set! self name val)
-  signature: (make-signature posonlyargs: (self name val)))
+  signature: (posonlyargs: (self name val)))
 
-(define-method (type.__new__ metacls obj-or-name bases attrs)
+(define-method type.__new__
   binding: staticmethod
   guard: (not (py-issubclass? metacls py-type-class))
          (py-throw-wrong-new-argument "type" metacls)
   body: (cond
           ((not bases)
-            (py-obj-cls obj-or-name))
-          ((not attrs)
+            (py-obj-cls obj))
+          ((not namespace)
             (py-throw (py-call
               py-builtin-TypeError
               (&& "type() takes 1 or 3 arguments"))))
@@ -1985,9 +1985,9 @@
             (py-throw-exception-with-message
               py-builtin-NotImplementedError
               "type(name, bases, namespace) not implemented")))
-  signature: (make-signature posonlyargs: (metacls obj bases namespace) defaults: '#(#f #f)))
+  signature: (posonlyargs: (metacls obj bases namespace) defaults: '#(#f #f)))
 
-(define-method (tuple.__new__ cls iterable)
+(define-method tuple.__new__
   binding: staticmethod
   guard: (not (py-issubclass? cls py-tuple-class))
          (py-throw-wrong-new-argument "tuple" cls)
@@ -2008,21 +2008,21 @@
                (let* ((iterator (py-iter iterable))
                       (content (list->vector (iterator->list iterator))))
                  (py-tuple-subtype-from-scheme (vector-copy content) cls))))))
-  signature: (make-signature posonlyargs: (cls iterable) defaults: (vector py-absent)))
+  signature: (posonlyargs: (cls iterable) defaults: (vector py-absent)))
 
 
 ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
 ;; this should be done concurrently in py-call-generic
 ;; TODO: raise TypeError when cannot create, ex: list_iterator.__new__()
 ;; TODO: raise TypeError when object() is called with arguments
-(define-method (object.__new__ cls args kwargs)
+(define-method object.__new__
   binding: staticmethod
   guard: (not (py-isinstance? cls py-type-class))
          (py-throw
            (py-call py-builtin-TypeError
              (&& "object.__new__(X): X is not a type object")))
   body: (py-obj-alloc cls)
-  signature: (make-signature posonlyargs: (cls) vararg: args kwarg: kwargs))
+  signature: (posonlyargs: (cls) vararg: args kwarg: kwargs))
 
 ;; object.__init__ exists but does nothing
 ;; its purpose is that super().__init__ does not raise and AttributeError
@@ -2034,9 +2034,9 @@
       vararg: args
       name: object.__init__)))
 
-(define-method (object.__init__ self args)
+(define-method object.__init__
   body: py-None
-  signature: (make-signature posonlyargs: (self) vararg: args))
+  signature: (posonlyargs: (self) vararg: args))
 
 
 ;; =============================================================================
@@ -2259,7 +2259,7 @@
 (define-rts (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define-method (str.__new__ cls value)
+(define-method str.__new__
   binding: staticmethod
   guard: (not (py-issubclass? cls py-str-class))
          (py-throw-wrong-new-argument "str" cls)
@@ -2278,33 +2278,33 @@
                 (if (py-subtype-of-str? result)
                     (py-subtype-of-str-from-scheme (py-str-to-scheme result) cls)
                     (throw-returned-wrong-type "__str__" value "non-string")))))
-  signature: (make-signature posonlyargs: (cls value) defaults: (vector py-absent)))
+  signature: (posonlyargs: (cls value) defaults: (vector py-absent)))
 
 
 (define-rts (str-hash-value str)
   (PyObjectStrRep-hash (py-str-representative str)))
 
-(define-method (str.__hash__ self)
+(define-method str.__hash__
   guard: (not (py-subtype-of-str? self))
          (py-throw-required-type "__hash__" "str" self)
   body: (py-int-from-scheme (str-hash-value self))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (str.__str__ self)
+(define-method str.__str__
   guard: (not (py-subtype-of-str? self))
          (py-throw-required-type "__str__" "str" self)
   body: self ;; TODO handle case of subtype of str (return representative?)
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (str.__repr__ self)
+(define-method str.__repr__
   guard: (not (py-subtype-of-str? self))
          (py-throw-required-type "__repr__" "str" self)
   body: (let* ((string (py-str-to-scheme self))
                (string-repr (py-str-repr-scheme string)))
           (py-str-from-scheme string-repr))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (str.__getitem__ self)
+(define-method str.__getitem__
   guard: (not (py-subtype-of-str? self))
          (py-throw-required-type "__getitem__" "str" self)
   body: (cond
@@ -2331,13 +2331,13 @@
                     (loop (+ source step) (+ target 1)))
                   (py-str-from-scheme slice-string)))))
           (else (py-throw-wrong-index-type "str" "integers or slices" index)))
-  signature: (make-signature posonlyargs: (self index)))
+  signature: (posonlyargs: (self index)))
 
-(define-method (str.lower self)
+(define-method str.lower
   guard: (not (py-subtype-of-str? self))
          (py-throw-required-type "lower" "str" self)
   body: (py-str-from-scheme (string-downcase (py-str-to-scheme self)))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
 (define-rts (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
@@ -2384,39 +2384,39 @@
   (let ((table (apply global*-hclass->hashtable objs)))
     (map car (table->list table))))
 
-(define-method (object.__dir__ self)
+(define-method object.__dir__
   body: (py-make-list-from-elems
           (if (PyObject? self)
             (py-get-list-of-obj*-str-attr self (py-obj-cls self))
             ;; Non-PyObject such as fixnums have no attributes
             (py-get-list-of-obj*-str-attr (py-obj-cls self))))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (type.__dir__ self)
+(define-method type.__dir__
   guard: (not (py-isinstance? self py-type-class))
          (py-throw-required-type "__dir__" "type" self)
   body: (py-make-list-from-elems (py-get-list-of-obj*-str-attr self (py-obj-cls self)))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (type.__repr__ self)
+(define-method type.__repr__
   guard: (not (py-isinstance? self py-type-class))
          (py-throw-required-type "__repr__" "type" self)
   body: (let* ((self-name (py-str-to-scheme (py-own-attr-ref self (& "__name__"))))
                (result (string-append "<class '" self-name "'>")))
           (py-str-from-scheme result))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (object.__repr__ self)
+(define-method object.__repr__
   body: (let* ((self-type (py-type self))
                (self-type-name (py-str-to-scheme (py-own-attr-ref self-type (& "__name__"))))
                (addr (integer->hex-string (object->serial-number self)))
                (result (string-append "<" self-type-name " object #" addr ">")))
           (py-str-from-scheme result))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (object.__str__ self)
+(define-method object.__str__
   body: (py-repr self)
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
 (define-rts (float->string-with-padded-zeros value)
   ;; TODO: find a more straightforward bridge between scheme format and python format
@@ -2443,7 +2443,7 @@
           (else
            s))))
 
-(define-method (float.__repr__ self)
+(define-method float.__repr__
   guard: (not (py-subtype-of-float? self))
          (py-throw-required-type "__repr__" "float" self)
   body: (let ((value (py-subtype-of-float-to-scheme self)))
@@ -2454,9 +2454,9 @@
                (&& "nan"))
             (else
               (py-str-from-scheme (float->string-with-padded-zeros value)))))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (float.__int__ self)
+(define-method float.__int__
     guard: (not (py-subtype-of-float? self))
            (py-throw-required-type "__int__" "float" self)
     body: (let ((value (py-subtype-of-float-to-scheme self)))
@@ -2467,13 +2467,13 @@
                  (if (flinfinite? value)
                      "cannot convert float infinity to integer"
                      "cannot convert float NaN to integer"))))
-    signature: (make-signature posonlyargs: (self)))
+    signature: (posonlyargs: (self)))
 
-(define-method (float.__abs__ self)
+(define-method float.__abs__
   guard: (not (py-subtype-of-float? self))
          (py-throw-required-type "__abs__" "float" self)
   body: (py-float-from-scheme (flabs (py-subtype-of-float-to-scheme self)))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
 (define-rts (py-display obj port)
   (display (py-str-to-scheme (py-str obj)) port))
@@ -2881,7 +2881,7 @@
           (getattribute-from-mro index))))
     (lambda () (getattribute-from-mro #f))))
 
-(define-method (module.__getattribute__ self name)
+(define-method module.__getattribute__
   guard: (not (py-isinstance? self py-module-class))
          (py-throw-required-type "__getattribute__" "module" self)
   guard: (not (py-isinstance? name py-builtin-str))
@@ -2889,7 +2889,7 @@
            py-builtin-TypeError
            "attribute name must be string")
   body: (py-module-getattribute self name #t #f)
-  signature: (make-signature posonlyargs: (self name)))
+  signature: (posonlyargs: (self name)))
 
 (define-rts (module-setattr self name val)
   (if (py-isinstance? self py-module-class)
@@ -3488,7 +3488,7 @@
     list-pop
     (make-signature posonlyargs: (self index) defaults: (vector py-absent) name: list.pop)))
 
-(define-method (list.append self value)
+(define-method list.append
   guard: (not (py-isinstance? self py-list-class))
          (py-throw-required-type "append" "list" self)
   body: (let* ((len (PyObjectList-len self))
@@ -3500,7 +3500,7 @@
           (vector-set! vec len value)
           (PyObjectList-len-set! self (+ len 1))
           py-None)
-  signature: (make-signature posonlyargs: (self value)))
+  signature: (posonlyargs: (self value)))
 
 (define-rts (list-clear self)
   (if (py-isinstance? self py-list-class)
@@ -3703,13 +3703,13 @@
 
 ;; tuple class
 
-(define-method (tuple.__iter__ self)
+(define-method tuple.__iter__
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "__iter__" "tuple" self)
   body: (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (tuple.__contains__ self item)
+(define-method tuple.__contains__
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "__contains__" "tuple" self)
   body: (let* ((vec (PyObjectTuple-value self))
@@ -3720,9 +3720,9 @@
                 py-True
                 (loop (+ i 1)))
               py-False)))
-  signature: (make-signature posonlyargs: (self item)))
+  signature: (posonlyargs: (self item)))
 
-(define-method (tuple.__add__ self other)
+(define-method tuple.__add__
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "__add__" "tuple" self)
   guard: (not (py-isinstance? other py-tuple-class))
@@ -3731,7 +3731,7 @@
           (vector-append
             (PyObjectTuple-value self)
             (PyObjectTuple-value other)))
-  signature: (make-signature posonlyargs: (self other)))
+  signature: (posonlyargs: (self other)))
 
 (define-rts (vector*n v n)
   (let* ((v-len (vector-length v))
@@ -3747,7 +3747,7 @@
             (loop (+ target-pos v-len))))
         out))))
 
-(define-method (tuple.__mul__ self n)
+(define-method tuple.__mul__
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "__mul__" "tuple" self)
   guard: (not (py-subtype-of-int? n))
@@ -3756,9 +3756,9 @@
           (vector*n
             (PyObjectTuple-value self)
             (py-subtype-of-int-to-scheme n)))
-  signature: (make-signature posonlyargs: (self n)))
+  signature: (posonlyargs: (self n)))
 
-(define-method (tuple.__rmul__ self n)
+(define-method tuple.__rmul__
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "__rmul__" "tuple" self)
   guard: (not (py-subtype-of-int? n))
@@ -3767,7 +3767,7 @@
           (vector*n
             (PyObjectTuple-value self)
             (py-subtype-of-int-to-scheme n)))
-  signature: (make-signature posonlyargs: (self n)))
+  signature: (posonlyargs: (self n)))
 
 (define-rts (vector-py-eq? v1 v2)
   (let ((v1-len (vector-length v1))
@@ -3814,7 +3814,7 @@
   (let* ((magic-method-name-string (symbol->string magic-method-name))
          (qualname (string->symbol (string-append "tuple." magic-method-name-string))))
 
-    `(define-method (,qualname self other)
+    `(define-method ,qualname
       guard: (not (py-isinstance? self py-tuple-class))
              (py-throw-required-type ,magic-method-name-string "tuple" self)
       guard: (not (py-isinstance? other py-tuple-class))
@@ -3823,7 +3823,7 @@
               (,vector-comparator
                 (PyObjectTuple-value self)
                 (PyObjectTuple-value other)))
-      signature: (make-signature posonlyargs: (self other)))))
+      signature: (posonlyargs: (self other)))))
 
 (define-tuple-binary-comparator __eq__ vector-py-eq?)
 (define-tuple-binary-comparator __ne__ vector-py-ne?)
@@ -3833,7 +3833,7 @@
 (define-tuple-binary-comparator __ge__ vector-py-ge?)
 
 ;; TODO: handle cyclic structures
-(define-method (tuple.__repr__ self)
+(define-method tuple.__repr__
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "__repr__" "tuple" self)
   body: (let* ((vec (PyObjectTuple-value self))
@@ -3846,13 +3846,13 @@
               "("
               (string-join-vector ", " content-strings)
               (if (= (vector-length vec) 1) ",)" ")"))))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
-(define-method (tuple.__len__ self)
+(define-method tuple.__len__
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "__len__" "tuple" self)
   body: (py-int-from-scheme (vector-length (PyObjectTuple-value self)))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
 (define-rts (vector-slice vec start stop step)
   (let* ((len (get-slice-length start stop step))
@@ -3873,7 +3873,7 @@
       (vector-ref slice-indices 1)
       (vector-ref slice-indices 2))))
 
-(define-method (tuple.__getitem__ self item)
+(define-method tuple.__getitem__
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "__getitem__" "tuple" self)
   body: (cond
@@ -3891,9 +3891,9 @@
                 item)))
           (else
             (py-throw-wrong-index-type "tuple" "integers or slices" item)))
-  signature: (make-signature posonlyargs: (self item)))
+  signature: (posonlyargs: (self item)))
 
-(define-method (tuple.count self item)
+(define-method tuple.count
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "count" "tuple" self)
   body: (let* ((vec (PyObjectTuple-value self))
@@ -3907,9 +3907,9 @@
                 (loop (fx+ i 1) (fx+ count 1)))
               (else
                 (loop (fx+ i 1) count)))))
-  signature: (make-signature posonlyargs: (self item)))
+  signature: (posonlyargs: (self item)))
 
-(define-method (tuple.index self item start stop)
+(define-method tuple.index
   guard: (not (py-isinstance? self py-tuple-class))
          (py-throw-required-type "index" "tuple" self)
   body: (let* ((vec (PyObjectTuple-value self))
@@ -3939,9 +3939,8 @@
             (py-throw-exception-with-message
               py-builtin-ValueError
               "tuple.index(x): x not in tuple")))
-  signature: (make-signature
-                posonlyargs: (self item start stop)
-                defaults: (vector py-absent py-absent)))
+  signature: (posonlyargs: (self item start stop)
+              defaults: (vector py-absent py-absent)))
 
 ;; slices
 
@@ -3990,7 +3989,7 @@
     (make-signature posonlyargs: (self len) name: slice.indices)))
 
 ;; TODO: handle circular structures
-(define-method (slice.__repr__ self)
+(define-method slice.__repr__
   guard: (not (py-isinstance? self py-slice-class))
          (py-throw-required-type "__repr__" "slice" self)
   body: (py-str-from-scheme
@@ -4002,7 +4001,7 @@
             ", "
             (py-repr-to-string (PyObjectSlice-step self))
             ")"))
-  signature: (make-signature posonlyargs: (self)))
+  signature: (posonlyargs: (self)))
 
 
 ;; ===========================================

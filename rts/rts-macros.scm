@@ -185,11 +185,22 @@
                 (loop (+ i 1)))))
         (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $scheme-arity $signature)))))
 
-(define-macro (define-method signature . body)
+(define-macro (define-method name . body)
+  ;; Python signature, eg: (args: (self x) defaults: '#(1))
   (define method-signature #f)
+  ;; Scheme code of the function body
   (define method-body #f)
+  ;; binding type, can be method (default), classmethod or static method
   (define binding #f)
+  ;; guard clauses excluded from the unsafe procedure
+  ;; eg: guard: (not (py-isinstance self py-class-int))
+  ;;            (py-throw py-builtin-TypeError)
+  ;; a method can have multiple guard:
   (define guards '())
+  ;; indicates whether the functions objects should be allocated on site
+  ;; if set to #f, the functions must be allocated using name:alloc-functions
+  ;; default to #t
+  (define prealloc-functions #t)
 
   (define (parse-error message body)
     (error "define-method" message (car body)))
@@ -202,6 +213,7 @@
         ((body:) (parse-body (cdr body)))
         ((guard:) (parse-guard (cdr body)))
         ((binding:) (parse-binding (cdr body)))
+        ((prealloc-functions:) (parse-prealloc-functions (cdr body)))
         (else (parse-error "unknown keyword" body)))))
 
   (define (parse-binding body)
@@ -213,6 +225,15 @@
           (set! binding (car body))
           (parse (cdr body))))))
 
+  (define (parse-prealloc-functions body)
+    (if (or (null? body) (keyword? (car body)))
+      (parse-error "prealloc-functions: keyword without value" body)
+      (if prealloc-functions
+        (parse-error "duplicate keyword prealloc-functions:" body)
+        (begin
+          (set! prealloc-functions (car body))
+          (parse (cdr body))))))
+
   (define (parse-signature body)
     (if (or (null? body) (keyword? (car body)))
       (parse-error "signature: keyword without value" body)
@@ -222,7 +243,7 @@
           (set! method-signature
             (if (not (or (memq name: head)
                          (memq location: head)))
-                (append head (list name: (car signature))) ;; add name: if not present
+                (append head (list name: name)) ;; add name: if not present
                 head))
           (parse (cdr body))))))
 
@@ -294,16 +315,45 @@
             (cons (car method-signature) (loop (cdr method-signature))))))
       bound-posonlyargs)))
 
+  (define (replace-signature-element signature keyword new-value)
+    (let* ((new-signature (list-copy signature))
+          (element (memq keyword new-signature)))
+      (if element
+        (begin
+          (set-car! (cdr new-signature) new-value)
+          new-signature)
+        (append new-signature (list keyword new-value)))))
+
+  (define (get-scheme-procedure-arguments signature)
+    (let* ((posonlyargs-cons (memq posonlyargs: signature))
+          (args-cons (memq args: signature))
+          (vararg-cons (memq vararg: signature))
+          (kwonlyargs-cons (memq kwonlyargs: signature))
+          (kwarg-cons (memq kwarg: signature))
+          (posonlyargs (if posonlyargs-cons (cadr posonlyargs-cons) '()))
+          (args (if args-cons (cadr args-cons) '()))
+          (vararg (if vararg-cons (list (cadr vararg-cons)) '()))
+          (kwonlyargs (if kwonlyargs-cons (cadr kwonlyargs-cons) '()))
+          (kwarg (if kwarg-cons (list (cadr kwarg-cons)) '())))
+      (append posonlyargs args vararg kwonlyargs kwarg)))
+
+
   (parse body)
 
-  (let* ((name (car signature))
-         (arguments (cdr signature))
+  (let* ((arguments (get-scheme-procedure-arguments method-signature))
          (name-string (symbol->string name))
          (procedure-name (string->symbol (string-append name-string ":procedure")))
          (unsafe-name (string->symbol (string-append name-string ":unsafe")))
          (binding-closure-maker-name (string->symbol (string-append name-string ":make-pending-binding-closure")))
          (binding-method-name (string->symbol (string-append name-string ":pending-binding")))
          (assigner-procedure-name (string->symbol (string-append name-string ":assign")))
+         (default-arguments-name (string->symbol (string-append name-string ":default-arguments")))
+         (kw-default-arguments-name (string->symbol (string-append name-string ":kw-default-arguments")))
+         (default-arguments-get-name (string->symbol (string-append name-string ":get-default-arguments")))
+         (kw-default-arguments-get-name (string->symbol (string-append name-string ":get-kw-default-arguments")))
+         (get-signature-name (string->symbol (string-append name-string ":get-signature")))
+         (get-pending-binding-signature-name (string->symbol (string-append name-string ":get-pending-binding-signature")))
+         (alloc-functions-name (string->symbol (string-append name-string ":alloc-functions")))
          (procedure-signature (cons procedure-name arguments))
          (unsafe-signature (cons unsafe-name arguments))
          (binding-arguments
@@ -312,6 +362,38 @@
              ((classmethod) (cons (gensym '_) (cdr arguments))) ;; cls will be passed in a pre-computed closure
              ((staticmethod) (cons (gensym '_) arguments))))
          (binding-method-signature (make-signature-for-pending-binding))
+         (default-arguments-code
+           (let ((defaults (memq defaults: method-signature)))
+             (if defaults
+               (cadr defaults)
+               '#())))
+         (kw-default-arguments-code
+           (let ((kw-defaults (memq kw-defaults: method-signature)))
+             (if kw-defaults
+               (cadr kw-defaults)
+               '#())))
+         (default-arguments-get
+            `(define-rts (,default-arguments-get-name)
+               (if (not ,default-arguments-name)
+                 (set! ,default-arguments-name ,default-arguments-code))
+                ,default-arguments-name))
+         (kw-default-arguments-get
+            `(define-rts (,kw-default-arguments-get-name)
+               (if (not ,kw-default-arguments-name)
+                 (set! ,kw-default-arguments-name ,kw-default-arguments-code))
+                ,kw-default-arguments-name))
+         (get-signature-definition
+           `(define-rts (,get-signature-name)
+             (make-signature
+               ,@(replace-signature-element
+                 (replace-signature-element method-signature defaults: `(,default-arguments-get-name))
+                 kw-defaults: `(,kw-default-arguments-get-name)))))
+         (get-pending-binding-signature-definition
+           `(define-rts (,get-pending-binding-signature-name)
+             (make-signature
+               ,@(replace-signature-element
+                 (replace-signature-element binding-method-signature defaults: `(,default-arguments-get-name))
+                 kw-defaults: `(,kw-default-arguments-get-name)))))
          (default-procedure-definition
            `(define-rts ,procedure-signature
              (cond
@@ -320,56 +402,87 @@
          (unsafe-procedure-definition
            `(define-rts ,unsafe-signature
              ,@method-body))
-         (default-python-function-defintion
-           `(define-rts ,name
+         (default-python-function-allocation-code
+           `(set! ,name
              (procedure->py-function
                ,procedure-name
-               ,method-signature)))
-          (pending-binding-function-definition
+               (,get-signature-name))))
+          (pending-binding-function-allocation-code
             (case binding
               ((method)
-                `(define-rts ,binding-method-name
+                `(set! ,binding-method-name
                   (procedure->py-function
                     ,unsafe-name
-                    ,binding-method-signature)))
+                    (,get-pending-binding-signature-name))))
               ((classmethod)
                 (let ((cls-argument (gensym 'cls)))
-                  `(define-rts (,binding-closure-maker-name ,cls-argument)
+                  `(set! (,binding-closure-maker-name ,cls-argument)
                     (procedure->py-function
                       (lambda ,(cons (gensym '_) (cdr arguments))
                         (,unsafe-name ,cls-argument ,@(cdr arguments)))
-                      ,binding-method-signature))))
+                      (,get-pending-binding-signature-name)))))
               ((staticmethod)
-                `(define-rts ,binding-method-name
+                `(set! ,binding-method-name
                   (procedure->py-function
                     (lambda ,(cons (gensym '_) arguments) (,unsafe-name ,@arguments))
-                    ,binding-method-signature)))))
-          (assigner-macro-body
+                    (,get-pending-binding-signature-name))))))
+          (alloc-functions-definition
+            `(define-rts (,alloc-functions-name)
+              ,default-python-function-allocation-code
+              ,pending-binding-function-allocation-code))
+          (assigner-body
             (case binding
               ((classmethod)
-                (let ((type-sym (gensym 'type)))
-                  `(let ((,type-sym (,'unquote type)))
-                    (py-cls-own-attr-set-with-pending-binding!
-                      ,type-sym
-                      (,'unquote name)
-                      ,name
-                      (,binding-closure-maker-name ,type-sym)))))
+                `(py-cls-own-attr-set-with-pending-binding!
+                  type
+                  name
+                  ,name
+                  (,binding-closure-maker-name type)))
               (else
                 `(py-cls-own-attr-set-with-pending-binding!
-                  (,'unquote type)
-                  (,'unquote name)
+                  type
+                  name
                   ,name
                   ,binding-method-name))))
-          (assigner-macro-definition
-            `(define-macro (,assigner-procedure-name type name)
-              (,'quasiquote ,assigner-macro-body))))
+          (assigner-definition
+            `(define-rts (,assigner-procedure-name type name)
+              ,assigner-body)))
+
+              (pp   `(begin
+                ;; we need to store default arguments so that they are shared between normal and bound methods
+                (define ,default-arguments-name #f)
+                (define ,kw-default-arguments-name #f)
+                (define ,name #f)
+                (define ,binding-method-name #f)
+                ,default-arguments-get
+                ,kw-default-arguments-get
+                ,get-signature-definition
+                ,get-pending-binding-signature-definition
+                ,unsafe-procedure-definition
+                ,default-procedure-definition
+                ,alloc-functions-definition
+                ,assigner-definition
+                ,@(if prealloc-functions
+                    (list `(,alloc-functions-name))
+                    '())))
 
   `(begin
+    ;; we need to store default arguments so that they are shared between normal and bound methods
+    (define ,default-arguments-name #f)
+    (define ,kw-default-arguments-name #f)
+    (define ,name #f)
+    (define ,binding-method-name #f)
+    ,default-arguments-get
+    ,kw-default-arguments-get
+    ,get-signature-definition
+    ,get-pending-binding-signature-definition
     ,unsafe-procedure-definition
     ,default-procedure-definition
-    ,default-python-function-defintion
-    ,pending-binding-function-definition
-    ,assigner-macro-definition)))
+    ,alloc-functions-definition
+    ,assigner-definition
+    ,@(if prealloc-functions
+        (list `(,alloc-functions-name))
+        '()))))
 
 
 (define-macro (binding-skip-success? x)
