@@ -218,8 +218,12 @@
       (parse-error "signature: keyword without value" body)
       (if method-signature
         (parse-error "duplicate keyword signature:" body)
-        (begin
-          (set! method-signature (car body))
+        (let ((head (car body)))
+          (set! method-signature
+            (if (not (or (memq name: head)
+                         (memq location: head)))
+                (append head (list name: (car signature))) ;; add name: if not present
+                head))
           (parse (cdr body))))))
 
   (define (parse-body body)
@@ -288,8 +292,7 @@
                     (loop (cdr method-signature)))))
           (else
             (cons (car method-signature) (loop (cdr method-signature))))))
-      bound-posonlyargs
-      (list name: (car signature)))))
+      bound-posonlyargs)))
 
   (parse body)
 
