@@ -49,6 +49,16 @@
   ((gambit: (|##fl+| left right))
    (bigloo: (+fl left right))))
 
+(define-operator (unboxed-fx-fl+ left right)
+ (((gambit: |##fl+|) (bigloo: +fl))
+   (fixnum->flonum left)
+   right))
+
+(define-operator (unboxed-fl-fx+ left right)
+ (((gambit: |##fl+|) (bigloo: +fl))
+   left
+   (fixnum->flonum right)))
+
 ;; SUBTRACTION
 (define-operator (py-fx- left right)
   ((gambit: (or (|##fx-?| left right) (py-bint-from-scheme (|##-2| left right))))
@@ -61,6 +71,16 @@
 (define-operator (py-fl- left right)
   ((gambit: (|##fl-| left right))
    (bigloo: (-fl left right))))
+
+(define-operator (unboxed-fx-fl- left right)
+ (((gambit: |##fl-|) (bigloo: -fl))
+   (fixnum->flonum left)
+   right))
+
+(define-operator (unboxed-fl-fx- left right)
+ (((gambit: |##fl-|) (bigloo: -fl))
+   left
+   (fixnum->flonum right)))
 
 ;; MULTIPLICATION
 (define-operator (py-fx* left right)
@@ -75,6 +95,22 @@
   ((gambit: (|##fl*| left right))
    (bigloo: (*fl left right))))
 
+  ;; TODO handle potential overflow
+(define-operator (unboxed-fx-fl* left right)
+ (((gambit: |##fl*|) (bigloo: *fl))
+   (fixnum->flonum left)
+   right))
+
+(define-operator (unboxed-fl-fx* left right)
+ (((gambit: |##fl*|) (bigloo: *fl))
+   left
+   (fixnum->flonum right)))
+
+(define-operator (unboxed-real* left right)
+ (((gambit: |##fl*|) (bigloo: *fl))
+   (exact->inexact left)
+   (exact->inexact right)))
+
 ;; EXPONENT
 (define-operator (py-fx** left right)
   (py-int-from-scheme (expt left right)))
@@ -84,6 +120,16 @@
 
 (define-operator (py-fl** left right)
   (expt left right))
+
+(define-operator (unboxed-fx-fl** left right)
+ (expt
+   (fixnum->flonum left)
+   right))
+
+(define-operator (unboxed-fl-fx** left right)
+ (expt
+   left
+   (fixnum->flonum right)))
 
 ;; BIT-AND
 (define-operator (py-fx& left right)
@@ -173,9 +219,17 @@
     ((gambit: (|##flfloor| (|##fl/| left right)))
      (bigloo: (floorfl (/fl left right))))))
 
+(define-operator (unboxed-fx-fl// left right)
+  ((gambit: (|##flfloor| (|##fl/| (fixnum->flonum left) right)))
+   (bigloo: (floorfl (/fl (fixnum->flonum left) right)))))
+
+(define-operator (unboxed-fl-fx// left right)
+  ((gambit: (|##flfloor| (|##fl/| left (fixnum->flonum right))))
+   (bigloo: (floorfl (/fl left (fixnum->flonum right))))))
+
 (define-operator (unboxed-real// left right)
-  ((gambit: (|##flfloor| (|##/2| left right)))
-   (bigloo: (floorfl (/ left right)))))
+  ((gambit: (|##flfloor| (|##fl/| (exact->inexact left) (exact->inexact right))))
+   (bigloo: (floorfl (/fl (exact->inexact left) (exact->inexact right))))))
 
 ;; TRUEDIV
 
@@ -200,9 +254,17 @@
     ((gambit: (|##fl/| left right))
      (bigloo:(/fl left right)))))
 
+(define-operator (unboxed-fx-fl/ left right)
+  ((gambit: (|##fl/| (fixnum->flonum left) right))
+   (bigloo: (/fl (fixnum->flonum left) right))))
+
+(define-operator (unboxed-fl-fx/ left right)
+  ((gambit: (|##fl/| left (fixnum->flonum right)))
+   (bigloo: (/fl left (fixnum->flonum right)))))
+
 (define-operator (unboxed-real/ left right)
-  ((gambit: (|##/2| left right))
-   (bigloo:(/ left right))))
+  ((gambit: (|##fl/| (exact->inexact left) (exact->inexact right)))
+   (bigloo: (/fl (exact->inexact left) (exact->inexact right)))))
 
 ;; MODULO
 
@@ -225,41 +287,43 @@
        (bigloo: (=fl right 0.0)))
     (py-mod-floatX-float0-fallback left)
     ((gambit:
-      (let (($temp (fl/ left right)))
-        (|##fl-| left
-                 (|##fl*| right
-                          (if (|##fl<| 0.0 left)
-                              (|##flfloor| $temp)
-                              (|##flceiling| $temp))))))
+      (|##fl-| left (|##fl*| right (|##flfloor| (|##fl/| left right)))))
      (bigloo:
-       (let (($temp (/fl left right)))
-         (-fl left
-              (*fl right
-                   (if (<fl 0.0 left)
-                       (floorfl $temp)
-                       (ceilingfl $temp)))))))))
+       (-fl left (*fl right (floorfl (/fl left right))))))))
+
+(define-operator (unboxed-fx-fl% left right)
+  ((gambit:
+    (let* ((left (fixnum->flonum left)))
+      (|##fl-| left (|##fl*| right (|##flfloor| (|##fl/| left right))))))
+   (bigloo:
+     (let* ((left (fixnum->flonum left)))
+       (-fl left (*fl right (floorfl (/fl left right))))))))
+
+(define-operator (unboxed-fl-fx% left right)
+  ((gambit:
+    (let* ((right (fixnum->flonum right)))
+      (|##fl-| left (|##fl*| right (|##flfloor| (|##fl/| left right))))))
+   (bigloo:
+     (let* ((right (fixnum->flonum right)))
+       (-fl left (*fl right (floorfl (/fl left right))))))))
 
 (define-operator (unboxed-real% left right)
   ((gambit:
-    (let (($temp (|##/2| left right)))
-      (|##-2| left
-               (|##*2| right
-                        (if (|##<2| 0.0 left)
-                            (|##flfloor| $temp)
-                            (|##flceiling| $temp))))))
+    (let* ((left (exact->inexact left))
+           (right (exact->inexact right)))
+      (|##fl-| left (|##fl*| right (|##flfloor| (|##fl/| left right))))))
    (bigloo:
-     (let (($temp (/ left right)))
-       (- left
-            (* right
-                 (if (< 0.0 left)
-                     (floorfl $temp)
-                     (ceilingfl $temp))))))))
+     (le* ((left (exact->inexact left))
+           (right (exact->inexact right)))
+       (-fl left (*fl right (floorfl (/fl left right))))))))
 
 ;; COMPARISON OPERATORS
 
 (define-macro (define-comparison-operators symbol)
   (let ((py-fx (string->symbol (string-append "py-fx" (symbol->string symbol))))
         (unboxed-real (string->symbol (string-append "unboxed-real" (symbol->string symbol))))
+        (unboxed-fx-fl (string->symbol (string-append "unboxed-fx-fl" (symbol->string symbol))))
+        (unboxed-fl-fx (string->symbol (string-append "unboxed-fl-fx" (symbol->string symbol))))
         (py-test-fx (string->symbol (string-append "py-test-fx" (symbol->string symbol))))
         (py-fl (string->symbol (string-append "py-fl" (symbol->string symbol))))
         (py-test-fl (string->symbol (string-append "py-test-fl" (symbol->string symbol))))
@@ -273,6 +337,14 @@
              (bigloo: (,bigloo-fx-op left right)))
           py-True
           py-False))
+
+      (define-operator (,unboxed-fx-fl left right)
+        ((gambit: (,gambit-fl-op (fixnum->flonum left) right))
+         (bigloo: (,bigloo-fl-op (fixnum->flonum left) right))))
+
+      (define-operator (,unboxed-fl-fx left right)
+        ((gambit: (,gambit-fl-op left (fixnum->flonum right)))
+         (bigloo: (,bigloo-fl-op left (fixnum->flonum right)))))
 
       (define-operator (,unboxed-real left right)
         (,symbol left right))
@@ -306,6 +378,14 @@
 
 (define-operator (unboxed-real!= left right)
   (not (= left right)))
+
+(define-operator (unboxed-fx-fl!= left right)
+  (not ((gambit: (|##fl=| (fixnum->flonxum left) right))
+        (bigloo: (=fl (fixnum->flonxum left) right)))))
+
+(define-operator (unboxed-fl-fx!= left right)
+  (not ((gambit: (|##fl=| left (fixnum->flonum right)))
+        (bigloo: (=fl left (fixnum->flonum right))))))
 
 (define-operator (py-test-fx!= left right)
   (not ((gambit: (|##fx=| left right))
@@ -397,6 +477,18 @@
 
 (define-predicate (operands-are-sint? pycbinary conf params)
   (operands-are-statically-typed-as? pycbinary 'sint))
+
+(define-predicate (lhs-is-fixnum? pycbinary conf params)
+  (lhs-is-statically-typed-as? pycbinary (list 'Usint 'Ubool)))
+
+(define-predicate (rhs-is-fixnum? pycbinary conf params)
+  (rhs-is-statically-typed-as? pycbinary (list 'Usint 'Ubool)))
+
+(define-predicate (lhs-is-flonum? pycbinary conf params)
+  (lhs-is-statically-typed-as? pycbinary 'Ufloat))
+
+(define-predicate (rhs-is-flonum? pycbinary conf params)
+  (rhs-is-statically-typed-as? pycbinary 'Ufloat))
 
 (define-predicate (operands-are-unboxed-fixnums? pycbinary conf params)
   (operands-are-statically-typed-as? pycbinary '(Usint Ubool)))
@@ -531,10 +623,14 @@
     (unboxed-fx+ (scheme lhs conf) (scheme rhs conf)))
   (operands-are-sint?
     (py-fx+ (scheme lhs conf) (scheme rhs conf)))
-  (operands-are-unboxed-reals?
-    `(+ ,(scheme lhs conf) ,(scheme rhs conf)))
+  ((and lhs-is-fixnum? rhs-is-flonum?)
+    (unboxed-fx-fl+ (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-flonum? rhs-is-fixnum?)
+    (unboxed-fl-fx+ (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-fl+ (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-reals?
+    `(+ ,(scheme lhs conf) ,(scheme rhs conf)))
   (operands-are-unboxed-strings?
     `(string-append ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
@@ -551,10 +647,14 @@
     (unboxed-fx- (scheme lhs conf) (scheme rhs conf)))
   (operands-are-sint?
     (py-fx- (scheme lhs conf) (scheme rhs conf)))
-  (operands-are-unboxed-reals?
-    `(- ,(scheme lhs conf) ,(scheme rhs conf)))
+  ((and lhs-is-fixnum? rhs-is-flonum?)
+    (unboxed-fx-fl- (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-flonum? rhs-is-fixnum?)
+    (unboxed-fl-fx- (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-fl- (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-reals?
+    `(- ,(scheme lhs conf) ,(scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx- py-fl- 'sub)))
 
@@ -564,15 +664,19 @@
     (let ((result (* (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-int-or-float-literals?
-    (exact->inexact (* (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
+    (* (exact->inexact (PycLiteralValue-val lhs)) (exact->inexact (PycLiteralValue-val rhs))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx* (scheme lhs conf) (scheme rhs conf)))
   (operands-are-sint?
     (py-fx* (scheme lhs conf) (scheme rhs conf)))
-  (operands-are-unboxed-reals?
-    `(exact->inexact (* ,(scheme lhs conf) ,(scheme rhs conf))))
+  ((and lhs-is-fixnum? rhs-is-flonum?)
+    (unboxed-fx-fl* (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-flonum? rhs-is-fixnum?)
+    (unboxed-fl-fx* (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-fl* (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-reals?
+    (unboxed-real* (scheme lhs conf) (scheme rhs conf)))
   ((and lhs-is-a-str-literal? rhs-is-a-sint-literal?)
     (or (py-mul-str-literal lhs rhs conf) `(py-mul ,(scheme lhs conf) ,(scheme rhs conf))))
   ;; TODO handle case where there might be an overflow in runtime string multiplication?
@@ -594,10 +698,14 @@
     (unboxed-fx** (scheme lhs conf) (scheme rhs conf)))
   (operands-are-sint?
     (py-fx** (scheme lhs conf) (scheme rhs conf)))
-  (operands-are-unboxed-reals?
-    `(exact->inexact (expt ,(scheme lhs conf) ,(scheme rhs conf))))
+  ((and lhs-is-fixnum? rhs-is-flonum?)
+    (unboxed-fx-fl** (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-flonum? rhs-is-fixnum?)
+    (unboxed-fl-fx** (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-fl** (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-reals?
+    `(exact->inexact (expt ,(scheme lhs conf) ,(scheme rhs conf))))
   (else
     (PycBinary-default-case this conf params py-fx** py-fl** 'pow)))
 
@@ -682,6 +790,12 @@
     (py-fx// (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
     `(quotient ,(scheme lhs conf) ,(scheme rhs conf)))
+  ((and lhs-is-fixnum? rhs-is-flonum?)
+    (unboxed-fx-fl// (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-flonum? rhs-is-fixnum?)
+    (unboxed-fl-fx// (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-flonums?
+    (py-fl// (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-reals?
     (unboxed-real// (scheme lhs conf) (scheme rhs conf)))
   (else
@@ -697,6 +811,12 @@
     (py-fx/ (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
     `(exact->inexact (/ ,(scheme lhs conf) ,(scheme rhs conf))))
+  ((and lhs-is-fixnum? rhs-is-flonum?)
+    (unboxed-fx-fl/ (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-flonum? rhs-is-fixnum?)
+    (unboxed-fl-fx/ (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-flonums?
+    (py-fl/ (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-reals?
     (unboxed-real/ (scheme lhs conf) (scheme rhs conf)))
   (else
@@ -713,13 +833,19 @@
     (py-fx% (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
     `(modulo ,(scheme lhs conf) ,(scheme rhs conf)))
+  ((and lhs-is-fixnum? rhs-is-flonum?)
+    (unboxed-fx-fl% (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-flonum? rhs-is-fixnum?)
+    (unboxed-fl-fx% (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-flonums?
+    (py-fl% (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-reals?
     (unboxed-real% (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx% py-fl% 'mod)))
 
 ;; COMPARISONS
-(define-macro (define-comparisons-to-scheme name py-fx unboxed-real py-fl op-name
+(define-macro (define-comparisons-to-scheme name py-fx unboxed-real unboxed-fx-fl unboxed-fl-fx py-fl op-name
                                             test-name py-test-fx py-test-fl test-op-name
                                             op string-op)
   `(begin
@@ -738,10 +864,14 @@
         (list (quote ,string-op) (scheme lhs conf) (scheme rhs conf)))
       ((or operands-are-unboxed-fixnums? operands-are-sint?)
         (,py-test-fx (scheme lhs conf) (scheme rhs conf)))
-      (operands-are-unboxed-reals?
-        (,unboxed-real (scheme lhs conf) (scheme rhs conf)))
+      ((and lhs-is-fixnum? rhs-is-flonum?)
+        (,unboxed-fx-fl (scheme lhs conf) (scheme rhs conf)))
+      ((and lhs-is-flonum? rhs-is-fixnum?)
+        (,unboxed-fl-fx (scheme lhs conf) (scheme rhs conf)))
       (operands-are-unboxed-flonums?
         (,py-test-fl (scheme lhs conf) (scheme rhs conf)))
+      (operands-are-unboxed-reals?
+        (,unboxed-real (scheme lhs conf) (scheme rhs conf)))
       (else
         (PycBinary-default-case this conf params ,py-fx ,py-fl (quote ,op-name))))
 
@@ -754,44 +884,48 @@
         (list (quote ,string-op) (scheme lhs conf) (scheme rhs conf)))
       ((or operands-are-unboxed-fixnums? operands-are-sint?)
         (,py-test-fx (scheme lhs conf) (scheme rhs conf)))
-      (operands-are-unboxed-reals?
-        (,unboxed-real (scheme lhs conf) (scheme rhs conf)))
+      ((and lhs-is-fixnum? rhs-is-flonum?)
+        (,unboxed-fx-fl (scheme lhs conf) (scheme rhs conf)))
+      ((and lhs-is-flonum? rhs-is-fixnum?)
+        (,unboxed-fl-fx (scheme lhs conf) (scheme rhs conf)))
       (operands-are-unboxed-flonums?
         (,py-test-fl (scheme lhs conf) (scheme rhs conf)))
+      (operands-are-unboxed-reals?
+        (,unboxed-real (scheme lhs conf) (scheme rhs conf)))
       (else
         (PycBinary-default-case this conf params ,py-test-fx ,py-test-fl (quote ,test-op-name))))))
 
 ;; EQ
 (define-comparisons-to-scheme eq-to-scheme
-                              py-fx= unboxed-real= py-fl= eq
+                              py-fx= unboxed-real= unboxed-fx-fl= unboxed-fl-fx= py-fl= eq
                               test-eq-to-scheme
                               py-test-fx= py-test-fl= test-eq
                               = string=?)
 
 ;; GT
 (define-comparisons-to-scheme gt-to-scheme
-                              py-fx> unboxed-real> py-fl> gt
+                              py-fx> unboxed-real> unboxed-fx-fl> unboxed-fl-fx> py-fl> gt
                               test-gt-to-scheme
                               py-test-fx> py-test-fl> test-gt
                               > string>?)
 
 ;; GE
 (define-comparisons-to-scheme ge-to-scheme
-                              py-fx>= unboxed-real>= py-fl>= ge
+                              py-fx>= unboxed-real>= unboxed-fx-fl>= unboxed-fl-fx>= py-fl>= ge
                               test-ge-to-scheme
                               py-test-fx>= py-test-fl>= test-ge
                               >= string>=?)
 
 ;; LT
 (define-comparisons-to-scheme lt-to-scheme
-                              py-fx< unboxed-real< py-fl< lt
+                              py-fx< unboxed-real< unboxed-fx-fl< unboxed-fl-fx< py-fl< lt
                               test-lt-to-scheme
                               py-test-fx< py-test-fl< test-lt
                               < string<?)
 
 ;; LE
 (define-comparisons-to-scheme le-to-scheme
-                              py-fx<= unboxed-real<= py-fl<= le
+                              py-fx<= unboxed-real<= unboxed-fx-fl<= unboxed-fl-fx<= py-fl<= le
                               test-le-to-scheme
                               py-test-fx<= py-test-fl<= test-le
                               <= string<=?)
@@ -812,10 +946,14 @@
     `(not (string=? ,(scheme lhs conf) ,(scheme rhs conf))))
   ((or operands-are-unboxed-fixnums? operands-are-sint?)
     (py-test-fx!= (scheme lhs conf) (scheme rhs conf)))
-  (operands-are-unboxed-reals?
-    (unboxed-real!= (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-fixnum? rhs-is-flonum?)
+    (unboxed-fx-fl!= (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-flonum? rhs-is-fixnum?)
+    (unboxed-fl-fx!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-test-fl!= (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-reals?
+    (unboxed-real!= (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx!= py-fl!= 'ne)))
 
@@ -828,10 +966,14 @@
     `(not (string=? ,(scheme lhs conf) ,(scheme rhs conf))))
   ((or operands-are-unboxed-fixnums? operands-are-sint?)
     (py-test-fx!= (scheme lhs conf) (scheme rhs conf)))
-  (operands-are-unboxed-reals?
-    (unboxed-real!= (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-fixnum? rhs-is-flonum?)
+    (unboxed-fx-fl!= (scheme lhs conf) (scheme rhs conf)))
+  ((and lhs-is-flonum? rhs-is-fixnum?)
+    (unboxed-fl-fx!= (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-flonums?
     (py-test-fl!= (scheme lhs conf) (scheme rhs conf)))
+  (operands-are-unboxed-reals?
+    (unboxed-real!= (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-test-fx!= py-test-fl!= 'test-ne)))
 

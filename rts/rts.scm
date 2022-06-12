@@ -2419,7 +2419,20 @@
   signature: (make-signature posonlyargs: (self)))
 
 (define-rts (float->string-with-padded-zeros value)
-  (let ((s (number->string value)))
+  ;; TODO: find a more straightforward bridge between scheme format and python format
+  ;; or format using Gambit ##flonum->exact-exponential-format
+  (define (add-e+ s)
+    (let ((chars (string->list s)))
+      (let loop ((chars chars))
+        (cond
+          ((null? chars) #f)
+          ((char=? (car chars) #\e)
+            (if (not (char=? (cadr chars) #\-))
+              (set-cdr! chars (cons #\+ (cdr chars)))))
+          (else (loop (cdr chars)))))
+      (list->string chars)))
+
+  (let ((s (add-e+ (number->string value))))
     (cond ((char=? (string-ref s 0) #\.)
            (string-append "0" s))
           ((and (char=? (string-ref s 0) #\-)
