@@ -1,0 +1,13 @@
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
+(module __pyc_methods
+
+   (include "ast.sch"
+	    "walk.sch"
+	    "new.sch")
+
+   (import __pyc_dump
+	   __pyc_ast)
+
+   (export (pyc-methods this::PycNode conf)))
