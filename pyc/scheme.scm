@@ -1177,10 +1177,11 @@
                          (,(scheme-var-name-method-assigner var conf)
                            ,cls-symbol
                            ,prop-name)
-                         (py-cls-own-attr-set!
-                           ,cls-symbol
-                           ,prop-name
-                           ,var-name)))
+                         (if ,var-name
+                           (py-cls-own-attr-set!
+                             ,cls-symbol
+                             ,prop-name
+                             ,var-name))))
                   `(py-cls-own-attr-set!
                     ,cls-symbol
                     ,prop-name
