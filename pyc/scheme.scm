@@ -691,7 +691,7 @@
               (if (and (isa? rhs PycFun) (PycFun-method-of rhs))
                 `(begin
                   (set! ,var-name ,(scheme rhs conf))
-                  (set! ,(scheme-var-name-init var conf) ,var-name))
+                  (set! ,(scheme-var-name-init var conf) (,(scheme-var-name-get-function var conf))))
                 `(set! ,var-name ,(scheme rhs conf))))))))
     ((isa? lhs PycRefUnresolved)
       (error "scheme::PycAssig" "assignment to unresolved variable" lhs))

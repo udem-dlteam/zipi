@@ -347,6 +347,13 @@
                         (cdr name-or-signature)
                         (get-scheme-procedure-arguments method-signature)))
          (name-string (symbol->string name))
+         ;; If prealloc-functions is #f, the function is not available
+         ;; through the given name, but is stored in a slot "name:slot"
+         ;; after name:alloc-functions is called
+         (function-name
+           (if prealloc-functions
+               name
+               (string->symbol (string-append name-string ":slot"))))
          (procedure-name (string->symbol (string-append name-string ":procedure")))
          (unsafe-name (string->symbol (string-append name-string ":unsafe")))
          (binding-closure-maker-name (string->symbol (string-append name-string ":make-pending-binding-closure")))
@@ -410,7 +417,7 @@
            `(define ,unsafe-signature
              ,@method-body))
          (default-python-function-allocation-code
-           `(set! ,name
+           `(set! ,function-name
              (procedure->py-function
                ,procedure-name
                (,get-signature-name))))
@@ -440,9 +447,9 @@
               ,pending-binding-function-allocation-code))
           (get-function-definition
             `(define (,get-function-name)
-               (if (not ,name)
+               (if (not ,function-name)
                  (,alloc-functions-name))
-                ,name))
+                ,function-name))
           (get-pending-binding-function-definition
             `(define (,get-pending-binding-function-name)
                (if (not ,binding-method-name)
@@ -471,7 +478,7 @@
           ;; we need to store default arguments so that they are shared between normal and bound methods
           (define ,default-arguments-name #f)
           (define ,kw-default-arguments-name #f)
-          (define ,name #f)
+          (define ,function-name #f)
           (define ,binding-method-name #f)
           ,default-arguments-get
           ,kw-default-arguments-get
