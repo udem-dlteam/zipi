@@ -155,6 +155,7 @@
                   ;; function objects and global variables are dynamic
                   ,@(scheme-init-global-init-defs global-funs conf-with-defs)
                   ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs)
+                  ,@(map (lambda (m) (pyc-define-method m conf)) (PycModule-methods ast))
                   (declare (block)))
                 '())
 
@@ -638,12 +639,11 @@
    (symbol-append '|procedure:| (scheme-var-name this conf)))
 
 ;; used for method pre-binding
-(define (scheme-var-name-alloc-function this conf)
-   (symbol-append (scheme-var-name this conf) '|:alloc-function|))
+(define (scheme-var-name-instance-maker this conf)
+   (symbol-append (scheme-var-name this conf) '|:instance-maker|))
 
-;; used for method pre-binding
-(define (scheme-var-name-assigner this conf)
-   (symbol-append (scheme-var-name this conf) '|:assign|))
+(define (scheme-var-name-instance-maker-object this conf)
+   (symbol-append (scheme-var-name this conf) '|-instance-maker|))
 
 (define (scheme-default-global-assig ref var val)
  `(global-put! %global ,(pyc-propname (PycVar-id var)) ,val
@@ -1012,7 +1012,7 @@
       ((and) (scheme-and args conf))
       (else (error "scheme::PycBoolOp" "unknown op" op)))))
 
-(define (signature fun conf)
+(define (signature-elements fun conf)
   (let ((args (PycFun-args fun))
         (posonlyargs (PycFun-posonlyargs fun))
         (vararg (PycFun-vararg fun))
@@ -1020,37 +1020,39 @@
         (kw-defaults (PycFun-kw-defaults fun))
         (kwarg (PycFun-kwarg fun))
         (defaults (PycFun-defaults fun)))
-    `(make-signature
-       ,@(append
-      (if (null? args)
-          '()
-          `(args: ,(map PycVar-id args)))
-      (if (null? posonlyargs)
-          '()
-          `(posonlyargs: ,(map PycVar-id posonlyargs)))
-      (cond
-         ((PycVar? vararg)
-          `(vararg: ,(PycVar-id vararg)))
-         ((PycUninit? vararg)
-          '())
-         (else
-          (error "signature" "unknown value for vararg" vararg)))
-      (if (null? kwonlyargs)
-          '()
-          `(kwonlyargs: ,(map PycVar-id kwonlyargs)))
-      (if (null? kw-defaults)
-          '()
-          `(kw-defaults: (vector ,@(scheme* kw-defaults conf))))
-      (cond
-         ((PycVar? kwarg)
-          `(kwarg: ,(PycVar-id kwarg)))
-         ((PycUninit? kwarg)
-          '())
-         (else (error "signature" "unknown value for kwarg" kwarg)))
-      (if (null? defaults)
-          '()
-          `(defaults: (vector ,@(scheme* defaults conf))))
-      `(location: ',(PycNode-loc fun))))))
+    (append
+     (if (null? args)
+         '()
+         `(args: ,(map PycVar-id args)))
+     (if (null? posonlyargs)
+         '()
+         `(posonlyargs: ,(map PycVar-id posonlyargs)))
+     (cond
+        ((PycVar? vararg)
+         `(vararg: ,(PycVar-id vararg)))
+        ((PycUninit? vararg)
+         '())
+        (else
+         (error "signature" "unknown value for vararg" vararg)))
+     (if (null? kwonlyargs)
+         '()
+         `(kwonlyargs: ,(map PycVar-id kwonlyargs)))
+     (if (null? kw-defaults)
+         '()
+         `(kw-defaults: (vector ,@(scheme* kw-defaults conf))))
+     (cond
+        ((PycVar? kwarg)
+         `(kwarg: ,(PycVar-id kwarg)))
+        ((PycUninit? kwarg)
+         '())
+        (else (error "signature" "unknown value for kwarg" kwarg)))
+     (if (null? defaults)
+         '()
+         `(defaults: (vector ,@(scheme* defaults conf))))
+     `(location: ',(PycNode-loc fun)))))
+
+(define (signature fun conf)
+  `(make-signature ,@(signature-elements fun conf)))
 
 (define-walk-method (scheme this::PycFun conf)
   (let ((method-var (PycFun-method-var this)))
@@ -1058,7 +1060,7 @@
       (if (null? decorators)
           (epairify this
             (if method-var
-              `(,(scheme-var-name-alloc-function method-var conf))
+              `(method-allocator-get-function ,(scheme-var-name-instance-maker-object method-var conf))
               `(procedure->py-function
                 ,(or (PycFun-&proc this)
                      (scheme-procedure-proc this conf))
@@ -1093,7 +1095,7 @@
 
   (define (locals fun body)
     (let ((body-with-vars
-            `(letrec*
+            `(let
               ,(map (lambda (decl)
                  `(,(scheme-var-name decl conf)
                   #f))
@@ -1102,7 +1104,7 @@
       (if (PycFun-can-locals fun)
         `(let ((%frame (make-cell #f))
                (%names
-                 ',(map! PycVar-id
+                 ',(map PycVar-id
                    (append (PycFun-args fun) (PycFun-decls fun)))))
                 ,body-with-vars)
         body-with-vars)))
@@ -1111,14 +1113,13 @@
         (kwarg (PycFun-kwarg this))
         (args
           (map
-            scheme-var-name
+            (lambda (v) (scheme-var-name v conf))
     		    (append
     		      (PycFun-posonlyargs this)
     		      (PycFun-args this)
     		      (if (PycVar? vararg) (list vararg) '())
     		      (PycFun-kwonlyargs this)
-    		      (if (PycVar? kwarg) (list kwarg) '()))
-	           conf))
+    		      (if (PycVar? kwarg) (list kwarg) '()))))
     	  (need-return (PycFun-need-return this))
     	  (return-sym (if need-return (my-gensym '%return) #f))
     	  (body-conf (if need-return
@@ -1130,6 +1131,21 @@
       ,(generator this `(bind-exit (,return-sym) ,body)))
     `(lambda ,args
       ,(generator this body)))))
+
+(define (pyc-define-method method conf)
+  (let* ((procedure (scheme-procedure-proc method conf))
+         (py-signature (signature method conf))
+         (method-name (scheme-var-name (PycFun-method-var method) conf)))
+    (match-case (scheme-procedure-proc method conf)
+      ((lambda ?args ?body)
+        (begin
+          `(define-method (,method-name ,@args)
+            binding: method
+            multi-instance: #t
+            signature: (,@(signature-elements method conf))
+            body: ,body)))
+      (else
+        (error "pyc-define-method" "scheme-procedure-proc format unknown" procedure)))))
 
 (define-walk-method (scheme this::PycClass conf)
   (define (method-var? var)
@@ -1159,9 +1175,10 @@
                 (if (method-var? var)
                   (let ((init-name (scheme-var-name-init var conf)))
                     `(if (and ,init-name (py-test-is ,init-name ,var-name))
-                         (,(scheme-var-name-assigner var conf)
-                           ,cls-symbol
-                           ,prop-name)
+                         ((method-allocator-get-assigner
+                            ,(scheme-var-name-instance-maker-object var conf))
+                             ,cls-symbol
+                             ,prop-name)
                          (py-cls-own-attr-set!
                            ,cls-symbol
                            ,prop-name
@@ -1173,26 +1190,11 @@
               (PycClass-decls this))
           ,cls-symbol))))
 
-  (define (pyc-define-method method)
-    (let* ((procedure (scheme-procedure-proc method conf))
-           (py-signature (signature method conf))
-           (method-name (scheme-var-name (PycFun-method-var method) conf)))
-      (match-case (scheme-procedure-proc method conf)
-        ((lambda ?args ?body)
-          (begin
-            `(define-method (,method-name ,@args)
-              binding: method
-              alloc-function: #f
-              signature: ,py-signature
-              body: ,body)))
-        (else
-          (error "pyc-define-method" "scheme-procedure-proc format unknown" procedure)))))
-
   (let* ((cls-symbol (PycClass-super-key this))
          (methods (PycClass-methods this))
          (body (scheme (PycClass-body this) conf)))
     (epairify this
-      `(letrec*
+      `(let*
         ,(append
           `((,cls-symbol py-absent))
           (map
@@ -1201,9 +1203,13 @@
             (PycClass-decls this))
           (map
             (lambda (method)
+              `(,(scheme-var-name-instance-maker-object (PycFun-method-var method) conf)
+                (,(scheme-var-name-instance-maker (PycFun-method-var method) conf))))
+            (PycClass-methods this))
+          (map
+            (lambda (method)
               `(,(scheme-var-name-init (PycFun-method-var method) conf) #f))
             (PycClass-methods this)))
-        ,@(map pyc-define-method methods)
         ,body
         ,(pyc-class this)))))
 

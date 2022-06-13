@@ -10,7 +10,7 @@
   (PycClass-methods-set! class (cons method (PycClass-methods class))))
 
 (define (collect-methods this)
-  (collect-methods* this #f))
+  (PycModule-methods-set! this (collect-methods* this #f)))
 
 (define (make-method-id method class)
   (my-gensym
@@ -31,7 +31,7 @@
         (PycFun-method-var-set! rhs var)
         (PycFun-method-of-set! rhs class)
         (PycClass-methods-add class rhs)
-        (cons this (call-default-walker)))
+        (cons rhs (call-default-walker)))
       (call-default-walker))))
 
 (define-walk-method (collect-methods* this::PycFun class)

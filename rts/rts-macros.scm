@@ -185,7 +185,7 @@
                 (loop (+ i 1)))))
         (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $scheme-arity $signature)))))
 
-(define-macro (define-method name . body)
+(define-macro (define-method name-or-signature . body)
   ;; Python signature, eg: (args: (self x) defaults: '#(1))
   (define method-signature #f)
   ;; Scheme code of the function body
@@ -197,10 +197,12 @@
   ;;            (py-throw py-builtin-TypeError)
   ;; a method can have multiple guard:
   (define guards '())
-  ;; indicates whether the functions objects should be allocated on site
-  ;; if set to #f, the functions must be allocated using name:alloc-functions
-  ;; default to #t
-  (define prealloc-functions #t)
+  ;; indicates whether define-method creates a single instance of each function
+  ;; or create the name:allocator which return a new allocator object everytime
+  ;; the second option allows to generate independant instances of the function
+  (define multi-instance #f)
+
+  (define name (if (pair? name-or-signature) (car name-or-signature) name-or-signature))
 
   (define (parse-error message body)
     (error "define-method" message (car body)))
@@ -213,7 +215,7 @@
         ((body:) (parse-body (cdr body)))
         ((guard:) (parse-guard (cdr body)))
         ((binding:) (parse-binding (cdr body)))
-        ((prealloc-functions:) (parse-prealloc-functions (cdr body)))
+        ((multi-instance:) (parse-multi-instance (cdr body)))
         (else (parse-error "unknown keyword" body)))))
 
   (define (parse-binding body)
@@ -225,14 +227,12 @@
           (set! binding (car body))
           (parse (cdr body))))))
 
-  (define (parse-prealloc-functions body)
+  (define (parse-multi-instance body)
     (if (or (null? body) (keyword? (car body)))
-      (parse-error "prealloc-functions: keyword without value" body)
-      (if prealloc-functions
-        (parse-error "duplicate keyword prealloc-functions:" body)
-        (begin
-          (set! prealloc-functions (car body))
-          (parse (cdr body))))))
+      (parse-error "multi-instance: keyword without value" body)
+      (begin
+        (set! multi-instance (car body))
+        (parse (cdr body)))))
 
   (define (parse-signature body)
     (if (or (null? body) (keyword? (car body)))
@@ -320,7 +320,7 @@
           (element (memq keyword new-signature)))
       (if element
         (begin
-          (set-car! (cdr new-signature) new-value)
+          (set-car! (cdr element) new-value)
           new-signature)
         (append new-signature (list keyword new-value)))))
 
@@ -340,7 +340,12 @@
 
   (parse body)
 
-  (let* ((arguments (get-scheme-procedure-arguments method-signature))
+          ;; providing arguments is optional since they can be built from signature
+          ;; we allow providing arguments if scheme variable do not match python argument names
+          ;; this happens mostly in pyc which uses gensym for procedure arguments
+  (let* ((arguments (if (pair? name-or-signature)
+                        (cdr name-or-signature)
+                        (get-scheme-procedure-arguments method-signature)))
          (name-string (symbol->string name))
          (procedure-name (string->symbol (string-append name-string ":procedure")))
          (unsafe-name (string->symbol (string-append name-string ":unsafe")))
@@ -354,6 +359,9 @@
          (get-signature-name (string->symbol (string-append name-string ":get-signature")))
          (get-pending-binding-signature-name (string->symbol (string-append name-string ":get-pending-binding-signature")))
          (alloc-functions-name (string->symbol (string-append name-string ":alloc-functions")))
+         (get-function-name (string->symbol (string-append name-string ":get-function")))
+         (get-pending-binding-function-name (string->symbol (string-append name-string ":get-pending-binding-function")))
+         (insance-maker-name (string->symbol (string-append name-string ":instance-maker")))
          (procedure-signature (cons procedure-name arguments))
          (unsafe-signature (cons unsafe-name arguments))
          (binding-arguments
@@ -373,34 +381,34 @@
                (cadr kw-defaults)
                '#())))
          (default-arguments-get
-            `(define-rts (,default-arguments-get-name)
+            `(define (,default-arguments-get-name)
                (if (not ,default-arguments-name)
                  (set! ,default-arguments-name ,default-arguments-code))
                 ,default-arguments-name))
          (kw-default-arguments-get
-            `(define-rts (,kw-default-arguments-get-name)
+            `(define (,kw-default-arguments-get-name)
                (if (not ,kw-default-arguments-name)
                  (set! ,kw-default-arguments-name ,kw-default-arguments-code))
                 ,kw-default-arguments-name))
          (get-signature-definition
-           `(define-rts (,get-signature-name)
+           `(define (,get-signature-name)
              (make-signature
                ,@(replace-signature-element
                  (replace-signature-element method-signature defaults: `(,default-arguments-get-name))
                  kw-defaults: `(,kw-default-arguments-get-name)))))
          (get-pending-binding-signature-definition
-           `(define-rts (,get-pending-binding-signature-name)
+           `(define (,get-pending-binding-signature-name)
              (make-signature
                ,@(replace-signature-element
                  (replace-signature-element binding-method-signature defaults: `(,default-arguments-get-name))
                  kw-defaults: `(,kw-default-arguments-get-name)))))
          (default-procedure-definition
-           `(define-rts ,procedure-signature
+           `(define ,procedure-signature
              (cond
                ,@guards
                (else (,unsafe-name ,@arguments)))))
          (unsafe-procedure-definition
-           `(define-rts ,unsafe-signature
+           `(define ,unsafe-signature
              ,@method-body))
          (default-python-function-allocation-code
            `(set! ,name
@@ -427,9 +435,20 @@
                     (lambda ,(cons (gensym '_) arguments) (,unsafe-name ,@arguments))
                     (,get-pending-binding-signature-name))))))
           (alloc-functions-definition
-            `(define-rts (,alloc-functions-name)
+            `(define (,alloc-functions-name)
+              ;; both functions are always allocated at the same time
               ,default-python-function-allocation-code
               ,pending-binding-function-allocation-code))
+          (get-function-definition
+            `(define (,get-function-name)
+               (if (not ,name)
+                 (,alloc-functions-name)
+                 ,name)))
+          (get-pending-binding-function-definition
+            `(define (,get-pending-binding-function-name)
+               (if (not ,binding-method-name)
+                 (,alloc-functions-name)
+                 ,binding-method-name)))
           (assigner-body
             (case binding
               ((classmethod)
@@ -445,45 +464,51 @@
                   ,name
                   ,binding-method-name))))
           (assigner-definition
-            `(define-rts (,assigner-procedure-name type name)
+            `(define (,assigner-procedure-name type name)
               ,assigner-body)))
 
-              (pp   `(begin
-                ;; we need to store default arguments so that they are shared between normal and bound methods
-                (define ,default-arguments-name #f)
-                (define ,kw-default-arguments-name #f)
-                (define ,name #f)
-                (define ,binding-method-name #f)
-                ,default-arguments-get
-                ,kw-default-arguments-get
-                ,get-signature-definition
-                ,get-pending-binding-signature-definition
-                ,unsafe-procedure-definition
-                ,default-procedure-definition
-                ,alloc-functions-definition
-                ,assigner-definition
-                ,@(if prealloc-functions
-                    (list `(,alloc-functions-name))
-                    '())))
+  (if multi-instance
+    `(define (,insance-maker-name ,cls-sym)
+       (define ,default-arguments-name #f)
+       (define ,kw-default-arguments-name #f)
+       (define ,name #f)
+       (define ,binding-method-name #f)
+       ,default-arguments-get
+       ,kw-default-arguments-get
+       ,get-signature-definition
+       ,get-pending-binding-signature-definition
+       ,unsafe-procedure-definition
+       ,default-procedure-definition
+       ,alloc-functions-definition
+       ,get-function-definition
+       ,get-pending-binding-function-definition
+       ,assigner-definition
+       (vector ,get-function-name ,assigner-procedure-name))
+    `(begin
+      ;; we need to store default arguments so that they are shared between normal and bound methods
+      (define ,default-arguments-name #f)
+      (define ,kw-default-arguments-name #f)
+      ,default-arguments-get
+      ,kw-default-arguments-get
+      ,get-signature-definition
+      ,get-pending-binding-signature-definition
+      ,unsafe-procedure-definition
+      ,default-procedure-definition
+      ,assigner-definition
+      (define ,name
+        (procedure->py-function
+          ,procedure-name
+          (,get-signature-name)))
+      (define ,binding-method-name
+        (procedure->py-function
+          ,unsafe-name
+          (,get-pending-binding-signature-name)))))))
 
-  `(begin
-    ;; we need to store default arguments so that they are shared between normal and bound methods
-    (define ,default-arguments-name #f)
-    (define ,kw-default-arguments-name #f)
-    (define ,name #f)
-    (define ,binding-method-name #f)
-    ,default-arguments-get
-    ,kw-default-arguments-get
-    ,get-signature-definition
-    ,get-pending-binding-signature-definition
-    ,unsafe-procedure-definition
-    ,default-procedure-definition
-    ,alloc-functions-definition
-    ,assigner-definition
-    ,@(if prealloc-functions
-        (list `(,alloc-functions-name))
-        '()))))
+(define-macro (method-allocator-get-function allocator)
+  `((vector-ref ,allocator 0)))
 
+(define-macro (method-allocator-get-assigner allocator)
+  `(vector-ref ,allocator 1))
 
 (define-macro (binding-skip-success? x)
   `(not (procedure? ,x)))

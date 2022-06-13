@@ -253,6 +253,9 @@
     magic-attr-ref
     PyObjectType-magic-attrs
 
+    py-cls-own-attr-set!
+    py-cls-own-attr-set-with-pending-binding!
+
     py-descriptor-get
 
     py-behavior-ref
@@ -455,6 +458,8 @@
 
     procedure->py-function
     define-method
+    method-allocator-get-function
+    method-allocator-get-assigner
 
     py-if-specialized-sint-representation
     py-if-specialized-float-representation

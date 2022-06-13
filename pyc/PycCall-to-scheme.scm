@@ -97,7 +97,7 @@
          (args (PycCall-args call))
          (args-syms (map (lambda (e) (my-gensym 'arg)) args))
          (global-name (scheme-var-name var conf))
-         (global-init-val-name (scheme-def-optim-globals-name-init var conf)))
+         (global-init-val-name (scheme-var-name-init var conf)))
     `(let* ,(map (lambda (p a) (list p (scheme a conf))) args-syms args)
       (if (eq? ,global-name ,global-init-val-name)
         ((PyObjectFunction-procedure ,global-name) ,@args-syms)
