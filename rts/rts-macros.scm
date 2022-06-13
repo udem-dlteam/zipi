@@ -94,23 +94,6 @@
 (define-macro (with-specialized-PyObjectFunction-args-limit macro-name . args)
   `(,macro-name 10 ,@args))
 
-(define-macro (py-call0-maybe-super fn cls instance)
-   (cond-expand (gambit (define-syntax match-case (lambda (src) (##import _match/match-expand) (match-expand src #t #f #t)))) (else))
-   (match-case fn
-      ((py-getattribute (and ?obj (py-call (global-get %global (& "super") ?-) ?cls ?instance)) ?prop ?cache ?inline-priorities)
-       `(let (($fn ,fn))
-	   (py-call0-maybe-super $fn ,cls ,instance)))
-      ((py-getattribute ?obj ?prop ?cache ?inline-priorities)
-       `(py-getattribute-and-call0-maybe-super-cached ,obj ,prop
-	   ,cls ,instance ,cache ,inline-priorities))
-      (else
-       `(let (($fn ,fn))
-	   (if (eq? $fn py-builtin-super)
-	       ,(if (and cls instance)
-		    `(py-call py-builtin-super ,cls ,instance)
-		    `(py-throw-super-no-arguments-error))
-	       (py-call $fn))))))
-
 (define-macro (py-global-call global procedure global-id init-value name cache . args)
    (if (symbol? global-id)
        (let ((params (map (lambda (e) (gensym 'p)) args)))
@@ -125,46 +108,31 @@
   `(let (($fun ,fun))
     (if (PyObjectFunctionArity0? $fun)
       ((PyObjectFunction-procedure $fun))
-      (py-call0-fallback $fun))))
+      (py-call-generic $fun '()))))
 
 (define-macro (py-callX X fun . args)
   `(with-specialized-PyObjectFunction-args-limit $py-callX ,X ,fun ,@args))
 
 (define-macro ($py-callX specialized-args-limit X fun . args)
-   (define (fallback sz)
-      (case sz
- 	 ((1) 'py-call1-fallback)
-	 ((2) 'py-call2-fallback)
-	 ((3) 'py-call3-fallback)
-	 (else 'py-callX-fallback)))
-   (cond
-      ((= X 0) `(py-call0 ,fun))
-      ((<= X specialized-args-limit)
-       (let ((min-neg-arity (- 0 X 1))
-	     (args-names (map
-			    (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
-			    (iota X))))
-	  `(let* (($fun ,fun)
-		  ,@(map list args-names args))
-	      (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
-		  ((PyObjectFunction-procedure $fun) ,@args-names)
-		  (,(fallback (length args)) ,min-neg-arity $fun ,@args-names)))))
-      (else
-       (,(fallback (length args)) ,(- 0 X 1) ,fun ,@args))))
+ (cond
+    ((= X 0) `(py-call0 ,fun))
+    ((<= X specialized-args-limit)
+     (let ((min-neg-arity (- 0 X 1))
+    	     (args-names (map
+    			    (lambda (i) (string->symbol (string-append "$arg" (number->string i))))
+    			    (iota X))))
+  	  `(let* (($fun ,fun)
+  		        ,@(map list args-names args))
+  	      (if (,(string->symbol (string-append "PyObjectFunctionArity" (number->string X) "?")) $fun)
+  		        ((PyObjectFunction-procedure $fun) ,@args-names)
+  		        (py-callX-fallback ,min-neg-arity $fun ,@args-names)))))
+    (else
+      (py-callX-fallback ,(- 0 X 1) ,fun ,@args))))
 
-(define-macro (py-getattribute-and-callX X obj attr args . opts)
-   (let ((cache (if (null? opts) #f (car opts)))
-         (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
-      (if cache
-	  (let ((args-names (map (lambda (i)
-				    (string->symbol
-				       (string-append "$arg"
-					  (number->string i))))
-			       (iota X))))
-	     `(let* ,(map list args-names args)
-		 (py-getattribute-and-callX-cached ,obj ,attr ,X
-		    ,args-names ,cache ,inlines)))
-          `(py-callX ,X (py-getattribute-fallback ,obj ,attr) ,@args))))
+(define-macro (py-callX-no-fixed-arity fun . args)
+  (let ((X (length args))
+        (min-neg-arity (- 0 X 1)))
+    `(py-callX-fallback min-neg-arity ,fun ,@args)))
 
 (define-macro (py-callMethodX X attr instance . args)
   `(with-specialized-PyObjectFunction-args-limit $py-callMethodX ,X ,attr ,instance ,@args))
@@ -173,12 +141,6 @@
    (define (gen-method)
       `(make-PyObjectMethod py-method-hclass-of-instances
 	  '#() py-method-class ,instance ,attr))
-   (define (fallback sz)
-      (case sz
- 	 ((1) 'py-call1-fallback)
-	 ((2) 'py-call2-fallback)
-	 ((3) 'py-call3-fallback)
-	 (else 'py-callX-fallback)))
   (cond
      ((= X 0)
       `(let (($func ,attr))
@@ -197,9 +159,9 @@
 		      ,(+ 1 (length args)))
 		   (let (($self ,instance))
 		      ((PyObjectFunction-procedure $func) $self ,@args))
-		   (,(fallback (length args)) ,min-neg-arity ,(gen-method) ,@args-names))))))
+		   (py-callX-fallback ,min-neg-arity ,(gen-method) ,@args-names))))))
     (else
-      (,(fallback (length args)) ,(- 0 X 1) ,(gen-method) ,@args))))
+      (py-callX-fallback ,(- 0 X 1) ,(gen-method) ,@args))))
 
 (define-macro (py-make-PyObjectFunction hclass elements cls procedure arity scheme-arity signature)
   `(with-specialized-PyObjectFunction-args-limit $py-make-PyObjectFunction ,hclass ,elements ,cls ,procedure ,arity ,scheme-arity ,signature))
@@ -222,6 +184,331 @@
                         $hclass $elements $cls $procedure $arity $scheme-arity $signature))
                 (loop (+ i 1)))))
         (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $scheme-arity $signature)))))
+
+(define-macro (define-method name-or-signature . body)
+  ;; Python signature, eg: (args: (self x) defaults: '#(1))
+  (define method-signature #f)
+  ;; Scheme code of the function body
+  (define method-body #f)
+  ;; binding type, can be method (default), classmethod or static method
+  (define binding #f)
+  ;; guard clauses excluded from the unsafe procedure
+  ;; eg: guard: (not (py-isinstance self py-class-int))
+  ;;            (py-throw py-builtin-TypeError)
+  ;; a method can have multiple guard:
+  (define guards '())
+  ;; indicates whether define-method must allocate the functions on site
+  ;; otherwise the normal and pending-binding functions will be allocated when
+  ;; name:get-function is called
+  (define prealloc-functions #t)
+
+  (define name (if (pair? name-or-signature) (car name-or-signature) name-or-signature))
+
+  (define (parse-error message body)
+    (error "define-method" message (car body)))
+
+  (define (parse body)
+    (if (null? body)
+      (parse-end body)
+      (case (car body)
+        ((signature:) (parse-signature (cdr body)))
+        ((body:) (parse-body (cdr body)))
+        ((guard:) (parse-guard (cdr body)))
+        ((binding:) (parse-binding (cdr body)))
+        ((prealloc-functions:) (parse-prealloc-functions (cdr body)))
+        (else (parse-error "unknown keyword" body)))))
+
+  (define (parse-binding body)
+    (if (or (null? body) (keyword? (car body)))
+      (parse-error "binding: keyword without value" body)
+      (if binding
+        (parse-error "duplicate keyword binding:" body)
+        (begin
+          (set! binding (car body))
+          (parse (cdr body))))))
+
+  (define (parse-prealloc-functions body)
+    (if (or (null? body) (keyword? (car body)))
+      (parse-error "prealloc-functions: keyword without value" body)
+      (begin
+        (set! prealloc-functions (car body))
+        (parse (cdr body)))))
+
+  (define (parse-signature body)
+    (if (or (null? body) (keyword? (car body)))
+      (parse-error "signature: keyword without value" body)
+      (if method-signature
+        (parse-error "duplicate keyword signature:" body)
+        (let ((head (car body)))
+          (set! method-signature
+            (if (not (or (memq name: head)
+                         (memq location: head)))
+                (append head (list name: name)) ;; add name: if not present
+                head))
+          (parse (cdr body))))))
+
+  (define (parse-body body)
+    (if (or (null? body) (keyword? (car body)))
+      (parse-error "body: keyword without value" body)
+      (if method-body
+        (parse-error "duplicate keyword body:" body)
+        (let loop ((body body))
+          (if (or (null? body) (keyword? (car body)))
+            (parse body)
+            (begin
+              (set! method-body (append (or method-body '()) (list (car body))))
+              (loop (cdr body))))))))
+
+  (define (parse-guard body)
+    (if (or (null? body) (null? (cdr body))
+            (keyword? (car body)) (keyword? (cadr body)))
+      (parse-error "guard: must be followed by a condition and an exception throw" body)
+      (begin
+        (set! guards (append guards (list (list (car body) (cadr body)))))
+        (parse (cddr body)))))
+
+  (define (parse-end body)
+    (set! binding (or binding 'method))
+    (cond
+      ((not method-signature)
+        (parse-error "missing signature:" body))
+      ((not method-body)
+        (parse-error "missing body:" body))
+      ((not (memq binding '(method classmethod staticmethod)))
+        (parse-error "binding: must be method, classmethod or staticmethod" body))))
+
+  (define (make-signature-for-pending-binding)
+    ;; TODO: add a check that the method has enough arguments to be bound
+    ;; otherwise abort and let normal exception at runtime
+    ;; At the moment this will crash if this case arises
+    (define remove-first-argument #f)
+
+    (let* ((posonlyargs-cons (memq posonlyargs: method-signature))
+           (posonlyargs (if posonlyargs-cons (cadr posonlyargs-cons) '()))
+           (bound-posonlyargs
+             (list
+               posonlyargs:
+               (case binding
+                 ((method)
+                   posonlyargs)
+                 ((classmethod)
+                   (if (null? posonlyargs)
+                     (begin
+                       (set! remove-first-argument #t)
+                       (list (gensym '_)))
+                     (cons (gensym '_) (cdr posonlyargs))))
+                 ((staticmethod)
+                   (cons (gensym '_) posonlyargs))))))
+
+    (append
+      (let loop ((method-signature method-signature))
+        (cond
+          ((null? method-signature)
+            '())
+          ((eq? (car method-signature) posonlyargs:)
+            (loop (cddr method-signature))) ;; skip posonlyargs: as we add our own
+          ((and remove-first-argument (eq? (car method-signature) args:))
+            (cons args:
+              (cons (cdadr method-signature) ;; remove first argument in args:
+                    (loop (cdr method-signature)))))
+          (else
+            (cons (car method-signature) (loop (cdr method-signature))))))
+      bound-posonlyargs)))
+
+  (define (replace-signature-element signature keyword new-value)
+    (let* ((new-signature (list-copy signature))
+          (element (memq keyword new-signature)))
+      (if element
+        (begin
+          (set-car! (cdr element) new-value)
+          new-signature)
+        (append new-signature (list keyword new-value)))))
+
+  (define (get-scheme-procedure-arguments signature)
+    (let* ((posonlyargs-cons (memq posonlyargs: signature))
+          (args-cons (memq args: signature))
+          (vararg-cons (memq vararg: signature))
+          (kwonlyargs-cons (memq kwonlyargs: signature))
+          (kwarg-cons (memq kwarg: signature))
+          (posonlyargs (if posonlyargs-cons (cadr posonlyargs-cons) '()))
+          (args (if args-cons (cadr args-cons) '()))
+          (vararg (if vararg-cons (list (cadr vararg-cons)) '()))
+          (kwonlyargs (if kwonlyargs-cons (cadr kwonlyargs-cons) '()))
+          (kwarg (if kwarg-cons (list (cadr kwarg-cons)) '())))
+      (append posonlyargs args vararg kwonlyargs kwarg)))
+
+
+  (parse body)
+
+          ;; providing arguments is optional since they can be built from signature
+          ;; we allow providing arguments if scheme variable do not match python argument names
+          ;; this happens mostly in pyc which uses gensym for procedure arguments
+  (let* ((arguments (if (pair? name-or-signature)
+                        (cdr name-or-signature)
+                        (get-scheme-procedure-arguments method-signature)))
+         (name-string (symbol->string name))
+         ;; If prealloc-functions is #f, the function is not available
+         ;; through the given name, but is stored in a slot "name:slot"
+         ;; after name:alloc-functions is called
+         (function-name
+           (if prealloc-functions
+               name
+               (string->symbol (string-append name-string ":slot"))))
+         (procedure-name (string->symbol (string-append name-string ":procedure")))
+         (unsafe-name (string->symbol (string-append name-string ":unsafe")))
+         (binding-closure-maker-name (string->symbol (string-append name-string ":make-pending-binding-closure")))
+         (binding-method-name (string->symbol (string-append name-string ":pending-binding")))
+         (assigner-procedure-name (string->symbol (string-append name-string ":assign")))
+         (default-arguments-name (string->symbol (string-append name-string ":default-arguments")))
+         (kw-default-arguments-name (string->symbol (string-append name-string ":kw-default-arguments")))
+         (default-arguments-get-name (string->symbol (string-append name-string ":get-default-arguments")))
+         (kw-default-arguments-get-name (string->symbol (string-append name-string ":get-kw-default-arguments")))
+         (get-signature-name (string->symbol (string-append name-string ":get-signature")))
+         (get-pending-binding-signature-name (string->symbol (string-append name-string ":get-pending-binding-signature")))
+         (alloc-functions-name (string->symbol (string-append name-string ":alloc-functions")))
+         (get-function-name (string->symbol (string-append name-string ":get-function")))
+         (get-pending-binding-function-name (string->symbol (string-append name-string ":get-pending-binding-function")))
+         (procedure-signature (cons procedure-name arguments))
+         (unsafe-signature (cons unsafe-name arguments))
+         (binding-arguments
+           (case binding
+             ((method) arguments)
+             ((classmethod) (cons (gensym '_) (cdr arguments))) ;; cls will be passed in a pre-computed closure
+             ((staticmethod) (cons (gensym '_) arguments))))
+         (binding-method-signature (make-signature-for-pending-binding))
+         (default-arguments-code
+           (let ((defaults (memq defaults: method-signature)))
+             (if defaults
+               (cadr defaults)
+               '#())))
+         (kw-default-arguments-code
+           (let ((kw-defaults (memq kw-defaults: method-signature)))
+             (if kw-defaults
+               (cadr kw-defaults)
+               '#())))
+         (default-arguments-get
+            `(define (,default-arguments-get-name)
+               (if (not ,default-arguments-name)
+                 (set! ,default-arguments-name ,default-arguments-code))
+                ,default-arguments-name))
+         (kw-default-arguments-get
+            `(define (,kw-default-arguments-get-name)
+               (if (not ,kw-default-arguments-name)
+                 (set! ,kw-default-arguments-name ,kw-default-arguments-code))
+                ,kw-default-arguments-name))
+         (get-signature-definition
+           `(define (,get-signature-name)
+             (make-signature
+               ,@(replace-signature-element
+                 (replace-signature-element method-signature defaults: `(,default-arguments-get-name))
+                 kw-defaults: `(,kw-default-arguments-get-name)))))
+         (get-pending-binding-signature-definition
+           `(define (,get-pending-binding-signature-name)
+             (make-signature
+               ,@(replace-signature-element
+                 (replace-signature-element binding-method-signature defaults: `(,default-arguments-get-name))
+                 kw-defaults: `(,kw-default-arguments-get-name)))))
+         (default-procedure-definition
+           `(define ,procedure-signature
+             (cond
+               ,@guards
+               (else (,unsafe-name ,@arguments)))))
+         (unsafe-procedure-definition
+           `(define ,unsafe-signature
+             ,@method-body))
+         (default-python-function-allocation-code
+           `(set! ,function-name
+             (procedure->py-function
+               ,procedure-name
+               (,get-signature-name))))
+          (pending-binding-function-allocation-code
+            (case binding
+              ((method)
+                `(set! ,binding-method-name
+                  (procedure->py-function
+                    ,unsafe-name
+                    (,get-pending-binding-signature-name))))
+              ((classmethod)
+                (let ((cls-argument (gensym 'cls)))
+                  `(set! (,binding-closure-maker-name ,cls-argument)
+                    (procedure->py-function
+                      (lambda ,(cons (gensym '_) (cdr arguments))
+                        (,unsafe-name ,cls-argument ,@(cdr arguments)))
+                      (,get-pending-binding-signature-name)))))
+              ((staticmethod)
+                `(set! ,binding-method-name
+                  (procedure->py-function
+                    (lambda ,(cons (gensym '_) arguments) (,unsafe-name ,@arguments))
+                    (,get-pending-binding-signature-name))))))
+          (alloc-functions-definition
+            `(define (,alloc-functions-name)
+              ;; both functions are always allocated at the same time
+              ,default-python-function-allocation-code
+              ,pending-binding-function-allocation-code))
+          (get-function-definition
+            `(define (,get-function-name)
+               (if (not ,function-name)
+                 (,alloc-functions-name))
+                ,function-name))
+          (get-pending-binding-function-definition
+            `(define (,get-pending-binding-function-name)
+               (if (not ,binding-method-name)
+                 (,alloc-functions-name))
+                ,binding-method-name))
+          (assigner-body
+            (case binding
+              ((classmethod)
+                `(py-cls-own-attr-set-with-pending-binding!
+                  type
+                  name
+                  (,get-function-name)
+                  (,binding-closure-maker-name type)))
+              (else
+                `(py-cls-own-attr-set-with-pending-binding!
+                  type
+                  name
+                  (,get-function-name)
+                  (,get-pending-binding-function-name)))))
+          (assigner-definition
+            `(define (,assigner-procedure-name type name)
+              ,assigner-body)))
+
+  (let ((output
+        `(begin
+          ;; we need to store default arguments so that they are shared between normal and bound methods
+          (define ,default-arguments-name #f)
+          (define ,kw-default-arguments-name #f)
+          (define ,function-name #f)
+          (define ,binding-method-name #f)
+          ,default-arguments-get
+          ,kw-default-arguments-get
+          ,get-signature-definition
+          ,get-pending-binding-signature-definition
+          ,unsafe-procedure-definition
+          ,default-procedure-definition
+          ,alloc-functions-definition
+          ,get-function-definition
+          ,get-pending-binding-function-definition
+          ,assigner-definition
+          ,@(if prealloc-functions
+             `((,alloc-functions-name))
+             '()))))
+    output)))
+
+(define-macro (method-allocator-get-function allocator)
+  `((vector-ref ,allocator 0)))
+
+(define-macro (method-allocator-get-assigner allocator)
+  `(vector-ref ,allocator 1))
+
+(define-macro (binding-skip-success? x)
+  `(not (procedure? ,x)))
+
+(define-macro (binding-skip-fail? x)
+  `(procedure? ,x))
+
+(define-macro (binding-skip-callback callback obj)
+  `(,callback ,obj))
 
 ;; executions points in the type.__call__ method
 (define-macro (type-call-from-instance self instance args-w/-instance) ;;args should contain instance
@@ -1145,9 +1432,6 @@
 (define-macro (py-str-to-scheme str)
   `(py-str-to-scheme-fallback ,str))
 
-(define-macro (py-subtype-of-str-to-scheme str)
-  `(py-subtype-of-str-to-scheme-fallback ,str))
-
 (define-macro (py-str-representative str)
   `(let ((str ,str))
      (let ((rep (PyObjectStr-part2-or-rep str)))
@@ -1500,7 +1784,7 @@
      (let $loop-mro (($cls-index 0))
        (if (fx< $cls-index $mro-length)
            (let (($cls (vector-ref $mro $cls-index)))
-           (py-own-attr-ref-2cont
+           (py-cls-own-attr-ref-2cont
             $cls
             ,name
             (lambda ($val)
@@ -1537,6 +1821,18 @@
              ($loop-mro (fx+ $cls-index 1)))))
                (,fail)))))
 
+(define-macro (getattribute-from-cls-mro-with-index/owner-pending-binding-2cont cls name succeed fail)
+ `(let (($mro (PyObjectType-mro ,cls)))
+    (let $loop-mro (($cls-index 0))
+      (if (fx< $cls-index (vector-length $mro))
+          (let (($cls (vector-ref $mro $cls-index)))
+            (py-cls-own-attr-index/ref-pending-binding-2cont
+              $cls
+              ,name
+              (lambda ($index $val) (,succeed $index $val $cls))
+              (lambda () ($loop-mro (fx+ $cls-index 1)))))
+          (,fail)))))
+
 (define-macro (getattribute-from-cls-mro cls name)
   `(getattribute-from-cls-mro-with-owner-2cont
     ,cls
@@ -1547,78 +1843,66 @@
 (define-macro (py-cls-own-attr-ref-2cont cls attr succeed fail)
   `(let* (($cls ,cls)
           ($attr ,attr)
-;*           ($succeed ,succeed)                                       */
-;*           ($fail ,fail)                                             */
           ($attr-representative (py-str-representative $attr))
           ($magic-index (PyObjectStrRep-magic-index $attr-representative)))
     (if $magic-index
       (let (($val
             (magic-attr-ref
-              $obj
+              $cls
               $magic-index)))
         (if $val (,succeed $val) (,fail)))
       (py-own-attr-index-2cont-from-representative
-        $obj
+        $cls
         $attr-representative
         (lambda ($attr-index)
-          (,succeed (PyObject-elements-ref $obj $attr-index)))
+          (,succeed (PyObject-elements-ref $cls $attr-index)))
         ,fail))))
 
-(define-macro (py-cls-own-attr-index/ref-2cont cls attr succeed fail)
+(define-macro (py-cls-own-attr-index/ref-pending-binding-2cont cls attr succeed fail)
   `(let* (($cls ,cls)
           ($attr ,attr)
-;*           ($succeed ,succeed)                                       */
-;*           ($fail ,fail)                                             */
           ($attr-representative (py-str-representative $attr))
           ($magic-index (PyObjectStrRep-magic-index $attr-representative)))
     (if $magic-index
       (let (($val
-            (magic-attr-ref
-              $obj
+            (pending-binding-magic-attr-ref
+              $cls
               $magic-index)))
         (if $val (,succeed -1 $val) (,fail)))
       (py-own-attr-index-2cont-from-representative
-        $obj
+        $cls
         $attr-representative
         (lambda ($attr-index)
-          (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+          (,succeed $attr-index (PyObjectType-pending-binding-elements-ref $cls $attr-index)))
         ,fail))))
 
 (define-macro (py-own-attr-ref-2cont obj attr succeed fail)
-  ;; TODO: fix case when obj is not represented with a PyObject
-  `(let* (($obj ,obj)
-          ($attr ,attr)
-;*           ($succeed ,succeed)                                       */
-;*           ($fail ,fail)                                             */
-	  )
-      (if (PyObjectType? $obj)
-        (py-cls-own-attr-ref-2cont $obj $attr ,succeed ,fail)
-        (py-own-attr-index-2cont
-         $obj
-         $attr
-         (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index)))
-         ,fail))))
+  `(let (($obj ,obj))
+    (py-own-attr-index-2cont
+      $obj
+      ,attr
+      (lambda ($attr-index) (,succeed (PyObject-elements-ref $obj $attr-index)))
+      ,fail)))
 
 (define-macro (py-own-attr-index/ref-2cont obj attr succeed fail)
- ;; TODO: fix case when obj is not represented with a PyObject
- `(let* (($obj ,obj)
-         ($attr ,attr)
-;*          ($succeed ,succeed)                                        */
-;*          ($fail ,fail))                                             */
-	 )
-     (if (PyObjectType? $obj)
-       (py-cls-own-attr-index/ref-2cont $obj $attr ,succeed ,fail)
-       (py-own-attr-index-2cont
-        $obj
-        $attr
-        (lambda ($attr-index) (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
-        ,fail))))
+  `(let (($obj ,obj))
+     (py-own-attr-index-2cont
+       $obj
+       ,attr
+       (lambda ($attr-index) (,succeed $attr-index (PyObject-elements-ref $obj $attr-index)))
+       ,fail)))
 
 (define-macro (magic-attr-set! cls attr-index val)
  `(vector-set! (PyObjectType-magic-attrs ,cls) ,attr-index ,val))
 
+(define-macro (pending-binding-magic-attr-set! cls attr-index val)
+ `(vector-set! (PyObjectType-pending-binding-magic-attrs ,cls) ,attr-index ,val))
+
 (define-macro (magic-attr-ref cls attr-index)
  `(vector-ref (PyObjectType-magic-attrs ,cls) ,attr-index))
+
+(define-macro (pending-binding-magic-attr-ref cls attr-index)
+ `(vector-ref (PyObjectType-pending-binding-magic-attrs ,cls) ,attr-index))
 
 (define-macro (py-own-attr-index-2cont-from-representative obj rep succeed fail)
  `(let* (($hclass (py-obj-hclass ,obj))
@@ -1644,6 +1928,9 @@
 
 (define-macro (getattribute-from-obj-mro-with-index/owner-2cont obj name succeed fail)
 `(getattribute-from-cls-mro-with-index/owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
+
+(define-macro (getattribute-from-obj-mro-with-index/owner-pending-binding-2cont obj name succeed fail)
+`(getattribute-from-cls-mro-with-index/owner-pending-binding-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))
 
 ;* (define-expander py-throw                                           */
 ;*    (lambda (x e)                                                    */
@@ -2606,7 +2893,9 @@
       (py-le py-test-le)
       (py-lt py-test-lt)
       (py-is py-test-is)
-      (py-isnot py-test-isnot)))
+      (py-isnot py-test-isnot)
+      (py-in py-test-in)
+      (py-notin py-test-notin)))
 
   (let* ((type (memq type: params))
          (obj-type (and type (cadr type))))
@@ -2679,26 +2968,15 @@
 (define-macro (py-length obj)
   `(py-length-fallback ,obj))
 
-(define-macro (py-maybe-gth obj)
+(define-macro (py-maybe-length obj)
   `(py-maybe-length-fallback ,obj))
 
 (define-macro (py-getattribute obj attr . opts)
-   (cond-expand (gambit (define-syntax match-case (lambda (src) (##import _match/match-expand) (match-expand src #t #f #t)))) (else))
-   (match-case obj
-      ((py-call (global-get %global (& "super") ?cache) ?cls ?instance)
-       `(if (eq? (global-get %global (& "super") ,cache) py-builtin-super)
-	    (py-super-getattribute-for-getattribute ,attr ,cls ,instance)
-	    ,(let ((cache (if (null? opts) #f (car opts)))
-		   (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
-		(if cache
-		    `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
-		    `(py-getattribute-fallback ,obj ,attr)))))
-      (else
-       (let ((cache (if (null? opts) #f (car opts)))
-	     (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
-	  (if cache
-	      `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
-	      `(py-getattribute-fallback ,obj ,attr))))))
+  (let ((cache (if (null? opts) #f (car opts)))
+        (inlines (if (or (null? opts) (null? (cdr opts))) '() (cadr opts))))
+  (if cache
+    `(py-getattribute-cached ,obj ,attr ,cache ,inlines)
+    `(py-getattribute-fallback ,obj ,attr))))
 
 (define-macro (py-getattribute-cached obj attr cache inline-priorities)
   ;; attr should always be a string literal
@@ -2738,93 +3016,6 @@
                        ,(loop (cdr inlines))))
                 (else (error "py-getattribute-cached" "unknown inlining priority" (car inlines)))))))))
 
-(define-macro (py-getattribute-and-call0-maybe-super-cached obj attr cls instance cache inline-priorities)
-   (define (gen-py-callX expr)
-      `(if (eq? ,expr py-builtin-super)
-	   ,(if (and cls instance)
-		`(py-call py-builtin-super ,cls ,instance)
-		`(py-throw-super-no-arguments-error))
-	   (py-callX ,0 ,expr)))
-   ;; attr should always be a string literal
-   `(py-specialized-sint-float-dispatch-let
-       $OBJ
-       ,obj
-       ;; TODO: use macro to determine exact attribute in case of
-       ;; int and float, those can be determined statically
-       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
-       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
-       ,(let loop ((inlines inline-priorities))
-	   (if (null? inlines)
-	       (gen-py-callX
-		  `(py-getattribute-cached-modular-fallback
-		      $OBJ (py-obj-hclass-general $OBJ) ,attr ,cache
-		      ,(not (not (memq 'object inline-priorities)))
-		      ,(not (not (memq 'mro inline-priorities)))
-		      ,(not (not (memq 'type inline-priorities)))
-		      ,(not (not (memq 'module inline-priorities)))))
-	       `(let (($cache ,cache)
-		      ($hclass (py-obj-hclass-general $OBJ)))
-		   ,(case (car inlines)
-		       ((object)
-			`(if (eq? $hclass (AttributeCache-object-hclass $cache))
-			     ,(gen-py-callX `(py-getattribute-from-object-cache $OBJ $cache))
-			     ,(loop (cdr inlines))))
-		       ((mro)
-			`(if (eq? $hclass (AttributeCache-mro-hclass $cache))
-			      (py-getattribute-and-call0-from-mro-maybe-super-cache $OBJ ,cls ,instance $cache)
-			     ,(loop (cdr inlines))))
-		       ((type)
-			`(if (eq? $hclass (AttributeCache-type-hclass $cache))
-			     (py-getattribute-and-call0-from-type-maybe-super-cache $OBJ ,cls ,instance $cache)
-			     ,(loop (cdr inlines))))
-		       ((module)
-			`(if (eq? $hclass (AttributeCache-module-hclass $cache))
-			     ,(gen-py-callX `(py-getattribute-from-module-cache $OBJ $cache))
-			     ,(loop (cdr inlines))))
-		       (else (error "py-getattribute-and-callX-cached" "unknown inlining priority" (car inlines)))))))))
-
-(define-macro (py-getattribute-and-callX-cached obj attr X args cache inline-priorities)
-   (define (gen-py-callX expr)
-      `(py-callX ,X ,expr ,@args))
-   ;; attr should always be a string literal
-   `(py-specialized-sint-float-dispatch-let
-       $OBJ
-       ,obj
-       ;; TODO: use macro to determine exact attribute in case of
-       ;; int and float, those can be determined statically
-       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
-       ,(gen-py-callX `(py-getattribute-fallback $OBJ ,attr))
-       ,(let loop ((inlines inline-priorities))
-	   (if (null? inlines)
-	       (gen-py-callX
-		  `(py-getattribute-cached-modular-fallback
-		      $OBJ (py-obj-hclass-general $OBJ) ,attr ,cache
-		      ,(not (not (memq 'object inline-priorities)))
-		      ,(not (not (memq 'mro inline-priorities)))
-		      ,(not (not (memq 'type inline-priorities)))
-		      ,(not (not (memq 'module inline-priorities)))))
-	       `(let (($cache ,cache)
-		      ($hclass (py-obj-hclass-general $OBJ)))
-		   ,(case (car inlines)
-		       ((object)
-			`(if (eq? $hclass (AttributeCache-object-hclass $cache))
-			     ,(gen-py-callX `(py-getattribute-from-object-cache $OBJ $cache))
-			     ,(loop (cdr inlines))))
-		       ((mro)
-			`(if (eq? $hclass (AttributeCache-mro-hclass $cache))
-			      (py-getattribute-and-callX-from-mro-cache $OBJ ,X ,args $cache)
-			     ,(loop (cdr inlines))))
-		       ((type)
-			`(if (eq? $hclass (AttributeCache-type-hclass $cache))
-			     (py-getattribute-and-callX-from-type-cache $OBJ ,X ,args $cache)
-			     ,(loop (cdr inlines))))
-		       ((module)
-			`(if (eq? $hclass (AttributeCache-module-hclass $cache))
-			     ,(gen-py-callX `(py-getattribute-from-module-cache $OBJ $cache))
-			     ,(loop (cdr inlines))))
-		       (else (error "py-getattribute-and-callX-cached" "unknown inlining priority" (car inlines)))))))))
-
-
 (define-macro (py-getattribute-from-module-cache obj cache)
   `(let* (($cache ,cache)
           ($obj ,obj)
@@ -2851,44 +3042,12 @@
   `(let (($cache ,cache))
       (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))))
 
-(define-macro (py-getattribute-and-callX-from-mro-cache obj X args cache)
-  ;; obj should never be a sint or float, those case can be resolved statically
-  `(let (($cache ,cache))
-      (py-descriptor-get-and-callX (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,X ,args)))
-
-(define-macro (py-getattribute-and-call0-from-mro-maybe-super-cache obj cls instance cache)
-  ;; obj should never be a sint or float, those case can be resolved statically
-  `(let (($cache ,cache))
-      (py-descriptor-get-and-call0-maybe-super (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,cls ,instance)))
-
 (define-macro (py-getattribute-from-type-cache obj cache)
   ;; obj should never be a sint or float, those are not types
-  `(let (($obj ,obj)
-         ($cache ,cache))
+  `(let (($cache ,cache))
     (if (eq? (AttributeCache-bind $cache) 'self)
         (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))
         (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)))))
-
-(define-macro (py-getattribute-and-callX-from-type-cache obj X args cache)
-  ;; obj should never be a sint or float, those are not types
-  `(let (($obj ,obj)
-         ($cache ,cache))
-    (if (eq? (AttributeCache-bind $cache) 'self)
-        (py-descriptor-get-and-callX (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,X ,args)
-        (py-callX ,X (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)) ,@args))))
-
-(define-macro (py-getattribute-and-call0-from-type-maybe-super-cache obj cls instance cache)
-   ;; obj should never be a sint or float, those are not types
-   `(let (($obj ,obj)
-	  ($cache ,cache))
-       (if (eq? (AttributeCache-bind $cache) 'self)
-	   (py-descriptor-get-and-call0-maybe-super (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache) ,cls ,instance)
-	   (let (($fn (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache))))
-	      (if (eq? $fn py-builtin-super)
-		  ,(if (and cls instance)
-		       `(py-call py-builtin-super ,cls ,instance)
-		       `(py-throw-super-no-arguments-error))
-		  (py-callX 0 $fn))))))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
@@ -3193,36 +3352,6 @@
         (py-descriptor-get-functionX-Y-Z-inline $attr $instance $owner))
       (else
        (py-descriptor-get-fallback $attr $instance $owner)))))
-
-(define-macro (py-descriptor-get-and-callX attr instance owner X args)
-   `(let* (($attr ,attr)
-	   ($instance ,instance)
-	   ($owner ,owner)
-	   ($cls (py-obj-cls ,attr)))
-       (cond
-	  ((not (PyObjectType-can-have-getter $cls))
-	   (py-callX ,X $attr ,@args)) ;; this covers the case fixnum/flonum
-	  ((PyObjectFunction? $attr)
-	   (py-callMethodX ,X $attr $instance ,@args))
-	  (else
-	   (py-callX ,X (py-descriptor-get-fallback $attr $instance $owner) ,@args)))))
-
-(define-macro (py-descriptor-get-and-call0-maybe-super attr instance owner cls inst)
-   `(let* (($attr ,attr)
-	   ($instance ,instance)
-	   ($owner ,owner)
-	   ($cls (py-obj-cls ,attr)))
-       (cond
-	  ((not (PyObjectType-can-have-getter $cls))
-	   (py-callX ,0 $attr)) ;; this covers the case fixnum/flonum
-	  ((PyObjectFunction? $attr)
-	   (if (eq? $attr py-builtin-super)
-	       ,(if (and cls inst)
-		    `(py-call py-builtin-super ,cls ,inst)
-		    `(py-throw-super-no-arguments-error))
-	       (py-callMethodX 0 $attr $instance)))
-	  (else
-	   (py-callX 0 (py-descriptor-get-fallback $attr $instance $owner))))))
 
 (define-macro (py-iter obj)
   `(py-iter-fallback ,obj))

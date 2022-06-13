@@ -155,18 +155,18 @@
     (cond
       ((eq? __getattribute__ object.__getattribute__)
         (or
-          (object-getattribute obj name #f cache)
+          (py-object-getattribute obj name #f cache)
           (getattribute-from-getattr
             (lambda () (py-throw-object-getattribute-error obj name)))))
       ((eq? __getattribute__ type.__getattribute__)
         (begin
           (or
-            (type-getattribute obj name #f cache)
+            (py-type-getattribute obj name #f cache)
             (getattribute-from-getattr
               (lambda () (py-throw-type-getattribute-error obj name))))))
       ((eq? __getattribute__ module.__getattribute__)
         (or
-          (module-getattribute obj name #f cache)
+          (py-module-getattribute obj name #f cache)
           (getattribute-from-getattr
             (lambda () (py-throw-module-getattribute-error obj name)))))
       (else
@@ -185,6 +185,20 @@
   attr
   (lambda (val) val)
   (lambda () py-absent)))
+
+(define-rts (py-generic-own-attr-set! obj attr val)
+  (cond
+    ((PyObjectType? obj)
+      (py-cls-own-attr-set! obj attr val))
+    (else
+      (py-generic-non-type-own-attr-set! obj attr val))))
+
+(define-rts (py-generic-non-type-own-attr-set! obj attr val)
+  (cond
+    ((PyObjectModule? obj)
+      (global-own-attr-put-no-cache! obj name val))
+    (else
+      (py-own-attr-set! obj attr val))))
 
 (define-rts (py-own-attr-set! obj attr val)
   ;; TODO: fix case when obj is not represented with a PyObject
@@ -208,6 +222,43 @@
                  (index (HClass-last-index new-hclass)))
             (PyObject-hclass-set! obj new-hclass)
             (PyObject-elements-set! obj index val)))))))
+
+(define-rts (py-cls-own-attr-set! cls attr val)
+  (py-cls-own-attr-set-with-pending-binding!
+    cls
+    attr
+    val
+    (if (PyObjectType-can-have-getter (py-obj-cls val))
+      (lambda (obj) (py-descriptor-get val obj cls))
+      (lambda (_) val))))
+
+(define-rts (py-cls-own-attr-set-with-pending-binding! cls attr val pb-val)
+  ;; TODO: fix case when obj is not represented with a PyObject
+  (declare-fixnum)
+  (let* ((attr-representative (py-str-representative attr)))
+    (if (PyObjectStrRep-magic-index attr-representative)
+      ;; set a magic method
+      (begin
+        (magic-attr-set!
+          cls
+          (PyObjectStrRep-magic-index attr-representative)
+          val)
+        (pending-binding-magic-attr-set!
+          cls
+          (PyObjectStrRep-magic-index attr-representative)
+          pb-val))
+      ;; set a normal attribute
+      (py-own-attr-index-2cont cls attr
+        (lambda (i)
+          (PyObject-elements-set! cls i val)
+          (PyObjectType-pending-binding-elements-set! cls i val))
+        (lambda ()
+          (let* ((hclass (py-obj-hclass cls))
+                 (new-hclass (HClass-next hclass attr-representative '+))
+                 (index (HClass-last-index new-hclass)))
+            (PyObject-hclass-set! cls new-hclass)
+            (PyObject-elements-set! cls index val)
+            (PyObjectType-pending-binding-elements-set! cls index pb-val)))))))
 
 ;;----------------------------------------------------------------------------
 
@@ -255,6 +306,7 @@
 
 (define-hclass-of-instances-preallocations
   py-object-hclass-of-instances
+  py-type-hclass-of-instances
   py-str-hclass-of-instances
   py-tuple-hclass-of-instances
   py-int-hclass-of-instances
@@ -324,7 +376,9 @@
     hclass-of-instance
     #f ;; is-builtin
     can-have-getter
-    (make-vector magic-attrs-length #f)))
+    (make-vector magic-attrs-length #f)
+    (make-vector magic-attrs-length #f)
+    '#()))
 
 (define-rts (py-builtin-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
   (let ((cls
@@ -561,14 +615,96 @@
           index
           (vector getter setter))))))
 
-;; Boostrap functions
-;; Functions are objects of type 'function', but their type cannot be assigned
-;; as long as the py-function-class has not been created.
-;; Before the creation of py-function-class, we instantiate class-less objects
-;; which we keep in the functions-awaiting-bootstap list. Once py-function-class
-;; is created, we can recover these functions and add their type.
 
-(define-rts functions-awaiting-bootstap '())
+;; Bootstraps type and object
+;; Create barebone object, type, str and tuple classes
+;; These will need to be filled in later
+
+;; core types (must be created in 1st bootstrap phase)
+(define-rts py-object-class #f)
+(define-rts py-type-class   #f)
+(define-rts py-str-class    #f)
+(define-rts py-tuple-class  #f)
+(define-rts py-function-class  #f)
+
+(define-rts (bootstrap-type-hierarchy-phase1)
+  (set! py-object-class
+    (py-builtin-type-alloc
+      #f ;; cls
+      (get-behavior-type-index object)
+      #f ;; can-have-getter
+      #f ;; bases
+      #f ;; mro
+      py-object-hclass-of-instances))
+
+  (set! py-type-class
+    (py-builtin-type-alloc
+      #f ;; cls
+      (get-behavior-type-index type)
+      #f ;; can-have-getter
+      #f ;; bases
+      #f ;; mro
+      py-type-hclass-of-instances))
+
+  (set! py-str-class
+    (py-builtin-type-alloc
+      #f ;; cls
+      (get-behavior-type-index str)
+      #f ;; can-have-getter
+      #f ;; bases
+      #f ;; mro
+      py-str-hclass-of-instances))
+
+  (set! py-tuple-class
+    (py-builtin-type-alloc
+      #f ;; cls
+      (get-behavior-type-index tuple)
+      #f ;; can-have-getter
+      #f ;; bases
+      #f ;; mro
+      py-tuple-hclass-of-instances))
+
+  (set! py-function-class
+    (py-builtin-type-alloc
+       #f ;; type must be filled in later
+       (get-behavior-type-index function) ;; class index
+       #t ;; can-have-getter
+       #f ;; bases must be filled in later
+       #f ;; mro must be filled in later
+       py-function-hclass-of-instances)) ;; hclass
+
+  ;; init all object (& ...) to a py-str object
+  (init-registered-constants)
+
+  ;; set the magic-index (for attribute fast access on types) on magic attributes (__add__, __next__, etc.)
+  (fill-representatives-magic-index)
+
+  ;; Fill in object class
+  (PyObject-class-set! py-object-class py-type-class)
+  (PyObjectType-bases-set! py-object-class '#())
+  (PyObjectType-mro-set! py-object-class (vector py-object-class))
+
+  ;; Fill in type class
+  (PyObject-class-set! py-type-class py-type-class)
+  (PyObjectType-bases-set! py-type-class (vector py-object-class))
+  (PyObjectType-mro-set! py-type-class (vector py-type-class py-object-class))
+
+  ;; Fill in tuple class
+  (PyObject-class-set! py-tuple-class py-type-class)
+  (PyObjectType-bases-set! py-tuple-class (vector py-object-class))
+  (PyObjectType-mro-set! py-tuple-class (vector py-tuple-class py-object-class))
+
+  ;; Fill in str class
+  (PyObject-class-set! py-str-class py-type-class)
+  (PyObjectType-bases-set! py-str-class (vector py-object-class))
+  (PyObjectType-mro-set! py-str-class (vector py-str-class py-object-class))
+
+  ;; Fill in function class
+  (PyObject-class-set! py-function-class py-type-class)
+  (PyObjectType-bases-set! py-function-class (vector py-object-class))
+  (PyObjectType-mro-set! py-function-class (vector py-function-class py-object-class)))
+
+(bootstrap-type-hierarchy-phase1)
 
 ;; signature: '#(args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
 ;; takes in a signature and returns an arity.
@@ -576,18 +712,17 @@
 ;; negative arity: functions takes x arguments, last argument is a *args
 ;; #f arity: unknown arity due to defaults value
 (define-rts (signature->arity signature)
-   (let ((args (vector-ref signature 0))
-	 (posonlyargs (vector-ref signature 1))
-	 (vararg (vector-ref signature 2))
-	 (kwonlyargs (vector-ref signature 3))
-	 (kw-defaults (vector-ref signature 4))
-	 (kwarg (vector-ref signature 5))
-	 (defaults (vector-ref signature 6)))
-      (if (and
-	   (eq? (vector-length kwonlyargs) 0)
-	   (eq? (vector-length kw-defaults) 0)
-	   (not kwarg)
-	   (eq? (vector-length defaults) 0))
+  (let ((args (vector-ref signature 0))
+    	  (posonlyargs (vector-ref signature 1))
+    	  (vararg (vector-ref signature 2))
+    	  (kwonlyargs (vector-ref signature 3))
+    	  (kw-defaults (vector-ref signature 4))
+    	  (kwarg (vector-ref signature 5))
+    	  (defaults (vector-ref signature 6)))
+  (if (and (eq? (vector-length kwonlyargs) 0)
+      	   (eq? (vector-length kw-defaults) 0)
+      	   (not kwarg)
+      	   (eq? (vector-length defaults) 0))
 	  (if vararg
 	      (- -1 (vector-length args) (vector-length posonlyargs))
 	      (+ (vector-length args) (vector-length posonlyargs)))
@@ -608,22 +743,7 @@
 	 (+ (vector-length args) (vector-length posonlyargs))
 	 #f)))
 
-(define-rts (prebootstrap-procedure->py-function procedure signature)
-  (let ((py-function
-          (py-make-PyObjectFunction
-            py-function-hclass-of-instances
-            '#()
-            #f
-            procedure
-            (signature->arity signature)
-            (signature->scheme-arity signature)
-            signature)))
-    (set!
-      functions-awaiting-bootstap
-      (cons py-function functions-awaiting-bootstap))
-    py-function))
-
-(define-rts (postbootstrap-procedure->py-function procedure signature)
+(define-rts (procedure->py-function procedure signature)
   (py-make-PyObjectFunction
     py-function-hclass-of-instances
     '#()
@@ -632,16 +752,6 @@
     (signature->arity signature)
     (signature->scheme-arity signature)
     signature))
-
-(define-rts procedure->py-function prebootstrap-procedure->py-function)
-
-(define-rts (bootstrap-functions)
-  (set! procedure->py-function postbootstrap-procedure->py-function)
-  (let loop ((functions functions-awaiting-bootstap))
-    (if (not (null? functions))
-      (begin
-        (PyObject-class-set! (car functions) py-function-class)
-        (loop (cdr functions))))))
 
 (define-rts (pack-extra-args arity args)
   (if (= arity -1)
@@ -670,103 +780,6 @@
         "missing "
         (number->string (fx- arity nargs))
         " required positional argument"))))
-
-(define-rts (py-call0-fallback fun)
-   (let ((fun-type (py-obj-cls fun)))
-      (cond
-	 ((eq? fun-type py-function-class)
-	  (let ((arity (PyObjectFunction-arity fun)))
-	     (cond
-		((eqv? arity -1)
-		 ((PyObjectFunction-procedure fun)
-		  (py-tuple-from-scheme '#())))
-		((not arity) (py-call0-generic fun))
-		(else
-		 (py-call-wrong-arity arity 0 "0")))))
-	 ((eq? fun-type py-method-class)
-	  (let* ((func (PyObjectMethod-method fun))
-		 (__self__ (PyObjectMethod-self fun))
-		 (arity (PyObjectFunction-scheme-arity func)))
-	     (if (eq? arity 1)
-		 ((PyObjectFunction-procedure func) __self__)
-		 (py-call1-generic func __self__))))
-	 (else
-	  (py-call0-generic fun)))))
-
-(define-rts (py-call1-fallback min-neg-arity fun a0)
-  (let ((fun-type (py-obj-cls fun)))
-     (cond
-	((eq? fun-type py-function-class)
-	 (let ((arity (PyObjectFunction-arity fun)))
-	    (cond
-	       ((not arity)
-		(py-call1-generic fun a0))
-	       ((and (fx< arity 0) (fx>= arity min-neg-arity))
-		(apply
-		   (PyObjectFunction-procedure fun)
-		   (pack-extra-args arity (cons a0 '()))))
-	       (else
-		;; Error messages
-		(py-call-wrong-arity arity 1 "1")))))
-	((eq? fun-type py-method-class)
-	 (let* ((func (PyObjectMethod-method fun))
-		(__self__ (PyObjectMethod-self fun))
-		(arity (PyObjectFunction-scheme-arity func)))
-	    (if (eq? arity 2)
-		((PyObjectFunction-procedure func) __self__ a0)
-		(py-call2-generic func __self__ a0))))
-	(else
-	 (py-call1-generic fun a0)))))
-
-(define-rts (py-call2-fallback min-neg-arity fun a0 a1)
-  (let ((fun-type (py-obj-cls fun)))
-     (cond
-	((eq? fun-type py-function-class)
-	 (let ((arity (PyObjectFunction-arity fun)))
-	    (cond
-	       ((not arity)
-		(py-call2-generic fun a0 a1))
-	       ((and (fx< arity 0) (fx>= arity min-neg-arity))
-		(apply
-		   (PyObjectFunction-procedure fun)
-		   (pack-extra-args arity (cons* a0 a1 '()))))
-	       (else
-		;; Error messages
-		(py-call-wrong-arity arity 2 "2")))))
-	((eq? fun-type py-method-class)
-	 (let* ((func (PyObjectMethod-method fun))
-		(__self__ (PyObjectMethod-self fun))
-		(arity (PyObjectFunction-scheme-arity func)))
-	    (if (eq? arity 3)
-		((PyObjectFunction-procedure func) __self__ a0 a1)
-		(py-call3-generic func __self__ a0 a1))))
-	(else
-	 (py-call2-generic fun a0 a1)))))
-
-(define-rts (py-call3-fallback min-neg-arity fun a0 a1 a2)
-  (let ((fun-type (py-obj-cls fun)))
-     (cond
-	((eq? fun-type py-function-class)
-	 (let ((arity (PyObjectFunction-arity fun)))
-	    (cond
-	       ((not arity)
-		(py-call3-generic fun a0 a1 a2))
-	       ((and (fx< arity 0) (fx>= arity min-neg-arity))
-		(apply
-		   (PyObjectFunction-procedure fun)
-		   (pack-extra-args arity (cons* a0 a1 a2 '()))))
-	       (else
-		;; Error messages
-		(py-call-wrong-arity arity 3 "3")))))
-	((eq? fun-type py-method-class)
-	 (let* ((func (PyObjectMethod-method fun))
-		(__self__ (PyObjectMethod-self fun))
-		(arity (PyObjectFunction-scheme-arity func)))
-	    (if (eq? arity 4)
-		((PyObjectFunction-procedure func) __self__ a0 a1 a2)
-		(py-call4-generic func __self__ a0 a1 a2))))
-	(else
-	 (py-call3-generic fun a0 a1 a2)))))
 
 (define-rts (py-callX-fallback min-neg-arity fun . args)
   (let ((fun-type (py-obj-cls fun)))
@@ -797,10 +810,6 @@
         (let* ((procedure (PyObjectFunction-procedure obj))
                (signature (PyObjectFunction-signature obj))
                (aligned-args (align-args-with-signature args signature)))
-	   (tprint "py-call-generic args=" (length args)
-	      " sig=" signature " aligned-args="
-	      (length aligned-args) " eq=" (eq? args aligned-args))
-	   ;; (when (eq? args aligned-args) (c-debugging-print "ICI..."))
           (apply procedure aligned-args)))
       ((eq? obj-type py-method-class)
         (let* ((func (PyObjectMethod-method obj))
@@ -821,199 +830,16 @@
 		  (let ((instance (py-obj-alloc obj)))
 		     (tprint "type-call-from-instance...")
 		     (type-call-from-instance obj instance (cons instance args))))
-	      (begin
-		 (tprint "type-call-from-method...")
-		 (type-call-from-new-method-fallback obj args __new__)))))
+		 (type-call-from-new-method-fallback obj args __new__))))
       (else
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
             (py-throw-not-callable obj)
             (py-call-generic __call__ (cons obj args))))))))
 
-(define-rts (py-call0-generic obj)
-   (let ((obj-type (py-type obj)))
-      (cond
-	 ((eq? obj-type py-function-class)
-	  (let* ((procedure (PyObjectFunction-procedure obj))
-		 (signature (PyObjectFunction-signature obj)))
-	     (if (eq? (signature-arity-alignment signature) 0)
-		 (procedure)
-		 (let ((aligned-args (align-args-with-signature '() signature)))
-		    (tprint "py-call0-generic "
-		       " " (length aligned-args) " " signature)
-		    (apply procedure aligned-args)))))
-	 ((eq? obj-type py-method-class)
-	  (let* ((func (PyObjectMethod-method obj))
-		 (__self__ (PyObjectMethod-self obj)))
-	     (py-call1-generic func __self__)))
-	 ;; initialization of instances from type with no special metaclass
-	 ((eq? obj-type py-type-class)
-	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
-	     (if (eq? __new__ object.__new__)
-		 (if (eq? obj py-object-class)
-		     (py-obj-alloc py-object-class)
-		     (let ((instance (py-obj-alloc obj)))
-			(type-callX-from-instance obj instance instance)))
-		 (type-callX-from-new-method obj __new__))))
-	 (else
-	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
-	     (if (eq? __call__ py-absent)
-		 (py-throw-not-callable obj)
-		 (py-call1-generic __call__ obj)))))))
-
 (define-rts (align-and-call signature procedure . args)
    (let ((aligned-args (align-args-with-signature args signature)))
-      (tprint "align-args " signature " " (length args))
       (apply procedure aligned-args)))
-
-(define-rts (py-call1-generic obj a0)
-
-   (let ((obj-type (py-type obj)))
-      (cond
-	 ((eq? obj-type py-function-class)
-	  (let* ((procedure (PyObjectFunction-procedure obj))
-		 (signature (PyObjectFunction-signature obj))
-		 (arity (signature-arity-alignment signature)))
-	     (if (eq? arity 1)
-		 (procedure a0)
-		 (let ((defaults (signature-defaults signature)))
-		    (if (eq? arity (fx+ (vector-length defaults) 1))
-			(case (vector-length defaults)
-			   ((0)
-			    (align-and-call signature procedure a0))
-			   ((1)
-			    (procedure a0 (vector-ref defaults 0)))
-			   ((2)
-			    (procedure a0 (vector-ref defaults 0) (vector-ref defaults 1)))
-			   ((3)
-			    (procedure a0 (vector-ref defaults 0) (vector-ref defaults 1) (vector-ref defaults 2)))
-			   (else
-			    (align-and-call signature procedure a0)))
-			(align-and-call signature procedure a0))))))
-	 ((eq? obj-type py-method-class)
-	  (let* ((func (PyObjectMethod-method obj))
-		 (__self__ (PyObjectMethod-self obj)))
-	     (py-call2-generic func __self__ a0)))
-	 ;; initialization of instances from type with no special metaclass
-	 ((eq? obj-type py-type-class)
-	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
-	    (if (eq? __new__ object.__new__)
-  		  (if (eq? obj py-object-class)
-  		    (py-throw-exception-with-message py-builtin-TypeError "object() takes no arguments")
-          (let ((instance (py-obj-alloc obj)))
-  		      (type-callX-from-instance obj instance instance a0)))
-		    (type-callX-from-new-method obj __new__ a0))))
-	 (else
-	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
-	     (if (eq? __call__ py-absent)
-		 (py-throw-not-callable obj)
-		 (py-call2-generic __call__ obj a0)))))))
-
-(define-rts (py-call2-generic obj a0 a1)
-  (let ((obj-type (py-type obj)))
-    (cond
-  	 ((eq? obj-type py-function-class)
-  	  (let* ((procedure (PyObjectFunction-procedure obj))
-             (signature (PyObjectFunction-signature obj))
-  		       (arity (signature-arity-alignment signature)))
-  	    (if (eq? arity 2)
-  		    (procedure a0 a1)
-  		    (let ((defaults (signature-defaults signature)))
-  		      (if (eq? arity (fx+ (vector-length defaults) 1))
-        			(case (vector-length defaults)
-        			   ((2)
-        			    (procedure a0 a1 (vector-ref defaults 1)))
-        			   ((3)
-        			    (procedure a0 a1 (vector-ref defaults 1) (vector-ref defaults 2)))
-        			   (else
-        			    (align-and-call signature procedure a0 a1)))
-  			      (align-and-call signature procedure a0 a1))))))
-  	 ((eq? obj-type py-method-class)
-  	  (let* ((func (PyObjectMethod-method obj))
-  		 (__self__ (PyObjectMethod-self obj)))
-  	     (py-call3-generic func __self__ a0 a1)))
-  	 ;; initialization of instances from type with no special metaclass
-  	 ((eq? obj-type py-type-class)
-  	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
-  	     (if (eq? __new__ object.__new__)
-  		 (if (eq? obj py-object-class)
-  		     (py-throw-exception-with-message
-  			py-builtin-TypeError
-  			"object() takes no arguments")
-  		     (let ((instance (py-obj-alloc obj)))
-  			(type-callX-from-instance obj instance instance a0 a1)))
-  		 (type-callX-from-new-method obj __new__ a0 a1))))
-  	 (else
-  	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
-  	     (if (eq? __call__ py-absent)
-  		 (py-throw-not-callable obj)
-  		 (py-call3-generic __call__ obj a0 a1)))))))
-
-(define-rts (py-call3-generic obj a0 a1 a2)
-   (let ((obj-type (py-type obj)))
-      (cond
-	 ((eq? obj-type py-function-class)
-	  (let* ((procedure (PyObjectFunction-procedure obj))
-		 (signature (PyObjectFunction-signature obj)))
-	     (if (eq? (signature-arity-alignment signature) 3)
-		 (procedure a0 a1 a2)
-		 (let ((aligned-args (align-args-with-signature (list a0 a1 a2) signature)))
-		    (tprint "py-call-generic3 "
-		       " " (length aligned-args) " " signature)
-		    (apply procedure aligned-args)))))
-	 ((eq? obj-type py-method-class)
-	  (let* ((func (PyObjectMethod-method obj))
-		 (__self__ (PyObjectMethod-self obj)))
-	     (py-call4-generic func __self__ a0 a1 a2)))
-	 ;; initialization of instances from type with no special metaclass
-	 ((eq? obj-type py-type-class)
-	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
-	     (if (eq? __new__ object.__new__)
-		 (if (eq? obj py-object-class)
-		     (py-throw-exception-with-message
-			py-builtin-TypeError
-			"object() takes no arguments")
-		     (let ((instance (py-obj-alloc obj)))
-			(type-callX-from-instance obj instance instance a0 a1 a2)))
-		 (type-callX-from-new-method obj __new__ a0 a1 a2))))
-	 (else
-	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
-	     (if (eq? __call__ py-absent)
-		 (py-throw-not-callable obj)
-		 (py-call4-generic __call__ obj a0 a1 a2)))))))
-
-(define-rts (py-call4-generic obj a0 a1 a2 a3)
-   (py-call-generic obj (list a0 a1 a2 a3)))
-
-;*    (let ((obj-type (py-type obj)))                                  */
-;*       (cond                                                         */
-;* 	 ((eq? obj-type py-function-class)                             */
-;* 	  (let* ((procedure (PyObjectFunction-procedure obj))          */
-;* 		 (signature (PyObjectFunction-signature obj))          */
-;* 		 (aligned-args (align-args-with-signature (cons* a0 a1 a2 a3 '()) signature))) */
-;* 	     (tprint "py-call-generic4 obj=" (typeof obj) " " procedure */
-;* 		" " (length aligned-args) " " signature)               */
-;* 	     (apply procedure aligned-args)))                          */
-;* 	 ((eq? obj-type py-method-class)                               */
-;* 	  (let* ((func (PyObjectMethod-method obj))                    */
-;* 		 (__self__ (PyObjectMethod-self obj)))                 */
-;* 	     (py-call-generic func (list __self__ a0 a1 a2 a3))))      */
-;* 	 ;; initialization of instances from type with no special metaclass */
-;* 	 ((eq? obj-type py-type-class)                                 */
-;* 	  (let ((__new__ (getattribute-from-cls-mro obj (& "__new__")))) */
-;* 	     (if (eq? __new__ object.__new__)                          */
-;* 		 (if (eq? obj py-object-class)                         */
-;* 		     (py-throw-exception-with-message                  */
-;* 			py-builtin-TypeError                           */
-;* 			"object() takes no arguments")                 */
-;* 		     (let ((instance (py-obj-alloc obj)))              */
-;* 			(type-call-from-instance obj instance (cons instance (cons* a0 a1 '()))))) */
-;* 		 (type-call-from-new-method-fallback obj (list a0 a1 a2 a3) __new__)))) */
-;* 	 (else                                                         */
-;* 	  (let ((__call__ (getattribute-from-obj-mro obj (& "__call__")))) */
-;* 	     (if (eq? __call__ py-absent)                              */
-;* 		 (py-throw-not-callable obj)                           */
-;* 		 (py-call-generic __call__ (list obj a0 a1 a2 a3)))))))) */
 
 (define-rts (align-args-with-signature caller-args signature)
   (let ((args (vector-ref signature 0))
@@ -1335,7 +1161,7 @@
       (if (null? unused-kwargs)
         '()
         (let ((unknown-keyword
-               (py-subtype-of-str-to-scheme
+               (py-str-to-scheme
                 (caar unused-kwargs))))
           (py-throw-exception-with-message
             py-builtin-TypeError
@@ -1380,7 +1206,7 @@
     (if (= (ordered-table-length unused-kwargs) 0)
       '()
       (let ((unknown-keyword
-             (py-subtype-of-str-to-scheme
+             (py-str-to-scheme
               (ordered-table-first-key unused-kwargs))))
         (py-throw-exception-with-message
           py-builtin-TypeError
@@ -1405,16 +1231,14 @@
     (py-is-in-mro? cls mro)))
 
 (define-rts (py-issubclass? cls parent)
-  (if (py-isinstance? cls py-type-class)
-    (let ((mro (PyObjectType-mro cls)))
-      (py-is-in-mro? parent mro))
-    #f))
+  (or (eq? cls parent)
+      (and (py-isinstance? cls py-type-class)
+           (py-is-in-mro? parent (PyObjectType-mro cls)))))
 
 (define-rts (py-throw-with-values exc . values)
-   (cond ((not (PyObject? exc))
-	  (if (native-exception? exc)
-	      (py-throw-unsafe exc)
-	      (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))
+ (cond
+   ((not (PyObject? exc))
+	  (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))
 	 ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
           (if (null? values)
 	      (py-throw-unsafe exc)
@@ -1427,13 +1251,13 @@
 	  (py-throw-unsafe (py-call py-builtin-TypeError (& "exceptions must derive from BaseException"))))))
 
 (define-rts (py-throw exc)
-   (cond ((not (PyObject? exc))
-	  (if (native-exception? exc)
-	      (py-throw-unsafe exc)
-	      (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException")))
+ (cond
+   ((not (PyObject? exc))
+	  (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))
 	 ((py-is-in-mro? py-builtin-BaseException (py-obj-mro exc))
 	  (py-throw-unsafe exc))
-	 ((py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc))
+	 ((and (PyObjectType? exc)
+         (py-is-in-mro? py-builtin-BaseException (PyObjectType-mro exc)))
 	  (py-throw-unsafe (py-call exc)))
 	 (else
 	  (py-throw-exception-with-message py-builtin-TypeError "exceptions must derive from BaseException"))))
@@ -1669,18 +1493,27 @@
       (else (py-in-iterator item iterator)))))
 
 (define-rts (py-in item container) ;; x in y
+  (if (py-test-in item container)
+    py-True
+    py-False))
+
+(define-rts (py-notin item container) ;; x not in y
+  (if (py-test-in item container)
+    py-False
+    py-True))
+
+(define (py-test-in item container)
   (let ((__contains__ (getattribute-from-obj-mro container (& "__contains__"))))
     (if (eq? __contains__ py-absent)
       (let ((iterator (py-obj->iterator container)))
         (if iterator
           (py-in-iterator item iterator)
           (throw-not-iterable container)))
-      (if (py-test (py-call __contains__ container item)) py-True py-False))))
+      (py-test (py-call __contains__ container item)))))
 
-(define-rts (py-notin item container) ;; x not in y
-  (if (py-test (py-in item container))
-    py-False
-    py-True))
+(define (py-test-notin item container)
+  (not (py-test-in item container)))
+
 
 ;; meant to be called as the builtin abs(), not an operator but follows
 ;; the same logic
@@ -1757,35 +1590,23 @@
      (py-int-from-scheme (|##modulo| x y)))
 ))
 
-(define-rts (int-repr self)
-  (if (py-subtype-of-int? self)
-      (py-str-from-scheme (number->string (py-subtype-of-int-to-scheme self)))
-      (py-throw-required-type "__repr__" "int" self)))
+(define-method int.__repr__
+  guard: (not (py-subtype-of-int? self))
+         (py-throw-required-type "__repr__" "int" self)
+  body: (py-str-from-scheme (number->string (py-subtype-of-int-to-scheme self)))
+  signature: (posonlyargs: (self)))
 
-(define-rts int.__repr__
-  (procedure->py-function
-    int-repr
-    (make-signature posonlyargs: (self) name: int.__repr__)))
+(define-method int.__hash__
+  guard: (not (py-subtype-of-int? self))
+         (py-throw-required-type "__hash__" "int" self)
+  body: (py-int-from-scheme (truncate-hash (py-subtype-of-int-to-scheme self)))
+  signature: (posonlyargs: (self)))
 
-(define-rts (int-hash self)
-  (if (py-subtype-of-int? self)
-      (py-int-from-scheme (truncate-hash (py-subtype-of-int-to-scheme self)))
-      (py-throw-required-type "__hash__" "int" self)))
-
-(define-rts int.__hash__
-  (procedure->py-function
-    int-hash
-    (make-signature posonlyargs: (self) name: int.__hash__)))
-
-(define-rts (int-int self)
-  (if (py-subtype-of-int? self)
-      (py-int-from-scheme (py-subtype-of-int-to-scheme self))
-      (py-throw-required-type "__int__" "int" self)))
-
-(define-rts int.__int__
-  (procedure->py-function
-    int-int
-    (make-signature posonlyargs: (self) name: int.__int__)))
+(define-method int.__int__
+  guard: (not (py-subtype-of-int? self))
+         (py-throw-required-type "__int__" "int" self)
+  body: (py-int-from-scheme (py-subtype-of-int-to-scheme self))
+  signature: (posonlyargs: (self)))
 
 (define-rts (int-bool self)
   (if (py-subtype-of-int? self)
@@ -1815,7 +1636,97 @@
 (define-rts (getattribute-from-obj-mro-fallback obj name)
   (getattribute-from-cls-mro (py-obj-cls obj) name))
 
-(define-rts (object-getattribute obj name #!optional (raise? #t) (cache #f))
+
+(define-macro (py-getattribute-from-module-cache-skip-binding obj cache)
+  `(let* (($cache ,cache)
+          ($obj ,obj)
+          (index (AttributeCache-index $cache)))
+    (if (fx= index -1)
+      (py-getattribute-from-mro-cache-skip-binding $obj $cache)
+      (let (($attr (PyObject-global-elements-ref $obj index)))
+        (if $attr
+          (lambda (_) $attr)
+          (py-getattribute-from-mro-cache-skip-binding $obj $cache))))))
+
+(define-macro (py-getattribute-from-object-cache-skip-binding obj cache)
+  `(let* (($cache ,cache)
+         ($obj ,obj)
+         (index (AttributeCache-index $cache)))
+    (if (fx= index -1)
+      (py-getattribute-from-mro-cache-skip-binding $obj $cache)
+      (let ((attr (PyObject-elements-ref $obj index)))
+        (if (eq? attr py-absent)
+          (py-getattribute-from-mro-cache-skip-binding $obj $cache)
+          (lambda (_) attr))))))
+
+(define-macro (py-getattribute-from-mro-cache-skip-binding obj cache)
+  `(AttributeCache-attr ,cache))
+
+(define-macro (py-getattribute-from-type-cache-skip-binding obj cache)
+  ;; TODO: actually skip binding
+  `(let (($obj ,obj)
+         ($cache ,cache))
+    (if (eq? (AttributeCache-bind $cache) 'self)
+        (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))
+        (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)))))
+
+(define-rts (py-getattribute-skip-binding-cached-fallback obj hclass name cache)
+  (cond
+    ((eq? hclass (AttributeCache-object-hclass cache))
+      (py-getattribute-from-object-cache obj cache))
+    ((eq? hclass (AttributeCache-mro-hclass cache))
+      (py-getattribute-from-mro-cache obj cache))
+    ((eq? hclass (AttributeCache-type-hclass cache))
+      (py-getattribute-from-type-cache obj cache))
+    ((eq? hclass (AttributeCache-module-hclass cache))
+        (py-getattribute-from-module-cache obj cache))
+    (else
+      (py-getattribute-skip-binding-cached/miss obj name cache))))
+
+(define-rts (py-getattribute-skip-binding-cached/miss obj name cache)
+  (define (getattribute-from-mro index-hit-on-object-hclass)
+    (getattribute-from-obj-mro-with-index/owner-pending-binding-2cont
+      obj
+      name
+      (lambda (index cls-attr owner)
+        (if index-hit-on-object-hclass
+          (if cache
+            (AttributeCache-object-or-mro-hit!
+              cache
+              (py-obj-hclass obj)
+              index-hit-on-object-hclass
+              cls-attr
+              owner))
+          (if cache (AttributeCache-mro-hit! cache (py-obj-hclass obj) cls-attr owner)))
+        cls-attr)
+      ;; TODO: standardize order of parameters of getattribute semantics
+      (lambda ()
+        (lambda (obj) (py-getattribute-fallback:fallback name obj py-absent)))))
+
+  (py-getattribute-from-obj-mro-2cont
+    obj
+    (& "__getattribute__")
+    (lambda (__getattribute__)
+      (cond
+        ;; TODO support module.__getattribute__ and type.__getattribute__
+        ((py-test-is __getattribute__ object.__getattribute__)
+          (py-own-attr-index/ref-2cont
+            obj
+            name
+            (lambda (index val)
+              (if (eq? val py-absent)
+                (getattribute-from-mro #t)
+                (begin
+                  (if cache (AttributeCache-object-hit! cache (py-obj-hclass obj) index))
+                  (lambda (_) val))))
+            (lambda () (getattribute-from-mro #f))))
+        (else
+          ;; TODO: cache?
+          (lambda (obj) (py-getattribute-fallback:normal name obj __getattribute__)))))
+    (lambda () (error "py-getattribute-skip-binding" "__getattribute__ should always exist" obj))))
+
+
+(define-rts (py-object-getattribute obj name raise? cache)
   (define (getattribute-from-mro index-hit-on-object-hclass)
     (getattribute-from-obj-mro-with-index/owner-2cont
       obj
@@ -1852,51 +1763,59 @@
           val)))
     (lambda () (getattribute-from-mro #f))))
 
-(define-rts object.__getattribute__
-  (procedure->py-function
-    object-getattribute
-    (make-signature posonlyargs: (obj name) name: object.__getattribute__)))
+(define-rts (py-generic-getattribute self name)
+  (cond
+    ((PyObjectType? self)
+      (py-type-getattribute self name #t #f))
+    ((PyObjectModule? self)
+      (py-module-getattribute self name #t #f))
+    (else
+      (py-object-getattribute self name #t #f))))
 
-(define-rts (object-setattr obj name val)
-  ;; TODO: add check that obj does not has it own setattr method
-  (if (py-subtype-of-str? name)
-    (begin
-      (if (PyObjectType? obj) (reset-mro-caches!))
-      (py-own-attr-set! obj name val))
-    (py-throw-exception-with-message
-     py-builtin-TypeError
-     "attribute name must be string")))
+(define-method object.__getattribute__
+  body: (py-generic-getattribute self name)
+  signature: (posonlyargs: (self name)))
 
-(define-rts object.__setattr__
-  (procedure->py-function
-    object-setattr
-    (make-signature posonlyargs: (obj name val) name: object.__setattr__)))
+(define-method object.__setattr__
+  guard: (not (py-subtype-of-str? name))
+         (py-throw-exception-with-message
+           py-builtin-TypeError
+           "attribute name must be string")
+  guard: (PyObjectType? self)
+         (py-throw-exception-with-message
+           py-builtin-TypeError
+           "can't apply this __setattr__ to type object")
+  body: (py-generic-non-type-own-attr-set! self name val)
+        py-None
+  signature: (posonlyargs: (self name val)))
 
-;; Implements type.__getattribute__
-(define-rts (type-getattribute obj name #!optional (raise? #t) (cache #f))
-  (if (py-isinstance? obj py-type-class)
-    (getattribute-from-cls-mro-with-owner-2cont
-      obj
-      name
-      (lambda (attr owner)
-        (if cache (AttributeCache-type-hit! cache (py-obj-hclass obj) attr owner))
-        (py-descriptor-get attr py-None obj))
-      (lambda ()
-        (getattribute-from-obj-mro-with-owner-2cont
-         obj
-         name
-         (lambda (cls-attr owner)
-           (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass obj) cls-attr owner))
-           (py-descriptor-get cls-attr obj owner))
-         (lambda ()
-           (and raise? (py-throw-type-getattribute-error obj name))))))
-    (py-throw-required-type "__getattribute__" "type" obj)))
+;; Implements attribute access on types with binding
+(define-rts (py-type-getattribute self name raise? cache)
+  (getattribute-from-cls-mro-with-owner-2cont
+    self
+    name
+    (lambda (attr owner)
+      (if cache (AttributeCache-type-hit! cache (py-obj-hclass self) attr owner))
+      (py-descriptor-get attr py-None self))
+    (lambda ()
+      (getattribute-from-obj-mro-with-owner-2cont
+       self
+       name
+       (lambda (cls-attr owner)
+         (if cache (AttributeCache-type-mro-hit! cache (py-obj-hclass self) cls-attr owner))
+         (py-descriptor-get cls-attr self owner))
+       (lambda ()
+         ;; TODO: replace this hack by something better
+         ;; NOTE: __class__ should get a getset_descriptor on object
+         (if (eq? (py-str-representative name) (& "__class__"))
+             (py-obj-cls self)
+             (and raise? (py-throw-type-getattribute-error self name))))))))
 
-;; The Python object type.__getattribute__
-(define-rts type.__getattribute__
-  (procedure->py-function
-    type-getattribute
-    (make-signature posonlyargs: (obj name) name: type.__getattribute__)))
+(define-method type.__getattribute__
+  guard: (not (py-isinstance? self py-type-class))
+         (py-throw-required-type "__getattribute__" "type" self)
+  body: (py-type-getattribute self name #t #f)
+  signature: (posonlyargs: (self name)))
 
 (define-rts (object-has obj attr)
    (>= (py-own-attr-index obj attr) 0))
@@ -2022,83 +1941,57 @@
 
 ;; slow way to call function through function.__call__
 ;; interfaces between manual __call__ and py-call
-(define-rts (function-call self args)
-  (if (eq? (py-type self) py-function-class)
-      (let ((args-list (vector->list (PyObjectTuple-value args))))
-	 (tprint "function-call " (length args-list))
-      (py-call-generic self args-list))
-    (py-throw-required-type "__call__" "method" self)))
-
-(define-rts function.__call__
-  (procedure->py-function
-    function-call
-    (make-signature
-      posonlyargs: (self)
-      vararg: args
-      name: function.__call__)))
+;; TODO: add **kwargs?
+(define-method function.__call__
+  guard: (not (eq? (py-obj-cls self) py-function-class))
+         (py-throw-required-type "__call__" "method" self)
+  body: (let ((args-list (vector->list (PyObjectTuple-value args))))
+          (py-call-generic self args-list))
+  signature: (posonlyargs: (self) vararg: args))
 
 (define-rts (type-call-from-new-method-fallback self args __new__)
   (type-call-from-new-method self args __new__))
 
-(define-rts (type-call-fallback self args)
-  (type-call-from-new-method
-    self
-    (vector->list (PyObjectTuple-value args))
-    (getattribute-from-cls-mro self (& "__new__"))))
+(define-method type.__call__ ;; TODO add kwargs
+  guard: (not (py-isinstance? self py-builtin-type))
+         (py-throw-required-type "__call__" "type" self)
+  body: (type-call-from-new-method
+          self
+          (vector->list (PyObjectTuple-value args))
+          (getattribute-from-cls-mro self (& "__new__")))
+  signature: (posonlyargs: (self) vararg: args))
 
-(define-rts type.__call__
-  (procedure->py-function
-    type-call-fallback
-    (make-signature
-      posonlyargs: (self)
-      vararg: args
-      name: type.__call__)))
+(define-method type.__setattr__
+  guard: (not (py-isinstance? self py-builtin-type))
+         (py-throw-required-type "__setattr__" "type" self)
+  guard: (not (py-subtype-of-str? name))
+         (py-throw-exception-with-message py-builtin-TypeError "attribute name must be string")
+  body: (reset-mro-caches!)
+        (py-cls-own-attr-set! self name val)
+  signature: (posonlyargs: (self name val)))
 
-(define-rts (type-setattr self name val)
-  ;; TODO: add check that obj does not has it own setattr method
-  (if (py-isinstance? self py-builtin-type)
-    (if (py-subtype-of-str? name)
-      (begin
-        (reset-mro-caches!)
-        (py-own-attr-set! self name val))
-      (py-throw-exception-with-message
-       py-builtin-TypeError
-       "attribute name must be string"))
-    (py-throw-exception-with-message
-     py-builtin-TypeError
-     "descriptor '__setattr__' requires a 'type' object")))
+(define-method type.__new__
+  binding: staticmethod
+  guard: (not (py-issubclass? metacls py-type-class))
+         (py-throw-wrong-new-argument "type" metacls)
+  body: (cond
+          ((not bases)
+            (py-obj-cls obj))
+          ((not namespace)
+            (py-throw (py-call
+              py-builtin-TypeError
+              (&& "type() takes 1 or 3 arguments"))))
+          (else
+            (py-throw-exception-with-message
+              py-builtin-NotImplementedError
+              "type(name, bases, namespace) not implemented")))
+  signature: (posonlyargs: (metacls obj bases namespace) defaults: '#(#f #f)))
 
-(define-rts type.__setattr__
-  (procedure->py-function
-    object-setattr
-    (make-signature posonlyargs: (self name val) name: type.__setattr__)))
-
-
-;; TODO: remove the tuple->list conversion once we support argument unpacking
-(define-rts (type-new metacls cls args)
-  (let* ((args-list (vector->list (PyObjectTuple-value args)))
-        (args-length (length args-list)))
-    (cond
-      ((= args-length 0)
-        (py-obj-cls cls))
-      ((= args-length 2)
-        (py-throw-exception-with-message py-builtin-NotImplementedError "type(name, bases, nmspace) not implemented"))
-      (else
-        (py-throw (py-call
-          py-builtin-TypeError
-          (&& "type() takes 1 or 3 arguments")))))))
-
-(define-rts type.__new__
-  (procedure->py-function
-    type-new
-    (make-signature
-      posonlyargs: (metacls cls)
-      vararg: args
-      name: type.__new__)))
-
-(define-rts (tuple-new cls iterable)
-  (if (or (eq? cls py-tuple-class) (py-issubclass? cls py-tuple-class))
-      (if (eq? iterable py-absent)
+(define-method tuple.__new__
+  binding: staticmethod
+  guard: (not (py-issubclass? cls py-tuple-class))
+         (py-throw-wrong-new-argument "tuple" cls)
+  body: (if (eq? iterable py-absent)
           (py-tuple-subtype-from-scheme '#() cls)
           (let ((iterable-type (py-type iterable)))
            (cond
@@ -2115,32 +2008,21 @@
                (let* ((iterator (py-iter iterable))
                       (content (list->vector (iterator->list iterator))))
                  (py-tuple-subtype-from-scheme (vector-copy content) cls))))))
-      (py-throw-wrong-new-argument "tuple" cls)))
+  signature: (posonlyargs: (cls iterable) defaults: (vector py-absent)))
 
-(define-rts tuple.__new__
-  (procedure->py-function
-    tuple-new
-    (make-signature posonlyargs: (cls iterable) defaults: (vector py-absent) name: tuple.__new__)))
 
 ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
 ;; this should be done concurrently in py-call-generic
 ;; TODO: raise TypeError when cannot create, ex: list_iterator.__new__()
 ;; TODO: raise TypeError when object() is called with arguments
-(define-rts (object-new cls args kwargs)
-  (if (py-isinstance? cls py-type-class)
-    (py-obj-alloc cls)
-    (py-throw
-      (py-call py-builtin-TypeError
-        (&& "object.__new__(X): X is not a type object")))))
-
-(define-rts object.__new__
-  (procedure->py-function
-    object-new
-    (make-signature
-      posonlyargs: (cls)
-      vararg: args
-      kwarg: kwargs
-      name: object.__new__)))
+(define-method object.__new__
+  binding: staticmethod
+  guard: (not (py-isinstance? cls py-type-class))
+         (py-throw
+           (py-call py-builtin-TypeError
+             (&& "object.__new__(X): X is not a type object")))
+  body: (py-obj-alloc cls)
+  signature: (posonlyargs: (cls) vararg: args kwarg: kwargs))
 
 ;; object.__init__ exists but does nothing
 ;; its purpose is that super().__init__ does not raise and AttributeError
@@ -2151,6 +2033,10 @@
       posonlyargs: (self)
       vararg: args
       name: object.__init__)))
+
+(define-method object.__init__
+  body: py-None
+  signature: (posonlyargs: (self) vararg: args))
 
 
 ;; =============================================================================
@@ -2217,9 +2103,6 @@
           (PyObjectStr-part2-or-rep-set! str #f)
 
           result))))
-
-(define-rts (py-subtype-of-str-to-scheme-fallback str)
-  (py-str-to-scheme-fallback str))
 
 (define-rts (py-str-representative-fallback str)
   (let ((part1-or-string (PyObjectStr-part1-or-string str)))
@@ -2376,113 +2259,85 @@
 (define-rts (integer->hex-string x)
   (string-append "0x" (number->string x 16)))
 
-(define-rts (str-new cls value)
-  (cond
-    ((eq? cls py-str-class)
-     (if (eq? value py-absent)
-         (&& "")
-         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
-                (result (py-call __str__ value)))
-           (if (py-subtype-of-str? result)
-               result
-               (throw-returned-wrong-type "__str__" value "non-string")))))
-    ((py-issubclass? cls py-str-class)
-     (if (eq? value py-absent)
-         (py-subtype-of-str-from-scheme
-           ""
-           cls)
-         (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
-                (result (py-call __str__ value)))
-           (if (py-subtype-of-str? result)
-               (py-subtype-of-str-from-scheme
-                 (py-subtype-of-str-to-scheme result)
-                 cls)
-               (throw-returned-wrong-type "__str__" value "non-string")))))
-    (else
-      (py-throw-wrong-new-argument "str" cls))))
+(define-method str.__new__
+  binding: staticmethod
+  guard: (not (py-issubclass? cls py-str-class))
+         (py-throw-wrong-new-argument "str" cls)
+  body: (if (eq? cls py-str-class)
+            (if (eq? value py-absent)
+              (&& "")
+              (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+                     (result (py-call __str__ value)))
+                (if (py-subtype-of-str? result)
+                    result
+                    (throw-returned-wrong-type "__str__" value "non-string"))))
+            (if (eq? value py-absent)
+              (py-subtype-of-str-from-scheme "" cls)
+              (let* ((__str__ (getattribute-from-obj-mro value (& "__str__")))
+                     (result (py-call __str__ value)))
+                (if (py-subtype-of-str? result)
+                    (py-subtype-of-str-from-scheme (py-str-to-scheme result) cls)
+                    (throw-returned-wrong-type "__str__" value "non-string")))))
+  signature: (posonlyargs: (cls value) defaults: (vector py-absent)))
 
-(define-rts str.__new__
-  (procedure->py-function
-    str-new
-    (make-signature posonlyargs: (cls value) defaults: (vector py-absent) name: str.__new__)))
 
 (define-rts (str-hash-value str)
   (PyObjectStrRep-hash (py-str-representative str)))
 
-(define-rts (str-hash self)
-  (if (py-subtype-of-str? self)
-      (py-int-from-scheme (str-hash-value self))
-      (py-throw-required-type "__hash__" "str" self)))
+(define-method str.__hash__
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "__hash__" "str" self)
+  body: (py-int-from-scheme (str-hash-value self))
+  signature: (posonlyargs: (self)))
 
-(define-rts str.__hash__
-  (procedure->py-function
-    str-hash
-    (make-signature posonlyargs: (self) name: str.__hash__)))
+(define-method str.__str__
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "__str__" "str" self)
+  body: self ;; TODO handle case of subtype of str (return representative?)
+  signature: (posonlyargs: (self)))
 
-(define-rts (str-str self)
-  (if (py-subtype-of-str? self)
-      self
-      (py-throw-required-type "__str__" "str" self)))
+(define-method str.__repr__
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "__repr__" "str" self)
+  body: (let* ((string (py-str-to-scheme self))
+               (string-repr (py-str-repr-scheme string)))
+          (py-str-from-scheme string-repr))
+  signature: (posonlyargs: (self)))
 
-(define-rts str.__str__
-  (procedure->py-function
-    str-str
-    (make-signature posonlyargs: (self) name: str.__str__)))
+(define-method str.__getitem__
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "__getitem__" "str" self)
+  body: (cond
+          ((py-subtype-of-int? index)
+            (let* ((string-content (py-str-to-scheme self))
+                   (len (py-str-len-to-scheme self))
+                   (i (py-subtype-of-int-to-scheme index)))
+              (if (index-in-length-range i len)
+                (py-str-from-scheme (string (string-ref string-content (modulo i len))))
+                (py-throw-index-out-of-range "str"))))
+          ((py-isinstance? index py-slice-class)
+            (let* ((string-content (py-str-to-scheme self))
+                   (len (py-str-len-to-scheme self))
+                   (slice-indices (py-slice-indices index len))
+                   (start (vector-ref slice-indices 0))
+                   (stop (vector-ref slice-indices 1))
+                   (step (vector-ref slice-indices 2))
+                   (slice-len (get-slice-length start stop step))
+                   (slice-string (make-string slice-len)))
+              (let loop ((source start) (target 0))
+                (if (< target slice-len)
+                  (begin
+                    (string-set! slice-string target (string-ref string-content source))
+                    (loop (+ source step) (+ target 1)))
+                  (py-str-from-scheme slice-string)))))
+          (else (py-throw-wrong-index-type "str" "integers or slices" index)))
+  signature: (posonlyargs: (self index)))
 
-(define-rts (str-repr self)
-  (if (py-subtype-of-str? self)
-      (let* ((string (py-subtype-of-str-to-scheme self))
-             (string-repr (py-str-repr-scheme string)))
-        (py-str-from-scheme string-repr))
-      (py-throw-required-type "__repr__" "str" self)))
-
-(define-rts str.__repr__
-  (procedure->py-function
-    str-repr
-    (make-signature posonlyargs: (self) name: str.__repr__)))
-
-(define-rts (str-getitem self index)
-  (if (py-subtype-of-str? self)
-    (cond
-      ((py-subtype-of-int? index)
-        (let* ((string-content (py-subtype-of-str-to-scheme self))
-               (len (py-str-len-to-scheme self))
-               (i (py-subtype-of-int-to-scheme index)))
-          (if (index-in-length-range i len)
-            (py-str-from-scheme (string (string-ref string-content (modulo i len))))
-            (py-throw-index-out-of-range "str"))))
-      ((py-isinstance? index py-slice-class)
-        (let* ((string-content (py-str-to-scheme self))
-               (len (py-str-len-to-scheme self))
-               (slice-indices (py-slice-indices index len))
-               (start (vector-ref slice-indices 0))
-               (stop (vector-ref slice-indices 1))
-               (step (vector-ref slice-indices 2))
-               (slice-len (get-slice-length start stop step))
-               (slice-string (make-string slice-len)))
-          (let loop ((source start) (target 0))
-            (if (< target slice-len)
-              (begin
-                (string-set! slice-string target (string-ref string-content source))
-                (loop (+ source step) (+ target 1)))
-              (py-str-from-scheme slice-string)))))
-      (else (py-throw-wrong-index-type "str" "integers or slices" index)))
-    (py-throw-not-a-type-object "str.__getitem__" self)))
-
-(define-rts str.__getitem__
-  (procedure->py-function
-    str-getitem
-    (make-signature posonlyargs: (self index) name: str.__getitem__)))
-
-(define-rts (str-lower self)
-  (if (py-subtype-of-str? self)
-      (py-str-from-scheme (string-downcase (py-subtype-of-str-to-scheme self)))
-      (py-throw-required-type "lower" "str" self)))
-
-(define-rts str.lower
-  (procedure->py-function
-    str-lower
-    (make-signature posonlyargs: (self) name: str.lower)))
+(define-method str.lower
+  guard: (not (py-subtype-of-str? self))
+         (py-throw-required-type "lower" "str" self)
+  body: (py-str-from-scheme (string-downcase (py-str-to-scheme self)))
+  signature: (posonlyargs: (self)))
 
 (define-rts (add-obj-hclass-to-hashtable! table obj)
   (let* ((names (HClass-names (py-obj-hclass obj)))
@@ -2529,65 +2384,55 @@
   (let ((table (apply global*-hclass->hashtable objs)))
     (map car (table->list table))))
 
-;; TODO need some type checks in those dir methods
-(define-rts (object-dir self)
-  (py-make-list-from-elems
-    (if (PyObject? self)
-      (py-get-list-of-obj*-str-attr
-        self
-        (py-obj-cls self))
-      ;; Non-PyObject such as fixnums have no attributes
-      (py-get-list-of-obj*-str-attr
-        (py-obj-cls self)))))
+(define-method object.__dir__
+  body: (py-make-list-from-elems
+          (if (PyObject? self)
+            (py-get-list-of-obj*-str-attr self (py-obj-cls self))
+            ;; Non-PyObject such as fixnums have no attributes
+            (py-get-list-of-obj*-str-attr (py-obj-cls self))))
+  signature: (posonlyargs: (self)))
 
-(define-rts object.__dir__
-  (procedure->py-function
-    object-dir
-    (make-signature posonlyargs: (self) name: object.__dir__)))
+(define-method type.__dir__
+  guard: (not (py-isinstance? self py-type-class))
+         (py-throw-required-type "__dir__" "type" self)
+  body: (py-make-list-from-elems (py-get-list-of-obj*-str-attr self (py-obj-cls self)))
+  signature: (posonlyargs: (self)))
 
-(define-rts (type-dir self)
-  (py-make-list-from-elems
-    (py-get-list-of-obj*-str-attr
-      self
-      (py-obj-cls self))))
+(define-method type.__repr__
+  guard: (not (py-isinstance? self py-type-class))
+         (py-throw-required-type "__repr__" "type" self)
+  body: (let* ((self-name (py-str-to-scheme (py-own-attr-ref self (& "__name__"))))
+               (result (string-append "<class '" self-name "'>")))
+          (py-str-from-scheme result))
+  signature: (posonlyargs: (self)))
 
-(define-rts type.__dir__
-  (procedure->py-function
-    type-dir
-    (make-signature posonlyargs: (self) name: type.__dir__)))
+(define-method object.__repr__
+  body: (let* ((self-type (py-type self))
+               (self-type-name (py-str-to-scheme (py-own-attr-ref self-type (& "__name__"))))
+               (addr (integer->hex-string (object->serial-number self)))
+               (result (string-append "<" self-type-name " object #" addr ">")))
+          (py-str-from-scheme result))
+  signature: (posonlyargs: (self)))
 
-(define-rts (type-repr self)
-  (let* ((self-name (py-str-to-scheme (py-own-attr-ref self (& "__name__"))))
-         (result (string-append "<class '" self-name "'>")))
-    (py-str-from-scheme result)))
-
-(define-rts type.__repr__
-  (procedure->py-function
-    type-repr
-    (make-signature posonlyargs: (self) name: type.__repr__)))
-
-(define-rts (object-repr self)
-  (let* ((self-type (py-type self))
-         (self-type-name (py-str-to-scheme (py-own-attr-ref self-type (& "__name__"))))
-         (addr (integer->hex-string (object->serial-number self)))
-         (result (string-append "<" self-type-name " object #" addr ">")))
-    (py-str-from-scheme result)))
-
-(define-rts object.__repr__
-  (procedure->py-function
-    object-repr
-    (make-signature posonlyargs: (self) name: object.__repr__)))
-
-(define-rts (object-str self)
-  (py-repr self))
-
-(define-rts object.__str__
-  (procedure->py-function
-    object-str
-    (make-signature posonlyargs: (self) name: object.__str__)))
+(define-method object.__str__
+  body: (py-repr self)
+  signature: (posonlyargs: (self)))
 
 (define-rts (float->string-with-padded-zeros value)
-  (let ((s (number->string value)))
+  ;; TODO: find a more straightforward bridge between scheme format and python format
+  ;; or format using Gambit ##flonum->exact-exponential-format
+  (define (add-e+ s)
+    (let ((chars (string->list s)))
+      (let loop ((chars chars))
+        (cond
+          ((null? chars) #f)
+          ((char=? (car chars) #\e)
+            (if (not (char=? (cadr chars) #\-))
+              (set-cdr! chars (cons #\+ (cdr chars)))))
+          (else (loop (cdr chars)))))
+      (list->string chars)))
+
+  (let ((s (add-e+ (number->string value))))
     (cond ((char=? (string-ref s 0) #\.)
            (string-append "0" s))
           ((and (char=? (string-ref s 0) #\-)
@@ -2598,49 +2443,37 @@
           (else
            s))))
 
-(define-rts (float-repr self)
-  (if (py-subtype-of-float? self)
-    (let ((value (py-subtype-of-float-to-scheme self)))
-      (cond
-        ((infinite? value)
-          (if (fl> value 0.) (&& "inf") (&& "-inf")))
-        ((nan? value)
-           (&& "nan"))
-        (else
-          (py-str-from-scheme (float->string-with-padded-zeros value)))))
-    (py-throw-required-type "__repr__" "float" self)))
+(define-method float.__repr__
+  guard: (not (py-subtype-of-float? self))
+         (py-throw-required-type "__repr__" "float" self)
+  body: (let ((value (py-subtype-of-float-to-scheme self)))
+          (cond
+            ((infinite? value)
+              (if (fl> value 0.) (&& "inf") (&& "-inf")))
+            ((nan? value)
+               (&& "nan"))
+            (else
+              (py-str-from-scheme (float->string-with-padded-zeros value)))))
+  signature: (posonlyargs: (self)))
 
-(define-rts float.__repr__
-  (procedure->py-function
-   float-repr
-   (make-signature posonlyargs: (self) name: float.__repr__)))
+(define-method float.__int__
+    guard: (not (py-subtype-of-float? self))
+           (py-throw-required-type "__int__" "float" self)
+    body: (let ((value (py-subtype-of-float-to-scheme self)))
+            (if (flfinite? value)
+                (py-int-from-scheme (inexact->exact (fltruncate value)))
+                (py-throw-exception-with-message
+                 py-builtin-OverflowError
+                 (if (flinfinite? value)
+                     "cannot convert float infinity to integer"
+                     "cannot convert float NaN to integer"))))
+    signature: (posonlyargs: (self)))
 
-(define-rts (float-int self)
-  (if (py-subtype-of-float? self)
-      (let ((value (py-subtype-of-float-to-scheme self)))
-        (if (flfinite? value)
-            (py-int-from-scheme (inexact->exact (fltruncate value)))
-            (py-throw-exception-with-message
-             py-builtin-OverflowError
-             (if (flinfinite? value)
-                 "cannot convert float infinity to integer"
-                 "cannot convert float NaN to integer"))))
-      (py-throw-required-type "__int__" "float" self)))
-
-(define-rts float.__int__
-  (procedure->py-function
-    float-int
-    (make-signature posonlyargs: (self) name: float.__int__)))
-
-(define-rts (float-abs self)
-  (if (py-subtype-of-float? self)
-      (py-float-from-scheme (flabs (py-subtype-of-float-to-scheme self)))
-      (py-throw-required-type "__abs__" "float" self)))
-
-(define-rts float.__abs__
-  (procedure->py-function
-    float-abs
-    (make-signature posonlyargs: (self) name: float.__abs__)))
+(define-method float.__abs__
+  guard: (not (py-subtype-of-float? self))
+         (py-throw-required-type "__abs__" "float" self)
+  body: (py-float-from-scheme (flabs (py-subtype-of-float-to-scheme self)))
+  signature: (posonlyargs: (self)))
 
 (define-rts (py-display obj port)
   (display (py-str-to-scheme (py-str obj)) port))
@@ -2658,6 +2491,9 @@
     (if (py-subtype-of-str? repr)
         repr
         (throw-returned-wrong-type "__repr__" obj "non-string"))))
+
+(define-rts (py-repr-to-string obj)
+  (py-str-to-scheme (py-repr obj)))
 
 (define-rts (py-str-repr-scheme str)
   (let* ((quote-style #f)
@@ -2821,11 +2657,6 @@
 ;;  BUILTIN CLASSES
 ;; =============================================================================
 
-;; core types (must be created in 1st bootstrap phase)
-(define-rts py-object-class #f)
-(define-rts py-type-class   #f)
-(define-rts py-str-class    #f)
-(define-rts py-tuple-class  #f)
 (define-rts py-int-class #f)
 (define-rts py-bool-class #f)
 (define-rts py-float-class #f)
@@ -2834,7 +2665,6 @@
 (define-rts py-complex-class #f)
 (define-rts py-slice-class  #f)
 (define-rts py-method-class #f)
-(define-rts py-function-class #f)
 (define-rts py-list-class   #f)
 (define-rts py-dict-class   #f)
 (define-rts py-set-class    #f)
@@ -2894,106 +2724,6 @@
     '#()
     bytearray-subtype
     len-vec-pair))
-
-;; Bootstraps type and object
-;; Create barebone object, type, str and tuple classes
-;; These will need to be filled in later
-(define-rts (bootstrap-type-hierarchy-phase1)
-  (let* ((type-class
-          (py-builtin-type-alloc
-            #f ;; cls
-            (get-behavior-type-index type)
-            #f ;; can-have-getter
-            #f ;; bases
-            #f ;; mro
-            #f)) ;; NOTE: this is ok! each type should have a different hclass for attribute caching purpose
-                 ;; for this reasons there is no "py-type-hclass-of-instances"
-        (object-class
-          (py-builtin-type-alloc
-            #f ;; cls
-            (get-behavior-type-index object)
-            #f ;; can-have-getter
-            #f ;; bases
-            #f ;; mro
-            py-object-hclass-of-instances))
-        (str-class
-          (py-builtin-type-alloc
-            #f ;; cls
-            (get-behavior-type-index str)
-            #f ;; can-have-getter
-            #f ;; bases
-            #f ;; mro
-            py-str-hclass-of-instances))
-        (tuple-class
-          (py-builtin-type-alloc
-            #f ;; cls
-            (get-behavior-type-index tuple)
-            #f ;; can-have-getter
-            #f ;; bases
-            #f ;; mro
-            py-tuple-hclass-of-instances)))
-
-    (set! py-object-class object-class)
-    (set! py-type-class type-class)
-    (set! py-str-class str-class)
-    (set! py-tuple-class tuple-class)
-
-    ;; init all object (& ...) to a py-str object
-    (init-registered-constants)
-
-    ;; set the magic-index (for attribute fast access on types) on magic attributes (__add__, __next__, etc.)
-    (fill-representatives-magic-index)
-
-    ;; Fill in object class
-    (PyObject-class-set! object-class type-class)
-    (PyObjectType-bases-set! object-class '#())
-    (PyObjectType-mro-set! object-class (vector object-class))
-    (py-own-attr-set! object-class (& "__name__") (&& "object"))
-    (py-own-attr-set! object-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! object-class (& "__new__") object.__new__)
-    (py-own-attr-set! object-class (& "__init__") object.__init__)
-    (py-own-attr-set! object-class (& "__getattribute__") object.__getattribute__)
-    (py-own-attr-set! object-class (& "__setattr__") object.__setattr__)
-    (py-own-attr-set! object-class (& "__repr__") object.__repr__)
-    (py-own-attr-set! object-class (& "__str__") object.__str__)
-    (py-own-attr-set! object-class (& "__dir__") object.__dir__)
-
-
-    ;; Fill in type class
-    (PyObject-class-set! type-class type-class)
-    (PyObjectType-bases-set! type-class (vector object-class))
-    (PyObjectType-mro-set! type-class (vector type-class object-class))
-    (py-own-attr-set! type-class (& "__name__") (&& "type"))
-    (py-own-attr-set! type-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! type-class (& "__new__") type.__new__)
-    (py-own-attr-set! type-class (& "__call__") type.__call__)
-    (py-own-attr-set! type-class (& "__setattr__") type.__setattr__)
-    (py-own-attr-set! type-class (& "__getattribute__") type.__getattribute__)
-    (py-own-attr-set! type-class (& "__dir__") type.__dir__)
-    (py-own-attr-set! type-class (& "__repr__") type.__repr__)
-
-    ;; Fill in tuple class
-    (PyObject-class-set! tuple-class type-class)
-    (PyObjectType-bases-set! tuple-class (vector object-class))
-    (PyObjectType-mro-set! tuple-class (vector tuple-class object-class))
-    (py-own-attr-set! tuple-class (& "__name__") (&& "tuple"))
-    (py-own-attr-set! tuple-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! tuple-class (& "__new__") tuple.__new__)
-
-    ;; Fill in str class
-    (PyObject-class-set! str-class type-class)
-    (PyObjectType-bases-set! str-class (vector object-class))
-    (PyObjectType-mro-set! str-class (vector str-class object-class))
-    (py-own-attr-set! str-class (& "__name__") (&& "str"))
-    (py-own-attr-set! str-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! str-class (& "__new__") str.__new__)
-    (py-own-attr-set! str-class (& "__hash__") str.__hash__)
-    (py-own-attr-set! str-class (& "__repr__") str.__repr__)
-    (py-own-attr-set! str-class (& "__getitem__") str.__getitem__)
-    (py-own-attr-set! str-class (& "__str__") str.__str__)
-    (py-own-attr-set! str-class (& "lower") str.lower)))
-
-(bootstrap-type-hierarchy-phase1)
 
 (define-rts (py-getitem-listX-sintY-fallback obj item)
   (py-getitem-listX-sintY obj item))
@@ -3080,14 +2810,10 @@
       (let loop ((attr-names attr-names) (attr-values attr-values))
         (if (pair? attr-names)
             (begin
-              (py-own-attr-set! cls (car attr-names) (car attr-values))
+              (py-cls-own-attr-set! cls (car attr-names) (car attr-values))
               (loop (cdr attr-names) (cdr attr-values)))))
-      (py-own-attr-set! cls
-        (& "__module__")
-        module)
-      (py-own-attr-set! cls
-        (& "__name__")
-        name)
+      (py-cls-own-attr-set! cls (& "__module__") module)
+      (py-cls-own-attr-set! cls (& "__name__") name)
       cls))
     (let ((parsed-attrs (py-class-parse-attributes attrs)))
       (make-cls (car parsed-attrs) (cdr parsed-attrs))))
@@ -3107,7 +2833,7 @@
     (let loop ((attr-names attr-names) (attr-values attr-values))
       (if (pair? attr-names)
         (begin
-          (py-own-attr-set! cls (car attr-names) (car attr-values))
+          (py-cls-own-attr-set! cls (car attr-names) (car attr-values))
           (loop (cdr attr-names) (cdr attr-values)))))
         cls)
 
@@ -3130,8 +2856,8 @@
     (make-signature posonlyargs: (self) name: module.__dir__)))
 
 
-(define-rts (module-getattribute obj name #!optional (raise? #t) (cache #f))
-  (define (getattribute-from-mro #!optional (index-of-hit-on-module #f))
+(define-rts (py-module-getattribute obj name raise? cache)
+  (define (getattribute-from-mro index-of-hit-on-module)
     (getattribute-from-obj-mro-with-owner-2cont
       obj
       name
@@ -3143,29 +2869,27 @@
      (lambda ()
         (and raise? (py-throw-module-getattribute-error obj name)))))
 
-  (if (py-isinstance? obj py-module-class)
-    (if (py-isinstance? name py-builtin-str)
-      (py-own-attr-index-2cont
-        obj
-        name
-        (lambda (index)
-          (let ((val (PyObject-global-elements-ref obj index)))
-            (if val
-              (begin
-                (if cache (AttributeCache-module-hit! cache (py-obj-hclass obj) index))
-                val)
-              (getattribute-from-mro index))))
-        getattribute-from-mro)
-      (py-throw-exception-with-message
-       py-builtin-TypeError
-       "attribute name must be string"))
-    (throw-returned-wrong-type "__getattribute__" obj "not a module")))
+  (py-own-attr-index-2cont
+    obj
+    name
+    (lambda (index)
+      (let ((val (PyObject-global-elements-ref obj index)))
+        (if val
+          (begin
+            (if cache (AttributeCache-module-hit! cache (py-obj-hclass obj) index))
+            val)
+          (getattribute-from-mro index))))
+    (lambda () (getattribute-from-mro #f))))
 
-(define-rts module.__getattribute__
-  (procedure->py-function
-    module-getattribute
-    (make-signature posonlyargs: (self name) name: module.__getattribute__)))
-
+(define-method module.__getattribute__
+  guard: (not (py-isinstance? self py-module-class))
+         (py-throw-required-type "__getattribute__" "module" self)
+  guard: (not (py-isinstance? name py-builtin-str))
+         (py-throw-exception-with-message
+           py-builtin-TypeError
+           "attribute name must be string")
+  body: (py-module-getattribute self name #t #f)
+  signature: (posonlyargs: (self name)))
 
 (define-rts (module-setattr self name val)
   (if (py-isinstance? self py-module-class)
@@ -3301,7 +3025,7 @@
         (loop (+ i 1))))))
 
 (define-rts (list-new cls iterable)
-  (if (or (eq? cls py-list-class) (py-issubclass? cls py-list-class))
+  (if (py-issubclass? cls py-list-class)
       (if (eq? iterable py-absent)
           (py-list-subtype-from-scheme cls '#() 0)
           (let ((iterable-type (py-type iterable)))
@@ -3367,7 +3091,7 @@
            (vec (PyObjectList-vector self))
            (content-strs (vector-map py-repr (subvector vec 0 len)))
            (content-strings
-            (vector-map (lambda (x) (py-subtype-of-str-to-scheme x))
+            (vector-map (lambda (x) (py-str-to-scheme x))
                         content-strs)))
       (py-str-from-scheme
         (string-append
@@ -3764,23 +3488,19 @@
     list-pop
     (make-signature posonlyargs: (self index) defaults: (vector py-absent) name: list.pop)))
 
-(define-rts (list-append self value)
-  (if (py-isinstance? self py-list-class)
-    (let* ((len (PyObjectList-len self))
-           (vec
-             (let ((vec (PyObjectList-vector self)))
-               (if (= len (vector-length vec))
-                  (list-grow! self)
-                  vec))))
-      (vector-set! vec len value)
-      (PyObjectList-len-set! self (+ len 1)))
-    (py-throw-not-a-type-object "list.append" self))
-  py-None)
-
-(define-rts list.append
-  (procedure->py-function
-    list-append
-    (make-signature posonlyargs: (self value) name: list.append)))
+(define-method list.append
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "append" "list" self)
+  body: (let* ((len (PyObjectList-len self))
+               (vec
+                 (let ((vec (PyObjectList-vector self)))
+                   (if (= len (vector-length vec))
+                      (list-grow! self)
+                      vec))))
+          (vector-set! vec len value)
+          (PyObjectList-len-set! self (+ len 1))
+          py-None)
+  signature: (posonlyargs: (self value)))
 
 (define-rts (list-clear self)
   (if (py-isinstance? self py-list-class)
@@ -3983,46 +3703,35 @@
 
 ;; tuple class
 
-(define-rts (tuple-iter self)
-  (if (py-isinstance? self py-tuple-class)
-    (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
-    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 12)")))
+(define-method tuple.__iter__
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__iter__" "tuple" self)
+  body: (py-tuple-iterator-alloc 0 (PyObjectTuple-value self))
+  signature: (posonlyargs: (self)))
 
-(define-rts tuple.__iter__
-  (procedure->py-function
-    tuple-iter
-    (make-signature posonlyargs: (self) name: tuple.__iter__)))
+(define-method tuple.__contains__
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__contains__" "tuple" self)
+  body: (let* ((vec (PyObjectTuple-value self))
+               (vec-len (vector-length vec)))
+          (let loop ((i 0))
+            (if (< i vec-len)
+              (if (py-test (py-eq item (vector-ref vec i)))
+                py-True
+                (loop (+ i 1)))
+              py-False)))
+  signature: (posonlyargs: (self item)))
 
-(define-rts (tuple-contains self item)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self))
-           (vec-len (vector-length vec)))
-      (let loop ((i 0))
-        (if (< i vec-len)
-          (if (py-test (py-eq item (vector-ref vec i)))
-            py-True
-            (loop (+ i 1)))
-          py-False)))
-    (py-throw-not-a-type-object "tuple.__contains__" self)))
-
-(define-rts tuple.__contains__
-  (procedure->py-function
-    tuple-contains
-    (make-signature posonlyargs: (self item) name: tuple.__contains__)))
-
-(define-rts (tuple-add self other)
-  (if (py-isinstance? self py-tuple-class)
-    (if (py-isinstance? other py-tuple-class)
-      (let ((v1 (PyObjectTuple-value self))
-            (v2 (PyObjectTuple-value other)))
-        (py-tuple-from-scheme (vector-append v1 v2)))
-      py-NotImplemented)
-    (py-throw-not-a-type-object "tuple.__add__" self)))
-
-(define-rts tuple.__add__
-  (procedure->py-function
-    tuple-add
-    (make-signature posonlyargs: (self other) name: tuple.__add__)))
+(define-method tuple.__add__
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__add__" "tuple" self)
+  guard: (not (py-isinstance? other py-tuple-class))
+         py-NotImplemented
+  body: (py-tuple-from-scheme
+          (vector-append
+            (PyObjectTuple-value self)
+            (PyObjectTuple-value other)))
+  signature: (posonlyargs: (self other)))
 
 (define-rts (vector*n v n)
   (let* ((v-len (vector-length v))
@@ -4038,24 +3747,27 @@
             (loop (+ target-pos v-len))))
         out))))
 
-(define-rts (tuple-mul self n)
-  (if (py-isinstance? self py-tuple-class)
-    (if (py-subtype-of-int? n)
-      (let ((v (PyObjectTuple-value self))
-            (n (py-subtype-of-int-to-scheme n)))
-        (py-tuple-from-scheme (vector*n v n)))
-      py-NotImplemented)
-    (py-throw-not-a-type-object "tuple.__mul__" self)))
+(define-method tuple.__mul__
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__mul__" "tuple" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (py-tuple-from-scheme
+          (vector*n
+            (PyObjectTuple-value self)
+            (py-subtype-of-int-to-scheme n)))
+  signature: (posonlyargs: (self n)))
 
-(define-rts tuple.__mul__
-  (procedure->py-function
-    tuple-mul
-    (make-signature posonlyargs: (self n) name: tuple.__mul__)))
-
-(define-rts tuple.__rmul__
-  (procedure->py-function
-    tuple-mul
-    (make-signature posonlyargs: (self n) name: tuple.__rmul__)))
+(define-method tuple.__rmul__
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__rmul__" "tuple" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (py-tuple-from-scheme
+          (vector*n
+            (PyObjectTuple-value self)
+            (py-subtype-of-int-to-scheme n)))
+  signature: (posonlyargs: (self n)))
 
 (define-rts (vector-py-eq? v1 v2)
   (let ((v1-len (vector-length v1))
@@ -4098,66 +3810,49 @@
 
 (define-vector-comparator vector-py-ge? py-gt >=)
 
-(define-macro (define-tuple-binary-comparator name py-name vector-comparator)
-  `(begin
-    (define-rts (,name self other)
-      (if (py-isinstance? self py-tuple-class)
-        (if (py-isinstance? other py-tuple-class)
-          (let ((v1 (PyObjectTuple-value self))
-                (v2 (PyObjectTuple-value other)))
-            (if (,vector-comparator v1 v2)
-              py-True
-              py-False))
-          py-NotImplemented)
-        (py-throw-not-a-type-object ,(symbol->string py-name) self)))
+(define-macro (define-tuple-binary-comparator magic-method-name vector-comparator)
+  (let* ((magic-method-name-string (symbol->string magic-method-name))
+         (qualname (string->symbol (string-append "tuple." magic-method-name-string))))
 
-    (define-rts ,py-name
-      (procedure->py-function
-        ,name
-        (make-signature posonlyargs: (self other) name: ,py-name)))))
+    `(define-method ,qualname
+      guard: (not (py-isinstance? self py-tuple-class))
+             (py-throw-required-type ,magic-method-name-string "tuple" self)
+      guard: (not (py-isinstance? other py-tuple-class))
+             py-NotImplemented
+      body: (py-bool-from-scheme-bool
+              (,vector-comparator
+                (PyObjectTuple-value self)
+                (PyObjectTuple-value other)))
+      signature: (posonlyargs: (self other)))))
 
-(define-tuple-binary-comparator tuple-eq tuple.__eq__ vector-py-eq?)
+(define-tuple-binary-comparator __eq__ vector-py-eq?)
+(define-tuple-binary-comparator __ne__ vector-py-ne?)
+(define-tuple-binary-comparator __lt__ vector-py-lt?)
+(define-tuple-binary-comparator __le__ vector-py-le?)
+(define-tuple-binary-comparator __gt__ vector-py-gt?)
+(define-tuple-binary-comparator __ge__ vector-py-ge?)
 
-(define-tuple-binary-comparator tuple-ne tuple.__ne__ vector-py-ne?)
+;; TODO: handle cyclic structures
+(define-method tuple.__repr__
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__repr__" "tuple" self)
+  body: (let* ((vec (PyObjectTuple-value self))
+               (content-strs (vector-map py-repr vec))
+               (content-strings
+                (vector-map (lambda (x) (py-str-to-scheme x))
+                            content-strs)))
+          (py-str-from-scheme
+            (string-append
+              "("
+              (string-join-vector ", " content-strings)
+              (if (= (vector-length vec) 1) ",)" ")"))))
+  signature: (posonlyargs: (self)))
 
-(define-tuple-binary-comparator tuple-lt tuple.__lt__ vector-py-lt?)
-
-(define-tuple-binary-comparator tuple-le tuple.__le__ vector-py-le?)
-
-(define-tuple-binary-comparator tuple-gt tuple.__gt__ vector-py-gt?)
-
-(define-tuple-binary-comparator tuple-ge tuple.__ge__ vector-py-ge?)
-
-;; TODO: print cyclic structures
-(define-rts (tuple-repr self)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self))
-           (content-strs (vector-map py-repr vec))
-           (content-strings
-            (vector-map (lambda (x) (py-subtype-of-str-to-scheme x))
-                        content-strs)))
-      (py-str-from-scheme
-        (string-append
-          "("
-          (string-join-vector ", " content-strings)
-          (if (= (vector-length vec) 1) ",)" ")"))))
-    (py-throw-not-a-type-object "tuple.__repr__" self)))
-
-(define-rts tuple.__repr__
-  (procedure->py-function
-    tuple-repr
-    (make-signature posonlyargs: (self) name: tuple.__repr__)))
-
-(define-rts (tuple-len self)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self)))
-      (py-int-from-scheme (vector-length vec)))
-    (py-throw-not-a-type-object "tuple.__len__" self)))
-
-(define-rts tuple.__len__
-  (procedure->py-function
-    tuple-len
-    (make-signature posonlyargs: (self) name: tuple.__len__)))
+(define-method tuple.__len__
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__len__" "tuple" self)
+  body: (py-int-from-scheme (vector-length (PyObjectTuple-value self)))
+  signature: (posonlyargs: (self)))
 
 (define-rts (vector-slice vec start stop step)
   (let* ((len (get-slice-length start stop step))
@@ -4178,86 +3873,74 @@
       (vector-ref slice-indices 1)
       (vector-ref slice-indices 2))))
 
-(define-rts (tuple-getitem self item)
-  (if (py-isinstance? self py-tuple-class)
-    (cond
-      ((py-subtype-of-int? item)
-        (let* ((vec (PyObjectTuple-value self))
-               (len (vector-length vec))
-               (i (py-subtype-of-int-to-scheme item)))
-          (if (index-in-length-range i len)
-            (vector-ref vec (modulo i len))
-            (py-throw-index-out-of-range "tuple"))))
-      ((py-isinstance? item py-slice-class)
-        (py-tuple-from-scheme
-          (vector-py-slice
-            (PyObjectTuple-value self)
-            item)))
-      (py-throw-wrong-index-type "tuple" "integers or slices" item))
-    (py-throw-not-a-type-object "tuple.__getitem__" self)))
-
-(define-rts tuple.__getitem__
-  (procedure->py-function
-    tuple-getitem
-    (make-signature posonlyargs: (self item) name: tuple.__getitem__)))
-
-(define-rts (tuple-count self item)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self))
-           (vec-len (vector-length vec)))
-      (let loop ((i 0) (count 0))
-        (cond
-          ((= i vec-len)
-            (py-int-from-scheme count))
-          ((py-test (py-eq (vector-ref vec i) item))
-            (loop (+ i 1) (+ count 1)))
+(define-method tuple.__getitem__
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "__getitem__" "tuple" self)
+  body: (cond
+          ((py-subtype-of-int? item)
+            (let* ((vec (PyObjectTuple-value self))
+                   (len (vector-length vec))
+                   (i (py-subtype-of-int-to-scheme item)))
+              (if (index-in-length-range i len)
+                (vector-ref vec (modulo i len))
+                (py-throw-index-out-of-range "tuple"))))
+          ((py-isinstance? item py-slice-class)
+            (py-tuple-from-scheme
+              (vector-py-slice
+                (PyObjectTuple-value self)
+                item)))
           (else
-            (loop (+ i 1) count)))))
-    (py-throw-not-a-type-object "tuple.count" self)))
+            (py-throw-wrong-index-type "tuple" "integers or slices" item)))
+  signature: (posonlyargs: (self item)))
 
-(define-rts tuple.count
-  (procedure->py-function
-    tuple-count
-    (make-signature posonlyargs: (self item) name: tuple.count)))
+(define-method tuple.count
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "count" "tuple" self)
+  body: (let* ((vec (PyObjectTuple-value self))
+               (vec-len (vector-length vec)))
+          (let loop ((i 0) (count 0))
+            (cond
+              ((fx= i vec-len)
+                ;; count cannot exceed length, so always sint
+                (py-sint-from-scheme count))
+              ((py-test-eq (vector-ref vec i) item)
+                (loop (fx+ i 1) (fx+ count 1)))
+              (else
+                (loop (fx+ i 1) count)))))
+  signature: (posonlyargs: (self item)))
 
-(define-rts (tuple-index self item start stop)
-  (if (py-isinstance? self py-tuple-class)
-    (let* ((vec (PyObjectTuple-value self))
-           (len (vector-length vec))
-           (start-index
-            (if (eq? start py-absent)
-              0
-              (if (py-subtype-of-int? start)
-                (let ((val (py-subtype-of-int-to-scheme start)))
-                  (if (< val 0)
-                    (modulo (max (- len) val) len)
-                    (min len val)))
-                    (py-throw-wrong-index-type "tuple" "integers" start))))
-           (stop-index
-             (if (eq? stop py-absent)
-               len
-               (if (py-subtype-of-int? stop)
-                 (let ((val (py-subtype-of-int-to-scheme stop)))
-                   (if (< val 0)
-                     (modulo (max (- len) val) len)
-                     (min len val)))
-                     (py-throw-wrong-index-type "tuple" "integers" stop)))))
-      (let ((res (py-index-in-subvector item vec start-index stop-index)))
-        (if res
-          (py-int-from-scheme res)
-          (py-throw
-            (py-call
+(define-method tuple.index
+  guard: (not (py-isinstance? self py-tuple-class))
+         (py-throw-required-type "index" "tuple" self)
+  body: (let* ((vec (PyObjectTuple-value self))
+               (len (vector-length vec))
+               (start-index
+                (if (eq? start py-absent)
+                  0
+                  (if (py-subtype-of-int? start)
+                    (let ((val (py-subtype-of-int-to-scheme start)))
+                      (if (< val 0)
+                        (modulo (max (- len) val) len)
+                        (min len val)))
+                        (py-throw-wrong-index-type "tuple" "integers" start))))
+               (stop-index
+                 (if (eq? stop py-absent)
+                   len
+                   (if (py-subtype-of-int? stop)
+                     (let ((val (py-subtype-of-int-to-scheme stop)))
+                       (if (< val 0)
+                         (modulo (max (- len) val) len)
+                         (min len val)))
+                         (py-throw-wrong-index-type "tuple" "integers" stop))))
+                (res (py-index-in-subvector item vec start-index stop-index)))
+          (if res
+            ;; count cannot exceed length, so always sint
+            (py-sint-from-scheme res)
+            (py-throw-exception-with-message
               py-builtin-ValueError
-              (&& "tuple.index(x): x not in tuple"))))))
-    (py-throw-not-a-type-object "tuple.index" self)))
-
-(define-rts tuple.index
-  (procedure->py-function
-    tuple-index
-    (make-signature
-      posonlyargs: (self item start stop)
-      defaults: (vector py-absent py-absent)
-      name: tuple.index)))
+              "tuple.index(x): x not in tuple")))
+  signature: (posonlyargs: (self item start stop)
+              defaults: (vector py-absent py-absent)))
 
 ;; slices
 
@@ -4271,7 +3954,7 @@
     step))
 
 (define-rts (slice-new cls arg1 arg2 arg3)
-  (if (or (eq? cls py-slice-class) (py-issubclass? cls py-slice-class))
+  (if (py-issubclass? cls py-slice-class)
     (cond
       ((eq? arg2 py-absent)
         (py-slice-from-scheme py-None arg1 py-None))
@@ -4304,6 +3987,22 @@
   (procedure->py-function
     slice-indices
     (make-signature posonlyargs: (self len) name: slice.indices)))
+
+;; TODO: handle circular structures
+(define-method slice.__repr__
+  guard: (not (py-isinstance? self py-slice-class))
+         (py-throw-required-type "__repr__" "slice" self)
+  body: (py-str-from-scheme
+          (string-append
+            "slice("
+            (py-repr-to-string (PyObjectSlice-start self))
+            ", "
+            (py-repr-to-string (PyObjectSlice-stop self))
+            ", "
+            (py-repr-to-string (PyObjectSlice-step self))
+            ")"))
+  signature: (posonlyargs: (self)))
+
 
 ;; ===========================================
 ;; dynamic vector operations used by bytearray
@@ -5421,64 +5120,90 @@
                   #f ;; can-have-getter
                   (vector py-object-class) ;; bases
                   #f ;; mro
-                  py-float-hclass-of-instances))
-           (function-class
-              (py-builtin-type-alloc
-                 py-type-class
-                 (get-behavior-type-index function)
-                 #t ;; can-have-getter
-                 (vector py-object-class) ;; bases
-                 #f ;; mro
-                 py-function-hclass-of-instances)))
+                  py-float-hclass-of-instances)))
+
+    ;; fill object attributes
+    (py-cls-own-attr-set! py-object-class (& "__name__") (&& "object"))
+    (py-cls-own-attr-set! py-object-class (& "__module__") (&& "builtins"))
+    (object.__new__:assign py-object-class (& "__new__"))
+    (object.__init__:assign py-object-class (& "__init__"))
+    (object.__getattribute__:assign py-object-class (& "__getattribute__"))
+    (object.__setattr__:assign py-object-class (& "__setattr__"))
+    (object.__repr__:assign py-object-class (& "__repr__"))
+    (object.__str__:assign py-object-class (& "__str__"))
+    (object.__dir__:assign py-object-class (& "__dir__"))
+
+    ;; fill type attributes
+    (py-cls-own-attr-set! py-type-class (& "__name__") (&& "type"))
+    (py-cls-own-attr-set! py-type-class (& "__module__") (&& "builtins"))
+    (type.__new__:assign py-type-class (& "__new__"))
+    (type.__call__:assign py-type-class (& "__call__"))
+    (type.__setattr__:assign py-type-class (& "__setattr__"))
+    (type.__getattribute__:assign py-type-class (& "__getattribute__"))
+    (type.__dir__:assign py-type-class (& "__dir__"))
+    (type.__repr__:assign py-type-class (& "__repr__"))
+
+    ;; fill tuple attributes
+    (py-cls-own-attr-set! py-tuple-class (& "__name__") (&& "tuple"))
+    (py-cls-own-attr-set! py-tuple-class (& "__module__") (&& "builtins"))
+    (tuple.__new__:assign py-tuple-class (& "__new__"))
+
+    ;; fill str attributes
+    (py-cls-own-attr-set! py-str-class (& "__name__") (&& "str"))
+    (py-cls-own-attr-set! py-str-class (& "__module__") (&& "builtins"))
+    (str.__new__:assign py-str-class (& "__new__"))
+    (str.__hash__:assign py-str-class (& "__hash__"))
+    (str.__repr__:assign py-str-class (& "__repr__"))
+    (str.__getitem__:assign py-str-class (& "__getitem__"))
+    (str.__str__:assign py-str-class (& "__str__"))
+    (str.lower:assign py-str-class (& "lower"))
+
+    ;; fill function attributes
+    (py-cls-own-attr-set! py-function-class (& "__name__") (&& "function"))
+    (py-cls-own-attr-set! py-function-class (& "__module__") (&& "builtins"))
+    (function.__call__:assign py-function-class (& "__call__"))
 
     ;; int
     (set! py-int-class int-class)
     (PyObjectType-mro-set! int-class (vector int-class py-object-class))
-    (py-own-attr-set! int-class (& "__name__") (&& "int"))
-    (py-own-attr-set! int-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! int-class (& "__repr__") int.__repr__)
-    (py-own-attr-set! int-class (& "__hash__") int.__hash__)
-    (py-own-attr-set! int-class (& "__int__") int.__int__)
+    (py-cls-own-attr-set! int-class (& "__name__") (&& "int"))
+    (py-cls-own-attr-set! int-class (& "__module__") (&& "builtins"))
+    (int.__repr__:assign int-class (& "__repr__"))
+    (int.__hash__:assign int-class (& "__hash__"))
+    (int.__int__:assign int-class (& "__int__"))
 
     ;; bool
     (set! py-bool-class bool-class)
     (PyObjectType-mro-set! bool-class (vector bool-class int-class py-object-class))
-    (py-own-attr-set! bool-class (& "__name__") (&& "bool"))
-    (py-own-attr-set! bool-class (& "__module__") (&& "builtins"))
+    (py-cls-own-attr-set! bool-class (& "__name__") (&& "bool"))
+    (py-cls-own-attr-set! bool-class (& "__module__") (&& "builtins"))
 
     ;;float
     (set! py-float-class float-class)
     (PyObjectType-mro-set! float-class (vector float-class py-object-class))
-    (py-own-attr-set! float-class (& "__name__") (&& "float"))
-    (py-own-attr-set! float-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! float-class (& "__repr__") float.__repr__)
-    (py-own-attr-set! float-class (& "__int__") float.__int__)
-    (py-own-attr-set! float-class (& "__abs__") float.__abs__)
-
-    ;; function
-    (set! py-function-class function-class)
-    (PyObjectType-mro-set! function-class (vector function-class py-object-class))
-    (py-own-attr-set! function-class (& "__name__") (&& "function"))
-    (py-own-attr-set! function-class (& "__module__") (&& "builtins"))
-    (py-own-attr-set! function-class (& "__call__") function.__call__))
+    (py-cls-own-attr-set! float-class (& "__name__") (&& "float"))
+    (py-cls-own-attr-set! float-class (& "__module__") (&& "builtins"))
+    (float.__repr__:assign float-class (& "__repr__"))
+    (float.__int__:assign float-class (& "__int__"))
+    (float.__abs__:assign float-class (& "__abs__")))
 
   ;; Fill in tuple class
-  (py-own-attr-set! py-tuple-class (& "__iter__") tuple.__iter__)
-  (py-own-attr-set! py-tuple-class (& "__contains__") tuple.__contains__)
-  (py-own-attr-set! py-tuple-class (& "__add__") tuple.__add__)
-  (py-own-attr-set! py-tuple-class (& "__mul__") tuple.__mul__)
-  (py-own-attr-set! py-tuple-class (& "__rmul__") tuple.__rmul__)
-  (py-own-attr-set! py-tuple-class (& "__eq__") tuple.__eq__)
-  (py-own-attr-set! py-tuple-class (& "__ne__") tuple.__ne__)
-  (py-own-attr-set! py-tuple-class (& "__lt__") tuple.__lt__)
-  (py-own-attr-set! py-tuple-class (& "__le__") tuple.__le__)
-  (py-own-attr-set! py-tuple-class (& "__gt__") tuple.__gt__)
-  (py-own-attr-set! py-tuple-class (& "__ge__") tuple.__ge__)
-  (py-own-attr-set! py-tuple-class (& "__repr__") tuple.__repr__)
-  (py-own-attr-set! py-tuple-class (& "__len__") tuple.__len__)
-  (py-own-attr-set! py-tuple-class (& "__getitem__") tuple.__getitem__)
-  (py-own-attr-set! py-tuple-class (& "count") tuple.count)
-  (py-own-attr-set! py-tuple-class (& "index") tuple.index)
+  (tuple.__iter__:assign py-tuple-class (& "__iter__"))
+  (tuple.__contains__:assign py-tuple-class (& "__contains__"))
+  (tuple.__add__:assign py-tuple-class (& "__add__"))
+  (tuple.__mul__:assign py-tuple-class (& "__mul__"))
+  (tuple.__rmul__:assign py-tuple-class (& "__rmul__"))
+  (tuple.__eq__:assign py-tuple-class (& "__eq__"))
+  (tuple.__ne__:assign py-tuple-class (& "__ne__"))
+  (tuple.__lt__:assign py-tuple-class (& "__lt__"))
+  (tuple.__le__:assign py-tuple-class (& "__le__"))
+  (tuple.__gt__:assign py-tuple-class (& "__gt__"))
+  (tuple.__ge__:assign py-tuple-class (& "__ge__"))
+  (tuple.__repr__:assign py-tuple-class (& "__repr__"))
+  (tuple.__len__:assign py-tuple-class (& "__len__"))
+  (tuple.__getitem__:assign py-tuple-class (& "__getitem__"))
+  (tuple.count:assign py-tuple-class (& "count"))
+  (tuple.index:assign py-tuple-class (& "index"))
 
   (set! py-module-class
     (py-make-builtin-class
@@ -5515,6 +5240,8 @@
      (& "__new__") slice.__new__
      (& "indices") slice.indices))
 
+  (slice.__repr__:assign py-slice-class (& "__repr__"))
+
   (set! py-list-class
     (py-make-builtin-class
      (&& "list")
@@ -5540,7 +5267,6 @@
      (& "__rmul__") list.__rmul__
      (& "__imul__") list.__imul__
      (& "pop") list.pop
-     (& "append") list.append
      (& "clear") list.clear
      (& "copy") list.copy
      (& "count") list.count
@@ -5548,10 +5274,8 @@
      (& "remove") list.remove
      (& "insert") list.insert
      (& "extend") list.extend
-     (& "reverse") list.reverse
-     (& "sort") #f ;; set later from py-builtin-sorted
-
-     ))
+     (& "reverse") list.reverse))
+  (list.append:assign py-list-class (& "append"))
 
   (set! py-dict-class
     (py-make-builtin-class
@@ -5601,15 +5325,12 @@
         (& "__ge__") bytearray.__ge__
         (& "__ne__") bytearray.__ne__
         (& "__iter__") bytearray.__iter__
-        ))
-      )
+        )))
 
 (bootstrap-type-hierarchy-phase2)
 
 (define-rts py-True (py-subtype-of-int-from-scheme 1 py-bool-class))
 (define-rts py-False (py-subtype-of-int-from-scheme 0 py-bool-class))
-
-(bootstrap-functions)
 
 ;; =============================================================================
 ;;  IO
@@ -5688,7 +5409,7 @@
 ;; TODO: arguments other than file are currentl ignored
 (define-rts (py-open file mode buffering encoding errors newline closefd opener)
   (cond ((py-subtype-of-str? file)
-         (let ((filename (py-subtype-of-str-to-scheme file)))
+         (let ((filename (py-str-to-scheme file)))
            (let ((file-port (open-file filename)))
              (py-TextIOWrapper-alloc
               file-port
@@ -5975,7 +5696,7 @@
                  (if (py-subtype-of-str? value) ;; TODO : support bytes
                      (let ((path (string-append
                                   (path-normalize
-                                   (py-subtype-of-str-to-scheme value))
+                                   (py-str-to-scheme value))
                                   __name__)))
                        (or (import-with-zipi-cache path py-__name__ py-__package__)
                            (loop sys.path-iter)))
@@ -6074,7 +5795,7 @@
   (module-search-order-add! (cache-location-get))
 
   (let ((sys.modules (sys.modules-get)))
-     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+     (list.append:unsafe (sys.path-get) (py-str-from-scheme (path-directory path)))
      (py-try-except
 	(lambda (e)
 	   (print-exception e (current-error-port))
@@ -6094,7 +5815,7 @@
   (module-search-order-add! (cache-location-get))
 
   (let ((sys.modules (sys.modules-get)))
-     (list-append (sys.path-get) (py-str-from-scheme (path-directory path)))
+     (list.append:unsafe (sys.path-get) (py-str-from-scheme (path-directory path)))
 
      (if profile-flag
 	 (statprof-begin profile-flag))
@@ -8011,7 +7732,9 @@
 
 (define-rts (super-init self type object)
   (if (eq? object py-absent)
-    (error "super not implemented for 1 argument")
+    (py-throw-exception-with-message
+      py-builtin-NotImplementedError
+      "super not implemented for 1 argument")
     (begin
       (py-own-attr-set! self (& "__thisclass__") type)
       (py-own-attr-set! self (& "__self__") object))))
@@ -8036,7 +7759,7 @@
          (lambda (attr owner)
            (py-descriptor-get attr this-self owner))
          (lambda ()
-           (object-getattribute self name))))))
+           (py-object-getattribute self name #t #f))))))
 
 (define-rts (py-super-getattribute-for-getattribute name cls instance)
   (if (eq? (py-str-representative name) (& "__class__"))
@@ -8051,7 +7774,7 @@
          (lambda (attr owner)
            (py-descriptor-get attr this-self owner))
          (lambda ()
-	    (object-getattribute instance name))))))
+	    (py-object-getattribute instance name #t #f))))))
 
 (define-rts super.__getattribute__
   (procedure->py-function
@@ -8241,7 +7964,7 @@
      (cond
       ((eq? globals py-None)
        (if (py-subtype-of-str? name)
-           (builtin-__import__ (py-subtype-of-str-to-scheme name))
+           (builtin-__import__ (py-str-to-scheme name))
            (py-throw-exception-with-message py-builtin-TypeError "__import__() argument 1 must be str not " )))
       (else
        (py-throw-exception-with-message py-NotImplemented "__import__ with more than one argument is not yet implemented"))))

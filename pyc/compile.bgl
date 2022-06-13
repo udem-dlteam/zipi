@@ -31,6 +31,7 @@
 	   __pyc_generator
 	   __pyc_cps
 	   __pyc_simple_scoping
+     __pyc_methods
 	   __pyc_scheme
 	   __pyc_javascript)
 

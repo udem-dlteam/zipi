@@ -256,6 +256,9 @@
 
 ;; homebrewed exception handling
 
+(define (native-exception? exc)
+  (uncaught-exception? exc))
+
 ;; WARNING exception are returned inside a pair
 ;; using py-try-except to return a pair will fail
 (define-macro (py-try-except-else handler body orelse)
@@ -398,7 +401,7 @@
         (make-signature
           args: (self key reversed)
           defaults: (vector py-None py-False))))
-    (py-own-attr-set! py-list-class (& "sort") list.sort)
+    (py-cls-own-attr-set! py-list-class (& "sort") list.sort)
 
     ;; make constants
     (PyObject-class-set! py-True py-builtin-bool)

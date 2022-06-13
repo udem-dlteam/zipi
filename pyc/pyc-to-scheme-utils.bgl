@@ -1,0 +1,7 @@
+;*---------------------------------------------------------------------*/
+;*    The module                                                       */
+;*---------------------------------------------------------------------*/
+(module __pyc_utils
+   (export
+     (replace-system sexp)
+     (define-compilation-to-scheme signature . body)))

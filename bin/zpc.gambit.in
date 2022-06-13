@@ -25,6 +25,9 @@ $PYC_DIR/ast.bgl \
 -e "(##include \"$PYC_DIR/walk.sch\")" \
 -e "(##include \"$PYC_DIR/new.sch\")" \
 -e "(##include \"$PYC_DIR/sexp.scm\")" \
+-e "(##include \"$PYC_DIR/pyc-to-scheme-utils.scm\")" \
+$PYC_DIR/utils.bgl \
+$PYC_DIR/utils.scm \
 $PYC_DIR/symbol.bgl \
 $PYC_DIR/symbol.scm \
 $PYC_DIR/usage.bgl \
@@ -34,8 +37,13 @@ $PYC_DIR/return.scm \
 $PYC_DIR/locals.bgl \
 $PYC_DIR/locals.scm \
 $PYC_DIR/super.scm \
+$PYC_DIR/methods.scm \
 $PYC_DIR/PycBinary-to-scheme.bgl \
 $PYC_DIR/PycBinary-to-scheme.scm \
+$PYC_DIR/PycCall-to-scheme.bgl \
+$PYC_DIR/PycCall-to-scheme.scm \
+$PYC_DIR/PycAccess-to-scheme.bgl \
+$PYC_DIR/PycAccess-to-scheme.scm \
 $PYC_DIR/scheme.bgl \
 $PYC_DIR/scheme.scm \
 $PYC_DIR/break.bgl \

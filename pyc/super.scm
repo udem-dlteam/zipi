@@ -13,9 +13,6 @@
      this))
 
 (define-walk-method (mark-super this::PycFun fun class)
+   (if class (PycFun-super-in-class-set! this (PycClass-super-key class)))
    (mark-super (PycFun-body this) this class)
    this)
-
-(define-walk-method (mark-super this::PycRefUnresolved fun class)
-  (if (and fun class (eq? (PycRefUnresolved-id this) 'super))
-    (PycFun-super-in-class-set! fun (PycClass-super-key class))))

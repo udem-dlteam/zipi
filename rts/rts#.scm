@@ -168,7 +168,25 @@
   (hclass-of-instances unprintable:)
   (is-builtin unprintable:)
   can-have-getter
-  (magic-attrs unprintable:))
+  (magic-attrs unprintable:)
+  (pending-binding-magic-attrs unprintable:)
+  (%pending-binding-elements unprintable:))
+
+(define-macro (PyObjectType-pending-binding-elements-ref tp offset)
+  `(vector-ref (PyObjectType-%pending-binding-elements ,tp) ,offset))
+
+(define-macro (PyObjectType-pending-binding-elements-set! obj offset val)
+  `(let* (($obj ,obj)
+          ($offset ,offset)
+          ($val ,val)
+          ($elements (PyObjectType-%pending-binding-elements $obj))
+          ($elements-len (vector-length $elements)))
+     (if (fx>= $offset $elements-len)
+         (let (($elements-new (make-vector (max 1 (fx* 2 $offset)) py-absent)))
+           (subvector-move! $elements 0 $elements-len $elements-new 0)
+           (vector-set! $elements-new $offset $val)
+           (PyObjectType-%pending-binding-elements-set! $obj $elements-new))
+         (vector-set! $elements $offset $val))))
 
 (define-type-of-PyObject PyObjectModule
   id: PyObjectModule-C6486EB6-1522-42BA-A082-B6563F943CDF
@@ -689,10 +707,6 @@
           (cond
             ((not (null? *args))
               `(py-call-generic/*args ,f (list ,@pos-args) (list ,@*args)))
-            ((and (pair? f)
-                  (eq? (car f) 'py-getattribute)
-                  (>= (length f) 3))
-             `(py-getattribute-and-callX ,nargs ,(cadr f) ,(caddr f) ,pos-args ,@(cdddr f)))
             (else
               `(py-callX ,nargs ,f ,@pos-args))))))))
 

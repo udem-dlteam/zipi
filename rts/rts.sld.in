@@ -42,16 +42,11 @@
     py-call-hashed-kwargs
     py-call-generic-kwargs
     py-call0
-    py-call0-fallback
-    py-call1-fallback
-    py-call2-fallback
-    py-call3-fallback
     py-callX
+    py-callX-no-fixed-arity
     py-callX-fallback
     $py-callX
     py-call-wrong-arity
-    py-call0-maybe-super
-    py-getattribute-and-call0-maybe-super-cached
     py-global-call
 
     with-specialized-PyObjectFunction-args-limit
@@ -67,7 +62,7 @@
     py-throw-with-values
     py-throw-exception-with-message
     py-throw-index-out-of-range
-    py-throw-assignment-index-out-of-range 
+    py-throw-assignment-index-out-of-range
 
     py-try-except
     py-try-except-else
@@ -124,6 +119,8 @@
     py-isnot
     py-in
     py-notin
+    py-test-in
+    py-test-notin
 
     py-iadd
     py-ibitand
@@ -227,13 +224,13 @@
     py-getattribute-from-mro-cache
     py-getattribute-from-type-cache
     py-getattribute-from-module-cache
-    py-getattribute-and-callX
-    py-getattribute-and-callX-cached
-    py-getattribute-and-callX-from-mro-cache
-    py-getattribute-and-callX-from-type-cache
-    py-descriptor-get-and-callX
-    py-callMethodX
-    $py-callMethodX
+
+    object.__getattribute__
+    object-getattribute-skip-binding
+    py-getattribute-skip-binding-cached-fallback
+    binding-skip-success?
+    binding-skip-fail?
+    binding-skip-callback
 
     AttributeCache-object-hclass
     AttributeCache-mro-hclass
@@ -248,7 +245,16 @@
     py-own-attr-set!
     getattribute-from-obj-mro
     getattribute-from-obj-mro-fallback
+    py-getattribute-from-obj-mro-2cont
+    $py-getattribute-from-obj-mro-2cont
+    get-magic-attribute-from-cls-mro-with-owner-2cont
     py-own-attr-ref-2cont
+    PyObjectType-mro
+    magic-attr-ref
+    PyObjectType-magic-attrs
+
+    py-cls-own-attr-set!
+    py-cls-own-attr-set-with-pending-binding!
 
     py-descriptor-get
 
@@ -451,6 +457,9 @@
     py-descriptor-get-behavior-call-fallback
 
     procedure->py-function
+    define-method
+    method-allocator-get-function
+    method-allocator-get-assigner
 
     py-if-specialized-sint-representation
     py-if-specialized-float-representation
@@ -508,11 +517,10 @@
     py-str-from-scheme-fallback
     py-str-to-scheme
     py-str-to-scheme-fallback
-    py-subtype-of-str-to-scheme
-    py-subtype-of-str-to-scheme-fallback
     py-str-representative
     py-str-representative-fallback
     py-str-len-to-scheme
+    py-has-type-str?
     PyObjectStr-len
     py-concat-strX-strY
     py-mul-UstrX-UintY
@@ -830,6 +838,10 @@
     py-float-class
     py-method-class
     str-representatives
+
+    ;; methods for quick calls
+    list.append:unsafe
+    str.lower:unsafe
 
     ;; semantics & behaviors
     @placeholder@
