@@ -197,10 +197,10 @@
   ;;            (py-throw py-builtin-TypeError)
   ;; a method can have multiple guard:
   (define guards '())
-  ;; indicates whether define-method creates a single instance of each function
-  ;; or create the name:allocator which return a new allocator object everytime
-  ;; the second option allows to generate independant instances of the function
-  (define multi-instance #f)
+  ;; indicates whether define-method must allocate the functions on site
+  ;; otherwise the normal and pending-binding functions will be allocated when
+  ;; name:get-function is called
+  (define prealloc-functions #t)
 
   (define name (if (pair? name-or-signature) (car name-or-signature) name-or-signature))
 
@@ -215,7 +215,7 @@
         ((body:) (parse-body (cdr body)))
         ((guard:) (parse-guard (cdr body)))
         ((binding:) (parse-binding (cdr body)))
-        ((multi-instance:) (parse-multi-instance (cdr body)))
+        ((prealloc-functions:) (parse-prealloc-functions (cdr body)))
         (else (parse-error "unknown keyword" body)))))
 
   (define (parse-binding body)
@@ -227,11 +227,11 @@
           (set! binding (car body))
           (parse (cdr body))))))
 
-  (define (parse-multi-instance body)
+  (define (parse-prealloc-functions body)
     (if (or (null? body) (keyword? (car body)))
-      (parse-error "multi-instance: keyword without value" body)
+      (parse-error "prealloc-functions: keyword without value" body)
       (begin
-        (set! multi-instance (car body))
+        (set! prealloc-functions (car body))
         (parse (cdr body)))))
 
   (define (parse-signature body)
@@ -361,7 +361,6 @@
          (alloc-functions-name (string->symbol (string-append name-string ":alloc-functions")))
          (get-function-name (string->symbol (string-append name-string ":get-function")))
          (get-pending-binding-function-name (string->symbol (string-append name-string ":get-pending-binding-function")))
-         (insance-maker-name (string->symbol (string-append name-string ":instance-maker")))
          (procedure-signature (cons procedure-name arguments))
          (unsafe-signature (cons unsafe-name arguments))
          (binding-arguments
@@ -442,67 +441,52 @@
           (get-function-definition
             `(define (,get-function-name)
                (if (not ,name)
-                 (,alloc-functions-name)
-                 ,name)))
+                 (,alloc-functions-name))
+                ,name))
           (get-pending-binding-function-definition
             `(define (,get-pending-binding-function-name)
                (if (not ,binding-method-name)
-                 (,alloc-functions-name)
-                 ,binding-method-name)))
+                 (,alloc-functions-name))
+                ,binding-method-name))
           (assigner-body
             (case binding
               ((classmethod)
                 `(py-cls-own-attr-set-with-pending-binding!
                   type
                   name
-                  ,name
+                  (,get-function-name)
                   (,binding-closure-maker-name type)))
               (else
                 `(py-cls-own-attr-set-with-pending-binding!
                   type
                   name
-                  ,name
-                  ,binding-method-name))))
+                  (,get-function-name)
+                  (,get-pending-binding-function-name)))))
           (assigner-definition
             `(define (,assigner-procedure-name type name)
               ,assigner-body)))
 
-  (if multi-instance
-    `(define (,insance-maker-name ,cls-sym)
-       (define ,default-arguments-name #f)
-       (define ,kw-default-arguments-name #f)
-       (define ,name #f)
-       (define ,binding-method-name #f)
-       ,default-arguments-get
-       ,kw-default-arguments-get
-       ,get-signature-definition
-       ,get-pending-binding-signature-definition
-       ,unsafe-procedure-definition
-       ,default-procedure-definition
-       ,alloc-functions-definition
-       ,get-function-definition
-       ,get-pending-binding-function-definition
-       ,assigner-definition
-       (vector ,get-function-name ,assigner-procedure-name))
-    `(begin
-      ;; we need to store default arguments so that they are shared between normal and bound methods
-      (define ,default-arguments-name #f)
-      (define ,kw-default-arguments-name #f)
-      ,default-arguments-get
-      ,kw-default-arguments-get
-      ,get-signature-definition
-      ,get-pending-binding-signature-definition
-      ,unsafe-procedure-definition
-      ,default-procedure-definition
-      ,assigner-definition
-      (define ,name
-        (procedure->py-function
-          ,procedure-name
-          (,get-signature-name)))
-      (define ,binding-method-name
-        (procedure->py-function
-          ,unsafe-name
-          (,get-pending-binding-signature-name)))))))
+  (let ((output
+        `(begin
+          ;; we need to store default arguments so that they are shared between normal and bound methods
+          (define ,default-arguments-name #f)
+          (define ,kw-default-arguments-name #f)
+          (define ,name #f)
+          (define ,binding-method-name #f)
+          ,default-arguments-get
+          ,kw-default-arguments-get
+          ,get-signature-definition
+          ,get-pending-binding-signature-definition
+          ,unsafe-procedure-definition
+          ,default-procedure-definition
+          ,alloc-functions-definition
+          ,get-function-definition
+          ,get-pending-binding-function-definition
+          ,assigner-definition
+          ,@(if prealloc-functions
+             `((,alloc-functions-name))
+             '()))))
+    output)))
 
 (define-macro (method-allocator-get-function allocator)
   `((vector-ref ,allocator 0)))

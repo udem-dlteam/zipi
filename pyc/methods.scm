@@ -10,7 +10,7 @@
   (PycClass-methods-set! class (cons method (PycClass-methods class))))
 
 (define (collect-methods this)
-  (PycModule-methods-set! this (collect-methods* this #f)))
+  (collect-methods* this #f))
 
 (define (make-method-id method class)
   (my-gensym

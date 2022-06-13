@@ -155,7 +155,6 @@
                   ;; function objects and global variables are dynamic
                   ,@(scheme-init-global-init-defs global-funs conf-with-defs)
                   ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs)
-                  ,@(map (lambda (m) (pyc-define-method m conf)) (PycModule-methods ast))
                   (declare (block)))
                 '())
 
@@ -639,11 +638,11 @@
    (symbol-append '|procedure:| (scheme-var-name this conf)))
 
 ;; used for method pre-binding
-(define (scheme-var-name-instance-maker this conf)
-   (symbol-append (scheme-var-name this conf) '|:instance-maker|))
+(define (scheme-var-name-get-function this conf)
+   (symbol-append (scheme-var-name this conf) '|:get-function|))
 
-(define (scheme-var-name-instance-maker-object this conf)
-   (symbol-append (scheme-var-name this conf) '|-instance-maker|))
+(define (scheme-var-name-method-assigner this conf)
+   (symbol-append (scheme-var-name this conf) '|:assign|))
 
 (define (scheme-default-global-assig ref var val)
  `(global-put! %global ,(pyc-propname (PycVar-id var)) ,val
@@ -1060,7 +1059,7 @@
       (if (null? decorators)
           (epairify this
             (if method-var
-              `(method-allocator-get-function ,(scheme-var-name-instance-maker-object method-var conf))
+              `(,(scheme-var-name-get-function method-var conf))
               `(procedure->py-function
                 ,(or (PycFun-&proc this)
                      (scheme-procedure-proc this conf))
@@ -1141,7 +1140,7 @@
         (begin
           `(define-method (,method-name ,@args)
             binding: method
-            multi-instance: #t
+            prealloc-functions: #f
             signature: (,@(signature-elements method conf))
             body: ,body)))
       (else
@@ -1175,10 +1174,9 @@
                 (if (method-var? var)
                   (let ((init-name (scheme-var-name-init var conf)))
                     `(if (and ,init-name (py-test-is ,init-name ,var-name))
-                         ((method-allocator-get-assigner
-                            ,(scheme-var-name-instance-maker-object var conf))
-                             ,cls-symbol
-                             ,prop-name)
+                         (,(scheme-var-name-method-assigner var conf)
+                           ,cls-symbol
+                           ,prop-name)
                          (py-cls-own-attr-set!
                            ,cls-symbol
                            ,prop-name
@@ -1203,13 +1201,9 @@
             (PycClass-decls this))
           (map
             (lambda (method)
-              `(,(scheme-var-name-instance-maker-object (PycFun-method-var method) conf)
-                (,(scheme-var-name-instance-maker (PycFun-method-var method) conf))))
-            (PycClass-methods this))
-          (map
-            (lambda (method)
               `(,(scheme-var-name-init (PycFun-method-var method) conf) #f))
             (PycClass-methods this)))
+        ,@(map (lambda (m) (pyc-define-method m conf)) (PycClass-methods this))
         ,body
         ,(pyc-class this)))))
 

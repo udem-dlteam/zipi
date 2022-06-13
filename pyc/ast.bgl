@@ -34,7 +34,6 @@
                 stmts::pair-nil
                 (globals::pair-nil (default '()))
                 (global-defs::pair-nil (default '()))
-                (methods::pair-nil (default '()))
                 (caches::pair-nil (default '())))
 
          ;; misc
