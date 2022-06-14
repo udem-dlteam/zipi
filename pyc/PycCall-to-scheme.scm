@@ -97,11 +97,18 @@
          (args (PycCall-args call))
          (args-syms (map (lambda (e) (my-gensym 'arg)) args))
          (global-name (scheme-var-name var conf))
-         (global-init-val-name (scheme-var-name-init var conf)))
+         (global-init-val-name (scheme-var-name-init var conf))
+         (call-fallback
+           (let ((call-copy (PycCall-copy call)))
+             (PycCall-args-set!
+               call-copy
+               (map (lambda (a sym) (new-PycStatic (PycNode-loc a) sym sym))
+                    (PycCall-args call) args-syms))
+             call-copy)))
     `(let* ,(map (lambda (p a) (list p (scheme a conf))) args-syms args)
       (if (eq? ,global-name ,global-init-val-name)
         (,(get-static-global-call-procedure-name call conf) ,@args-syms)
-        ,(call-to-scheme call
+        ,(call-to-scheme call-fallback
                          conf
                          (cons*
                            ignore-global-functions: #t
