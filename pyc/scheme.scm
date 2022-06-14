@@ -839,56 +839,87 @@
       (scheme-simple-assig lhs rhs conf))))
 
 (define-walk-method (scheme this::PycAugAssig conf)
-   (cond
-      ((isa? (PycAssig-lhs this) PycRef)
-       (let* ((loc (PycNode-loc this))
-	      (lhs (PycAssig-lhs this))
-	      (assig (new-PycAssig loc lhs
-			(new-PycCall loc
-			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
-			   (list
-			      lhs
-			      (PycAssig-rhs this))))))
-	  (scheme assig conf)))
-      ((isa? (PycAssig-lhs this) PycAccess)
-       (let* ((loc (PycNode-loc this))
-	      (%o (my-gensym '%o))
-	      (lhs (PycAssig-lhs this))
-	      (field (PycAccess-field lhs))
-	      (assig (new-PycAssig loc
-			(new-PycAccess loc (new-PycPragma loc %o) field
-			   cache: (PycAccess-cache lhs))
-			(new-PycCall loc
-			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
-			   (list
-			      (new-PycAccess loc (new-PycPragma loc %o) field
-				 cache: (PycAccess-cache lhs))
-			      (PycAssig-rhs this))))))
-	  (epairify this
-	     `(let ((,%o ,(scheme (PycAccess-obj lhs) conf)))
-		 ,(scheme assig conf)))))
-      (else
-       (let* ((loc (PycNode-loc this))
-	      (%o (my-gensym '%o))
-	      (%i (my-gensym '%i))
-	      (lhs (PycAssig-lhs this))
-	      (obj (PycSubscript-obj lhs))
-	      (index (PycSubscript-index lhs))
-	      (assig (new-PycAssig loc
-			(new-PycSubscript loc
-			   (new-PycPragma loc %o) (new-PycPragma loc %i)
-			   cache: (PycSubscript-cache lhs))
-			(new-PycCall loc
-			   (new-PycPragma loc (symbol-append 'py- (PycAugAssig-op this)))
-			   (list
-			      (new-PycSubscript loc
-				 (new-PycPragma loc %o) (new-PycPragma loc %i)
-				 cache: (PycSubscript-cache lhs))
-			      (PycAssig-rhs this))))))
-	  (epairify this
-	     `(let* ((,%i ,(scheme (PycSubscript-index lhs) conf))
-		     (,%o ,(scheme (PycSubscript-obj lhs) conf)))
-		 ,(scheme assig conf)))))))
+  (define (make-iop lhs rhs)
+    (new-PycBinary
+      (PycNode-loc rhs)
+      (PycAugAssig-op this)
+      lhs rhs))
+
+  (define (case-ref lhs rhs)
+    (scheme
+      (new-PycAssig
+        (PycNode-loc this)
+        lhs
+        (make-iop lhs rhs))
+      conf))
+
+  (define (case-access lhs rhs)
+    (let* ((loc (PycNode-loc this))
+           (access-obj (PycAccess-obj lhs))
+           (field (PycAccess-field lhs))
+           (access-obj-sym (my-gensym 'lhs-obj))
+           (access-obj-static
+             (new-PycStatic (PycNode-loc access-obj) access-obj-sym access-obj-sym))
+           (assig
+             (new-PycAssig
+               loc
+               (new-PycAccess (PycNode-loc lhs) access-obj-static field cache: (PycAccess-cache lhs))
+               (make-iop
+                 (new-PycAccess (PycNode-loc lhs) access-obj-static field cache: (PycAccess-cache lhs))
+                 rhs))))
+      `(let ((,access-obj-sym ,(scheme access-obj conf)))
+         ,(scheme assig conf))))
+
+  (define (case-slice lhs rhs)
+    (let* ((lower (PycSlice-lower lhs))
+           (upper (PycSlice-upper lhs))
+           (step (PycSlice-step lhs))
+           (slice
+             (new-PycStatic
+               (PycNode-loc lhs)
+               'slice
+               `(py-slice-from-scheme
+             	   ,(if (PycUninit? lower) 'py-None (scheme lower conf))
+             	   ,(if (PycUninit? upper) 'py-None (scheme upper conf))
+             	   ,(if (PycUninit? step) 'py-None (scheme step conf))))))
+      (case-subscript
+        (new-PycSubscript (PycNode-loc lhs) (PycSlice-obj lhs) slice)
+        rhs)))
+
+  (define (case-subscript lhs rhs)
+    (let* ((loc (PycNode-loc this))
+           (access-obj (PycSubscript-obj lhs))
+           (access-obj-sym (my-gensym 'lhs-obj))
+           (access-obj-static
+             (new-PycStatic (PycNode-loc access-obj) access-obj-sym access-obj-sym))
+           (index (PycSubscript-index lhs))
+           (index-sym (my-gensym 'lhs-index))
+           (index-static
+             (new-PycStatic (PycNode-loc access-obj) index-sym index-sym))
+           (assig
+             (new-PycAssig
+               loc
+               (new-PycSubscript (PycNode-loc lhs) access-obj-static index-static)
+               (make-iop
+                 (new-PycSubscript (PycNode-loc lhs) access-obj-static index-static)
+                 rhs))))
+      `(let ((,access-obj-sym ,(scheme access-obj conf))
+             (,index-sym ,(scheme index conf)))
+         ,(scheme assig conf))))
+
+   (let ((lhs (PycAssig-lhs this))
+         (rhs (PycAssig-rhs this)))
+     (cond
+        ((isa? lhs PycRef)
+          (case-ref lhs rhs))
+        ((isa? lhs PycAccess)
+         (case-access lhs rhs))
+        ((isa? lhs PycSubscript)
+          (case-subscript lhs rhs))
+        ((isa? lhs PycSlice)
+          (case-slice lhs rhs))
+        (else
+          (error "scheme this::PycAugAssig" "unknown node for lhs" lhs)))))
 
 (define-walk-method (scheme this::PycPragma conf)
    (epairify this
