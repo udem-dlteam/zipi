@@ -59,6 +59,10 @@
    left
    (fixnum->flonum right)))
 
+(define (unboxed-str+ left right)
+  ;; NOTE: defers code generation to the rts py-str-from-scheme macro whci recognizes py+
+  `(py+ ,left ,right))
+
 ;; SUBTRACTION
 (define-operator (py-fx- left right)
   ((gambit: (or (|##fx-?| left right) (py-bint-from-scheme (|##-2| left right))))
@@ -635,7 +639,7 @@
   (operands-are-unboxed-reals?
     `(+ ,(scheme lhs conf) ,(scheme rhs conf)))
   (operands-are-unboxed-strings?
-    `(string-append ,(scheme lhs conf) ,(scheme rhs conf)))
+    (unboxed-str+ (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx+ py-fl+)))
 
