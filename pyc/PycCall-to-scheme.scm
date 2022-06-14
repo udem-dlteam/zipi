@@ -100,7 +100,7 @@
          (global-init-val-name (scheme-var-name-init var conf)))
     `(let* ,(map (lambda (p a) (list p (scheme a conf))) args-syms args)
       (if (eq? ,global-name ,global-init-val-name)
-        ((PyObjectFunction-procedure ,global-name) ,@args-syms)
+        (,(get-static-global-call-procedure-name call conf) ,@args-syms)
         ,(call-to-scheme call
                          conf
                          (cons*

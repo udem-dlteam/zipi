@@ -1204,7 +1204,7 @@
                     (prop-name (pyc-propname (PycVar-id var))))
                 (if (method-var? var)
                   (let ((init-name (scheme-var-name-init var conf)))
-                    `(if (and ,init-name (py-test-is ,init-name ,var-name))
+                    `(if (py-test-is ,init-name ,var-name)
                          (,(scheme-var-name-method-assigner var conf)
                            ,cls-symbol
                            ,prop-name)
@@ -1233,7 +1233,7 @@
             (PycClass-decls this))
           (map
             (lambda (method)
-              `(,(scheme-var-name-init (PycFun-method-var method) conf) #f))
+              `(,(scheme-var-name-init (PycFun-method-var method) conf) (quote %uninit)))
             (PycClass-methods this)))
         ,@(map (lambda (m) (pyc-define-method m conf)) (PycClass-methods this))
         ,body
