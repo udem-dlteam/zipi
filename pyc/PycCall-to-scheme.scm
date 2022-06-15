@@ -198,25 +198,35 @@
                 `(binding-skip-callback ,(scheme (PycCall-fun call) conf) ,call-after-skipped-binding)))
             (PycCall-args-set! call-copy (cdr (PycCall-args call)))
             (default-call call-copy conf (cons* skipped-binding: #f params))))
-      (let* ((dynamic-super-call (dynamic-super-call? call conf params)))
+      (let* ((dynamic-super-call (dynamic-super-call? call conf params))
+             (has-vararg #f)
+             (args-scheme
+               (flatten
+                 (map (lambda (a)
+                        (if (isa? a PycStarredExpr)
+                            (begin
+                              (set! has-vararg #t)
+                              (list *: (scheme (PycStarredExpr-expr a) conf)))
+                            (list (scheme a conf))))
+                      args)))
+             (kwargs-scheme
+               (interleave
+                   (map (lambda (n) (if n (string->keyword (symbol->string n)) **:)) keywords-names)
+                   (map (lambda (v) (scheme v conf)) keywords-values))))
         (if dynamic-super-call
           (let ((fn-sym (my-gensym 'fun-maybe-super)))
             `(let ((,fn-sym ,(scheme fun conf)))
                (if (py-test-is ,fn-sym py-builtin-super)
                   ,dynamic-super-call
                   ;; NOTE: dynamic super call only happend when there is no argument
-                  (py-call ,fn-sym))))
-          `(py-call
-            ,(scheme fun conf)
-            ,@(flatten
-                (map (lambda (a)
-                       (if (isa? a PycStarredExpr)
-                           (list *: (scheme (PycStarredExpr-expr a) conf))
-                           (list (scheme a conf))))
-                     args))
-            ,@(interleave
-                (map (lambda (n) (if n (string->keyword (symbol->string n)) **:)) keywords-names)
-                (map (lambda (v) (scheme v conf)) keywords-values))))))))
+                  (py-call-generic ,fn-sym '()))))
+          (if (and (null? kwargs-scheme) (not has-vararg))
+            `(py-call-generic ,(scheme fun conf) (list ,@args-scheme))
+            ;; delegate call with keyword args and varargs to the py-call macro
+            `(py-call
+              ,(scheme fun conf)
+              ,@args-scheme
+              ,@kwargs-scheme)))))))
 
 (define (default-call-method-with-binding-skip call conf params)
   (let* ((method-access (PycCall-fun call))
