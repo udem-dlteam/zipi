@@ -625,7 +625,9 @@
 (define-rts py-type-class   #f)
 (define-rts py-str-class    #f)
 (define-rts py-tuple-class  #f)
-(define-rts py-function-class  #f)
+(define-rts py-function-class #f)
+(define-rts py-classmethod-class #f)
+(define-rts py-staticmethod-class #f)
 
 (define-rts (bootstrap-type-hierarchy-phase1)
   (set! py-object-class
@@ -673,6 +675,24 @@
        #f ;; mro must be filled in later
        py-function-hclass-of-instances)) ;; hclass
 
+  (set! py-classmethod-class
+    (py-builtin-type-alloc
+       #f ;; type must be filled in later
+       (get-behavior-type-index classmethod) ;; class index
+       #t ;; can-have-getter
+       #f ;; bases must be filled in later
+       #f ;; mro must be filled in later
+       py-classmethod-hclass-of-instances)) ;; hclass
+
+  (set! py-staticmethod-class
+    (py-builtin-type-alloc
+       #f ;; type must be filled in later
+       (get-behavior-type-index staticmethod) ;; class index
+       #t ;; can-have-getter
+       #f ;; bases must be filled in later
+       #f ;; mro must be filled in later
+       py-staticmethod-hclass-of-instances)) ;; hclass
+
   ;; init all object (& ...) to a py-str object
   (init-registered-constants)
 
@@ -702,7 +722,17 @@
   ;; Fill in function class
   (PyObject-class-set! py-function-class py-type-class)
   (PyObjectType-bases-set! py-function-class (vector py-object-class))
-  (PyObjectType-mro-set! py-function-class (vector py-function-class py-object-class)))
+  (PyObjectType-mro-set! py-function-class (vector py-function-class py-object-class))
+
+  ;; Fill in classmethod class
+  (PyObject-class-set! py-classmethod-class py-type-class)
+  (PyObjectType-bases-set! py-classmethod-class (vector py-object-class))
+  (PyObjectType-mro-set! py-classmethod-class (vector py-classmethod-class py-object-class))
+
+  ;; Fill in staticmethod class
+  (PyObject-class-set! py-staticmethod-class py-type-class)
+  (PyObjectType-bases-set! py-staticmethod-class (vector py-object-class))
+  (PyObjectType-mro-set! py-staticmethod-class (vector py-staticmethod-class py-object-class)))
 
 (bootstrap-type-hierarchy-phase1)
 
@@ -815,22 +845,6 @@
         (let* ((func (PyObjectMethod-method obj))
                (__self__ (PyObjectMethod-self obj)))
           (py-call-generic func (cons __self__ args))))
-      ;; initialization of instances from type with no special metaclass
-      ((eq? obj-type py-type-class)
-       (let ((__new__ (getattribute-from-cls-mro obj (& "__new__"))))
-          (if (eq? __new__ object.__new__)
-	      (if (eq? obj py-object-class)
-		  (if (null? args)
-		      ;; TODO: raise TypeError on unsafe call, ex: object.__new__(int)
-		      ;; this should be done concurrently in object-new
-		      (py-obj-alloc py-object-class)
-		      (py-throw-exception-with-message
-			 py-builtin-TypeError
-			 "object() takes no arguments"))
-		  (let ((instance (py-obj-alloc obj)))
-		     (tprint "type-call-from-instance...")
-		     (type-call-from-instance obj instance (cons instance args))))
-		 (type-call-from-new-method-fallback obj args __new__))))
       (else
         (let ((__call__ (getattribute-from-obj-mro obj (& "__call__"))))
           (if (eq? __call__ py-absent)
@@ -1949,16 +1963,12 @@
           (py-call-generic self args-list))
   signature: (posonlyargs: (self) vararg: args))
 
-(define-rts (type-call-from-new-method-fallback self args __new__)
-  (type-call-from-new-method self args __new__))
-
 (define-method type.__call__ ;; TODO add kwargs
   guard: (not (py-isinstance? self py-builtin-type))
          (py-throw-required-type "__call__" "type" self)
   body: (type-call-from-new-method
           self
-          (vector->list (PyObjectTuple-value args))
-          (getattribute-from-cls-mro self (& "__new__")))
+          (vector->list (PyObjectTuple-value args)))
   signature: (posonlyargs: (self) vararg: args))
 
 (define-method type.__setattr__
@@ -6143,7 +6153,7 @@
 ;;
 ;; For more information on class methods, see The standard type hierarchy.
 
-(define-rts py-builtin-classmethod #f)
+(define-rts py-builtin-classmethod py-classmethod-class)
 
 ;;-------------------- compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
 
@@ -7626,11 +7636,7 @@
 ;;
 ;; For more information on static methods, see The standard type hierarchy.
 
-(define-rts py-builtin-staticmethod
-  (procedure->py-function
-    (lambda (function)
-      (py-throw-exception-with-message py-builtin-NotImplementedError "staticmethod not implemented"))
-    (make-signature posonlyargs: (function) name: py-builtin-staticmethod)))
+(define-rts py-builtin-staticmethod py-staticmethod-class)
 
 ;;-------------------- class str(object='')
 ;;                     class str(object=b'', encoding='utf-8', errors='strict')

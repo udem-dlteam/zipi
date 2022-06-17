@@ -631,18 +631,25 @@
         (PycVar-name-set! var name)
         name))))
 
-(define (scheme-var-name-init this conf)
-   (symbol-append '|init:| (scheme-var-name this conf)))
+(define (scheme-var-name-init var conf)
+   (symbol-append '|init:| (scheme-var-name var conf)))
 
-(define (scheme-def-procedure-name this conf)
-   (symbol-append '|procedure:| (scheme-var-name this conf)))
+(define (scheme-def-procedure-name var conf)
+   (symbol-append '|procedure:| (scheme-var-name var conf)))
 
 ;; used for method pre-binding
-(define (scheme-var-name-get-function this conf)
-   (symbol-append (scheme-var-name this conf) '|:get-function|))
+;; NOTE: must match the API of define-method (see rts/rts-macro.scm)
+(define (scheme-var-name-get-function var conf)
+   (symbol-append (scheme-var-name var conf) '|:get-function|))
 
-(define (scheme-var-name-method-assigner this conf)
-   (symbol-append (scheme-var-name this conf) '|:assign|))
+(define (scheme-var-name-get-signature var conf)
+   (symbol-append (scheme-var-name var conf) '|:get-signature|))
+
+(define (scheme-var-name-method-assigner var conf)
+   (symbol-append (scheme-var-name var conf) '|:assign|))
+
+(define (scheme-var-name-method-current-assigner var conf)
+   (symbol-append (scheme-var-name var conf) '|:current-assign|))
 
 (define (scheme-default-global-assig ref var val)
  `(global-put! %global ,(pyc-propname (PycVar-id var)) ,val
@@ -688,11 +695,7 @@
               (scheme-assig-global lhs (scheme rhs conf) conf)))
           (else
             (let ((var-name (scheme-var-name var conf)))
-              (if (and (isa? rhs PycFun) (PycFun-method-of rhs))
-                `(begin
-                  (set! ,var-name ,(scheme rhs conf))
-                  (set! ,(scheme-var-name-init var conf) (,(scheme-var-name-get-function var conf))))
-                `(set! ,var-name ,(scheme rhs conf))))))))
+              `(set! ,var-name ,(scheme rhs conf)))))))
     ((isa? lhs PycRefUnresolved)
       (error "scheme::PycAssig" "assignment to unresolved variable" lhs))
     ;; X.attr = ...
@@ -1084,18 +1087,97 @@
 (define (signature fun conf)
   `(make-signature ,@(signature-elements fun conf)))
 
+(define (pyc-define-method method binding conf)
+  (let* ((procedure (scheme-procedure-proc method conf))
+         (py-signature (signature method conf))
+         (method-name (scheme-var-name (PycFun-method-var method) conf)))
+    (match-case (scheme-procedure-proc method conf)
+      ((lambda ?args ?body)
+        `(define-method (,method-name ,@args)
+            binding: ,binding
+            prealloc-functions: #f
+            signature: (,@(signature-elements method conf))
+            body: ,body))
+      (else
+        (error "pyc-define-method" "scheme-procedure-proc format unknown" procedure)))))
+
 (define-walk-method (scheme this::PycFun conf)
-  (let ((method-var (PycFun-method-var this)))
+  (define (likely-classmethod? this)
+    (let ((decorators (PycFun-decorators this)))
+      (and (= (length decorators) 1)
+           (isa? (car decorators) PycRefUnresolved)
+           (eq? (PycRefUnresolved-id (car decorators)) 'classmethod))))
+
+  (define (likely-staticmethod? this)
+    (let ((decorators (PycFun-decorators this)))
+      (and (= (length decorators) 1)
+           (isa? (car decorators) PycRefUnresolved)
+           (eq? (PycRefUnresolved-id (car decorators)) 'staticmethod))))
+
+  (define (scheme-default-function this)
     (let loop ((decorators (PycFun-decorators this)))
       (if (null? decorators)
-          (epairify this
-            (if method-var
-              `(,(scheme-var-name-get-function method-var conf))
-              `(procedure->py-function
-                ,(or (PycFun-&proc this)
-                     (scheme-procedure-proc this conf))
-                ,(signature this conf))))
-          `(py-call ,(scheme (car decorators) conf) ,(loop (cdr decorators)))))))
+        `(procedure->py-function
+          ,(or (PycFun-&proc this) (scheme-procedure-proc this conf))
+          ,(signature this conf))
+          `(py-call ,(scheme (car decorators) conf) ,(loop (cdr decorators))))))
+
+  (define (apply-decorators this decorators function-code)
+    (if (null? decorators)
+        function-code
+        ;; TODO use a PycCall?
+        `(py-call
+          ,(scheme (car decorators) conf)
+          ,(apply-decorators this (cdr decorators) function-code))))
+
+  (define (scheme-method method method-var)
+    (let ((method-sym (my-gensym 'method)))
+      (apply-decorators
+        this
+        (PycFun-decorators this)
+        `(let ()
+          ,(pyc-define-method method 'method conf)
+          (let ((,method-sym
+                  (procedure->py-function
+                    (,(scheme-var-name-get-function method-var conf))
+                    (,(scheme-var-name-get-signature method-var conf)))))
+            (set! ,(scheme-var-name-init method-var conf) ,method-sym)
+            (set! ,(scheme-var-name-method-current-assigner method-var conf)
+                  ,(scheme-var-name-method-assigner method-var conf))
+            ,method-sym)))))
+
+  (define (scheme-maybe-special-bound-method method method-var type)
+    (let ((method-sym (my-gensym 'method))
+          (decorator-sym (my-gensym 'decorator))
+          (decorator (car (PycFun-decorators this)))
+          (builtin-decorator (symbol-append 'py-builtin- type)))
+      `(let ((,decorator-sym ,(scheme decorator conf)))
+        ,(pyc-define-method method type conf)
+        (if (py-test-is ,decorator-sym ,builtin-decorator)
+            ;; NOTE the define-method macro handle the creation of a staticmethod or classmethod
+            (let ((,method-sym ,(scheme-var-name-get-function method-var conf)))
+              (set! ,(scheme-var-name-init method-var conf) ,method-sym)
+              (set! ,(scheme-var-name-method-current-assigner method-var conf)
+                    ,(scheme-var-name-method-assigner method-var conf))
+              ,method-sym)
+          (py-call
+            ,decorator-sym
+            (procedure->py-function
+              (,(scheme-var-name-get-function method-var conf))
+              (,(scheme-var-name-get-signature method-var conf))))))))
+
+  (let ((method-var (PycFun-method-var this)))
+    (if method-var
+        ;; defining a class method
+        (cond
+          ((likely-classmethod? this)
+            (scheme-maybe-special-bound-method this method-var 'classmethod))
+          ((likely-staticmethod? this)
+            (scheme-maybe-special-bound-method this method-var 'staticmethod))
+          (else
+            (scheme-method this method-var)))
+        ;; function definition
+        (scheme-default-function this))))
 
 (define (scheme-procedure-proc this conf)
 
@@ -1162,21 +1244,6 @@
     `(lambda ,args
       ,(generator this body)))))
 
-(define (pyc-define-method method conf)
-  (let* ((procedure (scheme-procedure-proc method conf))
-         (py-signature (signature method conf))
-         (method-name (scheme-var-name (PycFun-method-var method) conf)))
-    (match-case (scheme-procedure-proc method conf)
-      ((lambda ?args ?body)
-        (begin
-          `(define-method (,method-name ,@args)
-            binding: method
-            prealloc-functions: #f
-            signature: (,@(signature-elements method conf))
-            body: ,body)))
-      (else
-        (error "pyc-define-method" "scheme-procedure-proc format unknown" procedure)))))
-
 (define-walk-method (scheme this::PycClass conf)
   (define (method-var? var)
     (let loop ((methods (PycClass-methods this)))
@@ -1205,7 +1272,7 @@
                 (if (method-var? var)
                   (let ((init-name (scheme-var-name-init var conf)))
                     `(if (py-test-is ,init-name ,var-name)
-                         (,(scheme-var-name-method-assigner var conf)
+                         (,(scheme-var-name-method-current-assigner var conf)
                            ,cls-symbol
                            ,prop-name)
                          (if ,var-name
@@ -1234,8 +1301,14 @@
           (map
             (lambda (method)
               `(,(scheme-var-name-init (PycFun-method-var method) conf) (quote %uninit)))
+            (PycClass-methods this))
+          (map
+            (lambda (method)
+              `(,(scheme-var-name-method-current-assigner
+                   (PycFun-method-var method)
+                   conf)
+                (quote %uninit)))
             (PycClass-methods this)))
-        ,@(map (lambda (m) (pyc-define-method m conf)) (PycClass-methods this))
         ,body
         ,(pyc-class this)))))
 

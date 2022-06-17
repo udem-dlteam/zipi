@@ -1,7 +1,7 @@
 class A:
     @classmethod
     def f(cls, x):
-        print(type(cls) is A, x)
+        print(cls is A, x)
 
 a = A()
 
