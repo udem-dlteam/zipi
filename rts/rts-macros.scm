@@ -525,27 +525,18 @@
   `(,callback ,obj))
 
 ;; executions points in the type.__call__ method
-(define-macro (type-call-from-instance self instance args-w/-instance) ;;args should contain instance
+(define-macro (type-call-from-instance self instance args) ;;args should contain instance
    `(let* (($self ,self)
-	   ($instance ,instance)
-	   ($args-w/-instance ,args-w/-instance))
-       (if (eq? (py-obj-cls $instance) $self)
-	   (let ((__init__ (getattribute-from-cls-mro $self (& "__init__"))))
-	      (py-call-generic __init__ $args-w/-instance)
-	      $instance)
-	   $instance)))
+      	   ($instance ,instance))
+      ;; TODO: should the check be py-isinstance?
+      (if (eq? (py-obj-cls $instance) $self)
+          (let ((__init__ (getattribute-from-cls-mro $self (& "__init__"))))
+            (py-call-generic __init__ (cons ,instance ,args))
+            $instance)
+        $instance)))
 
-(define-macro (type-callX-from-instance self instance . args)
-   `(let* (($self ,self)
-	   ($instance ,instance))
-       (if (eq? (py-obj-cls $instance) $self)
-	   (let ((__init__ (getattribute-from-cls-mro $self (& "__init__"))))
-	      (py-call __init__ ,@args)
-	      $instance)
-	   $instance)))
-
-(define-macro (type-call-from-new-method self args)
-  `(let* (($self ,self)
+(define-macro (type-call-from-new-method cls args)
+  `(let* (($cls ,cls)
          ($args ,args)
          ;; NOTE: as a special case, cPython binds the __new__ method on instance creation
          ;;       https://docs.python.org/3/reference/datamodel.html#object.__new__
@@ -553,21 +544,15 @@
          ;;       of static __new__ methods. This seems to fit some of the cPython cornercase I observed
          ($__new__
            (getattribute-from-cls-mro-with-owner-2cont
-             $self
+             $cls
              (& "__new__")
              (lambda (val owner)
                (py-descriptor-get val py-None owner))
              (lambda ()
                (error "type.__call__" "could not find object.__new__" ":("))))
-         (args-w/-instance (cons $self $args))
-         (instance (py-call-generic $__new__ args-w/-instance)))
-      (type-call-from-instance $self instance args-w/-instance)))
-
-(define-macro (type-callX-from-new-method cls __new__ . args)
-   `(let* (($cls ,cls)
-	         ($__new__ ,__new__)
-	         (instance (py-call $__new__ $cls ,@args)))
-      (type-callX-from-instance $cls instance $cls ,@args)))
+         (args-with-cls (cons $cls $args))
+         (instance (py-call-generic $__new__ args-with-cls)))
+      (type-call-from-instance $cls instance $args)))
 
 ;; Macros to enable/disable various implementation strategies.
 

@@ -2104,7 +2104,6 @@
     (py-subtype-of-str-from-string len string str-subclass)))
 
 (define-rts (py-str-to-scheme-fallback str)
-  (if (eq? str py-absent) (step))
   (let ((part1-or-string (PyObjectStr-part1-or-string str)))
     (if (string? part1-or-string)
         part1-or-string
