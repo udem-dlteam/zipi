@@ -6,6 +6,7 @@
     inline-c-code
 
     make-HClass
+    HClass-names
     PyObject?
     PyObjectType?
     PyObjectModule?
@@ -248,11 +249,14 @@
     py-getattribute-from-obj-mro-2cont
     $py-getattribute-from-obj-mro-2cont
     get-magic-attribute-from-cls-mro-with-owner-2cont
+    getattribute-from-cls-mro-with-owner-2cont
     py-own-attr-ref-2cont
+    py-own-attr-index-2cont-from-representative
     PyObjectType-mro
     magic-attr-ref
     PyObjectType-magic-attrs
 
+    py-cls-own-attr-ref-2cont
     py-cls-own-attr-set!
     py-cls-own-attr-set-with-pending-binding!
 
@@ -522,6 +526,9 @@
     py-str-len-to-scheme
     py-has-type-str?
     PyObjectStr-len
+    PyObjectStr-part2-or-rep
+    PyObjectStrRep?
+    PyObjectStrRep-magic-index
     py-concat-strX-strY
     py-mul-UstrX-UintY
 
@@ -648,6 +655,8 @@
     py-type-class
     py-tuple-class
     py-str-class
+    py-classmethod-class
+    py-staticmethod-class
 
     ;; builtins from builtins.py
     py-builtin-UnicodeTranslateError

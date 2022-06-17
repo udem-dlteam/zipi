@@ -1154,13 +1154,8 @@
       `(let ((,decorator-sym ,(scheme decorator conf)))
         ,(pyc-define-method method type conf)
         (if (py-test-is ,decorator-sym ,builtin-decorator)
-            ;; TODO create instance directly
-            (let ((,method-sym
-                    (py-call
-                      ,builtin-decorator
-                      (procedure->py-function
-                        (,(scheme-var-name-get-function method-var conf))
-                        (,(scheme-var-name-get-signature method-var conf))))))
+            ;; NOTE the define-method macro handle the creation of a staticmethod or classmethod
+            (let ((,method-sym ,(scheme-var-name-get-function method-var conf)))
               (set! ,(scheme-var-name-init method-var conf) ,method-sym)
               (set! ,(scheme-var-name-method-current-assigner method-var conf)
                     ,(scheme-var-name-method-assigner method-var conf))

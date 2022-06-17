@@ -310,7 +310,7 @@
           ((and remove-first-argument (eq? (car method-signature) args:))
             (cons args:
               (cons (cdadr method-signature) ;; remove first argument in args:
-                    (loop (cdr method-signature)))))
+                    (loop (cddr method-signature)))))
           (else
             (cons (car method-signature) (loop (cdr method-signature))))))
       bound-posonlyargs)))
@@ -356,7 +356,6 @@
                (string->symbol (string-append name-string ":slot"))))
          (procedure-name (string->symbol (string-append name-string ":procedure")))
          (unsafe-name (string->symbol (string-append name-string ":unsafe")))
-         (binding-closure-maker-name (string->symbol (string-append name-string ":make-pending-binding-closure")))
          (binding-method-name (string->symbol (string-append name-string ":pending-binding")))
          (assigner-procedure-name (string->symbol (string-append name-string ":assign")))
          (default-arguments-name (string->symbol (string-append name-string ":default-arguments")))
@@ -430,11 +429,12 @@
                     (,get-pending-binding-signature-name))))
               ((classmethod)
                 (let ((cls-argument (gensym 'cls)))
-                  `(set! (,binding-closure-maker-name ,cls-argument)
-                    (procedure->py-function
-                      (lambda ,(cons (gensym '_) (cdr arguments))
-                        (,unsafe-name ,cls-argument ,@(cdr arguments)))
-                      (,get-pending-binding-signature-name)))))
+                  `(set! ,binding-method-name
+                    (lambda (,cls-argument)
+                      (procedure->py-function
+                        (lambda ,(cons (gensym '_) (cdr arguments))
+                          (,unsafe-name ,cls-argument ,@(cdr arguments)))
+                        (,get-pending-binding-signature-name))))))
               ((staticmethod)
                 `(set! ,binding-method-name
                   (procedure->py-function
@@ -461,8 +461,22 @@
                 `(py-cls-own-attr-set-with-pending-binding!
                   type
                   name
-                  (,get-function-name)
-                  (,binding-closure-maker-name type)))
+                  (make-PyObjectMethodWrapper
+                   py-classmethod-hclass-of-instances
+                   '#()
+                   py-classmethod-class
+                   (,get-function-name))
+                  ((,get-pending-binding-function-name) type)))
+              ((staticmethod)
+                `(py-cls-own-attr-set-with-pending-binding!
+                  type
+                  name
+                  (make-PyObjectMethodWrapper
+                   py-staticmethod-hclass-of-instances
+                   '#()
+                   py-staticmethod-class
+                   (,get-function-name))
+                  (,get-pending-binding-function-name)))
               (else
                 `(py-cls-own-attr-set-with-pending-binding!
                   type
@@ -530,10 +544,21 @@
 	      $instance)
 	   $instance)))
 
-(define-macro (type-call-from-new-method self args __new__)
+(define-macro (type-call-from-new-method self args)
   `(let* (($self ,self)
          ($args ,args)
-         ($__new__ ,__new__)
+         ;; NOTE: as a special case, cPython binds the __new__ method on instance creation
+         ;;       https://docs.python.org/3/reference/datamodel.html#object.__new__
+         ;; TODO: The full behavior seems a bit elusive so I made it work to match our implementation
+         ;;       of static __new__ methods. This seems to fit some of the cPython cornercase I observed
+         ($__new__
+           (getattribute-from-cls-mro-with-owner-2cont
+             $self
+             (& "__new__")
+             (lambda (val owner)
+               (py-descriptor-get val py-None owner))
+             (lambda ()
+               (error "type.__call__" "could not find object.__new__" ":("))))
          (args-w/-instance (cons $self $args))
          (instance (py-call-generic $__new__ args-w/-instance)))
       (type-call-from-instance $self instance args-w/-instance)))
@@ -2034,7 +2059,9 @@
             (list_iterator  13              #f                   #f)
             (range          14              #f                   #f)
             (range_iterator 15              #f                   #f)
-            (slice          16              #f                   #f))))
+            (slice          16              #f                   #f)
+            (classmethod    17              #f                   #t)
+            (staticmethod   18              #f                   #t))))
 
     ;; add info as first arg due to rest arguments in py-make-builtin-class
     `(,(car args) ,info ,@(cdr args))))
@@ -2084,7 +2111,9 @@
       (int . py-int-class)
       (bool . py-bool-class)
       (float . py-float-class)
-      (function . py-function-class)))
+      (function . py-function-class)
+      (classmethod . py-classmethod-class)
+      (staticmethod . py-staticmethod-class)))
 
   (let* ((scheme-name
           (if (and (pair? name) (memq (car name) '(& &&)))
