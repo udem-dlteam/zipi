@@ -250,11 +250,13 @@
     $py-getattribute-from-obj-mro-2cont
     get-magic-attribute-from-cls-mro-with-owner-2cont
     getattribute-from-cls-mro-with-owner-2cont
+    getattribute-from-cls-mro
     py-own-attr-ref-2cont
     py-own-attr-index-2cont-from-representative
     PyObjectType-mro
     magic-attr-ref
     PyObjectType-magic-attrs
+    PyObjectType-can-quick-alloc
 
     py-cls-own-attr-ref-2cont
     py-cls-own-attr-set!
@@ -479,6 +481,7 @@
     py-specialized-partial-1/3-dispatch
     $py-specialized-partial-1/3-dispatch
 
+    py-obj-alloc
     py-int-from-scheme
     py-sint-from-scheme
     py-bint-from-scheme

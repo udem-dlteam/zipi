@@ -168,6 +168,7 @@
   (hclass-of-instances unprintable:)
   (is-builtin unprintable:)
   can-have-getter
+  can-quick-alloc
   (magic-attrs unprintable:)
   (pending-binding-magic-attrs unprintable:)
   (%pending-binding-elements unprintable:))

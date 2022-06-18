@@ -525,34 +525,38 @@
   `(,callback ,obj))
 
 ;; executions points in the type.__call__ method
-(define-macro (type-call-from-instance self instance args) ;;args should contain instance
-   `(let* (($self ,self)
-      	   ($instance ,instance))
-      ;; TODO: should the check be py-isinstance?
-      (if (eq? (py-obj-cls $instance) $self)
-          (let ((__init__ (getattribute-from-cls-mro $self (& "__init__"))))
-            (py-call-generic __init__ (cons ,instance ,args))
-            $instance)
-        $instance)))
+(define-macro (type-call-from-instance cls instance args) ;;args should contain instance
+   `(let* (($cls ,cls)
+      	   ($instance ,instance)
+           (__init__ (getattribute-from-cls-mro $cls (& "__init__"))))
+      (py-call-generic __init__ (cons $instance ,args))
+      $instance))
 
 (define-macro (type-call-from-new-method cls args)
   `(let* (($cls ,cls)
-         ($args ,args)
-         ;; NOTE: as a special case, cPython binds the __new__ method on instance creation
-         ;;       https://docs.python.org/3/reference/datamodel.html#object.__new__
-         ;; TODO: The full behavior seems a bit elusive so I made it work to match our implementation
-         ;;       of static __new__ methods. This seems to fit some of the cPython cornercase I observed
-         ($__new__
-           (getattribute-from-cls-mro-with-owner-2cont
-             $cls
-             (& "__new__")
-             (lambda (val owner)
-               (py-descriptor-get val py-None owner))
-             (lambda ()
-               (error "type.__call__" "could not find object.__new__" ":("))))
-         (args-with-cls (cons $cls $args))
-         (instance (py-call-generic $__new__ args-with-cls)))
-      (type-call-from-instance $cls instance $args)))
+          ($args ,args))
+    (if (PyObjectType-can-quick-alloc $cls)
+        (type-call-from-instance
+          $cls
+          (py-obj-alloc $cls)
+          $args)
+        (getattribute-from-cls-mro-with-owner-2cont
+          $cls
+          (& "__new__")
+          (lambda (__new__ owner)
+            (let (($instance
+                    (py-call-generic
+                      (py-descriptor-get __new__ py-None owner)
+                      (cons $cls $args))))
+              ;; TODO: should the check be py-isinstance?
+              (if (eq? (py-obj-cls $instance) $cls)
+                  (type-call-from-instance
+                    $cls
+                    $instance
+                    $args)
+                  $instance)))
+          (lambda ()
+            (error "type.__call__" "could not find __new__" ":("))))))
 
 ;; Macros to enable/disable various implementation strategies.
 
