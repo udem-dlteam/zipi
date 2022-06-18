@@ -205,14 +205,10 @@
   ;; TODO: use py-own-attr-index-2cont
   (declare-fixnum)
   (let* ((attr-representative (py-str-representative attr)))
-    (if (and
-          (PyObjectType? obj)
-          (PyObjectStrRep-magic-index attr-representative))
+    (if (PyObjectType? obj)
       ;; set a magic method
-      (magic-attr-set!
-        obj
-        (PyObjectStrRep-magic-index attr-representative)
-        val)
+      ;; TODO: is this necessary? this be called on a PyObjectType?
+      (py-cls-own-attr-set! obj attr val)
       ;; set a normal attribute
       (py-own-attr-index-2cont obj attr
         (lambda (i) (PyObject-elements-set! obj i val))
@@ -232,13 +228,18 @@
       (lambda (obj) (py-descriptor-get val obj cls))
       (lambda (_) val))))
 
+(define-rts (reset-class-optimizations cls attr-representative)
+  (if (eq? attr-representative (& "__new__"))
+      ;; TODO: must do for all subclasses!
+      (PyObjectType-can-quick-alloc-set! cls #f)))
+
 (define-rts (py-cls-own-attr-set-with-pending-binding! cls attr val pb-val)
-  ;; TODO: fix case when obj is not represented with a PyObject
   (declare-fixnum)
   (let* ((attr-representative (py-str-representative attr)))
     (if (PyObjectStrRep-magic-index attr-representative)
       ;; set a magic method
       (begin
+        (reset-class-optimizations cls attr-representative)
         (magic-attr-set!
           cls
           (PyObjectStrRep-magic-index attr-representative)
@@ -376,6 +377,15 @@
     hclass-of-instance
     #f ;; is-builtin
     can-have-getter
+    ;; can-quick-alloc: an empty type can do quick allocation, this will change if __new__ change
+    ;; or if one of its super classes is already disallowed from quick allocating
+    (if bases
+      (let loop ((i 0))
+        (if (fx= i (vector-length bases))
+          #t
+          (and (PyObjectType-can-quick-alloc (vector-ref bases i))
+               (loop (fx+ i 1)))))
+      #f)
     (make-vector magic-attrs-length #f)
     (make-vector magic-attrs-length #f)
     '#()))
@@ -703,6 +713,7 @@
   (PyObject-class-set! py-object-class py-type-class)
   (PyObjectType-bases-set! py-object-class '#())
   (PyObjectType-mro-set! py-object-class (vector py-object-class))
+  (PyObjectType-can-quick-alloc-set! py-object-class #t)
 
   ;; Fill in type class
   (PyObject-class-set! py-type-class py-type-class)
@@ -735,7 +746,6 @@
   (PyObjectType-mro-set! py-staticmethod-class (vector py-staticmethod-class py-object-class)))
 
 (bootstrap-type-hierarchy-phase1)
-
 ;; signature: '#(args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
 ;; takes in a signature and returns an arity.
 ;; positive arity: a function takes a fixed number of positional arguments
@@ -5136,6 +5146,9 @@
     (py-cls-own-attr-set! py-object-class (& "__name__") (&& "object"))
     (py-cls-own-attr-set! py-object-class (& "__module__") (&& "builtins"))
     (object.__new__:assign py-object-class (& "__new__"))
+    ;; setting __new__ on a type prevent quick-allocation
+    ;; but we make an exception for object.__new__ which is the base allocation method
+    (PyObjectType-can-quick-alloc-set! py-object-class #t)
     (object.__init__:assign py-object-class (& "__init__"))
     (object.__getattribute__:assign py-object-class (& "__getattribute__"))
     (object.__setattr__:assign py-object-class (& "__setattr__"))
