@@ -59,6 +59,9 @@
 (define-predicate (ignore-global-functions? call conf params)
   (config-get params ignore-global-functions:))
 
+(define-predicate (ignore-likely-class? call conf params)
+  (config-get params ignore-likely-class:))
+
 (define-predicate (ignore-arity-check? call conf params)
   (config-get params ignore-arity-check:))
 
@@ -67,6 +70,14 @@
 
 (define-predicate (call-with-no-arguments? call conf params)
   (and (null? (PycCall-args call)) (null? (PycCall-keywords-names call))))
+
+(define-predicate (likely-call-to-class? call conf params)
+  (let ((fun (PycCall-fun call)))
+    (if (isa? fun PycRef)
+      (any?
+        (lambda (assig) (isa? (PycAssig-rhs assig) PycClass))
+        (PycVar-assig (PycRef-decl fun)))
+      #f)))
 
 ;; =====================================================================
 ;; Code generation
@@ -321,6 +332,33 @@
   ("lower"           0          'py-builtin-str     #t    'str.lower:unsafe    'py-has-type-str?)
   (else (default-call-method-with-binding-skip call conf params)))
 
+(define (py-likely-class-call call conf params)
+  (let* ((fun (PycCall-fun call))
+         (callee-sym (my-gensym 'callee-likely-type))
+         (instance-sym (my-gensym 'instance))
+         (__init__-sym (my-gensym '__init__))
+         (call-init
+           (let ((call-copy (PycCall-copy call)))
+             (PycCall-fun-set! call-copy (new-PycStatic (PycNode-loc fun) __init__-sym __init__-sym))
+             (PycCall-args-set!
+               call-copy
+               (cons
+                 (new-PycStatic (PycNode-loc fun) instance-sym instance-sym)
+                 (PycCall-args call-copy)))
+             call-copy))
+         (call-fallback
+           (let ((call-copy (PycCall-copy call)))
+             (PycCall-fun-set! call-copy (new-PycStatic (PycNode-loc fun) callee-sym callee-sym))
+             call-copy)))
+    ;; TODO: this causes duplication of arguments
+    `(let ((,callee-sym ,(scheme fun conf)))
+      (if (and (PyObjectType? ,callee-sym) (PyObjectType-can-quick-alloc ,callee-sym))
+        (let ((,instance-sym (py-obj-alloc ,callee-sym))
+              (,__init__-sym (getattribute-from-cls-mro ,callee-sym (& "__init__"))))
+          ,(call-to-scheme call-init conf (cons* ignore-likely-class: #t params))
+          ,instance-sym)
+        ,(call-to-scheme call-fallback conf (cons* ignore-likely-class: #t params))))))
+
 (define-compilation-to-scheme (call-to-scheme call conf params
                                               (fun (PycCall-fun call))
                                               (args (PycCall-args call)))
@@ -331,6 +369,9 @@
   ((and (not ignore-global-functions?)
         call-matches-signature-to-global-function?)
     (py-global-call call conf params))
+  ((and (not ignore-likely-class?)
+        likely-call-to-class?)
+    (py-likely-class-call call conf params))
   (call-to-an-attribute?
     (call-method-to-scheme call conf params))
   ;; NOTE: cases below must handle call-after-skipped-binding?
