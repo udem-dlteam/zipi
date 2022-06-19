@@ -548,7 +548,6 @@
                     (py-call-generic
                       (py-descriptor-get __new__ py-None owner)
                       (cons $cls $args))))
-              ;; TODO: should the check be py-isinstance?
               (if (eq? (py-obj-cls $instance) $cls)
                   (type-call-from-instance
                     $cls
