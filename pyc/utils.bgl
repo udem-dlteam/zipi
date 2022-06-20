@@ -16,5 +16,6 @@
    (export (config-get conf key #!optional def)
 	         (my-gensym ::symbol)
            (interleave . rest)
+           (flatten l)
            (all? pred lst)
            (any? pred lst)))

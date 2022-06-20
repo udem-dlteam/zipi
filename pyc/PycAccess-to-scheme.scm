@@ -117,10 +117,6 @@
         ((isa? obj PycRefUnresolved) (guess-access-type-PycRefUnresolved obj field))
         (else (guess-access-type-no-origin obj field)))))
 
-(define-predicate (in-semantics? access conf params)
-  (let ((current-fun (config-get conf fun:)))
-    (and current-fun (isa? current-fun PycSemantics))))
-
 ;; =====================================================================
 ;; Code generation
 ;; =====================================================================
@@ -129,16 +125,14 @@
   (if (in-semantics? access conf params)
     ;; no caches exist for semantics
     ;; attributes used in semantics should have special slots
-    (epairify access
-      `(py-getattribute-fallback
-        ,(scheme (PycAccess-obj access) conf)
-        ,(pyc-propname (PycAccess-field access))))
-    (epairify access
-      `(py-getattribute-cached
-        ,(scheme (PycAccess-obj access) conf)
-        ,(pyc-propname (PycAccess-field access))
-        ,(scheme-cache (PycAccess-cache access) access)
-        ,(guess-access-types access)))))
+    `(py-getattribute-fallback
+      ,(scheme (PycAccess-obj access) conf)
+      ,(pyc-propname (PycAccess-field access)))
+    `(py-getattribute-cached
+      ,(scheme (PycAccess-obj access) conf)
+      ,(pyc-propname (PycAccess-field access))
+      ,(scheme-cache (PycAccess-cache access) access)
+      ,(guess-access-types access))))
 
 ;; Dispatch
 

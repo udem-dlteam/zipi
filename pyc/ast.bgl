@@ -322,7 +322,7 @@
                 id::symbol)
 
          (final-class PycStatic::PycIntrinsics
-                      value::symbol)
+                      value)
 
          (final-class PycStaticSexp::PycIntrinsics
                       value::pair-nil)

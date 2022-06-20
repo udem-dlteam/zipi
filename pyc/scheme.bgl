@@ -18,18 +18,28 @@
 	    "walk.sch"
 	    "new.sch")
 
-   (import __pyc_configure
+   (import
+     __pyc_configure
 	   __pyc_dump
 	   __pyc_ast
 	   __pyc_utils
-     __PycBinary_to_scheme
-     __PycCall_to_scheme
-     __PycAccess_to_scheme)
+     __pyc_PycBinary_to_scheme
+     __pyc_PycCall_to_scheme
+     __pyc_PycAccess_to_scheme)
 
    (export (pyc-scheme ast conf)
-;* 	   (pyc-scheme-eval ast conf)                                  */
 	   (pyc-scheme-bigloo ast conf)
-	   (pyc-scheme-gambit ast conf)))
+	   (pyc-scheme-gambit ast conf)
+     (generic scheme this::PycNode conf)
+     (scheme-cache cache node)
+     (pyc-propname name)
+     (get-def-with-var global-funs var)
+     (scheme-var-name var conf)
+     (scheme-var-name-init var conf)
+     (scheme-var-name-get-function var conf)
+     (scheme-var-name-get-signature var conf)
+     (scheme-var-name-method-assigner var conf)
+     (scheme-var-name-method-current-assigner var conf)))
 
 ;*---------------------------------------------------------------------*/
 ;*    epairify ...                                                     */

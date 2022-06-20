@@ -1,7 +1,13 @@
 ;*---------------------------------------------------------------------*/
 ;*    The module                                                       */
 ;*---------------------------------------------------------------------*/
-(module __pyc_utils
+(module __pyc_to_scheme_utils
+
+    (import __pyc_dump
+     __pyc_ast
+     __pyc_utils)
+
    (export
-     (replace-system sexp)
-     (define-compilation-to-scheme signature . body)))
+     (macro replace-system sexp)
+     (macro define-compilation-to-scheme signature . body)
+     (macro define-predicate signature . body)))

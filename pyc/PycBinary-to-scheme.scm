@@ -2,6 +2,14 @@
 ;; System-dependant operators
 ;; =====================================================================
 
+(cond-expand
+  (bigloo
+    (define bitwise-xor bit-xor)
+    (define bitwise-ior bit-or)
+    (define bitwise-and bit-and)
+    (define fold reduce))
+  (gambit #f))
+
 (define (replace-symbol sexp target replacement)
   (cond
     ((eq? sexp target) replacement)
@@ -145,7 +153,7 @@
     (if (|##fx>=| right 0)
         (py-int-from-scheme (expt left right))
         (expt left (fixnum->flonum right))))
-   (bigloo
+   (bigloo:
      (if (>=fx right 0)
          (py-int-from-scheme (expt left right))
          (expt left (fixnum->flonum right))))))
@@ -158,7 +166,7 @@
     (if (|##fx>=| right 0)
         (expt left right)
         (expt left (fixnum->flonum right))))
-   (bigloo
+   (bigloo:
      (if (>=fx right 0)
          (expt left right)
          (expt left (fixnum->flonum right))))))
@@ -192,6 +200,10 @@
   ((gambit: (|##fxand| left right))
    (bigloo: (bit-and left right))))
 
+(define-operator (unboxed-integer& left right)
+  ((gambit: (bitwise-and left right))
+   (bigloo: (bit-and left right))))
+
 ;; BIT-OR
 (define-operator (py-fx-or left right)
   ((gambit: (|##fxior| left right))
@@ -205,6 +217,10 @@
   ((gambit: (|##fxxor| left right))
    (bigloo: (bit-or left right))))
 
+(define-operator (unboxed-integer-or left right)
+  ((gambit: (bitwise-ior left right))
+   (bigloo: (bit-or left right))))
+
 ;; BIT-XOR
 (define-operator (py-fx^ left right)
   ((gambit: (|##fxxor| left right))
@@ -216,6 +232,10 @@
 
 (define-operator (unboxed-fx^ left right)
   ((gambit: (|##fxxor| left right))
+   (bigloo: (bit-xor left right))))
+
+(define-operator (unboxed-integer^ left right)
+  ((gambit: (bitwise-xor left right))
    (bigloo: (bit-xor left right))))
 
 ;; BIT-SHIFT-LEFT
@@ -248,6 +268,10 @@
          (bit-lsh left right)
          (py-lshift-sintX-sintNeg1-fallback left)))))
 
+(define-operator (unboxed-interger<< left right)
+  ((gambit: (arithmetic-shift left right))
+   (bigloo: (bit-lsh left right))))
+
 ;; BIT-SHIFT-RIGHT
 (define-operator (py-fx>> left right)
   ((gambit: (or (|##fxarithmetic-shift-right?| left right)
@@ -275,6 +299,10 @@
      (if (>=fx right 0)
          (bit-rsh left right)
          (py-rshift-sintX-sintNeg1-fallback left)))))
+
+(define-operator (unboxed-interger>> left right)
+  ((gambit: (arithmetic-shift left (- right)))
+   (bigloo: (bit-rsh left right))))
 
 ;; FLOORDIV
 
@@ -308,7 +336,7 @@
 
 (define-operator (py-test-fl// left right)
   (not
-    (((gambit: |##fl=|) (bigloo =fl))
+    (((gambit: |##fl=|) (bigloo: =fl))
       (if ((gambit: (|##fl=| right 0.0))
            (bigloo: (=fl right 0.0)))
         (py-floordiv-floatX-float0-fallback left)
@@ -339,7 +367,7 @@
 
 (define-operator (py-test-fx/ left right)
   (not
-    (((gambit: |##fl=|) (bigloo =fl))
+    (((gambit: |##fl=|) (bigloo: =fl))
     (if ((gambit: (|##fx=| right 0))
          (bigloo: (=fx right 0)))
       (py-truediv-sintX-sint0-fallback left)
@@ -363,7 +391,7 @@
 
 (define-operator (py-test-fl/ left right)
   (not
-    (((gambit: |##fl=|) (bigloo =fl))
+    (((gambit: |##fl=|) (bigloo: =fl))
     (if ((gambit: (|##fl=| right 0.0))
          (bigloo: (=fl right 0.0)))
       (py-truediv-floatX-float0-fallback left)
@@ -928,7 +956,7 @@
   (operands-are-sint?
     (py-fx& (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    `(bitwise-and ,(scheme lhs conf) ,(scheme rhs conf)))
+    (unboxed-integer& (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx& #f)))
 
@@ -951,7 +979,7 @@
   (operands-are-sint?
     (py-fx-or (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    `(bitwise-ior ,(scheme lhs conf) ,(scheme rhs conf)))
+    (unboxed-integer-or (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx-or #f)))
 
@@ -974,7 +1002,7 @@
   (operands-are-sint?
     (py-fx^ (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    `(bitwise-xor ,(scheme lhs conf) ,(scheme rhs conf)))
+    (unboxed-integer^ (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx^ #f)))
 
@@ -990,14 +1018,16 @@
   (must-return-host-bool
     (test-lshift-to-scheme this conf params))
   ((and operands-are-int-literals? rhs-is-non-negative-literal?)
-    (let ((result (arithmetic-shift (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
+    (let ((result
+            ((gambit: (arithmetic-shift (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
+             (bigloo: bit-lsh (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx<< (scheme lhs conf) (scheme rhs conf)))
   (operands-are-sint?
     (py-fx<< (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    `(arithmetic-shift ,(scheme lhs conf) ,(scheme rhs conf)))
+    (unboxed-interger<< (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx<< #f)))
 
@@ -1013,14 +1043,16 @@
   (must-return-host-bool
     (test-rshift-to-scheme this conf params))
   ((and operands-are-int-literals? rhs-is-non-negative-literal?)
-    (let ((result (arithmetic-shift (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs)))))
+    (let ((result
+           ((gambit: (arithmetic-shift (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs))))
+            (bigloo: bit-lsh (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx>> (scheme lhs conf) (scheme rhs conf)))
   (operands-are-sint?
     (py-fx>> (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    `(arithmetic-shift ,(scheme lhs conf) (- ,(scheme rhs conf))))
+    `(unboxed-interger>> ,(scheme lhs conf) (- ,(scheme rhs conf))))
   (else
     (PycBinary-default-case this conf params py-fx>> #f)))
 

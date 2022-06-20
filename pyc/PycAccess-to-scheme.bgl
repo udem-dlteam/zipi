@@ -3,10 +3,12 @@
    (include
       "ast.sch"
 	    "walk.sch"
-      "pyc-to-scheme-utils.sch")
+      "new.sch"
+      "pyc-to-scheme-utils.scm")
 
    (import __pyc_dump
 	   __pyc_ast
-	   __pyc_utils)
+	   __pyc_utils
+     __pyc_scheme)
 
    (export (PycAccess-to-scheme this::PycAccess conf . rest)))

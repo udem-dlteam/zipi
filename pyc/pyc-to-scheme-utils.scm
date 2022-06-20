@@ -9,7 +9,10 @@
   (define (replace sexp)
     (if (pair? sexp)
       (if (and (pair? (car sexp)) (memq (caar sexp) known-hosts))
-        (cadr (assq host sexp))
+        (let ((host-data (assq host sexp)))
+          (if host-data
+            (cadr host-data)
+            (error "replace-system" "cannot find system in" sexp)))
         (map replace sexp))
       sexp))
 
@@ -59,3 +62,10 @@
   `(define ,signature
     ;;(pp (quote ,(car signature)))
     ,@body))
+
+
+;; util predicates
+
+(define-predicate (in-semantics? access conf params)
+  (let ((current-fun (config-get conf fun:)))
+    (and current-fun (isa? current-fun PycSemantics))))
