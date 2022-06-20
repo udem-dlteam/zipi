@@ -1299,11 +1299,11 @@
 ;; PycStatic
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycStatic::PycStatic loc1711::pair %info1712::obj cps1713::obj type1714::obj id1715::symbol value1716::symbol)
+    (inline make-PycStatic::PycStatic loc1711::pair %info1712::obj cps1713::obj type1714::obj id1715::symbol value1716::obj)
     (inline PycStatic?::bool ::obj)
     (PycStatic-nil::PycStatic)
-    (inline PycStatic-value::symbol ::PycStatic)
-    (inline PycStatic-value-set! ::PycStatic ::symbol)
+    (inline PycStatic-value::obj ::PycStatic)
+    (inline PycStatic-value-set! ::PycStatic ::obj)
     (inline PycStatic-id::symbol ::PycStatic)
     (inline PycStatic-id-set! ::PycStatic ::symbol)
     (inline PycStatic-type::obj ::PycStatic)
@@ -2569,11 +2569,11 @@
 (define-inline (PycIntrinsics-loc-set! o::PycIntrinsics v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycStatic
-(define-inline (make-PycStatic::PycStatic loc1711::pair %info1712::obj cps1713::obj type1714::obj id1715::symbol value1716::symbol) (instantiate::PycStatic (loc loc1711) (%info %info1712) (cps cps1713) (type type1714) (id id1715) (value value1716)))
+(define-inline (make-PycStatic::PycStatic loc1711::pair %info1712::obj cps1713::obj type1714::obj id1715::symbol value1716::obj) (instantiate::PycStatic (loc loc1711) (%info %info1712) (cps cps1713) (type type1714) (id id1715) (value value1716)))
 (define-inline (PycStatic?::bool obj::obj) ((@ isa? __object) obj (@ PycStatic __pyc_ast)))
 (define (PycStatic-nil::PycStatic) (class-nil (@ PycStatic __pyc_ast)))
-(define-inline (PycStatic-value::symbol o::PycStatic) (-> |#!bigloo_wallow| o value))
-(define-inline (PycStatic-value-set! o::PycStatic v::symbol) (set! (-> |#!bigloo_wallow| o value) v))
+(define-inline (PycStatic-value::obj o::PycStatic) (-> |#!bigloo_wallow| o value))
+(define-inline (PycStatic-value-set! o::PycStatic v::obj) (set! (-> |#!bigloo_wallow| o value) v))
 (define-inline (PycStatic-id::symbol o::PycStatic) (-> |#!bigloo_wallow| o id))
 (define-inline (PycStatic-id-set! o::PycStatic v::symbol) (set! (-> |#!bigloo_wallow| o id) v))
 (define-inline (PycStatic-type::obj o::PycStatic) (-> |#!bigloo_wallow| o type))
