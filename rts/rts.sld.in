@@ -463,7 +463,7 @@
     py-descriptor-get-behavior-call-fallback
 
     procedure->py-function
-    define-method
+    define-py-method
     method-allocator-get-function
     method-allocator-get-assigner
 

@@ -185,7 +185,7 @@
                 (loop (+ i 1)))))
         (else (make-PyObjectFunction $hclass $elements $cls $procedure $arity $scheme-arity $signature)))))
 
-(define-macro (define-method name-or-signature . body)
+(define-macro (define-py-method name-or-signature . body)
   ;; Python signature, eg: (args: (self x) defaults: '#(1))
   (define method-signature #f)
   ;; Scheme code of the function body
@@ -197,7 +197,7 @@
   ;;            (py-throw py-builtin-TypeError)
   ;; a method can have multiple guard:
   (define guards '())
-  ;; indicates whether define-method must allocate the functions on site
+  ;; indicates whether define-py-method must allocate the functions on site
   ;; otherwise the normal and pending-binding functions will be allocated when
   ;; name:get-function is called
   (define prealloc-functions #t)
@@ -205,7 +205,7 @@
   (define name (if (pair? name-or-signature) (car name-or-signature) name-or-signature))
 
   (define (parse-error message body)
-    (error "define-method" message (car body)))
+    (error "define-py-method" message (car body)))
 
   (define (parse body)
     (if (null? body)
@@ -379,12 +379,12 @@
            (let ((defaults (memq defaults: method-signature)))
              (if defaults
                (cadr defaults)
-               '#())))
+               `(quote #()))))
          (kw-default-arguments-code
            (let ((kw-defaults (memq kw-defaults: method-signature)))
              (if kw-defaults
                (cadr kw-defaults)
-               '#())))
+               `(quote #()))))
          (default-arguments-get
             `(define (,default-arguments-get-name)
                (if (not ,default-arguments-name)
@@ -1935,6 +1935,22 @@
    (py-str-representative ,attr)
    ,succeed
    ,fail))
+
+(define-macro (PyObjectType-pending-binding-elements-ref tp offset)
+  `(vector-ref (PyObjectType-%pending-binding-elements ,tp) ,offset))
+
+(define-macro (PyObjectType-pending-binding-elements-set! obj offset val)
+  `(let* (($obj ,obj)
+          ($offset ,offset)
+          ($val ,val)
+          ($elements (PyObjectType-%pending-binding-elements $obj))
+          ($elements-len (vector-length $elements)))
+     (if (fx>= $offset $elements-len)
+         (let (($elements-new (make-vector (max 1 (fx* 2 $offset)) py-absent)))
+           (subvector-move! $elements 0 $elements-len $elements-new 0)
+           (vector-set! $elements-new $offset $val)
+           (PyObjectType-%pending-binding-elements-set! $obj $elements-new))
+         (vector-set! $elements $offset $val))))
 
 (define-macro (getattribute-from-obj-mro-with-owner-2cont obj name succeed fail)
  `(getattribute-from-cls-mro-with-owner-2cont (py-obj-cls ,obj) ,name ,succeed ,fail))

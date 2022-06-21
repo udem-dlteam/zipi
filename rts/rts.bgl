@@ -45,7 +45,10 @@
 	      hclass-of-instances
 	      is-builtin
 	      can-have-getter
-	      magic-attrs)
+        can-quick-alloc
+	      magic-attrs
+        pending-binding-magic-attrs
+        %pending-binding-elements)
 
 	   (class PyObjectModule::PyObject)
 
@@ -324,6 +327,7 @@
 	   (py-getattribute-cached-fallback/no-module obj hclass name cache)
 	   (py-getattribute-cached-modular-fallback obj hclass name cache
 	      include-object include-mro include-type include-module)
+     (py-getattribute-skip-binding-cached-fallback obj hclass name cache)
 
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
@@ -373,10 +377,14 @@
 	   py-bool-class
 	   py-float-class
 	   py-method-class
+     py-classmethod-class
+     py-staticmethod-class
 
 	   py-module-class
 	   py-function-class
 	   (py-own-attr-set! obj attr val)
+     (py-cls-own-attr-set! obj attr val)
+     (py-cls-own-attr-set-with-pending-binding! cls attr val pb-val)
 
 	   (py-isinstance? ::obj ::PyObject)
 
@@ -391,7 +399,6 @@
 	   (compile-to-cache path path-info path-in-cache)
 	   (load-module-and-get-init path-in-cache)
 
-	   ;;           (py-int-from-scheme value)
 	   (py-int-from-scheme-fallback value)
 
 	   ;;           (py-float-from-scheme value)
@@ -438,6 +445,7 @@
 	   py-builtin-bool
 	   py-builtin-float
 	   py-builtin-str
+     py-builtin-list
 	   py-builtin-classmethod
 	   py-builtin-staticmethod
 
@@ -507,6 +515,9 @@
 	   py-builtin-ValueError
 	   py-builtin-Warning
 	   py-builtin-ZeroDivisionError
+
+     (list.append:unsafe obj val)
+     (str.lower:unsafe obj)
 
 	   (fl+ x y)
 	   (fl* x y)
