@@ -418,7 +418,7 @@
        (bigloo: (=fx right 0)))
     (py-mod-sintX-sint0-fallback left)
     ((gambit: (|##fxmodulo| left right))
-     (bigloo: (fxmodulo left right)))))
+     (bigloo: (modulofx left right)))))
 
 (define-operator (py-test-fx% left right)
   (not
@@ -427,7 +427,7 @@
          (bigloo: (=fx right 0)))
       (py-mod-sintX-sint0-fallback left)
       ((gambit: (|##fxmodulo| left right))
-       (bigloo: (fxmodulo left right))))
+       (bigloo: (modulofx left right))))
     0)))
 
 (define-operator (unboxed-fx% left right)
@@ -435,7 +435,7 @@
        (bigloo: (=fx right 0)))
     (py-mod-sintX-sint0-fallback left)
     ((gambit: (|##fxmodulo| left right))
-     (bigloo: (fxmodulo left right)))))
+     (bigloo: (modulofx left right)))))
 
 (define-operator (py-fl% left right)
   (if ((gambit: (|##fl=| right 0.0))
@@ -480,7 +480,7 @@
            (right (exact->inexact right)))
       (|##fl-| left (|##fl*| right (|##flfloor| (|##fl/| left right))))))
    (bigloo:
-     (le* ((left (exact->inexact left))
+     (let* ((left (exact->inexact left))
            (right (exact->inexact right)))
        (-fl left (*fl right (floorfl (/fl left right))))))))
 
@@ -1052,7 +1052,7 @@
   (operands-are-sint?
     (py-fx>> (scheme lhs conf) (scheme rhs conf)))
   (operands-are-unboxed-integers?
-    `(unboxed-interger>> ,(scheme lhs conf) (- ,(scheme rhs conf))))
+    (unboxed-interger>> (scheme lhs conf) (scheme rhs conf)))
   (else
     (PycBinary-default-case this conf params py-fx>> #f)))
 
@@ -1320,7 +1320,6 @@
 
 (define (PycBinary-to-scheme pycbinary conf . rest)
   (if (> (length rest) 1) (error "PycBinary-to-scheme" "takes 3 arguments" (length rest)))
-
   (let ((params (if (> (length rest) 0) (list-ref rest 0) '()))
         (op (PycBinary-op pycbinary)))
     ;; TODO normal and inplace operations are the same

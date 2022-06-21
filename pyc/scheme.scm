@@ -1087,19 +1087,19 @@
 (define (signature fun conf)
   `(make-signature ,@(signature-elements fun conf)))
 
-(define (pyc-define-method method binding conf)
+(define (pyc-define-py-method method binding conf)
   (let* ((procedure (scheme-procedure-proc method conf))
          (py-signature (signature method conf))
          (method-name (scheme-var-name (PycFun-method-var method) conf)))
     (match-case (scheme-procedure-proc method conf)
       ((lambda ?args ?body)
-        `(define-method (,method-name ,@args)
+        `(define-py-method (,method-name ,@args)
             binding: ,binding
             prealloc-functions: #f
             signature: (,@(signature-elements method conf))
             body: ,body))
       (else
-        (error "pyc-define-method" "scheme-procedure-proc format unknown" procedure)))))
+        (error "pyc-define-py-method" "scheme-procedure-proc format unknown" procedure)))))
 
 (define-walk-method (scheme this::PycFun conf)
   (define (likely-classmethod? this)
@@ -1136,7 +1136,7 @@
         this
         (PycFun-decorators this)
         `(let ()
-          ,(pyc-define-method method 'method conf)
+          ,(pyc-define-py-method method 'method conf)
           (let ((,method-sym
                   (procedure->py-function
                     (,(scheme-var-name-get-function method-var conf))
@@ -1152,7 +1152,7 @@
           (decorator (car (PycFun-decorators this)))
           (builtin-decorator (symbol-append 'py-builtin- type)))
       `(let ((,decorator-sym ,(scheme decorator conf)))
-        ,(pyc-define-method method type conf)
+        ,(pyc-define-py-method method type conf)
         (if (py-test-is ,decorator-sym ,builtin-decorator)
             ;; NOTE the define-method macro handle the creation of a staticmethod or classmethod
             (let ((,method-sym ,(scheme-var-name-get-function method-var conf)))

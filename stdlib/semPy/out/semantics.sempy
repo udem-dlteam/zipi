@@ -1,4 +1,5 @@
 default_types = ["sint", "bint", "bool", "float", "str"]
+defaut_numeric_types = ["sint", "bint", "bool", "float"]
 default_binary_types = (default_types, default_types)
 
 def defaults_except(*exceptions):
@@ -19,9 +20,9 @@ add_specializations("truediv", types=default_binary_types)
 add_specializations("xor", types=default_binary_types)
 
 # Divisions by zero
-add_specializations("floordiv", types=(default_types, [0, 0.0, False]))
-add_specializations("truediv", types=(default_types, [0, 0.0, False]))
-add_specializations("mod", types=(["sint", "bint", "bool"], [0, 0.0, False]))
+add_specializations("floordiv", types=(defaut_numeric_types, [0, 0.0, False]))
+add_specializations("truediv", types=(defaut_numeric_types, [0, 0.0, False]))
+add_specializations("mod", types=(defaut_numeric_types, [0, 0.0, False]))
 
 # Negative shifts
 add_specializations("lshift", types=(["sint", "bint", "bool"], [-1]))
