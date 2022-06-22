@@ -286,10 +286,13 @@
     "call_host intrinsic function not implemented"))
 
 ;; =============================================================================
-;;  py-absent
+;;  py-absent and None (used to fill in empty slots)
 ;; =============================================================================
 
 (define-rts py-absent '%py-absent)
+
+;; None class is filled in in phase2 of types bootstrap
+(define-rts py-None (make-PyObject (make-HClass '#() '()) '#() #f))
 
 ;; =============================================================================
 ;;  HIDDEN CLASSES
@@ -1632,16 +1635,11 @@
   body: (py-int-from-scheme (py-subtype-of-int-to-scheme self))
   signature: (posonlyargs: (self)))
 
-(define-rts (int-bool self)
-  (if (py-subtype-of-int? self)
-      (py-bool-from-scheme-bool
-       (not (eqv? 0 (py-subtype-of-int-to-scheme self))))
-      (py-throw-required-type "__bool__" "int" self)))
-
-(define-rts int.__bool__
-  (procedure->py-function
-    int-bool
-    (make-signature posonlyargs: (self) name: int.__bool__)))
+(define-py-method int.__bool__
+  guard: (not (py-subtype-of-int? self))
+         (py-throw-required-type "__bool__" "int" self)
+  body: (py-bool-from-scheme-bool (not (fx= (py-subtype-of-int-to-scheme self) 0)))
+  signature: (posonlyargs: (self)))
 
 ;;;----------------------------------------------------------------------------
 
@@ -2574,36 +2572,28 @@
     py-generator-class
     proc))
 
-;; TODO add checks that methods are called with correct types
+(define-py-method generator.send
+  guard: (not (py-isinstance? self py-generator-class))
+         (py-throw-required-type "send" "generator" self)
+  body: (py-generator-next self value)
+  signature: (posonlyargs: (self value)))
 
-(define-rts (py-generator-send self value)
-  (py-generator-next self value))
-
-(define-rts generator.send
-  (procedure->py-function
-    py-generator-send
-    (make-signature posonlyargs: (self value) name: generator.send)))
-
-(define-rts (py-generator-throw self type value traceback)
-  (let ((cont (PyObjectGenerator-continuation self)))
-    (cond
-      ((procedure? cont) ;; active and ready
-        (PyObjectGenerator-continuation-set! self #t)
-        (cont #f (vector type value traceback)))
-      (cont ;; active, but running
-        (py-throw-exception-with-message
-          py-builtin-ValueError
-          "generator is already executing"))
-      (else ;; closed
-        (py-throw-with-values type value)))))
-
-(define-rts generator.throw
-  (procedure->py-function
-    py-generator-throw
-    (make-signature
-      posonlyargs: (self type value traceback)
-      defaults: '#(#f #f)
-      name: generator.throw)))
+(define-py-method generator.throw
+    guard: (not (py-isinstance? self py-generator-class))
+           (py-throw-required-type "throw" "generator" self)
+    body: (let ((cont (PyObjectGenerator-continuation self)))
+            (cond
+              ((procedure? cont) ;; active and ready
+                (PyObjectGenerator-continuation-set! self #t)
+                (cont #f (vector type value traceback)))
+              (cont ;; active, but running
+                (py-throw-exception-with-message
+                  py-builtin-ValueError
+                  "generator is already executing"))
+              (else ;; closed
+                (py-throw-with-values type value))))
+  signature: (posonlyargs: (self type value traceback)
+              defaults: '#(#f #f)))
 
 (define-rts (py-throw-from-generator-exception-info exc-info)
   (let ((exc (vector-ref exc-info 0))
@@ -2613,57 +2603,55 @@
       (py-throw-with-values exc exc-val)
       (py-throw exc))))
 
+(define-py-method generator.close
+  guard: (not (py-isinstance? self py-generator-class))
+         (py-throw-required-type "close" "generator" self)
+  body: (let ((cont (PyObjectGenerator-continuation self)))
+          (cond
+            ((procedure? cont) ;; active and ready
+              (py-try-except
+                (lambda (e)
+                  (if (or (py-isinstance? e py-builtin-StopIteration)
+                          (py-isinstance? e py-builtin-GeneratorExit))
+                    (begin
+                      (py-generator-end self)
+                      py-None)
+                    (py-throw e)))
+                (lambda ()
+                  (PyObjectGenerator-continuation-set! self #t)
+                  (cont #f (vector py-builtin-GeneratorExit #f #f))
+                  (py-throw-exception-with-message
+                    py-builtin-RuntimeError
+                    "generator ignored GeneratorExit"))))
+            (cont ;; active, but running
+              (py-throw-exception-with-message
+                py-builtin-ValueError
+                "generator is already executing"))
+            (else ;; closed
+              py-None)))
+  signature: (posonlyargs: (self)))
 
-(define-rts (py-generator-close self)
-  (let ((cont (PyObjectGenerator-continuation self)))
-    (cond
-      ((procedure? cont) ;; active and ready
-        (py-try-except
-          (lambda (e)
-            (if (or (py-isinstance? e py-builtin-StopIteration)
-                    (py-isinstance? e py-builtin-GeneratorExit))
-              (begin
-                (py-generator-end self)
-                py-None)
-              (py-throw e)))
-          (lambda ()
-            (PyObjectGenerator-continuation-set! self #t)
-            (cont #f (vector py-builtin-GeneratorExit #f #f))
-            (py-throw-exception-with-message py-builtin-RuntimeError "generator ignored GeneratorExit"))))
-      (cont ;; active, but running
-        (py-throw-exception-with-message
-          py-builtin-ValueError
-          "generator is already executing"))
-      (else ;; closed
-        py-None))))
+(define-py-method generator.__next__
+  guard: (not (py-isinstance? self py-generator-class))
+         (py-throw-required-type "__next__" "generator" self)
+  body: (py-generator-next self)
+  signature: (posonlyargs: (self)))
 
-(define-rts generator.close
-  (procedure->py-function
-    py-generator-close
-    (make-signature posonlyargs: (self) name: generator.close)))
+(define-py-method generator.__iter__
+  guard: (not (py-isinstance? self py-generator-class))
+         (py-throw-required-type "__iter__" "generator" self)
+  body: self
+  signature: (posonlyargs: (self)))
 
-(define-rts (py-generator-next-fallback self)
-  (py-generator-next self))
-
-(define-rts generator.__next__
-  (procedure->py-function
-    py-generator-next-fallback
-    (make-signature posonlyargs: (self) name: generator.__next__)))
-
-(define-rts generator.__iter__
-  (procedure->py-function
-    (lambda (self) self)
-    (make-signature posonlyargs: (self) name: generator.__iter__)))
-
-(define-rts (py-generator-new cls)
-  (py-throw-exception-with-message
-    py-builtin-TypeError
-    "cannot create 'generator' instances"))
-
-(define-rts generator.__new__
-  (procedure->py-function
-    py-generator-new
-    (make-signature posonlyargs: (cls) name: generator.__new__)))
+;; TODO: it is the role of type.__call__ to prevent instantiation of such types
+(define-py-method generator.__new__
+  binding: staticmethod
+  guard: (not (py-issubclass? cls py-generator-class))
+         (py-throw-wrong-new-argument "generator" cls)
+  body: (py-throw-exception-with-message
+          py-builtin-TypeError
+          "cannot create 'generator' instances")
+  signature: (vararg: args kwarg: kwargs))
 
 ;; =============================================================================
 ;;  BUILTIN CLASSES
@@ -2682,6 +2670,7 @@
 (define-rts py-set-class    #f)
 (define-rts py-module-class #f)
 (define-rts py-generator-class #f)
+(define-rts py-NoneType-class #f)
 
 ;;;----------------------------------------------------------------------------
 
@@ -2855,18 +2844,11 @@
 ;; MODULE FUNCTIONS
 ;; ================
 
-
-(define-rts (module-dir self)
-  (if (py-isinstance? self py-module-class)
-    (py-make-list-from-elems
-        (py-get-list-of-global*-str-attr self))
-    (throw-returned-wrong-type "__dir__" self "not a module")))
-
-(define-rts module.__dir__
-  (procedure->py-function
-    module-dir
-    (make-signature posonlyargs: (self) name: module.__dir__)))
-
+(define-py-method module.__dir__
+    guard: (not (py-isinstance? self py-module-class))
+           (py-throw-required-type "__dir__" "module" self)
+    body: (py-make-list-from-elems (py-get-list-of-global*-str-attr self))
+    signature: (posonlyargs: (self)))
 
 (define-rts (py-module-getattribute obj name raise? cache)
   (define (getattribute-from-mro index-of-hit-on-module)
@@ -2903,43 +2885,30 @@
   body: (py-module-getattribute self name #t #f)
   signature: (posonlyargs: (self name)))
 
-(define-rts (module-setattr self name val)
-  (if (py-isinstance? self py-module-class)
-      (if (py-isinstance? name py-builtin-str)
-        (begin
-          (global-own-attr-put-no-cache! self name val)
-          py-None)
-        (py-throw-exception-with-message
-         py-builtin-TypeError
-         "attribute name must be string"))
-      (throw-returned-wrong-type "__setattr__" self "not a module")))
-
-(define-rts module.__setattr__
-  (procedure->py-function
-    module-setattr
-    (make-signature posonlyargs: (self name val) name: module.__setattr__)))
+(define-py-method module.__setattr__
+  guard: (not (py-isinstance? self py-module-class))
+         (py-throw-required-type "__setattr__" "module" self)
+  guard: (not (py-isinstance? name py-builtin-str))
+         (py-throw-exception-with-message
+           py-builtin-TypeError
+           "attribute name must be string")
+  body: (global-own-attr-put-no-cache! self name val)
+        py-None
+  signature: (posonlyargs: (self name val)))
 
 ;; list iterator
 
-(define-rts (list-iterator-iter self)
-  (if (eq? (py-type self) py-list-iterator-class)
-    self
-    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 6)")))
+(define-py-method list_iterator.__iter__
+  guard: (not (eq? (py-type self) py-list-iterator-class))
+         (py-throw-required-type "__iter__" "list_iterator" self)
+  body: self
+  signature: (posonlyargs: (self)))
 
-(define-rts list_iterator.__iter__
-  (procedure->py-function
-    list-iterator-iter
-    (make-signature posonlyargs: (self) name: list_iterator.__iter__)))
-
-(define-rts (list-iterator-next-procedure self)
-  (if (eq? (py-type self) py-list-iterator-class)
-    (list-iterator-next self #t) ;; #t second argument indicates to raise StopIteration at end of iterator
-    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 7)")))
-
-(define-rts list_iterator.__next__
-  (procedure->py-function
-    list-iterator-next-procedure
-    (make-signature posonlyargs: (self) name: list_iterator.__next__)))
+(define-py-method list_iterator.__next__
+  guard: (not (eq? (py-type self) py-list-iterator-class))
+         (py-throw-required-type "__next__" "list_iterator" self)
+  body: (list-iterator-next self #t)
+  signature: (posonlyargs: (self)))
 
 (define-rts py-list-iterator-class
   (py-make-builtin-class
@@ -2949,73 +2918,56 @@
       (& "__iter__") list_iterator.__iter__
       (& "__next__") list_iterator.__next__))
 
-(define-rts (tuple-iterator-iter self)
-  (if (eq? (py-type self) py-tuple-iterator-class)
-    self
-    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 8)")))
+(define-py-method tuple_iterator.__iter__
+  guard: (not (eq? (py-type self) py-tuple-iterator-class))
+         (py-throw-required-type "__iter__" "tuple_iterator" self)
+  body: self
+  signature: (posonlyargs: (self)))
 
-(define-rts py-tuple-iterator-iter
-  (procedure->py-function
-    tuple-iterator-iter
-    (make-signature posonlyargs: (self) name: py-tuple-iterator-iter)))
-
-(define-rts (tuple-iterator-next-procedure self)
-  (if (eq? (py-type self) py-tuple-iterator-class)
-    (tuple-iterator-next self #t) ;; second argument indicates to raise StopIteration at end of iterator
-    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 9)")))
-
-(define-rts py-tuple-iterator-next
-  (procedure->py-function
-    tuple-iterator-next-procedure
-    (make-signature posonlyargs: (self) name: py-tuple-iterator-next)))
+(define-py-method tuple_iterator.__next__
+  guard: (not (eq? (py-type self) py-tuple-iterator-class))
+         (py-throw-required-type "__next__" "tuple_iterator" self)
+  body: (tuple-iterator-next self #t)
+  signature: (posonlyargs: (self)))
 
 (define-rts py-tuple-iterator-class
   (py-make-builtin-class
     (&& "tuple_iterator")
     (&& "builtins")
     (list)
-      (& "__iter__") py-tuple-iterator-iter
-      (& "__next__") py-tuple-iterator-next))
+      (& "__iter__") tuple_iterator.__iter__
+      (& "__next__") tuple_iterator.__next__))
 
 (define-rts (stop-bytearray-iterator iterator)
   (PyObjectBytearrayIterator-index-set! iterator #f)
   (py-throw py-builtin-StopIteration))
 
-(define-rts (bytearray-iterator-iter self)
-  (if (eq? (py-type self) py-bytearray-iterator-class)
-    self
-    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 10)")))
+(define-py-method bytearray_iterator.__iter__
+  guard: (not (eq? (py-type self) py-bytearray-iterator-class))
+         (py-throw-required-type "__iter__" "bytearray_iterator" self)
+  body: self
+  signature: (posonlyargs: (self)))
 
-(define-rts py-bytearray-iterator.__iter__
-  (procedure->py-function
-    bytearray-iterator-iter
-    (make-signature posonlyargs: (self) name: py-bytearray-iterator.__iter__)))
-
-(define-rts (bytearray-iterator-next self)
-  (if (eq? (py-type self) py-bytearray-iterator-class)
-    (let* ((index (PyObjectBytearrayIterator-index self))
-           (vec (PyObjectBytearrayIterator-bytearray self)))
-      (if (and index (< index (car vec)))
-        (let ((item (u8vector-ref (cdr vec) index)))
-          (begin
-            (PyObjectBytearrayIterator-index-set! self (+ index 1))
-            (py-int-from-scheme item)))
-        (stop-bytearray-iterator self)))
-    (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 11)")))
-
-
-(define-rts py-bytearray-iterator.__next__
-  (procedure->py-function
-    bytearray-iterator-next
-    (make-signature posonlyargs: (self) name: py-bytearray-iterator.__next__)))
+(define-py-method bytearray_iterator.__next__
+  guard: (not (eq? (py-type self) py-bytearray-iterator-class))
+         (py-throw-required-type "__next__" "bytearray_iterator" self)
+  body: (let* ((index (PyObjectBytearrayIterator-index self))
+               (vec (PyObjectBytearrayIterator-bytearray self)))
+          (if (and index (< index (car vec)))
+            (let ((item (u8vector-ref (cdr vec) index)))
+              (begin
+                (PyObjectBytearrayIterator-index-set! self (+ index 1))
+                (py-int-from-scheme item)))
+            (stop-bytearray-iterator self)))
+  signature: (posonlyargs: (self)))
 
 (define-rts py-bytearray-iterator-class
   (py-make-builtin-class
     (&& "bytearray_iterator")
     (&& "builtins")
     (list)
-      (& "__iter__") py-bytearray-iterator.__iter__
-      (& "__next__") py-bytearray-iterator.__next__))
+      (& "__iter__") bytearray_iterator.__iter__
+      (& "__next__") bytearray_iterator.__next__))
 
 ;; ======================
 ;; Dynamic vector helper
@@ -3036,166 +2988,125 @@
       (else
         (loop (+ i 1))))))
 
-(define-rts (list-new cls iterable)
-  (if (py-issubclass? cls py-list-class)
-      (if (eq? iterable py-absent)
-          (py-list-subtype-from-scheme cls '#() 0)
-          (let ((iterable-type (py-type iterable)))
-           (cond
-             ((eq? iterable-type py-tuple-class)
-              (let ((vec (PyObjectTuple-value iterable)))
-               (py-list-subtype-from-scheme
-                 cls
-                 (py-make-list-from-vec vec)
-                 (vector-length vec))))
-             ((eq? iterable-type py-list-class)
-               (py-list-subtype-from-scheme
-                 cls
-                 (vector-copy (PyObjectList-vector iterable))
-                 (PyObjectList-len iterable)))
-             (else
-               (let* ((iterator (py-iter iterable))
-                      (content (list->vector (iterator->list iterator))))
+(define-py-method list.__new__
+  guard: (not (py-issubclass? cls py-list-class))
+         (py-throw-wrong-new-argument "list" cls)
+  body: (if (not iterable)
+            (py-list-subtype-from-scheme cls '#() 0)
+            (let ((iterable-type (py-type iterable)))
+             (cond
+               ((eq? iterable-type py-tuple-class)
+                (let ((vec (PyObjectTuple-value iterable)))
                  (py-list-subtype-from-scheme
                    cls
-                   content
-                   (vector-length content)))))))
-      (py-throw-wrong-new-argument "list" cls)))
+                   (py-make-list-from-vec vec)
+                   (vector-length vec))))
+               ((eq? iterable-type py-list-class)
+                 (py-list-subtype-from-scheme
+                   cls
+                   (vector-copy (PyObjectList-vector iterable))
+                   (PyObjectList-len iterable)))
+               (else
+                 (let* ((iterator (py-iter iterable))
+                        (content (list->vector (iterator->list iterator))))
+                   (py-list-subtype-from-scheme
+                     cls
+                     content
+                     (vector-length content)))))))
+  signature: (posonlyargs: (cls iterable) defaults: '#(#f)))
 
-(define-rts list.__new__
-  (procedure->py-function
-    list-new
-    (make-signature posonlyargs: (cls value) defaults: (vector py-absent) name: list.__new__)))
+(define-py-method list.__iter__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__iter__" "list" self)
+  body: (py-list-iterator-alloc 0 self)
+  signature: (posonlyargs: (self)))
 
-(define-rts (list-iter self)
-  (if (py-isinstance? self py-list-class)
-    (py-list-iterator-alloc 0 self)
-    (py-throw-not-a-type-object "list.__iter__" self)))
-
-(define-rts list.__iter__
-  (procedure->py-function
-    list-iter
-    (make-signature posonlyargs: (self) name: list.__iter__)))
-
-;; TODO: use list real length instead of vector-length
-;; otherwise this will crash once list is an actual dynamic array
-(define-rts (list-contains self item)
-  (if (py-isinstance? self py-list-class)
-    (let* ((len (PyObjectList-len self))
-           (vec (PyObjectList-vector self)))
-      (let loop ((i 0))
-        (if (< i len)
-          (if (py-test (py-eq item (vector-ref vec i)))
-            py-True
-            (loop (+ i 1)))
-          py-False)))
-    (py-throw-not-a-type-object "list.__contains__" self)))
-
-(define-rts list.__contains__
-  (procedure->py-function
-    list-contains
-    (make-signature posonlyargs: (self item) name: list.__contains__)))
+(define-py-method list.__contains__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__iter__" "list" self)
+  body: (let* ((len (PyObjectList-len self))
+               (vec (PyObjectList-vector self)))
+          (let loop ((i 0))
+            (if (< i len)
+              (if (py-test (py-eq item (vector-ref vec i)))
+                py-True
+                (loop (+ i 1)))
+              py-False)))
+  signature: (posonlyargs: (self item)))
 
 ;; TODO: print cyclic structures
-(define-rts (list-repr self)
-  (if (py-isinstance? self py-list-class)
-    (let* ((len (PyObjectList-len self))
-           (vec (PyObjectList-vector self))
-           (content-strs (vector-map py-repr (subvector vec 0 len)))
-           (content-strings
-            (vector-map (lambda (x) (py-str-to-scheme x))
-                        content-strs)))
-      (py-str-from-scheme
-        (string-append
-          "["
-          (string-join-vector ", " content-strings)
-          "]")))
-    (py-throw-not-a-type-object "list.__repr__" self)))
+(define-py-method list.__repr__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__repr__" "list" self)
+  body: (let* ((len (PyObjectList-len self))
+               (vec (PyObjectList-vector self))
+               (content-strs (vector-map py-repr (subvector vec 0 len)))
+               (content-strings
+                (vector-map (lambda (x) (py-str-to-scheme x))
+                            content-strs)))
+          (py-str-from-scheme
+            (string-append
+              "["
+              (string-join-vector ", " content-strings)
+              "]")))
+  signature: (posonlyargs: (self)))
 
-(define-rts list.__repr__
-  (procedure->py-function
-    list-repr
-    (make-signature posonlyargs: (self) name: list.__repr__)))
+(define-py-method  list.__add__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__add__" "list" self)
+  guard: (not (py-isinstance? other py-list-class))
+         py-NotImplemented
+  body: (py-add-listX-listY-inline self other)
+  signature: (posonlyargs: (self other)))
 
-(define-rts (list-add self other)
-  (if (py-isinstance? self py-list-class)
-    (if (py-isinstance? other py-list-class)
-      (py-add-listX-listY-inline self other)
-      py-NotImplemented)
-    (py-throw-not-a-type-object "list.__add__" self)))
+(define-py-method list.__mul__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__mul__" "list" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (py-mul-listX-UintY self (py-subtype-of-int-to-scheme n))
+  signature: (posonlyargs: (self n)))
 
-(define-rts list.__add__
-  (procedure->py-function
-    list-add
-    (make-signature posonlyargs: (self other) name: list.__add__)))
+(define-py-method list.__rmul__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__rmul__" "list" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (py-mul-listX-UintY self (py-subtype-of-int-to-scheme n))
+  signature: (posonlyargs: (self n)))
 
-(define-rts (list-mul self n)
-  (if (py-isinstance? self py-list-class)
-    (if (py-subtype-of-int? n)
-      (py-mul-listX-UintY self (py-subtype-of-int-to-scheme n))
-      py-NotImplemented)
-    (py-throw-not-a-type-object "list.__mul__" self)))
-
-(define-rts list.__mul__
-  (procedure->py-function
-    list-mul
-    (make-signature posonlyargs: (self n) name: list.__mul__)))
-
-(define-rts list.__rmul__
-  (procedure->py-function
-    list-mul
-    (make-signature posonlyargs: (self n) name: list.__rmul__)))
-
-(define-rts (list-imul self n)
-  (if (py-isinstance? self py-list-class)
-      (if (py-subtype-of-int? n)
-        (let ((res (py-mul-listX-UintY self (py-subtype-of-int-to-scheme n))))
+(define-py-method list.__imul__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__imul__" "list" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (let ((res (py-mul-listX-UintY self (py-subtype-of-int-to-scheme n))))
           (PyObjectList-vector-set! self (PyObjectList-vector res))
           (PyObjectList-len-set! self (PyObjectList-len res))
           self)
-        py-NotImplemented)
-      (py-throw-not-a-type-object "list.__mul__" self)))
+  signature: (posonlyargs: (self n)))
 
-(define-rts list.__imul__
-  (procedure->py-function
-    list-imul
-    (make-signature posonlyargs: (self n) name: list.__imul__)))
+(define-py-method list.__len__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__len__" "list" self)
+  body: (PyObjectList-len self) ;; always a fixnum
+  signature: (posonlyargs: (self)))
 
-(define-rts (list-len self)
-  (if (py-isinstance? self py-list-class)
-    (py-int-from-scheme (PyObjectList-len self))
-    (py-throw-not-a-type-object "list.__len__" self)))
+(define-macro (define-list-binary-comparator py-name py-compare)
+  `(define-py-method ,py-name
+    guard: (not (py-isinstance? self py-list-class))
+           (py-throw-required-type ,(symbol->string py-name) "list" self)
+    guard: (not (py-isinstance? other py-list-class))
+           py-NotImplemented
+    body: (,py-compare self other)
+    signature: (posonlyargs: (self other))))
 
-(define-rts list.__len__
-  (procedure->py-function
-    list-len
-    (make-signature posonlyargs: (self) name: list.__len__)))
-
-(define-macro (define-list-binary-comparator name py-name py-compare)
-  `(begin
-    (define-rts (,name self other)
-      (if (py-isinstance? self py-list-class)
-        (if (py-isinstance? other py-list-class)
-          (,py-compare self other)
-          py-NotImplemented)
-        (py-throw-not-a-type-object ,(symbol->string py-name) self)))
-
-    (define-rts ,py-name
-      (procedure->py-function
-        ,name
-        (make-signature posonlyargs: (self other) name: ,py-name)))))
-
-(define-list-binary-comparator list-eq list.__eq__ py-eq-listX-listY)
-
-(define-list-binary-comparator list-ne list.__ne__ py-ne-listX-listY)
-
-(define-list-binary-comparator list-lt list.__lt__ py-lt-listX-listY)
-
-(define-list-binary-comparator list-le list.__le__ py-le-listX-listY)
-
-(define-list-binary-comparator list-gt list.__gt__ py-gt-listX-listY)
-
-(define-list-binary-comparator list-ge list.__ge__ py-ge-listX-listY)
+(define-list-binary-comparator list.__eq__ py-eq-listX-listY)
+(define-list-binary-comparator list.__ne__ py-ne-listX-listY)
+(define-list-binary-comparator list.__lt__ py-lt-listX-listY)
+(define-list-binary-comparator list.__le__ py-le-listX-listY)
+(define-list-binary-comparator list.__gt__ py-gt-listX-listY)
+(define-list-binary-comparator list.__ge__ py-ge-listX-listY)
 
 ;; NOTE: follows requirements of slice.indices(len)
 (define-rts (py-slice-indices slice len)
@@ -3240,21 +3151,16 @@
         (vector first last step))
       (vector 0 0 step))))
 
-(define-rts (list-getitem self item)
-  (if (py-isinstance? self py-list-class)
-    (cond
-      ((py-subtype-of-int? item)
-        (py-getitem-listX-sintY self item))
-      ((py-isinstance? item py-slice-class)
-        (py-getitem-listX-sliceY self item))
-      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
-    (py-throw-not-a-type-object "list.__getitem__" self)))
-
-(define-rts list.__getitem__
-  (procedure->py-function
-    list-getitem
-    (make-signature posonlyargs: (self item) name: list.__getitem__)))
-
+(define-py-method list.__getitem__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__getitem__" "list" self)
+  body: (cond
+          ((py-subtype-of-int? item)
+            (py-getitem-listX-sintY self item))
+          ((py-isinstance? item py-slice-class)
+            (py-getitem-listX-sliceY self item))
+          (else (py-throw-wrong-index-type "list" "integers or slices" item)))
+  signature: (posonlyargs: (self item)))
 
 (define-rts (list-set-simple-slice! lst start stop vec len)
   (let* ((self-vec (PyObjectList-vector lst))
@@ -3315,26 +3221,22 @@
                 (list-set-extended-slice! self start stop step value-vec value-len)))
             (py-throw-can-only-assign-iterable)))))))
 
-(define-rts (list-setitem self item value)
-  (if (py-isinstance? self py-list-class)
-    (cond
-      ((py-subtype-of-int? item)
-        (let* ((len (PyObjectList-len self))
-               (vec (PyObjectList-vector self))
-               (i (py-subtype-of-int-to-scheme item)))
-          (if (index-in-length-range i len)
-            (vector-set! vec (modulo i len) value)
-            (py-throw-assignment-index-out-of-range "list"))))
-      ((py-isinstance? item py-slice-class)
-        (list-set-slice self item value))
-      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
-    (py-throw-not-a-type-object "list.__setitem__" self))
-  py-None)
-
-(define-rts list.__setitem__
-  (procedure->py-function
-    list-setitem
-    (make-signature posonlyargs: (self item value) name: list.__setitem__)))
+(define-py-method list.__setitem__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__setitem__" "list" self)
+  body: (cond
+          ((py-subtype-of-int? item)
+            (let* ((len (PyObjectList-len self))
+                   (vec (PyObjectList-vector self))
+                   (i (py-subtype-of-int-to-scheme item)))
+              (if (index-in-length-range i len)
+                (vector-set! vec (modulo i len) value)
+                (py-throw-assignment-index-out-of-range "list"))))
+          ((py-isinstance? item py-slice-class)
+            (list-set-slice self item value))
+          (else (py-throw-wrong-index-type "list" "integers or slices" item)))
+        py-None
+  signature: (posonlyargs: (self item value)))
 
 (define-rts (list-shrink! list)
    (let* ((len (PyObjectList-len list))
@@ -3444,61 +3346,53 @@
         ;; shift-left handles shrink
         (list-shift-left-by! lst read-index slice-len)))))
 
-(define-rts (list-delitem self item)
-  (if (py-isinstance? self py-list-class)
-    (cond
-      ((py-subtype-of-int? item)
-        (let* ((len (PyObjectList-len self))
-               (i (py-subtype-of-int-to-scheme item)))
-          (if (index-in-length-range i len)
-            (list-shift-left! self (+ (modulo i len) 1))
-            (py-throw-action-out-of-range "list" "assignement"))))
-      ((py-isinstance? item py-slice-class)
-        (let* ((len (PyObjectList-len self))
-              (indices (py-slice-indices item len))
-              (start (vector-ref indices 0))
-              (stop (vector-ref indices 1))
-              (step (vector-ref indices 2)))
-          (if (= step 1)
-            (let ((size (- stop start)))
-              (list-shift-left-by! self stop size))
-            (list-del-extended-slice! self start stop step))))
-      (else (py-throw-wrong-index-type "list" "integers or slices" item)))
-    (py-throw-not-a-type-object "list.__delitem__" self))
-  py-None)
+(define-py-method list.__delitem__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__delitem__" "list" self)
+  body: (cond
+          ((py-subtype-of-int? item)
+            (let* ((len (PyObjectList-len self))
+                   (i (py-subtype-of-int-to-scheme item)))
+              (if (index-in-length-range i len)
+                (list-shift-left! self (+ (modulo i len) 1))
+                (py-throw-action-out-of-range "list" "assignement"))))
+          ((py-isinstance? item py-slice-class)
+            (let* ((len (PyObjectList-len self))
+                  (indices (py-slice-indices item len))
+                  (start (vector-ref indices 0))
+                  (stop (vector-ref indices 1))
+                  (step (vector-ref indices 2)))
+              (if (= step 1)
+                (let ((size (- stop start)))
+                  (list-shift-left-by! self stop size))
+                (list-del-extended-slice! self start stop step))))
+          (else (py-throw-wrong-index-type "list" "integers or slices" item)))
+        py-None
+  signature: (posonlyargs: (self item)))
 
-(define-rts list.__delitem__
-  (procedure->py-function
-    list-delitem
-    (make-signature posonlyargs: (self item) name: list.__delitem__)))
-
-(define-rts (list-pop self index)
-  (if (py-isinstance? self py-list-class)
-    (cond
-      ((eq? index py-absent)
-        (let ((len (PyObjectList-len self)))
-          (if (> len 0)
-            (list-pop-last! self)
-            (py-throw-pop-from-empty-list))))
-      ((py-subtype-of-int? index)
-        (let* ((len (PyObjectList-len self))
-               (vec (PyObjectList-vector self))
-               (i (py-subtype-of-int-to-scheme index)))
-          (if (index-in-length-range i len)
-            (let* ((real-i (modulo i len))
-                   (element (vector-ref vec real-i)))
-              (list-shift-left! self (+ real-i 1))
-              element)
-            (py-throw-action-out-of-range "list" "pop"))))
-      ((py-isinstance? index py-slice-class)
-        (py-throw-exception-with-message py-builtin-NotImplementedError "list-delitem slice not implemented"))
-      (else (py-throw-wrong-index-type "list" "integers" index)))
-    (py-throw-not-a-type-object "list.pop" self)))
-
-(define-rts list.pop
-  (procedure->py-function
-    list-pop
-    (make-signature posonlyargs: (self index) defaults: (vector py-absent) name: list.pop)))
+(define-py-method list.pop
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "pop" "list" self)
+  body: (cond
+          ((not index)
+            (let ((len (PyObjectList-len self)))
+              (if (> len 0)
+                (list-pop-last! self)
+                (py-throw-pop-from-empty-list))))
+          ((py-subtype-of-int? index)
+            (let* ((len (PyObjectList-len self))
+                   (vec (PyObjectList-vector self))
+                   (i (py-subtype-of-int-to-scheme index)))
+              (if (index-in-length-range i len)
+                (let* ((real-i (modulo i len))
+                       (element (vector-ref vec real-i)))
+                  (list-shift-left! self (+ real-i 1))
+                  element)
+                (py-throw-action-out-of-range "list" "pop"))))
+          ((py-isinstance? index py-slice-class)
+            (py-throw-exception-with-message py-builtin-NotImplementedError "list-delitem slice not implemented"))
+          (else (py-throw-wrong-index-type "list" "integers" index)))
+  signature: (posonlyargs: (self index) defaults: '#(#f)))
 
 (define-py-method list.append
   guard: (not (py-isinstance? self py-list-class))
@@ -3514,104 +3408,75 @@
           py-None)
   signature: (posonlyargs: (self value)))
 
-(define-rts (list-clear self)
-  (if (py-isinstance? self py-list-class)
-    (begin
-      (PyObjectList-vector-set! self (make-vector (list-get-inner-len 0) #f))
-      (PyObjectList-len-set! self 0))
-    (py-throw-not-a-type-object "list.clear" self))
-  py-None)
+(define-py-method list.clear
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "clear" "list" self)
+  body: (PyObjectList-vector-set! self (make-vector (list-get-inner-len 0) #f))
+        (PyObjectList-len-set! self 0)
+        py-None
+  signature: (posonlyargs: (self)))
 
-(define-rts list.clear
-  (procedure->py-function
-    list-clear
-    (make-signature posonlyargs: (self) name: list.clear)))
+(define-py-method list.copy
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "copy" "list" self)
+  body: (py-list-from-scheme (vector-copy (PyObjectList-vector self)) (PyObjectList-len self))
+  signature: (posonlyargs: (self)))
 
-;; Could not call list-copy due to collision with Scheme list-copy
-(define-rts (list-copy-procedure self)
-  (if (py-isinstance? self py-list-class)
-    (py-list-from-scheme (vector-copy (PyObjectList-vector self)) (PyObjectList-len self))
-    (py-throw-not-a-type-object "list.copy" self)))
+(define-py-method list.count
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "count" "list" self)
+  body: (let* ((len (PyObjectList-len self))
+               (vec (PyObjectList-vector self)))
+          (let loop ((i 0) (count 0))
+            (cond
+              ((= i len)
+                count) ;; will always be a fixnum
+              ((py-test-eq (vector-ref vec i) item)
+                (loop (+ i 1) (+ count 1)))
+              (else
+                (loop (+ i 1) count)))))
+  signature: (posonlyargs: (self item)))
 
-(define-rts list.copy
-  (procedure->py-function
-    list-copy-procedure
-    (make-signature posonlyargs: (self) name: list.copy)))
+(define-py-method list.index
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "index" "list" self)
+  guard: (and start (not (py-subtype-of-int? start)))
+         (py-throw-wrong-index-type "list" "integers" start)
+  guard: (and stop (not (py-subtype-of-int? stop)))
+         (py-throw-wrong-index-type "list" "integers" stop)
+  body: (let* ((len (PyObjectList-len self))
+               (vec (PyObjectList-vector self))
+               (start-index
+                (if start
+                  (let ((val (py-subtype-of-int-to-scheme start)))
+                    (if (< val 0) (modulo (max (- len) val) len) (min len val)))
+                  0))
+               (stop-index
+                 (if stop
+                   (let ((val (py-subtype-of-int-to-scheme stop)))
+                     (if (< val 0) (modulo (max (- len) val) len) (min len val)))
+                  len))
+               (index (py-index-in-subvector item vec start-index stop-index)))
+          (if index
+            index ;; index will always be a fixnum
+            (py-throw-exception-with-message py-builtin-ValueError "list.index(x): x not in list")))
+  signature: (posonlyargs: (self item start stop) defaults: '#(#f #f)))
 
-(define-rts (list-count self item)
-  (if (py-isinstance? self py-list-class)
-    (let* ((len (PyObjectList-len self))
-           (vec (PyObjectList-vector self)))
-      (let loop ((i 0) (count 0))
-        (cond
-          ((= i len)
-            (py-int-from-scheme count))
-          ((py-test (py-eq (vector-ref vec i) item))
-            (loop (+ i 1) (+ count 1)))
-          (else
-            (loop (+ i 1) count)))))
-    (py-throw-not-a-type-object "list.count" self)))
-
-(define-rts list.count
-  (procedure->py-function
-    list-count
-    (make-signature posonlyargs: (self item) name: list.count)))
-
-(define-rts (list-index self item start stop)
-  (if (py-isinstance? self py-list-class)
-    (let* ((len (PyObjectList-len self))
-           (vec (PyObjectList-vector self))
-           (start-index
-            (if start
-              (if (py-subtype-of-int? start)
-                (let ((val (py-subtype-of-int-to-scheme start)))
-                  (if (< val 0)
-                    (modulo (max (- len) val) len)
-                    (min len val)))
-                    (py-throw-wrong-index-type "list" "integers" start))
-              0))
-           (stop-index
-             (if stop
-               (if (py-subtype-of-int? stop)
-                 (let ((val (py-subtype-of-int-to-scheme stop)))
-                   (if (< val 0)
-                     (modulo (max (- len) val) len)
-                     (min len val)))
-                     (py-throw-wrong-index-type "list" "integers" stop))
-              len)))
-      (let ((res (py-index-in-subvector item vec start-index stop-index)))
-        (if res
-          (py-int-from-scheme res)
-          (py-throw
-            (py-call
-              py-builtin-ValueError
-              (&& "list.index(x): x not in list"))))))
-    (py-throw-not-a-type-object "list.index" self)))
-
-(define-rts list.index
-  (procedure->py-function
-    list-index
-    (make-signature posonlyargs: (self item start stop) defaults: '#(#f #f) name: list.index)))
-
-(define-rts (list-insert self index value)
-  (if (py-isinstance? self py-list-class)
-    (if (py-subtype-of-int? index)
-      (let* ((len (PyObjectList-len self))
-            (i (py-subtype-of-int-to-scheme index)))
-        (let ((insertion-index
-                (if (< i 0)
-                  (modulo (max (- len) i) len)
-                  (min len i))))
-          (list-shift-right! self insertion-index)
-          (vector-set! (PyObjectList-vector self) insertion-index value)))
-        (py-throw-wrong-index-type "list" "integers" index))
-    (py-throw-not-a-type-object "list.insert" self))
-  py-None)
-
-(define-rts list.insert
-  (procedure->py-function
-    list-insert
-    (make-signature posonlyargs: (self index value) name: list.insert)))
+(define-py-method list.insert
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "insert" "list" self)
+  guard: (not (py-subtype-of-int? index))
+         (py-throw-wrong-index-type "list" "integers" index)
+  body: (let* ((len (PyObjectList-len self))
+               (i (py-subtype-of-int-to-scheme index)))
+          (let ((insertion-index
+                  (if (< i 0)
+                    (modulo (max (- len) i) len)
+                    (min len i))))
+            (list-shift-right! self insertion-index)
+            (vector-set! (PyObjectList-vector self) insertion-index value)
+            py-None))
+  signature: (posonlyargs: (self index value)))
 
 (define-rts (list-extend-with-vector-head! lst source-vec stop)
   (let* ((len (PyObjectList-len lst))
@@ -3651,65 +3516,47 @@
             content
             (vector-length content)))))))
 
-(define-rts (list-extend self iterable)
-  (if (py-isinstance? self py-list-class)
-    (list-extend-with-iterable! self iterable)
-    (py-throw-not-a-type-object "list.extend" self))
-  py-None)
+(define-py-method list.extend
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "extend" "list" self)
+  body: (list-extend-with-iterable! self iterable)
+        py-None
+  signature: (posonlyargs: (self iterable)))
 
-(define-rts list.extend
-  (procedure->py-function
-    list-extend
-    (make-signature posonlyargs: (self iterable) name: list.extend)))
+(define-py-method list.__iadd__
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "__iadd__" "list" self)
+  body: (list-extend-with-iterable! self other)
+  signature: (posonlyargs: (self other)))
 
-(define-rts (list-iadd self other)
-  (if (py-isinstance? self py-list-class)
-    (list-extend-with-iterable! self other)
-    (py-throw-not-a-type-object "list.__iadd__" self))
-  self)
-
-(define-rts list.__iadd__
-  (procedure->py-function
-    list-iadd
-    (make-signature posonlyargs: (self other) name: list.__iadd__)))
-
-(define-rts (list-remove self item)
-  (if (py-isinstance? self py-list-class)
-    (let* ((len (PyObjectList-len self))
-           (vec (PyObjectList-vector self)))
-      (let ((index (py-index-in-subvector item vec 0 len)))
-        (if index
-          (list-shift-left! self (+ index 1))
-          (py-throw
-            (py-call
+(define-py-method list.remove
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "remove" "list" self)
+  body: (let* ((len (PyObjectList-len self))
+               (vec (PyObjectList-vector self))
+               (index (py-index-in-subvector item vec 0 len)))
+          (if index
+            (list-shift-left! self (+ index 1))
+            (py-throw-exception-with-message
               py-builtin-ValueError
-              (&& "list.remove(x): x not in list"))))))
-    (py-throw-not-a-type-object "list.remove" self))
-  py-None)
+              "list.remove(x): x not in list")))
+        py-None
+  signature: (posonlyargs: (self item)))
 
-(define-rts list.remove
-  (procedure->py-function
-    list-remove
-    (make-signature posonlyargs: (self item) name: list.remove)))
-
-(define-rts (list-reverse self)
-    (if (py-isinstance? self py-list-class)
-      (let ((len (PyObjectList-len self))
-            (vec (PyObjectList-vector self)))
-        (let loop ((left 0) (right (- len 1)))
-          (if (< left right)
-            (begin
-              (let ((tmp (vector-ref vec left)))
-                (vector-set! vec left (vector-ref vec right))
-                (vector-set! vec right tmp))
-              (loop (+ left 1) (- right 1))))))
-      (py-throw-not-a-type-object "list.reverse" self))
-    py-None)
-
-(define-rts list.reverse
-  (procedure->py-function
-    list-reverse
-    (make-signature posonlyargs: (self) name: list.reverse)))
+(define-py-method list.reverse
+  guard: (not (py-isinstance? self py-list-class))
+         (py-throw-required-type "reverse" "list" self)
+  body: (let ((len (PyObjectList-len self))
+              (vec (PyObjectList-vector self)))
+          (let loop ((left 0) (right (fx- len 1)))
+            (if (fx< left right)
+              (begin
+                (let ((tmp (vector-ref vec left)))
+                  (vector-set! vec left (vector-ref vec right))
+                  (vector-set! vec right tmp))
+                (loop (fx+ left 1) (fx- right 1))))))
+        py-None
+  signature: (posonlyargs: (self)))
 
 (define-rts list.sort #f)
 
@@ -3965,40 +3812,33 @@
     stop
     step))
 
-(define-rts (slice-new cls arg1 arg2 arg3)
-  (if (py-issubclass? cls py-slice-class)
-    (cond
-      ((eq? arg2 py-absent)
-        (py-slice-from-scheme py-None arg1 py-None))
-      ((eq? arg3 py-absent)
-        (py-slice-from-scheme arg1 arg2 py-None))
-      (else
-        (py-slice-from-scheme arg1 arg2 arg3)))
-    (py-throw-wrong-new-argument "list" cls)))
+(define-py-method slice.__new__
+  binding: staticmethod
+  guard: (not (py-issubclass? cls py-slice-class))
+         (py-throw-wrong-new-argument "slice" cls)
+  body: (cond
+          ((not arg2)
+            (py-slice-from-scheme py-None arg1 py-None))
+          ((not arg3)
+            (py-slice-from-scheme arg1 arg2 py-None))
+          (else
+            (py-slice-from-scheme arg1 arg2 arg3)))
+  signature: (posonlyargs: (cls arg1 arg2 arg3)
+              defaults: '#(#f #f)))
 
-(define-rts slice.__new__
-  (procedure->py-function
-    slice-new
-    (make-signature
-      posonlyargs: (cls arg1 arg2 arg3)
-      defaults: (vector py-absent py-absent)
-      name: slice.__new__)))
-
-(define-rts (slice-indices self len)
-    (if (py-isinstance? self py-slice-class)
-      (if (py-subtype-of-int? len)
-        (let ((len-i (py-subtype-of-int-to-scheme len)))
+(define-py-method slice.indices
+  guard: (not (py-isinstance? self py-slice-class))
+         (py-throw-required-type "indices" "slice" self)
+  guard: (not (py-subtype-of-int? len))
+         (py-throw-exception-with-message
+           py-builtin-TypeError
+           "cannot be interpreted as an integer")
+  body: (let ((len-i (py-subtype-of-int-to-scheme len)))
           (py-tuple-from-scheme
             (vector-map
              (lambda (n) (py-int-from-scheme n))
              (py-slice-indices self len-i))))
-        (py-throw-exception-with-message py-builtin-TypeError "pending error message (code 13)")) ;; TODO: add error message
-      (py-throw-not-a-type-object "slice.indices" self)))
-
-(define-rts slice.indices
-  (procedure->py-function
-    slice-indices
-    (make-signature posonlyargs: (self len) name: slice.indices)))
+  signature: (posonlyargs: (self len)))
 
 ;; TODO: handle circular structures
 (define-py-method slice.__repr__
@@ -4229,60 +4069,51 @@
 
 (define-rts u8-empty-vector (make-u8vector 0 0))
 
-(define-rts (bytearray-new cls arg1 arg2 agr3)
-  (if (py-issubclass? cls py-bytearray-class)
-    (cond
-       ((eq? arg1 py-absent)
-        ;; MS 11jun2020: to be removed when Bigloo's fixed
-        ;; (py-bytearray-from-scheme (cons 0 #u8())))
-        (py-bytearray-subtype-from-scheme (make-dynamic-vector 0 u8-empty-vector) cls))
-      ((eq? arg2 py-absent)
-        (cond
-          ((py-subtype-of-int? arg1)
-            (let ((i (py-subtype-of-int-to-scheme arg1)))
-              (if (<= 0 i)
-                (py-bytearray-subtype-from-scheme (make-dynamic-vector i (make-u8vector i 0)) cls)
-                (py-throw-exception-with-message py-builtin-ValueError "negative count"))))
-          ((py-isinstance? arg1 py-bytearray-class)
-           (let ((value (PyObjectBytearray-value arg1)))
-            (py-bytearray-subtype-from-scheme (make-dynamic-vector (car value) (u8vector-copy (cdr value))) cls)))
+(define-py-method bytearray.__new__
+  binding: staticmethod
+  guard: (not (py-issubclass? cls py-bytearray-class))
+         (py-throw-wrong-new-argument "bytearray" cls)
+  body: (cond
+          ((not source)
+            (py-bytearray-subtype-from-scheme (make-dynamic-vector 0 u8-empty-vector) cls))
+          ((not encoding)
+            (cond
+              ((py-subtype-of-int? source)
+                (let ((i (py-subtype-of-int-to-scheme source)))
+                  (if (<= 0 i)
+                    (py-bytearray-subtype-from-scheme (make-dynamic-vector i (make-u8vector i 0)) cls)
+                    (py-throw-exception-with-message py-builtin-ValueError "negative count"))))
+              ((py-isinstance? source py-bytearray-class)
+               (let ((value (PyObjectBytearray-value source)))
+                (py-bytearray-subtype-from-scheme (make-dynamic-vector (car value) (u8vector-copy (cdr value))) cls)))
+              (else
+                (py-throw-exception-with-message
+                  py-buitlin-NotImplementedError
+                  "bytearray.__new__ only supports int as an argument"))))
           (else
-            (error "builtin function __new__ just supports int as an argument"))))
-      (else
-        (error "builtin function __new__ for 'bytearray' does not yet support more than one argument "))  )
-    (py-throw-wrong-new-argument "bytearray" cls)))
+            (py-throw-exception-with-message
+              py-buitlin-NotImplementedError
+              "bytearray.__new__ only supports 0 or 1 argument")))
+  signature: (posonlyargs: (cls source encoding errors)
+              defaults: '#(#f #f #f)))
 
-
-(define-rts bytearray.__new__
-  (procedure->py-function
-    bytearray-new
-    (make-signature
-      posonlyargs: (cls source encoding errors)
-      defaults: (vector py-absent py-absent py-absent)
-      name: bytearray.__new__)))
-
-
-(define-rts (bytearray-getitem self item)
-  (if (py-isinstance? self py-bytearray-class)
-      (cond
-        ((py-subtype-of-int? item)
-        (let ((bytearray (PyObjectBytearray-value self))
-              (i (py-subtype-of-int-to-scheme item)))
-          (if (index-in-length-range i (car bytearray))
-            (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
-            (py-throw-index-out-of-range "bytearray"))))
-        ((py-isinstance? item py-slice-class)
-         (py-bytearray-from-scheme
-          (dynamic-u8vector-py-slice
-           (PyObjectBytearray-value self)
-           item)))
-      (else (py-throw-wrong-index-type "bytearray" "integers or slices" item)))
-    (py-throw-not-a-type-object "bytearray.__getitem__" self)))
-
-(define-rts bytearray.__getitem__
-  (procedure->py-function
-    bytearray-getitem
-    (make-signature posonlyargs: (self item) name: bytearray.__getitem__)))
+(define-py-method bytearray.__getitem__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__getitem__" "bytearray" self)
+  body: (cond
+          ((py-subtype-of-int? item)
+            (let ((bytearray (PyObjectBytearray-value self))
+                  (i (py-subtype-of-int-to-scheme item)))
+              (if (index-in-length-range i (car bytearray))
+                (py-int-from-scheme (u8vector-ref (cdr bytearray) (modulo i (car bytearray))))
+                (py-throw-index-out-of-range "bytearray"))))
+          ((py-isinstance? item py-slice-class)
+             (py-bytearray-from-scheme
+              (dynamic-u8vector-py-slice
+               (PyObjectBytearray-value self)
+               item)))
+        (else (py-throw-wrong-index-type "bytearray" "integers or slices" item)))
+  signature: (posonlyargs: (self item)))
 
 (define-rts (bytearray-set-slice self slice value)
   (let* ((dvec (PyObjectBytearray-value self))
@@ -4320,70 +4151,59 @@
                   (py-throw-exception-with-message py-builtin-ValueError "byte must be in range (0, 255)")))
             (py-throw-can-only-assign-iterable)))))))
 
+(define-py-method bytearray.__setitem__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__setitem__" "bytearray" self)
+  body: (cond
+         ((py-subtype-of-int? key)
+          (if (py-subtype-of-int? value)
+              (let ((key-int (py-subtype-of-int-to-scheme key))
+                    (bytearray (PyObjectBytearray-value self))
+                    (value-int (py-subtype-of-int-to-scheme value)))
+                (cond
+                 ((not (index-in-length-range key-int (car bytearray)))
+                  (py-throw-index-out-of-range "bytearray" ))
+                 ((not (py-int-in-byte-range? value-int))
+                  (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)"))
+                 (else
+                  (u8vector-set! (cdr bytearray) (modulo key-int (car bytearray)) value-int))))
+              (py-throw-wrong-index-type "bytearray" "integers or slice" key)))
+         ((py-isinstance? key py-slice-class)
+          (bytearray-set-slice self key value))
+         (else
+           (py-throw-wrong-index-type "bytearray" "integers or slice" key)))
+        py-None
+  signature: (posonlyargs: (self key value)))
 
-(define-rts (bytearray-setitem self key value)
-  (if (py-isinstance? self py-bytearray-class)
-      (cond
-       ((py-subtype-of-int? key)
-        (if (py-subtype-of-int? value)
-            (let ((key-int (py-subtype-of-int-to-scheme key))
-                  (bytearray (PyObjectBytearray-value self))
-                  (value-int (py-subtype-of-int-to-scheme value)))
-              (cond
-               ((not (index-in-length-range key-int (car bytearray)))
-                (py-throw-index-out-of-range "bytearray" ))
-               ((not (py-int-in-byte-range? value-int))
-                (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)"))
-               (else
-                (u8vector-set! (cdr bytearray) (modulo key-int (car bytearray)) value-int))))
-            (py-throw-wrong-index-type "bytearray" "integers or slice" key)))
-       ((py-isinstance? key py-slice-class)
-        (bytearray-set-slice self key value))
-       (else
-         (py-throw-wrong-index-type "bytearray" "integers or slice" key)))
-      (py-throw-not-a-type-object "bytearray.__getitem__" self)))
+(define-py-method bytearray.append
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "append" "bytearray" self)
+  guard: (not (py-subtype-of-int? value))
+         (py-throw-exception-with-message
+           py-builtin-TypeError
+           "cannot be interpreted as an integer")
+  body: (let* ((bytearray (PyObjectBytearray-value self))
+               (real-length (u8vector-length (cdr bytearray)))
+               (value-int (py-subtype-of-int-to-scheme value)))
+          (if (not (py-int-in-byte-range? value-int))
+              (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
+              (begin
+                (if (= real-length (car bytearray))
+                    (dynamic-u8vector-grow! bytearray))
+                (u8vector-set! (cdr bytearray) (car bytearray) value-int)
+                (set-car! bytearray (fx+ 1 (car bytearray))))))
+        py-None
+  signature: (posonlyargs: (self value)))
 
-(define-rts bytearray.__setitem__
-  (procedure->py-function
-    bytearray-setitem
-      (make-signature posonlyargs: (self key value) name: bytearray.__setitem__)))
-
-(define-rts (bytearray-append self elem)
-  (cond
-    ((not (py-isinstance? self py-bytearray-class))
-      (py-throw-not-a-type-object "bytearray.append" self))
-    ((not (py-subtype-of-int? elem))
-      (py-throw-exception-with-message py-builtin-TypeError "this type cannot be interpreted as an integer"))
-    (else
-      (let* ((bytearray (PyObjectBytearray-value self))
-            (real-length (u8vector-length (cdr bytearray)))
-            (elem-int (py-subtype-of-int-to-scheme elem)))
-        (if (not (py-int-in-byte-range? elem-int))
-            (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
-            (begin
-              (if (= real-length (car bytearray))
-                  (dynamic-u8vector-grow! bytearray))
-              (u8vector-set! (cdr bytearray) (car bytearray) elem-int)
-              (set-car! bytearray (+ 1 (car bytearray)))))))))
-
-(define-rts bytearray.append
-  (procedure->py-function
-    bytearray-append
-    (make-signature posonlyargs: (self value) name: bytearray.append)))
-
-(define-rts (bytearray-add self other)
-  (if (py-isinstance? self py-bytearray-class)
-      (if (py-isinstance? other py-bytearray-class)
-          (let ((c1 (PyObjectBytearray-value self))
-                (c2 (PyObjectBytearray-value other)))
-            (py-bytearray-from-scheme (concat-dynamic-u8vectors c1 c2)))
-          py-NotImplemented)
-      (py-throw-not-a-type-object "bytearray.__add__" self)))
-
-(define-rts bytearray.__add__
-  (procedure->py-function
-   bytearray-add
-   (make-signature posonlyargs: (self other) name: bytearray.__add__)))
+(define-py-method bytearray.__add__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__add__" "bytearray" self)
+  guard: (not (py-isinstance? other py-bytearray-class))
+         py-NotImplemented
+  body: (let ((c1 (PyObjectBytearray-value self))
+              (c2 (PyObjectBytearray-value other)))
+          (py-bytearray-from-scheme (concat-dynamic-u8vectors c1 c2)))
+  signature: (posonlyargs: (self other)))
 
 (define-rts (dynamic-u8vector-extend dvec-target dvec-source)
   (let* ((target (cdr dvec-target))
@@ -4404,120 +4224,91 @@
         (set-car! dvec-target (car new-dvec))
         (set-cdr! dvec-target (cdr new-dvec))))))
 
+(define-py-method bytearray.__iadd__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__iadd__" "bytearray" self)
+  guard: (not (py-isinstance? other py-bytearray-class))
+         py-NotImplemented
+  body: (let ((c1 (PyObjectBytearray-value self))
+              (c2 (PyObjectBytearray-value other)))
+          (dynamic-u8vector-extend c1 c2)
+          self)
+  signature: (posonlyargs: (self other)))
 
-(define-rts (bytearray-iadd self other)
-  (if (py-isinstance? self py-bytearray-class)
-      (if (py-isinstance? other py-bytearray-class)
-          (let ((c1 (PyObjectBytearray-value self))
-                (c2 (PyObjectBytearray-value other)))
-            (dynamic-u8vector-extend c1 c2)
-            self)
-          py-NotImplemented)
-      (py-throw-not-a-type-object "bytearray.__iadd__" self)))
+(define-py-method bytearray.__repr__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__repr__" "bytearray" self)
+  body: (define (u8->char-repr x)
+          (string-append "\\x" (substring (number->string (+ x 256) 16) 1 3)))
+        (let* ((value (PyObjectBytearray-value self))
+              (u8vec (cdr value))
+              (bytearray-len (car value))
+              (content
+                (let loop ((i 0) (acc '()))
+                  (if (< i bytearray-len)
+                    (loop (+ i 1) (cons (u8->char-repr (u8vector-ref u8vec i)) acc))
+                    (append-strings (reverse acc))))))
+          (py-str-from-scheme (string-append "bytearray(b'" content "')")))
+  signature: (posonlyargs: (self)))
 
-(define-rts bytearray.__iadd__
-  (procedure->py-function
-   bytearray-iadd
-   (make-signature posonlyargs: (self other) name: bytearray.__iadd__)))
+(define-py-method bytearray.__mul__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__mul__" "bytearray" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (let ((c (PyObjectBytearray-value self))
+              (n (py-subtype-of-int-to-scheme n)))
+          (py-bytearray-from-scheme (dynamic-u8vector*n c n)))
+  signature: (posonlyargs: (self n)))
 
-(define-rts (bytearray-repr self)
-  (define (u8->char-repr x)
-    (string-append "\\x" (substring (number->string (+ x 256) 16) 1 3)))
+(define-py-method bytearray.__rmul__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__rmul__" "bytearray" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (let ((c (PyObjectBytearray-value self))
+              (n (py-subtype-of-int-to-scheme n)))
+          (py-bytearray-from-scheme (dynamic-u8vector*n c n)))
+  signature: (posonlyargs: (self n)))
 
-  (if (py-isinstance? self py-bytearray-class)
-    (let* ((value (PyObjectBytearray-value self))
-          (u8vec (cdr value))
-          (bytearray-len (car value))
-          (content
-            (let loop ((i 0) (acc '()))
-              (if (< i bytearray-len)
-                (loop (+ i 1) (cons (u8->char-repr (u8vector-ref u8vec i)) acc))
-                (append-strings (reverse acc))))))
-      (py-str-from-scheme
-        (string-append
-          "bytearray(b'"
-          content
-          "')")))
-    (py-throw-not-a-type-object "bytearray.__repr__" self)))
+(define-py-method bytearray.__imul__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__imul__" "bytearray" self)
+  guard: (not (py-subtype-of-int? n))
+         py-NotImplemented
+  body: (let ((c (PyObjectBytearray-value self))
+              (n (py-subtype-of-int-to-scheme n)))
+          (PyObjectBytearray-value-set! self (dynamic-u8vector*n c n))
+          self)
+  signature: (posonlyargs: (self n)))
 
-(define-rts bytearray.__repr__
-  (procedure->py-function
-   bytearray-repr
-   (make-signature posonlyargs: (self) name: bytearray.__repr__)))
+(define-py-method bytearray.__len__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__len__" "bytearray" self)
+  body: (car (PyObjectBytearray-value self)) ;; will always be fixnum
+  signature: (posonlyargs: (self)))
 
-(define-rts (bytearray-mul self n)
-  (if (py-isinstance? self py-bytearray-class)
-      (if (py-subtype-of-int? n)
-          (let ((c (PyObjectBytearray-value self))
-                (n (py-subtype-of-int-to-scheme n)))
-            (py-bytearray-from-scheme (dynamic-u8vector*n c n)))
-          py-NotImplemented)
-      (py-throw-not-a-type-object "bytearray.__mul__" self)))
-
-(define-rts bytearray.__mul__
-  (procedure->py-function
-   bytearray-mul
-   (make-signature posonlyargs: (self other) name: bytearray.__mul__)))
-
-(define-rts bytearray.__rmul__
-  (procedure->py-function
-   bytearray-mul
-   (make-signature posonlyargs: (self n) name: bytearray.__rmul__)))
-
-(define-rts (bytearray-imul self n)
-  (if (py-isinstance? self py-bytearray-class)
-      (if (py-subtype-of-int? n)
-          (let ((c (PyObjectBytearray-value self))
-                (n (py-subtype-of-int-to-scheme n)))
-            (PyObjectBytearray-value-set! self (dynamic-u8vector*n c n))
-            self)
-          py-NotImplemented)
-      (py-throw-not-a-type-object "bytearray.__mul__" self)))
-
-(define-rts bytearray.__imul__
-  (procedure->py-function
-   bytearray-imul
-   (make-signature posonlyargs: (self n) name: bytearray.__imul__)))
-
-(define-rts (bytearray-len self)
-  (if (py-isinstance? self py-bytearray-class)
-      (py-int-from-scheme
-       (car
-        (PyObjectBytearray-value self)))
-      (py-throw-not-a-type-object "bytearray.__len__" self)))
-
-(define-rts bytearray.__len__
-  (procedure->py-function
-   bytearray-len
-   (make-signature posonlyargs: (self) name: bytearray.__len__)))
-
-(define-macro (define-search-function endfunction name func-name)
-  `(begin
-     (define-rts (,name self item start stop)
-       (cond
-        ((not (py-isinstance? self py-bytearray-class))
-         ((py-throw-not-a-type-object ,(symbol->string func-name) self)))
-        ((not (py-subtype-of-int? item))
-         ((py-throw-action-out-of-range "bytearray" "assignment")))
-        (else
-         (let* ((bytearray (PyObjectBytearray-value self))
-                (item-int (py-subtype-of-int-to-scheme item)))
-           (if (py-int-in-byte-range? item-int)
-               (let ((start-int
-                      (if (eq? py-absent start)
-                          0
-                          (max 0 (py-subtype-of-int-to-scheme start))))
-                     (stop-int
-                      (if (eq? py-absent stop)
-                          (car bytearray)
-                          (min (car bytearray) (py-subtype-of-int-to-scheme stop)))))
-                 (,endfunction (cdr bytearray) item-int start-int stop-int))
-               (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")
-               )))))
-     (define-rts ,func-name
-       (procedure->py-function
-        ,name
-        (make-signature posonlyargs: (self item start stop) defaults: (vector py-absent py-absent) name: ,func-name)))))
+(define-macro (define-search-function endfunction func-name)
+  `(define-py-method ,func-name
+     guard: (not (py-isinstance? self py-bytearray-class))
+            (py-throw-required-type ,(symbol->string func-name) "bytearray" self)
+     guard: (not (py-subtype-of-int? item))
+            (py-throw-exception-with-message
+              py-builtin-TypeError
+              "argument should be integer or bytes-like object")
+     body: (let* ((bytearray (PyObjectBytearray-value self))
+                  (item-int (py-subtype-of-int-to-scheme item)))
+             (if (py-int-in-byte-range? item-int)
+                 (let ((start-int (if (not start)
+                                      0
+                                      (max 0 (py-subtype-of-int-to-scheme start))))
+                       (stop-int (if (not stop)
+                                     (car bytearray)
+                                     (min (car bytearray) (py-subtype-of-int-to-scheme stop)))))
+                   (,endfunction (cdr bytearray) item-int start-int stop-int))
+                 (py-throw-exception-with-message py-builtin-ValueError "byte must be in range(0, 255)")))
+     signature: (posonlyargs: (self item start stop)
+                 defaults: '#(#f #f))))
 
 (define-macro (dynamic-u8vector-count vec item start stop)
   `(py-int-from-scheme
@@ -4564,11 +4355,11 @@
              (py-int-from-scheme i)
              (loop (- i 1))))))
 
-(define-search-function dynamic-u8vector-count bytearray-count bytearray.count)
-(define-search-function dynamic-u8vector-find bytearray-find bytearray.find)
-(define-search-function dynamic-u8vector-index bytearray-index bytearray.index)
-(define-search-function dynamic-u8vector-rindex bytearray-rindex bytearray.rindex)
-(define-search-function dynamic-u8vector-rfind bytearray-rfind bytearray.rfind)
+(define-search-function dynamic-u8vector-count bytearray.count)
+(define-search-function dynamic-u8vector-find bytearray.find)
+(define-search-function dynamic-u8vector-index bytearray.index)
+(define-search-function dynamic-u8vector-rindex bytearray.rindex)
+(define-search-function dynamic-u8vector-rfind bytearray.rfind)
 
 (define-macro (u8vector-cmp v1 len1 v2 len2)
   `(let ((len (min ,len1 ,len2)))
@@ -4586,50 +4377,41 @@
                   -1
                   1))))))
 
-(define-macro (dynamic-u8vector-comparator-eq op-int eq? inverse-output name func-name)
-  `(begin
-     (define-rts  (,func-name self other)
-       (if (py-isinstance? self py-bytearray-class)
-           (if (py-isinstance? other py-bytearray-class)
-               (let* ((c1 (PyObjectBytearray-value self))
-                      (c2 (PyObjectBytearray-value other))
-                      (len1 (car c1))
-                      (len2 (car c2))
-                      (vec1 (cdr c1))
-                      (vec2 (cdr c2))
-                      (cmp (u8vector-cmp vec1 len1 vec2 len2)))
-                 (if ,(if eq?
-                          `(or (fx= cmp 0)
-                               (fx= cmp ,op-int))
-                          `(fx= cmp ,op-int))
-                     ,(if inverse-output `py-True `py-False)
-                     ,(if inverse-output `py-False `py-True)))
-               py-NotImplemented)
-           (py-throw-not-a-type-object ,name self)))
-     (define-rts ,(string->symbol (string-append "bytearray." name))
-       (procedure->py-function
-        ,func-name
-        (make-signature posonlyargs: (self other) name: ,(string->symbol (string-append "bytearray." name)))))))
+(define-macro (dynamic-u8vector-comparator-eq op-int eq? inverse-output name)
+  `(define-py-method ,name
+     guard: (not (py-isinstance? self py-bytearray-class))
+            (py-throw-required-type ,(symbol->string name) "bytearray" self)
+     guard: (not (py-isinstance? other py-bytearray-class))
+            py-NotImplemented
+     body: (let* ((c1 (PyObjectBytearray-value self))
+                  (c2 (PyObjectBytearray-value other))
+                  (len1 (car c1))
+                  (len2 (car c2))
+                  (vec1 (cdr c1))
+                  (vec2 (cdr c2))
+                  (cmp (u8vector-cmp vec1 len1 vec2 len2)))
+             (if ,(if eq?
+                      `(or (fx= cmp 0) (fx= cmp ,op-int))
+                      `(fx= cmp ,op-int))
+                 ,(if inverse-output `py-True `py-False)
+                 ,(if inverse-output `py-False `py-True)))
+     signature: (posonlyargs: (self other))))
 
 
-(dynamic-u8vector-comparator-eq 1 #f #t "__gt__" bytearray-gt)
-(dynamic-u8vector-comparator-eq 1 #t #t "__ge__" bytearray-ge)
-(dynamic-u8vector-comparator-eq -1 #f #t "__lt__" bytearray-lt)
-(dynamic-u8vector-comparator-eq -1 #t #t"__le__" bytearray-le)
+(dynamic-u8vector-comparator-eq 1 #f #t bytearray.__gt__)
+(dynamic-u8vector-comparator-eq 1 #t #t bytearray.__ge__)
+(dynamic-u8vector-comparator-eq -1 #f #t bytearray.__lt__)
+(dynamic-u8vector-comparator-eq -1 #t #t bytearray.__le__)
+(dynamic-u8vector-comparator-eq 0 #f #t bytearray.__eq__)
+(dynamic-u8vector-comparator-eq 0 #f #f bytearray.__ne__)
 
-(dynamic-u8vector-comparator-eq 0 #f #t "__eq__" bytearray-eq)
-(dynamic-u8vector-comparator-eq 0 #f #f "__ne__" bytearray-ne)
 
+(define-py-method bytearray.__iter__
+  guard: (not (py-isinstance? self py-bytearray-class))
+         (py-throw-required-type "__iter__" "bytearray" self)
+  body: (py-bytearray-iterator-alloc 0 (PyObjectBytearray-value self))
+  signature: (posonlyargs: (self)))
 
-(define-rts (bytearray-iter self)
-  (if (py-isinstance? self py-bytearray-class)
-      (py-bytearray-iterator-alloc 0 (PyObjectBytearray-value self))
-      (py-throw-not-a-type-object "bytearray.__iter__" self)))
-
-(define-rts bytearray.__iter__
-  (procedure->py-function
-   bytearray-iter
-   (make-signature posonlyargs: (self) name: bytearray.__iter__)))
 
 ;; =============================================================================
 ;;  Dict
@@ -4911,97 +4693,59 @@
             value)
           (loop (cdr key-value-pairs)))))))
 
-(define-rts (dict-setitem self key value)
-  (if (py-isinstance? self py-dict-class)
-    (let ((ordered-table (PyObjectDict-value self)))
-      (ordered-table-set-cell! ordered-table key value))
-    (py-throw-not-a-type-object "dict.__setitem__" self))
-  py-None)
+(define-py-method dict.__setitem__
+  guard: (not (py-isinstance? self py-dict-class))
+         (py-throw-required-type "__setitem__" "dict" self)
+  body: (ordered-table-set-cell! (PyObjectDict-value self) key value)
+        py-None
+  signature: (posonlyargs: (self key value)))
 
-(define-rts dict.__setitem__
-  (procedure->py-function
-   dict-setitem
-    (make-signature posonlyargs: (self key value) name: dict.__setitem__)))
+(define-py-method dict.get
+  guard: (not (py-isinstance? self py-dict-class))
+         (py-throw-required-type "get" "dict" self)
+  body: (ordered-table-get (PyObjectDict-value self) key default)
+  signature: (posonlyargs: (self key default)
+              defaults: (vector py-None)))
 
-(define-rts (dict-get self key default)
-  (if (py-isinstance? self py-dict-class)
-    (let ((ordered-table (PyObjectDict-value self)))
-      (ordered-table-get ordered-table key (if (eq? default py-absent) py-None default)))
-    (py-throw-not-a-type-object "dict.get" self)))
+(define-py-method dict.__getitem__
+  guard: (not (py-isinstance? self py-dict-class))
+         (py-throw-required-type "__getitem__" "dict" self)
+  body: (ordered-table-get (PyObjectDict-value self) key py-absent)
+  signature: (posonlyargs: (self key)))
 
-(define-rts dict.get
-  (procedure->py-function
-    dict-get
-    (make-signature posonlyargs: (self key default) defaults: (vector py-absent) name: dict.get)))
+(define-py-method dict.__delitem__
+  guard: (not (py-isinstance? self py-dict-class))
+         (py-throw-required-type "__delitem__" "dict" self)
+  body: (let* ((ordered-table (PyObjectDict-value self))
+               (res (ordered-table-remove-key! ordered-table key)))
+          (if (not res) (py-throw (py-call py-builtin-KeyError key)) py-None))
+  signature: (posonlyargs: (self key)))
 
-(define-rts (dict-getitem self key)
-  (if (py-isinstance? self py-dict-class)
-    (let ((ordered-table (PyObjectDict-value self)))
-      (ordered-table-get ordered-table key py-absent))
-    (py-throw-not-a-type-object "dict.__getitem__" self)))
+(define-py-method dict.__len__
+  guard: (not (py-isinstance? self py-dict-class))
+         (py-throw-required-type "__len__" "dict" self)
+  body: (ordered-table-length (PyObjectDict-value self)) ;; should always be a fixnum
+  signature: (posonlyargs: (self)))
 
-(define-rts dict.__getitem__
-  (procedure->py-function
-    dict-getitem
-    (make-signature posonlyargs: (self key) name: dict.__getitem__)))
-
-(define-rts (dict-delitem self key)
-  (if (py-isinstance? self py-dict-class)
-    (let* ((ordered-table (PyObjectDict-value self))
-           (res (ordered-table-remove-key! ordered-table key)))
-      (if (not res)
-        (py-throw (py-call py-builtin-KeyError key))
-        py-None))
-    (py-throw-not-a-type-object "dict.__delitem__" self)))
-
-(define-rts dict.__delitem__
-  (procedure->py-function
-    dict-delitem
-    (make-signature posonlyargs: (self key) name: dict.__delitem__)))
-
-(define-rts (dict-len self)
-  (if (py-isinstance? self py-dict-class)
-    (let* ((ordered-table (PyObjectDict-value self))
-           (len (ordered-table-length ordered-table)))
-      (py-int-from-scheme len))
-    (py-throw-not-a-type-object "dict.__len__" self)))
-
-(define-rts dict.__len__
-  (procedure->py-function
-    dict-len
-    (make-signature posonlyargs: (self) name: dict.__len__)))
-
-(define-rts (dict-iter self)
-  (if (py-isinstance? self py-dict-class)
-    (dict->dict-keyiterator self)
-    (py-throw-not-a-type-object "dict.__len__" self)))
-
-(define-rts dict.__iter__
-  (procedure->py-function
-    dict-iter
-    (make-signature posonlyargs: (self) name: dict.__iter__)))
+(define-py-method dict.__iter__
+  guard: (not (py-isinstance? self py-dict-class))
+         (py-throw-required-type "__iter__" "dict" self)
+  body: (dict->dict-keyiterator self)
+  signature: (posonlyargs: (self)))
 
 ;; TODO: incorrect implementation, should return a dict_keys object
-(define-rts (dict-keys self)
-  (if (py-isinstance? self py-dict-class)
-    (dict->dict-keyiterator self)
-    (py-throw-not-a-type-object "dict.keys" self)))
-
-(define-rts dict.keys
-  (procedure->py-function
-    dict-keys
-    (make-signature posonlyargs: (self) name: dict.keys)))
+(define-py-method dict.keys
+  guard: (not (py-isinstance? self py-dict-class))
+         (py-throw-required-type "keys" "dict" self)
+  body: (dict->dict-keyiterator self)
+  signature: (posonlyargs: (self)))
 
 ;; TODO: incorrect implementation, should return a dict_values object
-(define-rts (dict-values self)
-  (if (py-isinstance? self py-dict-class)
-    (dict->dict-valueiterator self)
-    (py-throw-not-a-type-object "dict.values" self)))
-
-(define-rts dict.values
-  (procedure->py-function
-    dict-values
-    (make-signature posonlyargs: (self) name: dict.values)))
+(define-py-method dict.values
+  guard: (not (py-isinstance? self py-dict-class))
+         (py-throw-required-type "values" "dict" self)
+  body: (dict->dict-valueiterator self)
+  signature: (posonlyargs: (self)))
 
 ;; =============================================================================
 ;;  Dict iterators
@@ -5014,39 +4758,31 @@
         (token (ordered-table-iterator-token ordered-table)))
     (py-dict-keyiterator-alloc first token)))
 
-(define-rts (dict-keyiterator-iter self)
-  (if (py-isinstance? self py-dict-keyiterator-class)
-    self
-    (py-throw-not-a-type-object "dict_keyiterator.__iter__" self)))
+(define-py-method dict_keyiterator.__iter__
+  guard: (not (py-isinstance? self py-dict-keyiterator-class))
+         (py-throw-required-type "__iter__" "dict_keyiterator" self)
+  body: self
+  signature: (posonlyargs: (self)))
 
-(define-rts dict_keyiterator.__iter__
-  (procedure->py-function
-    dict-keyiterator-iter
-    (make-signature posonlyargs: (self) name: dict_keyiterator.__iter__)))
-
-(define-rts (dict-keyiterator-next self)
-  (if (py-isinstance? self py-dict-keyiterator-class)
-    (let ((node (PyObjectDictItemsIterator-node self))
-          (token (PyObjectDictItemsIterator-iterator-token self)))
-      (cond
-        ((not node)
-          (py-throw py-builtin-StopIteration))
-        ((not (unbox token)) ;; will be #f if the dict length changed
-          (py-throw-exception-with-message
-            py-builtin-RuntimeError
-            "dictionary changed size during iteration"))
-        (else
-          (let* ((cell (doubly-linked-list-node-value node))
-                (key (dict-cell-key cell))
-                (next (doubly-linked-list-node-next node)))
-            (PyObjectDictItemsIterator-node-set! self next)
-            key))))
-    (py-throw-not-a-type-object "dict_keyiterator.__next__" self)))
-
-(define-rts dict_keyiterator.__next__
-  (procedure->py-function
-    dict-keyiterator-next
-    (make-signature posonlyargs: (self) name: dict_keyiterator.__next__)))
+(define-py-method dict_keyiterator.__next__
+  guard: (not (py-isinstance? self py-dict-keyiterator-class))
+         (py-throw-required-type "__next__" "dict_keyiterator" self)
+  body: (let ((node (PyObjectDictItemsIterator-node self))
+              (token (PyObjectDictItemsIterator-iterator-token self)))
+          (cond
+            ((not node)
+              (py-throw py-builtin-StopIteration))
+            ((not (unbox token)) ;; will be #f if the dict length changed
+              (py-throw-exception-with-message
+                py-builtin-RuntimeError
+                "dictionary changed size during iteration"))
+            (else
+              (let* ((cell (doubly-linked-list-node-value node))
+                    (key (dict-cell-key cell))
+                    (next (doubly-linked-list-node-next node)))
+                (PyObjectDictItemsIterator-node-set! self next)
+                key))))
+  signature: (posonlyargs: (self)))
 
 (define-rts py-dict-keyiterator-class
   (py-make-builtin-class
@@ -5063,39 +4799,31 @@
         (token (ordered-table-iterator-token ordered-table)))
     (py-dict-valueiterator-alloc first token)))
 
-(define-rts (dict-valueiterator-iter self)
-  (if (py-isinstance? self py-dict-valueiterator-class)
-    self
-    (py-throw-not-a-type-object "dict_valueiterator.__iter__" self)))
+(define-py-method dict_valueiterator.__iter__
+  guard: (not (py-isinstance? self py-dict-valueiterator-class))
+         (py-throw-required-type "__iter__" "dict_valueiterator" self)
+  body: self
+  signature: (posonlyargs: (self)))
 
-(define-rts dict_valueiterator.__iter__
-  (procedure->py-function
-    dict-valueiterator-iter
-    (make-signature posonlyargs: (self) name: dict_valueiterator.__iter__)))
-
-(define-rts (dict-valueiterator-next self)
-  (if (py-isinstance? self py-dict-valueiterator-class)
-    (let ((node (PyObjectDictItemsIterator-node self))
-          (token (PyObjectDictItemsIterator-iterator-token self)))
-      (cond
-        ((not node)
-          (py-throw py-builtin-StopIteration))
-        ((not (unbox token)) ;; will be #f if the dict length changed
-          (py-throw-exception-with-message
-            py-builtin-RuntimeError
-            "dictionary changed size during iteration"))
-        (else
-          (let* ((cell (doubly-linked-list-node-value node))
-                (value (dict-cell-value cell))
-                (next (doubly-linked-list-node-next node)))
-            (PyObjectDictItemsIterator-node-set! self next)
-            value))))
-    (py-throw-not-a-type-object "dict_valueiterator.__next__" self)))
-
-(define-rts dict_valueiterator.__next__
-  (procedure->py-function
-    dict-valueiterator-next
-    (make-signature posonlyargs: (self) name: dict_valueiterator.__next__)))
+(define-py-method dict_valueiterator.__next__
+  guard: (not (py-isinstance? self py-dict-valueiterator-class))
+         (py-throw-required-type "__next__" "dict_valueiterator" self)
+  body: (let ((node (PyObjectDictItemsIterator-node self))
+              (token (PyObjectDictItemsIterator-iterator-token self)))
+          (cond
+            ((not node)
+              (py-throw py-builtin-StopIteration))
+            ((not (unbox token)) ;; will be #f if the dict length changed
+              (py-throw-exception-with-message
+                py-builtin-RuntimeError
+                "dictionary changed size during iteration"))
+            (else
+              (let* ((cell (doubly-linked-list-node-value node))
+                    (value (dict-cell-value cell))
+                    (next (doubly-linked-list-node-next node)))
+                (PyObjectDictItemsIterator-node-set! self next)
+                value))))
+  signature: (posonlyargs: (self)))
 
 (define-rts py-dict-valueiterator-class
   (py-make-builtin-class
@@ -5104,6 +4832,27 @@
     (list)
       (& "__iter__") dict_valueiterator.__iter__
       (& "__next__") dict_valueiterator.__next__))
+
+;; None object
+
+(define-py-method NoneType.__new__
+  binding: staticmethod
+  guard: (not (eq? cls py-NoneType-class))
+         (py-throw-wrong-new-argument "NoneType" cls)
+  body: py-None
+  signature: (posonlyargs: (cls)))
+
+(define-py-method NoneType.__repr__
+  guard: (not (py-isinstance? self py-NoneType-class))
+         (py-throw-required-type "__repr__" "NoneType" self)
+  body: (&& "None")
+  signature: (posonlyargs: (self)))
+
+(define-py-method NoneType.__bool__
+  guard: (not (py-isinstance? self py-NoneType-class))
+         (py-throw-required-type "__bool__" "NoneType" self)
+  body: py-False
+  signature: (posonlyargs: (self)))
 
 ;; -----------------------------------------------------------------------------
 
@@ -5339,8 +5088,17 @@
         (& "__gt__") bytearray.__gt__
         (& "__ge__") bytearray.__ge__
         (& "__ne__") bytearray.__ne__
-        (& "__iter__") bytearray.__iter__
-        )))
+        (& "__iter__") bytearray.__iter__))
+
+  (set! py-NoneType-class
+    (py-make-builtin-class
+      (&& "NoneType")
+      (&& "builtins")
+      (list)
+        (& "__new__") NoneType.__new__
+        (& "__repr__") NoneType.__repr__
+        (& "__bool__") NoneType.__bool__))
+  (PyObject-class-set! py-None py-NoneType-class))
 
 (bootstrap-type-hierarchy-phase2)
 
@@ -5350,17 +5108,13 @@
 ;; =============================================================================
 ;;  IO
 ;; =============================================================================
+
 ;; TODO: some content of this section should be moved to the io module
-
-(define-rts (TextIOWrapper-enter self)
-  (if (py-isinstance? self py-TextIOWrapper-class)
-    self
-    (py-throw-not-a-type-object "TextIOWrapper.__enter__" self)))
-
-(define-rts TextIOWrapper.__enter__
-  (procedure->py-function
-    TextIOWrapper-enter
-    (make-signature posonlyargs: (self) name: TextIOWrapper.__enter__)))
+(define-py-method TextIOWrapper.__enter__
+  guard: (not (py-isinstance? self py-TextIOWrapper-class))
+         (py-throw-required-type "__enter__" "TextIOWrapper" self)
+  body: self
+  signature: (posonlyargs: (self)))
 
 (define-rts (TextIOWrapper-close-port! self)
   (let ((port (PyObjectTextIOWrapper-port self)))
@@ -5373,42 +5127,30 @@
         (close-port port)
         (PyObjectTextIOWrapper-port-set! self #f)))))
 
-(define-rts (TextIOWrapper-exit self exc-type exc exc-traceback)
-  (if (py-isinstance? self py-TextIOWrapper-class)
-    (TextIOWrapper-close-port! self)
-    (py-throw-not-a-type-object "TextIOWrapper.__exit__" self))
-  py-None)
+(define-py-method TextIOWrapper.__exit__
+  guard: (not (py-isinstance? self py-TextIOWrapper-class))
+         (py-throw-required-type "__exit__" "TextIOWrapper" self)
+  body: (TextIOWrapper-close-port! self)
+        py-None
+  signature: (posonlyargs: (self exc_type exc_value traceback)))
 
-(define-rts TextIOWrapper.__exit__
-  (procedure->py-function
-    TextIOWrapper-exit
-    (make-signature posonlyargs: (self exc_type exc_value traceback) name: TextIOWrapper.__exit__)))
+(define-py-method TextIOWrapper.close
+  guard: (not (py-isinstance? self py-TextIOWrapper-class))
+         (py-throw-required-type "close" "TextIOWrapper" self)
+  body: (TextIOWrapper-close-port! self)
+        py-None
+  signature: (posonlyargs: (self)))
 
-(define-rts (TextIOWrapper-close self)
-  (if (py-isinstance? self py-TextIOWrapper-class)
-    (TextIOWrapper-close-port! self)
-    (py-throw-not-a-type-object "TextIOWrapper.close" self))
-  py-None)
-
-(define-rts TextIOWrapper.close
-  (procedure->py-function
-    TextIOWrapper-close
-    (make-signature posonlyargs: (self) name: TextIOWrapper.close)))
-
-(define-rts (TextIOWrapper-read self)
-  (if (py-isinstance? self py-TextIOWrapper-class)
-    (let ((port (PyObjectTextIOWrapper-port self)))
-      (if port
-          (py-str-from-scheme (read-string port))
-        (py-throw-exception-with-message
-          py-builtin-ValueError
-          "I/O operation on closed file.")))
-    (py-throw-not-a-type-object "TextIOWrapper.read" self)))
-
-(define-rts TextIOWrapper.read
-  (procedure->py-function
-    TextIOWrapper-read
-    (make-signature posonlyargs: (self) name: TextIOWrapper.read)))
+(define-py-method TextIOWrapper.read
+  guard: (not (py-isinstance? self py-TextIOWrapper-class))
+         (py-throw-required-type "read" "TextIOWrapper" self)
+  body: (let ((port (PyObjectTextIOWrapper-port self)))
+          (if port
+            (py-str-from-scheme (read-string port))
+            (py-throw-exception-with-message
+              py-builtin-ValueError
+              "I/O operation on closed file.")))
+  signature: (posonlyargs: (self)))
 
 (define-rts py-TextIOWrapper-class
   (py-make-builtin-class
@@ -5437,39 +5179,20 @@
 ;;  Singletons
 ;; =============================================================================
 
-;; True and False
-
-
-
 ;; NotImplemented object
 
-(define-rts (NotImplementedType-new cls)
-  (if (eq? cls py-NotImplementedType-class)
-    py-NotImplemented
-    (py-throw
-      (py-call
-        py-builtin-TypeError
-        ;; TODO: Incorrect error message
-        (&& "not a subtype of NotImplementedType")))))
+(define-py-method NotImplementedType.__new__
+  binding: staticmethod
+  guard: (not (eq? cls py-NotImplementedType-class))
+         (py-throw-wrong-new-argument "NotImplementedType" cls)
+  body: py-NotImplemented
+  signature: (posonlyargs: (cls)))
 
-(define-rts NotImplementedType.__new__
-  (procedure->py-function
-    NotImplementedType-new
-    (make-signature posonlyargs: (cls) name: NotImplementedType.__new__)))
-
-(define-rts (NotImplementedType-repr self)
-  (if (eq? self py-NotImplemented)
-    (&& "NotImplemented")
-    (py-throw
-      (py-call
-        py-builtin-TypeError
-        ;; TODO: Incorrect error message
-        (&& "descriptor '__repr__' requires a 'NotImplementedType' object")))))
-
-(define-rts NotImplementedType.__repr__
-  (procedure->py-function
-    NotImplementedType-repr
-    (make-signature posonlyargs: (self) name: NotImplementedType.__repr__)))
+(define-py-method NotImplementedType.__repr__
+  guard: (not (py-isinstance? self py-NotImplementedType-class))
+         (py-throw-required-type "__repr__" "NotImplementedType" self)
+  body: (&& "NotImplemented")
+  signature: (posonlyargs: (self)))
 
 (define-rts py-NotImplementedType-class
   (py-make-builtin-class
@@ -5480,61 +5203,6 @@
       (& "__repr__") NotImplementedType.__repr__))
 
 (define-rts py-NotImplemented (py-obj-alloc py-NotImplementedType-class))
-
-;; None object
-
-(define-rts (NoneType-new cls)
-  (if (eq? cls py-NoneType-class)
-    py-None
-    (py-throw
-      (py-call
-        py-builtin-TypeError
-        ;; TODO: Incorrect error message
-        (&& "not a subtype of NoneType")))))
-
-(define-rts NoneType.__new__
-  (procedure->py-function
-    NoneType-new
-    (make-signature posonlyargs: (cls) name: NoneType.__new__)))
-
-(define-rts (NoneType-repr self)
-  (if (eq? self py-None)
-    (&& "None")
-    (py-throw
-      (py-call
-        py-builtin-TypeError
-        ;; TODO: Incorrect error message
-        (&& "descriptor '__repr__' requires a 'NoneType' object")))))
-
-(define-rts NoneType.__repr__
-  (procedure->py-function
-    NoneType-repr
-    (make-signature posonlyargs: (self) name: NoneType.__repr__)))
-
-(define-rts (NoneType-bool self)
-  (if (eq? self py-None)
-    py-False
-    (py-throw
-      (py-call
-        py-builtin-TypeError
-        ;; TODO: Incorrect error message
-        (&& "descriptor '__repr__' requires a 'NoneType' object")))))
-
-(define-rts NoneType.__bool__
-  (procedure->py-function
-    NoneType-bool
-    (make-signature posonlyargs: (self) name: NoneType.__bool__)))
-
-(define-rts py-NoneType-class
-  (py-make-builtin-class
-    (&& "NoneType")
-    (&& "builtins")
-    (list)
-      (& "__new__") NoneType.__new__
-      (& "__repr__") NoneType.__repr__
-      (& "__bool__") NoneType.__bool__))
-
-(define-rts py-None (py-obj-alloc py-NoneType-class))
 
 ;;;----------------------------------------------------------------------------
 
@@ -5576,7 +5244,7 @@
    (global-own-attr-put-no-cache! mod (& "__name__") name)
    (global-own-attr-put-no-cache! mod (& "__package__") package)
    (if path (global-own-attr-put-no-cache! mod (& "__path__") path))
-   (dict-setitem modules name mod)
+   (dict.__setitem__:procedure modules name mod)
    mod))
 
 ;; ===========================================
@@ -5703,7 +5371,7 @@
               )))))
 
 (define-rts (import-from-sys.path sys.path __name__ py-__name__ py-__package__)
-  (or (dict-get (sys.modules-get) py-__name__ #f)
+  (or (dict.get:procedure (sys.modules-get) py-__name__ #f)
       (let ((sys.path-iter (py-iter sys.path)))
         (let loop ((value sys.path-iter))
           (let ((value (py-next value)))
@@ -7736,61 +7404,39 @@
 ;; For practical suggestions on how to design cooperative classes using
 ;; super(), see guide to using super().
 
-(define-rts (py-throw-super-no-arguments-error)
-  (py-throw-exception-with-message
-      py-builtin-RuntimeError
-      "super(): no arguments"))
+(define-py-method super.__init__
+  guard: (not (py-isinstance? self py-super-class))
+         (py-throw-required-type "__init__" "super" self)
+  guard: (not type)
+         (py-throw-exception-with-message
+           py-builtin-RuntimeError
+           "super(): no arguments")
+  guard: (not type)
+         (py-throw-exception-with-message
+           py-builtin-NotImplementedError
+           "super not implemented for 1 argument")
+  body: (py-own-attr-set! self (& "__thisclass__") type)
+        (py-own-attr-set! self (& "__self__") object)
+  signature: (posonlyargs: (self type object)
+              defaults: '#(#f #f)))
 
-(define-rts (super-init self type object)
-  (if (eq? object py-absent)
-    (py-throw-exception-with-message
-      py-builtin-NotImplementedError
-      "super not implemented for 1 argument")
-    (begin
-      (py-own-attr-set! self (& "__thisclass__") type)
-      (py-own-attr-set! self (& "__self__") object))))
-
-(define-rts super.__init__
-  (procedure->py-function
-    super-init
-    (make-signature
-      posonlyargs: (self type object)
-      defaults: (vector py-absent py-absent) name: super.__init__)))
-
-(define-rts (super-getattribute self name)
-  (if (eq? (py-str-representative name) (& "__class__"))
-      py-builtin-super
-      (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
-             (this-self (py-own-attr-ref self (& "__self__")))
-             (mro (PyObjectType-mro this-class))
-             (parent-cls (vector-ref mro 1)))
-        (getattribute-from-cls-mro-with-owner-2cont
-         parent-cls
-         name
-         (lambda (attr owner)
-           (py-descriptor-get attr this-self owner))
-         (lambda ()
-           (py-object-getattribute self name #t #f))))))
-
-(define-rts (py-super-getattribute-for-getattribute name cls instance)
-  (if (eq? (py-str-representative name) (& "__class__"))
-      py-builtin-super
-      (let* ((this-class cls)
-             (this-self instance)
-             (mro (PyObjectType-mro this-class))
-             (parent-cls (vector-ref mro 1)))
-        (getattribute-from-cls-mro-with-owner-2cont
-         parent-cls
-         name
-         (lambda (attr owner)
-           (py-descriptor-get attr this-self owner))
-         (lambda ()
-	    (py-object-getattribute instance name #t #f))))))
-
-(define-rts super.__getattribute__
-  (procedure->py-function
-    super-getattribute
-    (make-signature posonlyargs: (self name) name: super.__getattribute__)))
+(define-py-method super.__getattribute__
+  guard: (not (py-isinstance? self py-super-class))
+         (py-throw-required-type "__getattribute__" "super" self)
+  body: (if (eq? (py-str-representative name) (& "__class__"))
+            py-builtin-super
+            (let* ((this-class (py-own-attr-ref self (& "__thisclass__")))
+                   (this-self (py-own-attr-ref self (& "__self__")))
+                   (mro (PyObjectType-mro this-class))
+                   (parent-cls (vector-ref mro 1)))
+              (getattribute-from-cls-mro-with-owner-2cont
+               parent-cls
+               name
+               (lambda (attr owner)
+                 (py-descriptor-get attr this-self owner))
+               (lambda ()
+                 (py-object-getattribute self name #t #f)))))
+  signature: (posonlyargs: (self name)))
 
 (define-rts py-builtin-super
   (py-make-builtin-class

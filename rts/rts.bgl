@@ -577,7 +577,6 @@
 	   (py-throw-exception-with-message exc . msg)
 
 	   (py-tuple-from-scheme elements)
-	   (py-throw-super-no-arguments-error)
 	   (py-throw-from-generator-exception-info exc-info)
 
 	   py-classmethod-hclass-of-instances
@@ -586,9 +585,7 @@
 	   py-next-behaviors-table
 	   (py-iter-fallback obj)
 
-	   (py-make-dict key-value-pairs)
-
-	   (py-super-getattribute-for-getattribute name cls instance))
+	   (py-make-dict key-value-pairs))
 
    (pragma (py-call-generic (args-noescape args)))
 

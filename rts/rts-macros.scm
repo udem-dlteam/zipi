@@ -205,7 +205,11 @@
   (define name (if (pair? name-or-signature) (car name-or-signature) name-or-signature))
 
   (define (parse-error message body)
-    (error "define-py-method" message (car body)))
+    (error (if (pair? name-or-signature)
+               (list->string name-or-signature)
+               (symbol->string name-or-signature))
+           message
+           (car body)))
 
   (define (parse body)
     (if (null? body)
@@ -262,7 +266,7 @@
   (define (parse-guard body)
     (if (or (null? body) (null? (cdr body))
             (keyword? (car body)) (keyword? (cadr body)))
-      (parse-error "guard: must be followed by a condition and an exception throw" body)
+      (parse-error "guard: must be followed by a condition and an expression" body)
       (begin
         (set! guards (append guards (list (list (car body) (cadr body)))))
         (parse (cddr body)))))
@@ -2079,8 +2083,7 @@
 (define-macro (py-make-builtin-class name module bases . attrs)
   (define hclass-of-instances
     '((object . py-object-hclass-of-instances)
-      (type . #f) ;; NOTE: this is ok! each type should have a different hclass for attribute caching purpose
-                  ;; for this reasons there is no "py-type-hclass-of-instances"
+      (type . py-type-hclass-of-instances)
       (str . py-str-hclass-of-instances)
       (tuple . py-tuple-hclass-of-instances)
       (int . py-int-hclass-of-instances)

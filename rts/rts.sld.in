@@ -52,8 +52,6 @@
 
     with-specialized-PyObjectFunction-args-limit
 
-    py-throw-super-no-arguments-error
-
     pack-extra-args
 
     py-isinstance?
@@ -634,7 +632,6 @@
 
     py-generator-yield
     py-make-generator
-    py-generator-send
     py-generator-next
     py-generator-next-avoid-StopIteration
     py-generator-end
