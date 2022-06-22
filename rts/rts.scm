@@ -229,9 +229,14 @@
       (lambda (_) val))))
 
 (define-rts (reset-class-optimizations cls attr-representative)
+  (define (reset-can-quick-alloc-of-subclasses! cls)
+    (PyObjectType-can-quick-alloc-set! cls #f)
+    (table-for-each
+      (lambda (subclass _) (reset-can-quick-alloc-of-subclasses! subclass))
+      (PyObjectType-subclasses cls)))
+
   (if (eq? attr-representative (& "__new__"))
-      ;; TODO: must do for all subclasses!
-      (PyObjectType-can-quick-alloc-set! cls #f)))
+      (reset-can-quick-alloc-of-subclasses! cls)))
 
 (define-rts (py-cls-own-attr-set-with-pending-binding! cls attr val pb-val)
   (declare-fixnum)
@@ -369,29 +374,38 @@
 
 ;; type allocation
 
+(define-rts (py-type-fill-subclasses! cls)
+  (vector-map
+    (lambda (c) (table-set! (PyObjectType-subclasses c) cls #t))
+    (PyObjectType-bases cls)))
+
+(define-rts (make-empty-subclass-table)
+  (make-table test: eq? weak-keys: #t))
+
 (define-rts (py-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
-  (make-PyObjectType
-    (make-HClass '#() '()) ;; each type has its own hclass for attribute caching purpose
-    '#()
-    metaclass
-    class-index
-    bases
-    mro
-    hclass-of-instance
-    #f ;; is-builtin
-    can-have-getter
-    ;; can-quick-alloc: an empty type can do quick allocation, this will change if __new__ change
-    ;; or if one of its super classes is already disallowed from quick allocating
-    (if bases
-      (let loop ((i 0))
-        (if (fx= i (vector-length bases))
-          #t
-          (and (PyObjectType-can-quick-alloc (vector-ref bases i))
-               (loop (fx+ i 1)))))
-      #f)
-    (make-vector magic-attrs-length #f)
-    (make-vector magic-attrs-length #f)
-    '#()))
+  (let ((cls (make-PyObjectType
+              (make-HClass '#() '()) ;; each type has its own hclass for attribute caching purpose
+              '#()
+              metaclass
+              class-index
+              bases
+              mro
+              (make-empty-subclass-table) ;; subclasses
+              hclass-of-instance
+              #f ;; is-builtin
+              can-have-getter
+              ;; can-quick-alloc: an empty type can do quick allocation, this will change if __new__ change
+              ;; or if one of its super classes is already disallowed from quick allocating
+              (let loop ((i 0))
+                (if (fx= i (vector-length bases))
+                  #t
+                  (and (PyObjectType-can-quick-alloc (vector-ref bases i))
+                       (loop (fx+ i 1)))))
+              (make-vector magic-attrs-length #f)
+              (make-vector magic-attrs-length #f)
+              '#())))
+    (py-type-fill-subclasses! cls)
+    cls))
 
 (define-rts (py-builtin-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance)
   (let ((cls
@@ -399,6 +413,24 @@
             (py-type-alloc metaclass class-index can-have-getter bases mro hclass-of-instance))))
     (PyObjectType-is-builtin-set! cls #t)
     cls))
+
+;; alloc empty class objects during bootstrap phase 1
+(define-rts (py-builtin-type-alloc-phase1 class-index hclass-of-instances)
+  (make-PyObjectType
+    py-type-hclass-of-instances
+    '#()
+    py-type-class
+    class-index
+    #f ;; bases
+    #f ;; mro
+    (make-empty-subclass-table) ;; subclasses
+    hclass-of-instances
+    #t ;; is-builtin
+    #f ;; can-have-getter
+    #f ;; can-quick-alloc
+    (make-vector magic-attrs-length #f)
+    (make-vector magic-attrs-length #f)
+    '#()))
 
 (define-rts (py-dict-alloc ordered-table)
   (make-PyObjectDict
@@ -628,7 +660,6 @@
           index
           (vector getter setter))))))
 
-
 ;; Bootstraps type and object
 ;; Create barebone object, type, str and tuple classes
 ;; These will need to be filled in later
@@ -644,67 +675,25 @@
 
 (define-rts (bootstrap-type-hierarchy-phase1)
   (set! py-object-class
-    (py-builtin-type-alloc
-      #f ;; cls
-      (get-behavior-type-index object)
-      #f ;; can-have-getter
-      #f ;; bases
-      #f ;; mro
-      py-object-hclass-of-instances))
+    (py-builtin-type-alloc-phase1 (get-behavior-type-index object) py-object-hclass-of-instances))
 
   (set! py-type-class
-    (py-builtin-type-alloc
-      #f ;; cls
-      (get-behavior-type-index type)
-      #f ;; can-have-getter
-      #f ;; bases
-      #f ;; mro
-      py-type-hclass-of-instances))
+    (py-builtin-type-alloc-phase1 (get-behavior-type-index type) py-type-hclass-of-instances))
 
   (set! py-str-class
-    (py-builtin-type-alloc
-      #f ;; cls
-      (get-behavior-type-index str)
-      #f ;; can-have-getter
-      #f ;; bases
-      #f ;; mro
-      py-str-hclass-of-instances))
+    (py-builtin-type-alloc-phase1 (get-behavior-type-index str) py-str-hclass-of-instances))
 
   (set! py-tuple-class
-    (py-builtin-type-alloc
-      #f ;; cls
-      (get-behavior-type-index tuple)
-      #f ;; can-have-getter
-      #f ;; bases
-      #f ;; mro
-      py-tuple-hclass-of-instances))
+    (py-builtin-type-alloc-phase1 (get-behavior-type-index tuple) py-tuple-hclass-of-instances))
 
   (set! py-function-class
-    (py-builtin-type-alloc
-       #f ;; type must be filled in later
-       (get-behavior-type-index function) ;; class index
-       #t ;; can-have-getter
-       #f ;; bases must be filled in later
-       #f ;; mro must be filled in later
-       py-function-hclass-of-instances)) ;; hclass
+    (py-builtin-type-alloc-phase1 (get-behavior-type-index function) py-function-hclass-of-instances))
 
   (set! py-classmethod-class
-    (py-builtin-type-alloc
-       #f ;; type must be filled in later
-       (get-behavior-type-index classmethod) ;; class index
-       #t ;; can-have-getter
-       #f ;; bases must be filled in later
-       #f ;; mro must be filled in later
-       py-classmethod-hclass-of-instances)) ;; hclass
+    (py-builtin-type-alloc-phase1 (get-behavior-type-index classmethod) py-classmethod-hclass-of-instances))
 
   (set! py-staticmethod-class
-    (py-builtin-type-alloc
-       #f ;; type must be filled in later
-       (get-behavior-type-index staticmethod) ;; class index
-       #t ;; can-have-getter
-       #f ;; bases must be filled in later
-       #f ;; mro must be filled in later
-       py-staticmethod-hclass-of-instances)) ;; hclass
+    (py-builtin-type-alloc-phase1 (get-behavior-type-index staticmethod) py-staticmethod-hclass-of-instances))
 
   ;; init all object (& ...) to a py-str object
   (init-registered-constants)
@@ -716,37 +705,57 @@
   (PyObject-class-set! py-object-class py-type-class)
   (PyObjectType-bases-set! py-object-class '#())
   (PyObjectType-mro-set! py-object-class (vector py-object-class))
+  (PyObjectType-can-have-getter-set! py-object-class #f)
   (PyObjectType-can-quick-alloc-set! py-object-class #t)
+  (py-type-fill-subclasses! py-object-class)
 
   ;; Fill in type class
   (PyObject-class-set! py-type-class py-type-class)
   (PyObjectType-bases-set! py-type-class (vector py-object-class))
   (PyObjectType-mro-set! py-type-class (vector py-type-class py-object-class))
+  (PyObjectType-can-have-getter-set! py-type-class #f)
+  (PyObjectType-can-quick-alloc-set! py-type-class #f)
+  (py-type-fill-subclasses! py-type-class)
 
   ;; Fill in tuple class
   (PyObject-class-set! py-tuple-class py-type-class)
   (PyObjectType-bases-set! py-tuple-class (vector py-object-class))
   (PyObjectType-mro-set! py-tuple-class (vector py-tuple-class py-object-class))
+  (PyObjectType-can-have-getter-set! py-tuple-class #f)
+  (PyObjectType-can-quick-alloc-set! py-tuple-class #f)
+  (py-type-fill-subclasses! py-tuple-class)
 
   ;; Fill in str class
   (PyObject-class-set! py-str-class py-type-class)
   (PyObjectType-bases-set! py-str-class (vector py-object-class))
   (PyObjectType-mro-set! py-str-class (vector py-str-class py-object-class))
+  (PyObjectType-can-have-getter-set! py-str-class #f)
+  (PyObjectType-can-quick-alloc-set! py-str-class #f)
+  (py-type-fill-subclasses! py-str-class)
 
   ;; Fill in function class
   (PyObject-class-set! py-function-class py-type-class)
   (PyObjectType-bases-set! py-function-class (vector py-object-class))
   (PyObjectType-mro-set! py-function-class (vector py-function-class py-object-class))
+  (PyObjectType-can-have-getter-set! py-function-class #t)
+  (PyObjectType-can-quick-alloc-set! py-function-class #f)
+  (py-type-fill-subclasses! py-function-class)
 
   ;; Fill in classmethod class
   (PyObject-class-set! py-classmethod-class py-type-class)
   (PyObjectType-bases-set! py-classmethod-class (vector py-object-class))
   (PyObjectType-mro-set! py-classmethod-class (vector py-classmethod-class py-object-class))
+  (PyObjectType-can-have-getter-set! py-classmethod-class #t)
+  (PyObjectType-can-quick-alloc-set! py-classmethod-class #f)
+  (py-type-fill-subclasses! py-classmethod-class)
 
   ;; Fill in staticmethod class
   (PyObject-class-set! py-staticmethod-class py-type-class)
   (PyObjectType-bases-set! py-staticmethod-class (vector py-object-class))
-  (PyObjectType-mro-set! py-staticmethod-class (vector py-staticmethod-class py-object-class)))
+  (PyObjectType-mro-set! py-staticmethod-class (vector py-staticmethod-class py-object-class))
+  (PyObjectType-can-have-getter-set! py-staticmethod-class #t)
+  (PyObjectType-can-quick-alloc-set! py-staticmethod-class #f)
+  (py-type-fill-subclasses! py-staticmethod-class))
 
 (bootstrap-type-hierarchy-phase1)
 ;; signature: '#(args posonlyargs vararg kwonlyargs kw_defaults kwarg defaults)
