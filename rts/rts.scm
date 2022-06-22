@@ -2914,9 +2914,9 @@
   (py-make-builtin-class
     (&& "list_iterator")
     (&& "builtins")
-    (list)
-      (& "__iter__") list_iterator.__iter__
-      (& "__next__") list_iterator.__next__))
+    (list)))
+(list_iterator.__iter__:assign py-list-iterator-class (& "__iter__"))
+(list_iterator.__next__:assign py-list-iterator-class (& "__next__"))
 
 (define-py-method tuple_iterator.__iter__
   guard: (not (eq? (py-type self) py-tuple-iterator-class))
@@ -2934,9 +2934,9 @@
   (py-make-builtin-class
     (&& "tuple_iterator")
     (&& "builtins")
-    (list)
-      (& "__iter__") tuple_iterator.__iter__
-      (& "__next__") tuple_iterator.__next__))
+    (list)))
+(tuple_iterator.__iter__:assign py-tuple-iterator-class (& "__iter__"))
+(tuple_iterator.__next__:assign py-tuple-iterator-class (& "__next__"))
 
 (define-rts (stop-bytearray-iterator iterator)
   (PyObjectBytearrayIterator-index-set! iterator #f)
@@ -2965,9 +2965,9 @@
   (py-make-builtin-class
     (&& "bytearray_iterator")
     (&& "builtins")
-    (list)
-      (& "__iter__") bytearray_iterator.__iter__
-      (& "__next__") bytearray_iterator.__next__))
+    (list)))
+(bytearray_iterator.__iter__:assign py-bytearray-iterator-class (& "__iter__"))
+(bytearray_iterator.__next__:assign py-bytearray-iterator-class (& "__next__"))
 
 ;; ======================
 ;; Dynamic vector helper
@@ -4788,9 +4788,9 @@
   (py-make-builtin-class
     (&& "dict_keyiterator")
     (&& "builtins")
-    (list)
-      (& "__iter__") dict_keyiterator.__iter__
-      (& "__next__") dict_keyiterator.__next__))
+    (list)))
+(dict_keyiterator.__iter__:assign py-dict-keyiterator-class (& "__iter__"))
+(dict_keyiterator.__next__:assign py-dict-keyiterator-class (& "__next__"))
 
 ;; value iterator
 (define-rts (dict->dict-valueiterator d)
@@ -4829,9 +4829,9 @@
   (py-make-builtin-class
     (&& "dict_valueiterator")
     (&& "builtins")
-    (list)
-      (& "__iter__") dict_valueiterator.__iter__
-      (& "__next__") dict_valueiterator.__next__))
+    (list)))
+(dict_valueiterator.__iter__:assign py-dict-valueiterator-class (& "__iter__"))
+(dict_valueiterator.__next__:assign py-dict-valueiterator-class (& "__next__"))
 
 ;; None object
 
@@ -4969,135 +4969,99 @@
   (tuple.count:assign py-tuple-class (& "count"))
   (tuple.index:assign py-tuple-class (& "index"))
 
-  (set! py-module-class
-    (py-make-builtin-class
-     (&& "module")
-     (&& "builtins")
-     (list)
-     (& "__dir__") module.__dir__
-     (& "__getattribute__") module.__getattribute__
-     (& "__setattr__") module.__setattr__))
+  (set! py-module-class (py-make-builtin-class (&& "module") (&& "builtins") (list)))
+  (module.__dir__:assign py-module-class (& "__dir__"))
+  (module.__getattribute__:assign py-module-class (& "__getattribute__"))
+  (module.__setattr__:assign py-module-class (& "__setattr__"))
 
-  (set! py-complex-class
-    (py-make-builtin-class
-     (& "complex")
-     (& "builtins")
-     (list)))
+  (set! py-complex-class (py-make-builtin-class (& "complex") (& "builtins") (list)))
 
-  (set! py-generator-class
-    (py-make-builtin-class
-     (&& "generator")
-     (&& "builtins")
-     (list)
-     (& "__new__") generator.__new__
-     (& "__next__") generator.__next__
-     (& "__iter__") generator.__iter__
-     (& "send") generator.send
-     (& "throw") generator.throw
-     (& "close") generator.close))
+  (set! py-generator-class (py-make-builtin-class (&& "generator") (&& "builtins") (list)))
 
-  (set! py-slice-class
-    (py-make-builtin-class
-     (&& "slice")
-     (&& "builtins")
-     (list)
-     (& "__new__") slice.__new__
-     (& "indices") slice.indices))
+ (generator.__new__:assign py-generator-class (& "__new__"))
+ (generator.__next__:assign py-generator-class (& "__next__"))
+ (generator.__iter__:assign py-generator-class (& "__iter__"))
+ (generator.send:assign py-generator-class (& "send"))
+ (generator.throw:assign py-generator-class (& "throw"))
+ (generator.close:assign py-generator-class (& "close"))
 
+  (set! py-slice-class (py-make-builtin-class (&& "slice") (&& "builtins") (list)))
+  (slice.__new__:assign py-slice-class (& "__new__"))
+  (slice.indices:assign py-slice-class (& "indices"))
   (slice.__repr__:assign py-slice-class (& "__repr__"))
 
-  (set! py-list-class
-    (py-make-builtin-class
-     (&& "list")
-     (&& "builtins")
-     (list)
-     (& "__new__") list.__new__
-     (& "__iter__") list.__iter__
-     (& "__contains__") list.__contains__
-     (& "__getitem__") list.__getitem__
-     (& "__setitem__") list.__setitem__
-     (& "__delitem__") list.__delitem__
-     (& "__eq__") list.__eq__
-     (& "__ne__") list.__ne__
-     (& "__lt__") list.__lt__
-     (& "__le__") list.__le__
-     (& "__gt__") list.__gt__
-     (& "__ge__") list.__ge__
-     (& "__repr__") list.__repr__
-     (& "__len__") list.__len__
-     (& "__add__") list.__add__
-     (& "__iadd__") list.__iadd__
-     (& "__mul__") list.__mul__
-     (& "__rmul__") list.__rmul__
-     (& "__imul__") list.__imul__
-     (& "pop") list.pop
-     (& "clear") list.clear
-     (& "copy") list.copy
-     (& "count") list.count
-     (& "index") list.index
-     (& "remove") list.remove
-     (& "insert") list.insert
-     (& "extend") list.extend
-     (& "reverse") list.reverse))
+  (set! py-list-class (py-make-builtin-class (&& "list") (&& "builtins") (list)))
+  (list.__new__:assign py-list-class (& "__new__"))
+  (list.__iter__:assign py-list-class (& "__iter__"))
+  (list.__contains__:assign py-list-class (& "__contains__"))
+  (list.__getitem__:assign py-list-class (& "__getitem__"))
+  (list.__setitem__:assign py-list-class (& "__setitem__"))
+  (list.__delitem__:assign py-list-class (& "__delitem__"))
+  (list.__eq__:assign py-list-class (& "__eq__"))
+  (list.__ne__:assign py-list-class (& "__ne__"))
+  (list.__lt__:assign py-list-class (& "__lt__"))
+  (list.__le__:assign py-list-class (& "__le__"))
+  (list.__gt__:assign py-list-class (& "__gt__"))
+  (list.__ge__:assign py-list-class (& "__ge__"))
+  (list.__repr__:assign py-list-class (& "__repr__"))
+  (list.__len__:assign py-list-class (& "__len__"))
+  (list.__add__:assign py-list-class (& "__add__"))
+  (list.__iadd__:assign py-list-class (& "__iadd__"))
+  (list.__mul__:assign py-list-class (& "__mul__"))
+  (list.__rmul__:assign py-list-class (& "__rmul__"))
+  (list.__imul__:assign py-list-class (& "__imul__"))
+  (list.pop:assign py-list-class (& "pop"))
+  (list.clear:assign py-list-class (& "clear"))
+  (list.copy:assign py-list-class (& "copy"))
+  (list.count:assign py-list-class (& "count"))
+  (list.index:assign py-list-class (& "index"))
+  (list.remove:assign py-list-class (& "remove"))
+  (list.insert:assign py-list-class (& "insert"))
+  (list.extend:assign py-list-class (& "extend"))
+  (list.reverse:assign py-list-class (& "reverse"))
   (list.append:assign py-list-class (& "append"))
 
-  (set! py-dict-class
-    (py-make-builtin-class
-     (&& "dict")
-     (&& "builtins")
-     (list)
-     (& "__getitem__") dict.__getitem__
-     (& "__setitem__") dict.__setitem__
-     (& "__delitem__") dict.__delitem__
-     (& "__len__") dict.__len__
-     (& "__iter__") dict.__iter__
-     (& "keys") dict.keys
-     (& "values") dict.values
-     (& "get") dict.get))
+  (set! py-dict-class (py-make-builtin-class (&& "dict") (&& "builtins") (list)))
+  (dict.__getitem__:assign py-dict-class (& "__getitem__"))
+  (dict.__setitem__:assign py-dict-class (& "__setitem__"))
+  (dict.__delitem__:assign py-dict-class (& "__delitem__"))
+  (dict.__len__:assign py-dict-class (& "__len__"))
+  (dict.__iter__:assign py-dict-class (& "__iter__"))
+  (dict.keys:assign py-dict-class (& "keys"))
+  (dict.values:assign py-dict-class (& "values"))
+  (dict.get:assign py-dict-class (& "get"))
 
-  (set! py-set-class
-    (py-make-builtin-class
-     (&& "set")
-     (&& "builtins")
-     (list)))
+  (set! py-set-class (py-make-builtin-class (&& "set") (&& "builtins") (list)))
 
-  (set! py-bytearray-class
-    (py-make-builtin-class
-      (&& "bytearray")
-      (&& "builtins")
-      (list)
-        (& "__getitem__") bytearray.__getitem__
-        (& "__new__") bytearray.__new__
-        (& "__setitem__") bytearray.__setitem__
-        (& "__repr__") bytearray.__repr__
-        (& "__add__") bytearray.__add__
-        (& "__iadd__") bytearray.__iadd__
-        (& "__mul__") bytearray.__mul__
-        (& "__rmul__") bytearray.__rmul__
-        (& "__imul__") bytearray.__imul__
-        (& "__len__") bytearray.__len__
-        (& "append") bytearray.append
-        (& "count") bytearray.count
-        (& "find") bytearray.find
-        (& "index") bytearray.index
-        (& "rindex") bytearray.rindex
-        (& "rfind") bytearray.rfind
-        (& "__eq__") bytearray.__eq__
-        (& "__lt__") bytearray.__lt__
-        (& "__le__") bytearray.__le__
-        (& "__gt__") bytearray.__gt__
-        (& "__ge__") bytearray.__ge__
-        (& "__ne__") bytearray.__ne__
-        (& "__iter__") bytearray.__iter__))
+  (set! py-bytearray-class (py-make-builtin-class (&& "bytearray") (&& "builtins") (list)))
+  (bytearray.__getitem__:assign py-bytearray-class (& "__getitem__"))
+  (bytearray.__new__:assign py-bytearray-class (& "__new__"))
+  (bytearray.__setitem__:assign py-bytearray-class (& "__setitem__"))
+  (bytearray.__repr__:assign py-bytearray-class (& "__repr__"))
+  (bytearray.__add__:assign py-bytearray-class (& "__add__"))
+  (bytearray.__iadd__:assign py-bytearray-class (& "__iadd__"))
+  (bytearray.__mul__:assign py-bytearray-class (& "__mul__"))
+  (bytearray.__rmul__:assign py-bytearray-class (& "__rmul__"))
+  (bytearray.__imul__:assign py-bytearray-class (& "__imul__"))
+  (bytearray.__len__:assign py-bytearray-class (& "__len__"))
+  (bytearray.append:assign py-bytearray-class (& "append"))
+  (bytearray.count:assign py-bytearray-class (& "count"))
+  (bytearray.find:assign py-bytearray-class (& "find"))
+  (bytearray.index:assign py-bytearray-class (& "index"))
+  (bytearray.rindex:assign py-bytearray-class (& "rindex"))
+  (bytearray.rfind:assign py-bytearray-class (& "rfind"))
+  (bytearray.__eq__:assign py-bytearray-class (& "__eq__"))
+  (bytearray.__lt__:assign py-bytearray-class (& "__lt__"))
+  (bytearray.__le__:assign py-bytearray-class (& "__le__"))
+  (bytearray.__gt__:assign py-bytearray-class (& "__gt__"))
+  (bytearray.__ge__:assign py-bytearray-class (& "__ge__"))
+  (bytearray.__ne__:assign py-bytearray-class (& "__ne__"))
+  (bytearray.__iter__:assign py-bytearray-class (& "__iter__"))
 
-  (set! py-NoneType-class
-    (py-make-builtin-class
-      (&& "NoneType")
-      (&& "builtins")
-      (list)
-        (& "__new__") NoneType.__new__
-        (& "__repr__") NoneType.__repr__
-        (& "__bool__") NoneType.__bool__))
+  (set! py-NoneType-class (py-make-builtin-class (&& "NoneType") (&& "builtins") (list)))
+  (NoneType.__new__:assign py-NoneType-class (& "__new__"))
+  (NoneType.__repr__:assign py-NoneType-class (& "__repr__"))
+  (NoneType.__bool__:assign py-NoneType-class (& "__bool__"))
   (PyObject-class-set! py-None py-NoneType-class))
 
 (bootstrap-type-hierarchy-phase2)
@@ -5157,11 +5121,11 @@
     (&& "TextIOWrapper")
     (&& "_io")
     ;; TODO: the correct mro is actually [<class '_io.TextIOWrapper'>, <class '_io._TextIOBase'>, <class '_io._IOBase'>, <class 'object'>]
-    (list)
-      (& "__enter__") TextIOWrapper.__enter__
-      (& "__exit__") TextIOWrapper.__exit__
-      (& "close") TextIOWrapper.close
-      (& "read") TextIOWrapper.read))
+    (list)))
+(TextIOWrapper.__enter__:assign py-TextIOWrapper-class (& "__enter__"))
+(TextIOWrapper.__exit__:assign py-TextIOWrapper-class (& "__exit__"))
+(TextIOWrapper.close:assign py-TextIOWrapper-class (& "close"))
+(TextIOWrapper.read:assign py-TextIOWrapper-class (& "read"))
 
 ;; TODO: arguments other than file are currentl ignored
 (define-rts (py-open file mode buffering encoding errors newline closefd opener)
@@ -5195,12 +5159,10 @@
   signature: (posonlyargs: (self)))
 
 (define-rts py-NotImplementedType-class
-  (py-make-builtin-class
-    (&& "NotImplementedType")
-    (&& "builtins")
-    (list)
-      (& "__new__") NotImplementedType.__new__
-      (& "__repr__") NotImplementedType.__repr__))
+  (py-make-builtin-class (&& "NotImplementedType") (&& "builtins") (list)))
+
+(NotImplementedType.__new__:assign py-NotImplementedType-class (& "__new__"))
+(NotImplementedType.__repr__:assign py-NotImplementedType-class (& "__repr__"))
 
 (define-rts py-NotImplemented (py-obj-alloc py-NotImplementedType-class))
 
@@ -7442,10 +7404,9 @@
   (py-make-builtin-class
     (&& "super")
     (&& "builtins")
-    (list)
-      (& "__init__") super.__init__
-      (& "__getattribute__") super.__getattribute__
-    ))
+    (list)))
+(super.__init__:assign py-builtin-super (& "__init__"))
+(super.__getattribute__:assign py-builtin-super (& "__getattribute__"))
 
 ;;-------------------- tuple([iterable])
 
