@@ -2651,7 +2651,7 @@
   body: (py-throw-exception-with-message
           py-builtin-TypeError
           "cannot create 'generator' instances")
-  signature: (vararg: args kwarg: kwargs))
+  signature: (posonlyargs: (cls) vararg: args kwarg: kwargs))
 
 ;; =============================================================================
 ;;  BUILTIN CLASSES
@@ -4088,11 +4088,11 @@
                 (py-bytearray-subtype-from-scheme (make-dynamic-vector (car value) (u8vector-copy (cdr value))) cls)))
               (else
                 (py-throw-exception-with-message
-                  py-buitlin-NotImplementedError
+                  py-builtin-NotImplementedError
                   "bytearray.__new__ only supports int as an argument"))))
           (else
             (py-throw-exception-with-message
-              py-buitlin-NotImplementedError
+              py-builtin-NotImplementedError
               "bytearray.__new__ only supports 0 or 1 argument")))
   signature: (posonlyargs: (cls source encoding errors)
               defaults: '#(#f #f #f)))
@@ -7405,7 +7405,7 @@
 ;; super(), see guide to using super().
 
 (define-py-method super.__init__
-  guard: (not (py-isinstance? self py-super-class))
+  guard: (not (py-isinstance? self py-builtin-super))
          (py-throw-required-type "__init__" "super" self)
   guard: (not type)
          (py-throw-exception-with-message
@@ -7421,7 +7421,7 @@
               defaults: '#(#f #f)))
 
 (define-py-method super.__getattribute__
-  guard: (not (py-isinstance? self py-super-class))
+  guard: (not (py-isinstance? self py-builtin-super))
          (py-throw-required-type "__getattribute__" "super" self)
   body: (if (eq? (py-str-representative name) (& "__class__"))
             py-builtin-super
