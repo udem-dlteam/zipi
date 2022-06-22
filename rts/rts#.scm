@@ -165,6 +165,7 @@
   class-index
   (bases unprintable:)
   (mro unprintable:)
+  (subclasses unprintable:)
   (hclass-of-instances unprintable:)
   (is-builtin unprintable:)
   can-have-getter

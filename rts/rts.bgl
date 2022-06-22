@@ -42,6 +42,7 @@
 	      class-index
 	      bases
 	      mro
+        subclasses
 	      hclass-of-instances
 	      is-builtin
 	      can-have-getter
