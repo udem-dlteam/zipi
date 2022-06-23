@@ -276,6 +276,7 @@
                       bases::pair-nil
                       body::PycStmt
                       (decorators::pair-nil (default '()))
+                      (attributes::pair-nil (default '()))
                       (methods::pair-nil (default '()))
                       (decls::pair-nil (default '()))
                       (super-key::symbol (default '_))

@@ -203,9 +203,9 @@
 (define-inline (new-PycSemantics loc args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (decls (quote ())) (generator #f) (need-return #f) (can-locals #t) (super-in-class #f) (use-simple-scoping #f) (name #f) (annotation-names (quote ())) (annotation (quote ())) (is-builtin #f) (is-private #f) (&proc #f) (&proc-init #f) (method-of #f) (method-var #f) (inline #f) (inline-as-is #f) (is-behavior #f))
    (make-PycSemantics loc %info cps type args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults body decorators decls generator need-return can-locals super-in-class use-simple-scoping name annotation-names annotation is-builtin is-private &proc &proc-init method-of method-var inline inline-as-is is-behavior))
 
-;; (new-PycClass loc name module bases body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (methods (quote ())) (decls (quote ())) (super-key (quote _)) (is-builtin #f) (is-private #f))
-(define-inline (new-PycClass loc name module bases body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (methods (quote ())) (decls (quote ())) (super-key (quote _)) (is-builtin #f) (is-private #f))
-   (make-PycClass loc %info cps type name module bases body decorators methods decls super-key is-builtin is-private))
+;; (new-PycClass loc name module bases body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (attributes (quote ())) (methods (quote ())) (decls (quote ())) (super-key (quote _)) (is-builtin #f) (is-private #f))
+(define-inline (new-PycClass loc name module bases body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (attributes (quote ())) (methods (quote ())) (decls (quote ())) (super-key (quote _)) (is-builtin #f) (is-private #f))
+   (make-PycClass loc %info cps type name module bases body decorators attributes methods decls super-key is-builtin is-private))
 
 ;; (new-PycYield loc val #!key (%info #f) (cps #f) (type #f) (generator #f))
 (define-inline (new-PycYield loc val #!key (%info #f) (cps #f) (type #f) (generator #f))

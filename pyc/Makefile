@@ -21,7 +21,7 @@ do: build
 #*    common objects                                                   */
 #*---------------------------------------------------------------------*/
 OBJECTS_COMMON = ast compile parse sexp symbol return dump locals break \
-  generator cps methods scheme javascript utils configure super \
+  generator cps methods hclass scheme javascript utils configure super \
   intrinsics simple-scoping usage type-inference pyc-to-scheme-utils \
   PycBinary-to-scheme PycCall-to-scheme PycAccess-to-scheme
 

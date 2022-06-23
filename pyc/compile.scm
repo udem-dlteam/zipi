@@ -10,6 +10,7 @@
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
      ("simple-scoping" . ,pyc-simple-scoping)
+     ("hclass" . ,pyc-hclass)
      ("methods" . ,pyc-methods)
      ("scheme" . ,pyc-scheme)))
 
@@ -26,6 +27,7 @@
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
      ("simple-scoping" . ,pyc-simple-scoping)
+     ("hclass" . ,pyc-hclass)
      ("methods" . ,pyc-methods)
      ("bigloo" . ,pyc-scheme-bigloo)))
 
@@ -42,6 +44,7 @@
      ("generator" . ,pyc-generator)
      ("cps" . ,pyc-cps)
      ("simple-scoping" . ,pyc-simple-scoping)
+     ("hclass" . ,pyc-hclass)
      ("methods" . ,pyc-methods)
      ("gambit" . ,pyc-scheme-gambit)))
 

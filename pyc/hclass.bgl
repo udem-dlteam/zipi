@@ -1,0 +1,11 @@
+(module __pyc_hclass
+
+   (include
+      "ast.sch"
+	    "walk.sch")
+
+   (import
+     __pyc_dump
+	   __pyc_ast)
+
+   (export (pyc-hclass this::PycNode conf)))
