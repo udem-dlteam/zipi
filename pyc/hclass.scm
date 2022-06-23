@@ -19,8 +19,48 @@
     (apply-attributes-propagation! classes)
     ;; sort attributes such that classes with the same attributes can share the same HClass
     (map normalize-attributes (map cdr classes))
+    (assign-hclasses! this (map cdr classes))
     ;;(pp (map (lambda (c) (cons (PycClass-name c) (PycClass-attributes c))) (map cdr classes)))
     this))
+
+(define (assign-hclasses! this classes)
+  (define (group-by-attributes classes)
+    (let ((assoc-table '()))
+      (let loop ((classes classes))
+        (if (pair? classes)
+          (let* ((class (car classes))
+                 ;; attributes should have been sorted by hclass.scm
+                 (attributes (PycClass-attributes class))
+                 (table-pair (assoc attributes assoc-table)))
+            (if table-pair
+              (set-cdr! table-pair (cons class (cdr table-pair)))
+              (set! assoc-table (cons
+                                  (cons attributes (list class))
+                                  assoc-table)))
+            (loop (cdr classes)))))
+      assoc-table))
+
+  (define (make-hclass-name classes)
+    (let* ((names (reverse (map PycClass-name classes)))
+           (hclass-name
+             (apply string-append
+               (map
+                 (lambda (n) (string-append n "-"))
+                 names))))
+      (my-gensym
+        (string->symbol
+          (string-append hclass-name "hclass-of-instances")))))
+
+  (let* ((class-table (group-by-attributes classes)))
+    (map
+      (lambda (attributes-classes)
+        (let* ((attributes (car attributes-classes))
+               (classes (cdr attributes-classes))
+               (hclass-name (make-hclass-name classes))
+               (hclass (new-PycHClass hclass-name attributes)))
+        (for-each (lambda (cls) (PycClass-hclass-set! cls hclass)) classes)
+        (PycModule-hclasses-set! this (cons hclass (PycModule-hclasses this)))))
+      class-table)))
 
 (define (normalize-attributes cls)
   (PycClass-attributes-set! cls (sort string<? (PycClass-attributes cls))))

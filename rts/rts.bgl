@@ -348,7 +348,7 @@
 	   (py-make-caches ::pair-nil)
 
 	   (py-extend-builtin-core-class cls . attrs)
-	   (py-make-class name module bases . atrs)
+	   (py-make-class name module bases hclass-of-instances . attrs)
 
 	   (inline native-exception? val)
 	   (py-throw ::obj)
@@ -427,6 +427,8 @@
 	   (class HClass
 	      (names::vector (default '#()))
 	      (transitions::pair-nil (default '())))
+
+      (make-initial-HClass names)
 
 	   (inline PCache-set! ::PCache ::HClass ::long)
 	   (inline HClass-last-index::long ::HClass)

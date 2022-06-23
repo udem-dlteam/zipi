@@ -847,6 +847,7 @@
     py-float-class
     py-method-class
     str-representatives
+    make-initial-HClass
 
     ;; methods for quick calls
     list.append:unsafe

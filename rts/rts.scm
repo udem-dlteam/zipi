@@ -39,6 +39,10 @@
 (define-macro (make-builtin-HClass names transitions)
   `(make-still-copy (make-HClass ,names ,transitions)))
 
+;; initial HClass for user-defined classes
+(define-rts (make-initial-HClass names)
+  (make-HClass (vector-map py-str-representative-fallback names) '()))
+
 (define-macro (HClass-last-index hclass)
   `(fx- (vector-length (HClass-names ,hclass)) 1))
 
@@ -2805,7 +2809,7 @@
       (cons (reverse rev-attr-names) (reverse rev-attr-values)))))
 
 
-(define-rts (py-make-class-from-type-allocator class-index can-have-getter name module bases type-allocator attrs)
+(define-rts (py-make-class-from-type-allocator class-index can-have-getter name module bases hclass-of-instances type-allocator attrs)
   (define (make-cls attr-names attr-values)
     (let* ((bases-vect
             (if (null? bases)
@@ -2814,9 +2818,7 @@
            (cls (type-allocator py-type-class class-index can-have-getter bases-vect #f #f)))
       (PyObjectType-mro-set! cls (py-compute-mro cls))
       ;; NOTE: objects for different classes MUST have different classes for attributes caching
-      (PyObjectType-hclass-of-instances-set!
-        cls
-        (make-HClass '#() '()))
+      (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
       (let loop ((attr-names attr-names) (attr-values attr-values))
         (if (pair? attr-names)
             (begin
@@ -2828,15 +2830,26 @@
     (let ((parsed-attrs (py-class-parse-attributes attrs)))
       (make-cls (car parsed-attrs) (cdr parsed-attrs))))
 
-(define-rts (py-make-class name module bases . attrs)
-  (py-make-class-from-type-allocator (get-behavior-type-index default) #t name module bases py-type-alloc attrs))
+(define-rts (py-make-class name module bases hclass-of-instances . attrs)
+  (py-make-class-from-type-allocator
+    (get-behavior-type-index default)
+    #t
+    name
+    module
+    bases
+    hclass-of-instances
+    py-type-alloc attrs))
 
 (define-rts (py-make-builtin-class-with-class-info class-index can-have-getter name module bases hclass-of-instances . attrs)
-  (let ((cls
-          (py-make-class-from-type-allocator
-            class-index can-have-getter name module bases py-builtin-type-alloc attrs)))
-    (PyObjectType-hclass-of-instances-set! cls hclass-of-instances)
-    cls))
+  (py-make-class-from-type-allocator
+    class-index
+    can-have-getter
+    name
+    module
+    bases
+    hclass-of-instances
+    py-builtin-type-alloc
+    attrs))
 
 (define-rts (py-extend-builtin-core-class cls . attrs)
   (define (extend-cls attr-names attr-values)
@@ -3536,6 +3549,7 @@
   guard: (not (py-isinstance? self py-list-class))
          (py-throw-required-type "__iadd__" "list" self)
   body: (list-extend-with-iterable! self other)
+        self
   signature: (posonlyargs: (self other)))
 
 (define-py-method list.remove

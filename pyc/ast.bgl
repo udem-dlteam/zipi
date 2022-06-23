@@ -34,7 +34,12 @@
                 stmts::pair-nil
                 (globals::pair-nil (default '()))
                 (global-defs::pair-nil (default '()))
+                (hclasses (default '()))
                 (caches::pair-nil (default '())))
+
+         (class PycHClass
+            id::symbol
+            attributes::pair-nil)
 
          ;; misc
          (class PycVar::PycNode
@@ -277,6 +282,7 @@
                       body::PycStmt
                       (decorators::pair-nil (default '()))
                       (attributes::pair-nil (default '()))
+                      (hclass (default #f))
                       (methods::pair-nil (default '()))
                       (decls::pair-nil (default '()))
                       (super-key::symbol (default '_))
