@@ -432,8 +432,7 @@
          (unsafe-signature (cons unsafe-name arguments))
          (binding-arguments
            (case binding
-             ((method) arguments)
-             ((classmethod) (cons (gensym '_) (cdr arguments))) ;; cls will be passed in a pre-computed closure
+             ((method classmethod) arguments)
              ((staticmethod) (cons (gensym '_) arguments))))
          (binding-method-signature (make-signature-for-pending-binding))
          (default-arguments-code
@@ -489,13 +488,13 @@
                     ,unsafe-name
                     (,get-pending-binding-signature-name))))
               ((classmethod)
-                (let ((cls-argument (gensym 'cls)))
-                  `(set! ,binding-method-name
-                    (lambda (,cls-argument)
-                      (procedure->py-function
-                        (lambda ,(cons (gensym '_) (cdr arguments))
-                          (,unsafe-name ,cls-argument ,@(cdr arguments)))
-                        (,get-pending-binding-signature-name))))))
+                `(set! ,binding-method-name
+                  (procedure->py-function
+                    (lambda ,arguments
+                      ;; NOTE: we can use py-obj-cls-general here because int and float have no classmethods
+                      ;; TODO: add a check that we never assign a classmethod to py-int-class and py-float-class?
+                      (,unsafe-name (py-obj-cls-general ,(car arguments)) ,@(cdr arguments)))
+                    (,get-pending-binding-signature-name))))
               ((staticmethod)
                 `(set! ,binding-method-name
                   (procedure->py-function
@@ -527,7 +526,7 @@
                    '#()
                    py-classmethod-class
                    (,get-function-name))
-                  ((,get-pending-binding-function-name) type)))
+                  (,get-pending-binding-function-name)))
               ((staticmethod)
                 `(py-cls-own-attr-set-with-pending-binding!
                   type
