@@ -419,23 +419,25 @@
  id: AttributeCache-A1E4C683-1891-4179-81F6-797D0A717E37
  copier: #f
  macros:
- ;; hclass for caching attr found on object
- object-hclass
- ;; hclass for caching attr found on object's mro
- mro-hclass
- ;; hclass for caching attr found on module
- module-hclass
- ;; hclass for caching attr found on type
- type-hclass
- ;; index of an attribute found on the instance itself
- index
- ;; slots for caching attr found on the mro of the object's class
- ;; the attribute cached
- attr
- ;; the owner
- owner
- ;; how to bind the object ('self or 'none)
- bind)
+ ;; fields for caching attributes found on an object
+ object-cache:hclass ;; hclass of the object
+ object-cache:index  ;; index of attribute in the object
+
+ ;; fields for caching attributes found on an object's class mro
+ mro-cache:hclass ;; hclass of the object (required to check the attr is NOT on the object)
+ mro-cache:type   ;; type of the object
+ mro-cache:attr   ;; the cached attribute found in the mro
+ mro-cache:owner  ;; the owner of the attribute, for binding
+
+ ;; fields for caching attributes found on a type own mro
+ type-cache:type  ;; the type on which the cached attr was found
+ type-cache:attr  ;; the attribute
+ type-cache:owner ;; the owner for binding
+
+ ;; fields for caching attributes found on a module
+ module-cache:module ;; the module on which the attribute was found
+ module-cache:index  ;; the index of the attribute on the module
+)
 
 ;; =============================================================================
 ;;  HClass

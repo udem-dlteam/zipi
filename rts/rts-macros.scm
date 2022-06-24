@@ -91,60 +91,142 @@
 
 ;; caches
 
-(define-macro (AttributeCache-set! cache object-hclass mro-hclass module-hclass type-hclass index attr owner bind)
-  `(let (($c ,cache))
-     (AttributeCache-object-hclass-set! $c ,object-hclass)
-     (AttributeCache-mro-hclass-set! $c ,mro-hclass)
-     (AttributeCache-module-hclass-set! $c ,module-hclass)
-     (AttributeCache-type-hclass-set! $c ,type-hclass)
-     (AttributeCache-index-set! $c ,index)
-     (AttributeCache-attr-set! $c ,attr)
-     (AttributeCache-owner-set! $c ,owner)
-     (AttributeCache-bind-set! $c ,bind)))
+(define-macro (AttributeCache-set!
+                 cache
+                 object-cache:hclass
+                 object-cache:index
+                 mro-cache:hclass
+                 mro-cache:type
+                 mro-cache:attr
+                 mro-cache:owner
+                 type-cache:type
+                 type-cache:attr
+                 type-cache:owner
+                 module-cache:module
+                 module-cache:index)
+  (let (($c (gensym 'cache)))
+    `(let ((,$c ,cache))
+        (AttributeCache-object-cache:hclass-set! ,$c ,object-cache:hclass)
+        (AttributeCache-object-cache:index-set! ,$c ,object-cache:index)
+        (AttributeCache-mro-cache:hclass-set! ,$c ,mro-cache:hclass)
+        (AttributeCache-mro-cache:type-set! ,$c ,mro-cache:type)
+        (AttributeCache-mro-cache:attr-set! ,$c ,mro-cache:attr)
+        (AttributeCache-mro-cache:owner-set! ,$c ,mro-cache:owner)
+        (AttributeCache-type-cache:type-set! ,$c ,type-cache:type)
+        (AttributeCache-type-cache:attr-set! ,$c ,type-cache:attr)
+        (AttributeCache-type-cache:owner-set! ,$c ,type-cache:owner)
+        (AttributeCache-module-cache:module-set! ,$c ,module-cache:module)
+        (AttributeCache-module-cache:index-set! ,$c ,module-cache:index))))
 
 (define-macro (make-init-AttributeCache)
-  `(make-AttributeCache #f #f #f #f -1 #f #f #f))
+  `(make-AttributeCache #f -1 #f #f #f #f #f #f #f #f -1))
 
 (define-macro (AttributeCache-reset! cache)
-  `(AttributeCache-set! ,cache #f #f #f #f -1 #f #f #f))
+  `(AttributeCache-set! ,cache #f -1 #f #f #f #f #f #f #f #f -1))
 
 (define-macro (AttributeCache-mro-reset! cache)
-  `(let (($c ,cache))
-     (AttributeCache-mro-hclass-set! $c #f)
-     (AttributeCache-type-hclass-set! $c #f)
-     (AttributeCache-attr-set! $c #f)
-     (AttributeCache-owner-set! $c #f)
-     (AttributeCache-bind-set! $c #f)))
+  (let (($c (gensym 'cache)))
+    `(let ((,$c ,cache))
+       (AttributeCache-mro-cache:hclass-set! ,$c #f)
+       (AttributeCache-mro-cache:type-set! ,$c #f)
+       (AttributeCache-mro-cache:attr-set! ,$c #f)
+       (AttributeCache-mro-cache:owner-set! ,$c #f)
+       (AttributeCache-type-cache:type-set! ,$c #f)
+       (AttributeCache-type-cache:attr-set! ,$c #f)
+       (AttributeCache-type-cache:owner-set! ,$c #f))))
 
-(define-macro (AttributeCache-object-hit! cache object-hclass index)
-  `(AttributeCache-set! ,cache ,object-hclass #f #f #f ,index #f #f #f))
+(define-macro (AttributeCache-object-hit! cache hclass index)
+  (let (($c (gensym 'cache)))
+    `(let ((,$c ,cache))
+       (AttributeCache-object-cache:hclass-set! ,$c ,hclass)
+       (AttributeCache-object-cache:index-set! ,$c ,index))))
 
-(define-macro (AttributeCache-module-hit! cache module-hclass index)
-  `(AttributeCache-set! ,cache #f #f ,module-hclass #f ,index #f #f #f))
+(define-macro (AttributeCache-mro-hit! cache hclass type attr owner)
+  (let (($c (gensym 'cache)))
+    `(let ((,$c ,cache))
+       (AttributeCache-mro-cache:hclass-set! ,$c ,hclass)
+       (AttributeCache-mro-cache:type-set! ,$c ,type)
+       (AttributeCache-mro-cache:attr-set! ,$c ,attr)
+       (AttributeCache-mro-cache:owner-set! ,$c ,owner))))
 
-(define-macro (AttributeCache-type-hit! cache type-hclass attr owner)
-  `(AttributeCache-set! ,cache #f #f #f ,type-hclass -1 ,attr ,owner (quote 'none)))
+(define-macro (AttributeCache-type-hit! cache type attr owner)
+  (let (($c (gensym 'cache)))
+    `(let ((,$c ,cache))
+       (AttributeCache-type-cache:type-set! ,$c ,type)
+       (AttributeCache-type-cache:attr-set! ,$c ,attr)
+       (AttributeCache-type-cache:owner-set! ,$c ,owner))))
 
-(define-macro (AttributeCache-mro-hit! cache mro-hclass attr owner)
-  `(AttributeCache-set! ,cache #f ,mro-hclass #f #f -1 ,attr ,owner #f))
+(define-macro (AttributeCache-module-hit! cache module index)
+  (let (($c (gensym 'cache)))
+    `(let ((,$c ,cache))
+       (AttributeCache-module-cache:module-set! ,$c ,module)
+       (AttributeCache-module-cache:index-set! ,$c ,index))))
 
-;; this happens when the attribute is present in the object hclass
-;; but is py-absent and ends up being found in the mro
-(define-macro (AttributeCache-object-or-mro-hit! cache object-hclass index attr owner)
-  `(let (($object-hclass ,object-hclass))
-    (AttributeCache-set! ,cache $object-hclass $object-hclass #f #f ,index ,attr ,owner #f)))
+;; recover cached attribute found on an object
+(define-macro (AttributeCache-object-match? cache obj hclass type)
+  (let ((obj-sym (gensym 'obj))
+        (hclass-sym (gensym 'hclass))
+        (type-sym (gensym 'type))
+        (cache-sym (gensym 'cache))
+        (index-sym (gensym 'index))
+        (attr-sym (gensym 'attr)))
+    `(let ((,obj-sym ,obj)
+           (,hclass-sym ,hclass)
+           (,type-sym ,type)
+           (,cache-sym ,cache))
+      (and (eq? ,hclass-sym (AttributeCache-object-cache:hclass ,cache-sym))
+           (let ((,index-sym (AttributeCache-object-cache:index ,cache-sym)))
+             (and (not (fx= ,index-sym -1))
+                  (let ((,attr-sym (PyObject-elements-ref ,obj-sym ,index-sym)))
+                       (and (not (eq? ,attr-sym py-absent))
+                            ,attr-sym))))))))
 
-;; NOTE: there is no AttributeCache-module-mro-hit! macro since this case is identical to AttributeCache-object-mro-hit!
+;; recover cached attribute found in an object's class mro
+(define-macro (AttributeCache-mro-match? cache obj hclass type . params)
+  (let ((skip-binding (let ((x (memq skip-binding: params))) (and x (cadr x))))
+        (obj-sym (gensym 'obj))
+        (hclass-sym (gensym 'hclass))
+        (type-sym (gensym 'type))
+        (cache-sym (gensym 'cache)))
+    `(let ((,obj-sym ,obj)
+           (,hclass-sym ,hclass)
+           (,type-sym ,type)
+           (,cache-sym ,cache))
+      (and (eq? ,hclass-sym (AttributeCache-mro-cache:hclass ,cache-sym))
+           (eq? ,type-sym (AttributeCache-mro-cache:type ,cache-sym))
+           ,(if skip-binding
+             `(AttributeCache-mro-cache:attr ,cache-sym)
+             `(py-descriptor-get
+               (AttributeCache-mro-cache:attr ,cache-sym)
+               ,obj-sym
+               (AttributeCache-mro-cache:owner ,cache-sym)))))))
 
-(define-macro (AttributeCache-module-or-mro-hit! cache module-hclass index attr owner)
-  `(let (($module-hclass ,module-hclass))
-    (AttributeCache-set! ,cache #f $module-hclass $module-hclass #f ,index ,attr ,owner #f)))
+;; recover cached attribute found on a type or in its own mro
+(define-macro (AttributeCache-type-match? cache type . params)
+  (let ((skip-binding (let ((x (memq skip-binding: params))) (and x (cadr x))))
+        (type-sym (gensym 'type))
+        (cache-sym (gensym 'cache)))
+    `(let ((,type-sym ,type)
+           (,cache-sym ,cache))
+      (and (eq? ,type-sym (AttributeCache-type-cache:type ,cache-sym))
+           ,(if skip-binding
+              `(AttributeCache-type-cache:attr ,cache-sym)
+              `(py-descriptor-get
+                 (AttributeCache-type-cache:attr ,cache-sym)
+                 py-None
+                 (AttributeCache-type-cache:owner ,cache-sym)))))))
 
-(define-macro (AttributeCache-type-mro-hit! cache type-hclass attr owner)
-  `(AttributeCache-set! ,cache #f #f #f ,type-hclass -1 ,attr ,owner (quote 'self)))
-
-;; NOTE: there is no AttributeCache-type-or-mro-hit! macro since it would complexify the cache structure
-;; while being a case which practically never happens [citation needed]
+;; recover cached attribute found on a module
+(define-macro (AttributeCache-module-match? cache module)
+  (let ((module-sym (gensym 'module))
+        (cache-sym (gensym 'cache))
+        (index-sym (gensym 'index)))
+    `(let ((,module-sym ,module)
+           (,cache-sym ,cache))
+      (and (eq? ,module-sym (AttributeCache-module-cache:module ,cache-sym))
+           (let ((,index-sym (AttributeCache-module-cache:index ,cache-sym)))
+             (and (not (fx= ,index-sym -1))
+                  (PyObject-global-elements-ref ,module-sym ,index-sym)))))))
 
 ;; calls
 
@@ -3071,79 +3153,32 @@
     `(py-getattribute-fallback ,obj ,attr))))
 
 (define-macro (py-getattribute-cached obj attr cache inline-priorities)
-  ;; attr should always be a string literal
-  `(py-specialized-sint-float-dispatch-let
-     $OBJ
-     ,obj
-     ;; TODO: use macro to determine exact attribute in case of
-     ;; int and float, those can be determined statically
-     (py-getattribute-fallback $OBJ ,attr)
-     (py-getattribute-fallback $OBJ ,attr)
-     ,(let loop ((inlines inline-priorities))
-       (if (null? inlines)
-         `(py-getattribute-cached-modular-fallback
-            $OBJ (py-obj-hclass-general $OBJ) ,attr ,cache
-            ,(not (not (memq 'object inline-priorities)))
-            ,(not (not (memq 'mro inline-priorities)))
-            ,(not (not (memq 'type inline-priorities)))
-            ,(not (not (memq 'module inline-priorities))))
-         `(let (($cache ,cache)
-                ($hclass (py-obj-hclass-general $OBJ)))
-             ,(case (car inlines)
-                ((object)
-                  `(if (eq? $hclass (AttributeCache-object-hclass $cache))
-                       (py-getattribute-from-object-cache $OBJ $cache)
-                       ,(loop (cdr inlines))))
-                ((mro)
-                  `(if (eq? $hclass (AttributeCache-mro-hclass $cache))
-                       (py-getattribute-from-mro-cache $OBJ $cache)
-                       ,(loop (cdr inlines))))
-                ((type)
-                  `(if (eq? $hclass (AttributeCache-type-hclass $cache))
-                       (py-getattribute-from-type-cache $OBJ $cache)
-                       ,(loop (cdr inlines))))
-                ((module)
-                  `(if (eq? $hclass (AttributeCache-module-hclass $cache))
-                       (py-getattribute-from-module-cache $OBJ $cache)
-                       ,(loop (cdr inlines))))
-                (else (error "py-getattribute-cached" "unknown inlining priority" (car inlines)))))))))
-
-(define-macro (py-getattribute-from-module-cache obj cache)
-  `(let* (($cache ,cache)
-          ($obj ,obj)
-          (index (AttributeCache-index $cache)))
-    (if (fx= index -1)
-      (py-getattribute-from-mro-cache $obj $cache)
+  (let ((cache-sym (gensym 'cache))
+        (obj-sym (gensym 'obj))
+        (hclass-sym (gensym 'hclass))
+        (type-sym (gensym 'obj-type)))
+    `(let* ((,cache-sym ,cache)
+            (,obj-sym ,obj)
+            (,hclass-sym (py-obj-hclass ,obj-sym))
+            (,type-sym (py-obj-cls ,obj-sym)))
       (or
-        (PyObject-global-elements-ref $obj index)
-        (py-getattribute-from-mro-cache $obj $cache)))))
-
-(define-macro (py-getattribute-from-object-cache obj cache)
-  `(let* (($cache ,cache)
-         ($obj ,obj)
-         (index (AttributeCache-index $cache)))
-    (if (fx= index -1)
-      (py-getattribute-from-mro-cache $obj $cache)
-      (let ((attr (PyObject-elements-ref $obj index)))
-        (if (eq? attr py-absent)
-          (py-getattribute-from-mro-cache $obj $cache)
-          attr)))))
-
-(define-macro (py-getattribute-from-mro-cache obj cache)
-  ;; obj should never be a sint or float, those case can be resolved statically
-  `(let (($cache ,cache))
-      (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))))
-
-(define-macro (py-getattribute-from-type-cache obj cache)
-  ;; obj should never be a sint or float, those are not types
-  `(let (($cache ,cache))
-    (if (eq? (AttributeCache-bind $cache) 'self)
-        (py-descriptor-get (AttributeCache-attr $cache) ,obj (AttributeCache-owner $cache))
-        (py-descriptor-get (AttributeCache-attr $cache) py-None (AttributeCache-owner $cache)))))
+        ,@(map
+            (lambda (priority)
+              (case priority
+                ((object)
+                  `(AttributeCache-object-match? ,cache-sym ,obj-sym ,hclass-sym ,type-sym))
+                ((mro)
+                  `(AttributeCache-mro-match? ,cache-sym ,obj-sym ,hclass-sym ,type-sym))
+                ((type)
+                  `(AttributeCache-type-match? ,cache-sym ,obj-sym))
+                ((module)
+                  `(AttributeCache-module-match? ,cache-sym ,obj-sym))))
+            inline-priorities)
+        (py-getattribute-cached-fallback
+           ,obj-sym ,type-sym ,hclass-sym ,attr ,cache-sym)))))
 
 (define-macro (py-setattribute obj attr val)
   `(py-setattribute-fallback ,obj ,attr ,val))
-
 
 ;; TODO : The case of having a step of 1 in the slice could be optimized with
 ;;        a vector-copy directly. This is curently pending and not used (need testing)

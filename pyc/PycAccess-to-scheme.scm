@@ -61,13 +61,14 @@
     ;;          found in mro/on types while numbers are most likely to be found on objects
     ;; Fourth - If all fails, use a default priority which works as often as possible
 
+    ;; always check object prior to mro, object own attributes shadow mro
     (define default-priority '(object mro))
-    (define probably-mro-priority '(mro type))
+    (define probably-mro-priority '(object mro type))
     (define probably-builtin-class-priority '(type))
     (define probably-builtin-non-class-priority '(object))
     (define probably-module-priority '(module))
     (define probably-type-priority '(type))
-    (define callable-attribute-priority '(mro type))
+    (define callable-attribute-priority '(object mro type))
     (define arithmetic-operand-priority '(object mro type))
 
     (define (guess-access-type-PycRef obj field)
