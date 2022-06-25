@@ -332,11 +332,11 @@
 	   py-setitem-behavior-table
 	   ;; (py-delitem ::PyObject ::obj ::obj)
 
-	   (py-getattribute-cached-fallback obj hclass name cache)
-	   (py-getattribute-cached-fallback/no-object obj hclass name cache)
-	   (py-getattribute-cached-fallback/no-mro obj hclass name cache)
-	   (py-getattribute-cached-fallback/no-type obj hclass name cache)
-	   (py-getattribute-cached-fallback/no-module obj hclass name cache)
+	   (py-getattribute-cached-fallback obj obj-type hclass name cache)
+	   (py-getattribute-cached-fallback/no-object obj obj-type hclass name cache)
+	   (py-getattribute-cached-fallback/no-mro obj obj-type hclass name cache)
+	   (py-getattribute-cached-fallback/no-type obj obj-type hclass name cache)
+	   (py-getattribute-cached-fallback/no-module obj obj-type hclass name cache)
      (py-getattribute-skip-binding-cached-fallback obj hclass name cache)
 
 	   (inline PyObject-elements-ref ::PyObject ::long)
