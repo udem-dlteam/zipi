@@ -2,9 +2,11 @@
 
    (include
       "ast.sch"
+      "new.sch"
 	    "walk.sch")
 
    (import
+     __pyc_utils
      __pyc_dump
 	   __pyc_ast)
 
