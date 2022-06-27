@@ -198,8 +198,10 @@ def getattribute(obj, attr):
 
 @define_semantics
 def setattribute(obj, attr, val):
-    __setattr__ = class_getattr(obj, "__setattr__")
-    return __setattr__(obj, attr, val)
+    def normal(__setattr__):
+        return __setattr__(obj, attr, val)
+    
+    return normal(class_getattr(obj, "__setattr__"))
 
 @define_semantics
 def getitem(obj, index):

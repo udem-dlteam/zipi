@@ -149,8 +149,8 @@
           (py-module-getattribute obj name #f cache)
           (getattribute-from-getattr
             (lambda () (py-throw-module-getattribute-error obj name)))))
-      (else
-        (py-getattribute-fallback obj name)))))
+      (else ;; TODO: standardize arguments order of semantics
+        (py-getattribute-fallback name obj __getattribute__)))))
 
 (define-rts (py-own-attr-index obj attr)
   (py-own-attr-index-2cont
@@ -180,6 +180,13 @@
     (else
       (py-own-attr-set! obj attr val))))
 
+(define-rts (py-non-type-own-attr-cached-set! obj attr val cache)
+  (cond
+    ((PyObjectModule? obj)
+      (global-own-attr-put-no-cache! obj attr val))
+    (else
+      (py-own-attr-cached-set! obj attr val cache))))
+
 (define-rts (py-own-attr-set! obj attr val)
   ;; TODO: fix case when obj is not represented with a PyObject
   ;; TODO: use py-own-attr-index-2cont
@@ -198,6 +205,22 @@
                  (index (HClass-last-index new-hclass)))
             (PyObject-hclass-set! obj new-hclass)
             (PyObject-elements-set! obj index val)))))))
+
+(define-rts (py-own-attr-cached-set! obj attr val cache)
+  (declare-fixnum)
+
+  (let* ((attr-representative (py-str-representative attr)))
+    (py-own-attr-index-2cont obj attr
+      (lambda (i)
+        (AttributeCache-object-hit! cache (py-obj-hclass obj) i)
+        (PyObject-elements-set! obj i val))
+      (lambda ()
+        (let* ((hclass (py-obj-hclass obj))
+               (new-hclass (HClass-next hclass attr-representative '+))
+               (index (HClass-last-index new-hclass)))
+          (PyObject-hclass-set! obj new-hclass)
+          (AttributeCache-object-hit! cache new-hclass i) ;; TODO: worth it?
+          (PyObject-elements-set! obj index val))))))
 
 (define-rts (py-cls-own-attr-set! cls attr val)
   (py-cls-own-attr-set-with-pending-binding!
@@ -218,7 +241,8 @@
   (cond
     ((eq? attr-representative (& "__new__"))
       (reset-can-quick-alloc-of-subclasses! cls))
-    ((eq? attr-representative (& "__getattribute__"))
+    ((or (eq? attr-representative (& "__getattribute__"))
+         (eq? attr-representative (& "__setattr__")))
       (reset-all-caches!))))
 
 (define-rts (py-cls-own-attr-set-with-pending-binding! cls attr val pb-val)
@@ -248,6 +272,15 @@
             (PyObject-hclass-set! cls new-hclass)
             (PyObject-elements-set! cls index val)
             (PyObjectType-pending-binding-elements-set! cls index pb-val)))))))
+
+(define-rts (py-setattribute-cached/miss obj name val cache)
+  (let ((__setattr__ (getattribute-from-obj-mro obj (& "__setattr__"))))
+    (cond
+      ((eq? __setattr__ object.__setattr__)
+        (py-non-type-own-attr-cached-set! obj name val cache))
+      ;; TODO: is it worth adding cases for types and modules
+      (else ;; TODO: standardize arguments order of semantics
+        (py-setattribute-fallback:normal name obj val __setattr__)))))
 
 ;;----------------------------------------------------------------------------
 

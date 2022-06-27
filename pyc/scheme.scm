@@ -716,12 +716,26 @@
       (error "scheme::PycAssig" "assignment to unresolved variable" lhs))
     ;; X.attr = ...
     ((isa? lhs PycAccess)
-      (let* ((obj (PycAccess-obj lhs))
+      (let* ((access-obj-sym (my-gensym 'obj))
+             (hclass-sym (my-gensym 'hclass))
+             (cache-sym (my-gensym 'cache))
+             (val-sym (my-gensym 'val))
+             (obj (PycAccess-obj lhs))
              (field (PycAccess-field lhs)))
-        `(py-setattribute
-          ,(scheme obj conf)
-          ,(pyc-propname field)
-          ,(scheme rhs conf))))
+        `(let* ((,access-obj-sym ,(scheme obj conf))
+                (,val-sym ,(scheme rhs conf))
+                (,hclass-sym (py-obj-hclass ,access-obj-sym))
+                (,cache-sym ,(scheme-cache (PycAccess-cache lhs) lhs)))
+            (if (eq? ,hclass-sym (AttributeCache-object-cache:hclass ,cache-sym))
+                (PyObject-elements-set!
+                  ,access-obj-sym
+                  (AttributeCache-object-cache:index ,cache-sym)
+                  ,val-sym)
+                (py-setattribute-cached/miss
+                  ,access-obj-sym
+                  ,(pyc-propname field)
+                  ,val-sym
+                  ,cache-sym)))))
     ;; l[x:y:z] = X
     ((isa? lhs PycSlice)
       (let* ((obj (PycSlice-obj lhs))

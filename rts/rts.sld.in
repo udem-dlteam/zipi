@@ -255,6 +255,7 @@
     AttributeCache-module-match?
 
     py-setattribute
+    py-setattribute-cached/miss
     py-own-attr-set!
     getattribute-from-obj-mro
     getattribute-from-obj-mro-fallback
@@ -852,6 +853,7 @@
     PyObject-%elements
     PyObject-elements-ref
     PyObject-global-elements-ref
+    PyObject-elements-set!
     global-cell-get-val
     global-cell-getter-get
     PyObjectType-class-index
