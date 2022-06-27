@@ -192,20 +192,38 @@
 
 
 (define (pyc-declare-HClasses module)
-  (map
-    (lambda (hclass) `(define ,(PycHClass-id hclass) #f))
-    (PycModule-hclasses module)))
+  (append
+    (map
+      (lambda (hclass) `(define ,(PycHClass-id hclass) #f))
+      (PycModule-hclasses module))
+    (flatten
+      (map
+        (lambda (hclass)
+          (map
+            (lambda (cls)
+              `(define ,(PycClass-initial-hclass-name cls) #f))
+            (PycHClass-classes hclass)))
+        (PycModule-hclasses module)))))
 
 (define (pyc-initialize-HClasses module)
-  (map
-    (lambda (hclass)
-      `(set! ,(PycHClass-id hclass)
-         (make-initial-HClass
-           (vector
-             ,@(map
-               (lambda (attr) (pyc-propname attr))
-               (PycHClass-attributes hclass))))))
-    (PycModule-hclasses module)))
+  (append
+    (map
+      (lambda (hclass)
+        `(set! ,(PycHClass-id hclass)
+           (make-initial-HClass
+             (vector
+               ,@(map
+                 (lambda (attr) (pyc-propname attr))
+                 (PycHClass-attributes hclass))))))
+      (PycModule-hclasses module))
+    (flatten
+      (map
+        (lambda (hclass)
+          (map
+            (lambda (cls)
+              `(set! ,(PycClass-initial-hclass-name cls) ,(PycHClass-id hclass)))
+            (PycHClass-classes hclass)))
+        (PycModule-hclasses module)))))
 
 (define-walk-method (collect-semantics* this::PycNode conf)
   (call-default-walker))
@@ -1297,7 +1315,9 @@
               (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
               ,@(if is-builtin
                   '() ;; builtin classes hclasses are determined in rts
-                  (list (PycHClass-id (PycClass-hclass this))))))
+                  (list
+                    (PycHClass-id (PycClass-hclass this))
+                    `(lambda () (set! ,(PycClass-initial-hclass-name this) #f))))))
           ,@(map
             (lambda (var)
               (let ((var-name (scheme-var-name var conf))

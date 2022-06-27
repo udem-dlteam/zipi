@@ -172,7 +172,8 @@
   can-quick-alloc
   (magic-attrs unprintable:)
   (pending-binding-magic-attrs unprintable:)
-  (%pending-binding-elements unprintable:))
+  (%pending-binding-elements unprintable:)
+  (disable-quick-access-in-methods unprintable:))
 
 (define-type-of-PyObject PyObjectModule
   id: PyObjectModule-C6486EB6-1522-42BA-A082-B6563F943CDF

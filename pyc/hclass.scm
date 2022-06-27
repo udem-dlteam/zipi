@@ -51,14 +51,21 @@
         (string->symbol
           (string-append hclass-name "hclass-of-instances")))))
 
+  (define (make-init-hclass-name cls)
+    (my-gensym (symbol-append '|init-hclass:| (string->symbol (PycClass-name cls)))))
+
   (let* ((class-table (group-by-attributes classes)))
     (map
       (lambda (attributes-classes)
         (let* ((attributes (car attributes-classes))
                (classes (cdr attributes-classes))
                (hclass-name (make-hclass-name classes))
-               (hclass (new-PycHClass hclass-name attributes)))
-        (for-each (lambda (cls) (PycClass-hclass-set! cls hclass)) classes)
+               (hclass (new-PycHClass hclass-name attributes classes)))
+        (for-each
+          (lambda (cls)
+            (PycClass-initial-hclass-name-set! cls (make-init-hclass-name cls))
+            (PycClass-hclass-set! cls hclass))
+          classes)
         (PycModule-hclasses-set! this (cons hclass (PycModule-hclasses this)))))
       class-table)))
 
