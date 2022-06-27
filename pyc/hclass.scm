@@ -156,16 +156,16 @@
                      superclass classes
                      (cons cls seen)))
                  (get-expected-Pyc-bases cls classes))))
-           (own-attributes (collect-cls-own-attributes* cls))
+           (own-attributes (collect-cls-own-attributes* cls cls))
            ;; remove duplicates
            (all-attributes (uniq (append own-attributes superclasses-attributes))))
       (PycClass-attributes-set! cls all-attributes)
       all-attributes)))
 
-(define-walk-method (collect-cls-own-attributes* this::PycNode)
+(define-walk-method (collect-cls-own-attributes* this::PycNode cls)
   (call-default-walker))
 
-(define-walk-method (collect-cls-own-attributes* this::PycAssig)
+(define-walk-method (collect-cls-own-attributes* this::PycAssig cls)
   (let ((lhs (PycAssig-lhs this))
         (rhs (PycAssig-rhs this)))
     (if (and
@@ -178,17 +178,19 @@
                  (PycFun-decorators rhs))))
         (let* ((args (PycFun-args rhs)))
           (if (pair? args)
-            (collect-field-access-on-var* rhs (car args))
+            (collect-field-access-on-var* rhs (car args) cls)
             '()))
         '())))
 
-(define-walk-method (collect-field-access-on-var* this::PycNode var)
+(define-walk-method (collect-field-access-on-var* this::PycNode var cls)
   (call-default-walker))
 
-(define-walk-method (collect-field-access-on-var* this::PycAccess var)
+(define-walk-method (collect-field-access-on-var* this::PycAccess var cls)
   (let ((obj (PycAccess-obj this)))
     (if (and (isa? obj PycRef) (eq? (PycRef-decl obj) var))
-      (cons (PycAccess-field this) (call-default-walker))
+      (begin
+        (PycAccess-hclass-attribute-of-set! this cls)
+        (cons (PycAccess-field this) (call-default-walker)))
       (call-default-walker))))
 
 (define-walk-method (collect-classes* this::PycNode)

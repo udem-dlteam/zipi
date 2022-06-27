@@ -187,7 +187,8 @@
                 obj::PycExpr
                 (field::obj read-only)
                 (usage (default #f))
-                (cache (default #f)))
+                (cache (default #f))
+                (hclass-attribute-of (default #f)))
 
          (class PycSubscript::PycExpr
                 obj::PycExpr

@@ -139,9 +139,9 @@
 (define-inline (new-PycRefUnresolved loc id ctx #!key (%info #f) (cps #f) (type #f) (cache #f))
    (make-PycRefUnresolved loc %info cps type id ctx cache))
 
-;; (new-PycAccess loc obj field #!key (%info #f) (cps #f) (type #f) (usage #f) (cache #f))
-(define-inline (new-PycAccess loc obj field #!key (%info #f) (cps #f) (type #f) (usage #f) (cache #f))
-   (make-PycAccess loc %info cps type obj field usage cache))
+;; (new-PycAccess loc obj field #!key (%info #f) (cps #f) (type #f) (usage #f) (cache #f) (hclass-attribute-of #f))
+(define-inline (new-PycAccess loc obj field #!key (%info #f) (cps #f) (type #f) (usage #f) (cache #f) (hclass-attribute-of #f))
+   (make-PycAccess loc %info cps type obj field usage cache hclass-attribute-of))
 
 ;; (new-PycSubscript loc obj index #!key (%info #f) (cps #f) (type #f) (cache #f))
 (define-inline (new-PycSubscript loc obj index #!key (%info #f) (cps #f) (type #f) (cache #f))
