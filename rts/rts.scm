@@ -150,7 +150,7 @@
           (getattribute-from-getattr
             (lambda () (py-throw-module-getattribute-error obj name)))))
       (else ;; TODO: standardize arguments order of semantics
-        (py-getattribute-fallback name obj __getattribute__)))))
+        (py-getattribute-fallback:normal name obj __getattribute__)))))
 
 (define-rts (py-own-attr-index obj attr)
   (py-own-attr-index-2cont
@@ -219,7 +219,7 @@
                (new-hclass (HClass-next hclass attr-representative '+))
                (index (HClass-last-index new-hclass)))
           (PyObject-hclass-set! obj new-hclass)
-          (AttributeCache-object-hit! cache new-hclass i) ;; TODO: worth it?
+          (AttributeCache-object-hit! cache new-hclass index) ;; TODO: worth it?
           (PyObject-elements-set! obj index val))))))
 
 (define-rts (py-cls-own-attr-set! cls attr val)

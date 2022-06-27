@@ -339,6 +339,8 @@
 	   (py-getattribute-cached-fallback/no-module obj obj-type hclass name cache)
      (py-getattribute-skip-binding-cached-fallback obj hclass name cache)
 
+     (py-setattribute-cached/miss obj name val cache)
+
 	   (inline PyObject-elements-ref ::PyObject ::long)
 	   (PyObject-elements-set! ::PyObject ::long ::obj)
 
