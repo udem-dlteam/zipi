@@ -1,0 +1,13 @@
+(module __pyc_hclass
+
+   (include
+      "ast.sch"
+      "new.sch"
+	    "walk.sch")
+
+   (import
+     __pyc_utils
+     __pyc_dump
+	   __pyc_ast)
+
+   (export (pyc-hclass this::PycNode conf)))

@@ -18,4 +18,6 @@
            (interleave . rest)
            (flatten l)
            (all? pred lst)
-           (any? pred lst)))
+           (any? pred lst)
+           (uniq lst)
+           (filter-map fn lst)))

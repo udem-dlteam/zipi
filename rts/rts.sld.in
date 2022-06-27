@@ -218,11 +218,6 @@
     py-getattribute-cached-fallback/no-mro
     py-getattribute-cached-fallback/no-type
     py-getattribute-cached-fallback/no-module
-    py-getattribute-cached-modular-fallback
-    py-getattribute-from-object-cache
-    py-getattribute-from-mro-cache
-    py-getattribute-from-type-cache
-    py-getattribute-from-module-cache
 
     object.__getattribute__
     object-getattribute-skip-binding
@@ -231,16 +226,36 @@
     binding-skip-fail?
     binding-skip-callback
 
-    AttributeCache-object-hclass
-    AttributeCache-mro-hclass
-    AttributeCache-type-hclass
-    AttributeCache-module-hclass
-    AttributeCache-index
-    AttributeCache-attr
-    AttributeCache-owner
-    AttributeCache-bind
+    AttributeCache-object-cache:hclass
+    AttributeCache-object-cache:index
+    AttributeCache-mro-cache:hclass
+    AttributeCache-mro-cache:type
+    AttributeCache-mro-cache:attr
+    AttributeCache-mro-cache:owner
+    AttributeCache-type-cache:type
+    AttributeCache-type-cache:attr
+    AttributeCache-type-cache:owner
+    AttributeCache-module-cache:module
+    AttributeCache-module-cache:index
+    AttributeCache-object-cache:hclass-set!
+    AttributeCache-object-cache:index-set!
+    AttributeCache-mro-cache:hclass-set!
+    AttributeCache-mro-cache:type-set!
+    AttributeCache-mro-cache:attr-set!
+    AttributeCache-mro-cache:owner-set!
+    AttributeCache-type-cache:type-set!
+    AttributeCache-type-cache:attr-set!
+    AttributeCache-type-cache:owner-set!
+    AttributeCache-module-cache:module-set!
+    AttributeCache-module-cache:index-set!
+
+    AttributeCache-object-match?
+    AttributeCache-mro-match?
+    AttributeCache-type-match?
+    AttributeCache-module-match?
 
     py-setattribute
+    py-setattribute-cached/miss
     py-own-attr-set!
     getattribute-from-obj-mro
     getattribute-from-obj-mro-fallback
@@ -838,6 +853,7 @@
     PyObject-%elements
     PyObject-elements-ref
     PyObject-global-elements-ref
+    PyObject-elements-set!
     global-cell-get-val
     global-cell-getter-get
     PyObjectType-class-index
@@ -847,6 +863,7 @@
     py-float-class
     py-method-class
     str-representatives
+    make-initial-HClass
 
     ;; methods for quick calls
     list.append:unsafe

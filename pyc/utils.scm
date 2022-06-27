@@ -36,3 +36,23 @@
       #t)
     (else
       (any? pred (cdr lst)))))
+
+;; return a list of the elements in lst without duplicated (with eq?)
+(define (uniq lst)
+  (define (uniq-aux rest acc)
+    (cond
+      ((null? rest)
+        acc)
+      ((memq (car rest) acc)
+        (uniq-aux (cdr rest) acc))
+      (else
+        (uniq-aux (cdr rest) (cons (car rest) acc)))))
+  (uniq-aux lst '()))
+
+(define (filter-map fn lst)
+  (if (null? lst)
+    '()
+    (let ((res (fn (car lst))))
+      (if res
+        (cons res (filter-map fn (cdr lst)))
+        (filter-map fn (cdr lst))))))

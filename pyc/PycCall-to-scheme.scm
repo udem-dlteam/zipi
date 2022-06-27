@@ -246,22 +246,24 @@
          (obj-sym-static (new-PycStatic (PycNode-loc obj) obj-sym obj-sym))
          (cache-sym (my-gensym 'cache))
          (hclass-sym (my-gensym 'hclass))
+         (obj-type-sym (my-gensym 'obj-type))
          (unbound-method-or-callback-sym (my-gensym 'unbound-method-or-callback))
          (getattribute-method-sym (symbol-append obj-sym '.__getattribute__))
          (field (PycAccess-field method-access)))
   `(let* ((,obj-sym ,(scheme obj conf))
           (,cache-sym ,(scheme-cache (PycAccess-cache method-access) method-access))
           (,hclass-sym (py-obj-hclass ,obj-sym))
+          (,obj-type-sym (py-obj-cls ,obj-sym))
           (,unbound-method-or-callback-sym
-            (if (eq? ,hclass-sym (AttributeCache-mro-hclass ,cache-sym))
-              (AttributeCache-attr ,cache-sym)
-              (py-getattribute-skip-binding-cached-fallback
-                ,obj-sym
-                ,hclass-sym
-                ,(pyc-propname field)
-               ,(if (in-semantics? method-access conf params)
-                    #f
-                    (scheme-cache (PycAccess-cache method-access) method-access))))))
+            (or (AttributeCache-object-match? ,cache-sym ,obj-sym ,hclass-sym ,obj-type-sym)
+                (AttributeCache-mro-match? ,cache-sym ,obj-sym ,hclass-sym ,obj-type-sym skip-binding: #t)
+                (py-getattribute-skip-binding-cached-fallback
+                  ,obj-sym
+                  ,hclass-sym
+                  ,(pyc-propname field)
+                 ,(if (in-semantics? method-access conf params)
+                      #f
+                      (scheme-cache (PycAccess-cache method-access) method-access))))))
     ,(call-to-scheme
       (new-PycCall
         (PycNode-loc call)

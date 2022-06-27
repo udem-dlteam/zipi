@@ -88,11 +88,12 @@
 	   (file-info-last-modification-time info)
 	   (file-info-type path)
 
-	   (inline make-table #!key test weak-values)
+	   (inline make-table #!key test weak-values weak-keys)
 	   (inline table-set! table key value)
 	   (inline table-ref table key #!optional default)
 	   (inline table->list table)
 	   (inline table-length table)
+     (inline table-for-each table fun)
 
 	   (module-not-found-exception? e)
 
@@ -430,7 +431,7 @@
 ;*    hash tables                                                      */
 ;*---------------------------------------------------------------------*/
 (define-inline (make-table #!key test weak-values weak-keys)
-   (create-hashtable :eqtest test))
+   (create-hashtable :eqtest test )) ;; TODO: how do I make weak keys/values?
 
 (define-inline (table-set! table key value)
    (hashtable-put! table key value))

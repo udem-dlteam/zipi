@@ -3,9 +3,13 @@
 (define-inline (new-PycUnimplemented loc msg #!key (%info #f) (cps #f))
    (make-PycUnimplemented loc %info cps msg))
 
-;; (new-PycModule loc ident stmts #!key (%info #f) (cps #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches (quote ())))
-(define-inline (new-PycModule loc ident stmts #!key (%info #f) (cps #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (caches (quote ())))
-   (make-PycModule loc %info cps special-init version ident stmts globals global-defs caches))
+;; (new-PycModule loc ident stmts #!key (%info #f) (cps #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (hclasses (quote ())) (caches (quote ())))
+(define-inline (new-PycModule loc ident stmts #!key (%info #f) (cps #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (hclasses (quote ())) (caches (quote ())))
+   (make-PycModule loc %info cps special-init version ident stmts globals global-defs hclasses caches))
+
+;; (new-PycHClass id attributes)
+(define-inline (new-PycHClass id attributes)
+   (make-PycHClass id attributes))
 
 ;; (new-PycVar loc id scope #!key (%info #f) (cps #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (assig (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
 (define-inline (new-PycVar loc id scope #!key (%info #f) (cps #f) (name #f) (key (genkey)) (in-scope-of #f) (usage (quote ())) (assig (quote ())) (can-be-deleted #f) (global-only-accessed-in-module #f) (global-always-defined #f) (global-ref-to-init-def #f) (is-builtin #f) (simple-scoping-top-block #f) (cache #f))
@@ -203,9 +207,9 @@
 (define-inline (new-PycSemantics loc args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (decls (quote ())) (generator #f) (need-return #f) (can-locals #t) (super-in-class #f) (use-simple-scoping #f) (name #f) (annotation-names (quote ())) (annotation (quote ())) (is-builtin #f) (is-private #f) (&proc #f) (&proc-init #f) (method-of #f) (method-var #f) (inline #f) (inline-as-is #f) (is-behavior #f))
    (make-PycSemantics loc %info cps type args posonlyargs vararg kwonlyargs kw-defaults kwarg defaults body decorators decls generator need-return can-locals super-in-class use-simple-scoping name annotation-names annotation is-builtin is-private &proc &proc-init method-of method-var inline inline-as-is is-behavior))
 
-;; (new-PycClass loc name module bases body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (methods (quote ())) (decls (quote ())) (super-key (quote _)) (is-builtin #f) (is-private #f))
-(define-inline (new-PycClass loc name module bases body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (methods (quote ())) (decls (quote ())) (super-key (quote _)) (is-builtin #f) (is-private #f))
-   (make-PycClass loc %info cps type name module bases body decorators methods decls super-key is-builtin is-private))
+;; (new-PycClass loc name module bases body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (attributes (quote ())) (hclass #f) (methods (quote ())) (decls (quote ())) (super-key (quote _)) (is-builtin #f) (is-private #f))
+(define-inline (new-PycClass loc name module bases body #!key (%info #f) (cps #f) (type #f) (decorators (quote ())) (attributes (quote ())) (hclass #f) (methods (quote ())) (decls (quote ())) (super-key (quote _)) (is-builtin #f) (is-private #f))
+   (make-PycClass loc %info cps type name module bases body decorators attributes hclass methods decls super-key is-builtin is-private))
 
 ;; (new-PycYield loc val #!key (%info #f) (cps #f) (type #f) (generator #f))
 (define-inline (new-PycYield loc val #!key (%info #f) (cps #f) (type #f) (generator #f))

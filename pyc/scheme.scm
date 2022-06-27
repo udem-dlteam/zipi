@@ -155,6 +155,7 @@
                   ;; function objects and global variables are dynamic
                   ,@(scheme-init-global-init-defs global-funs conf-with-defs)
                   ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs)
+                  ,@(pyc-declare-HClasses ast)
                   (declare (block)))
                 '())
 
@@ -162,6 +163,7 @@
                 `(define (py-module global caches)
                   (set! %global global)
                   (set! %caches caches)
+                  ,@(pyc-initialize-HClasses ast)
                   ,@(scheme-register-globals (map PycRef-decl global-refs) conf-with-defs)
                   ,@prog)
                    `(define py-module ,prog))
@@ -186,10 +188,24 @@
         (print
           port: (current-error-port)
           "Warning: compiling .py script with define_semantics will not generate an executable script")
-        semantics-definitions
-        ;;semantics-definitions
-        ))))
+        semantics-definitions))))
 
+
+(define (pyc-declare-HClasses module)
+  (map
+    (lambda (hclass) `(define ,(PycHClass-id hclass) #f))
+    (PycModule-hclasses module)))
+
+(define (pyc-initialize-HClasses module)
+  (map
+    (lambda (hclass)
+      `(set! ,(PycHClass-id hclass)
+         (make-initial-HClass
+           (vector
+             ,@(map
+               (lambda (attr) (pyc-propname attr))
+               (PycHClass-attributes hclass))))))
+    (PycModule-hclasses module)))
 
 (define-walk-method (collect-semantics* this::PycNode conf)
   (call-default-walker))
@@ -700,12 +716,26 @@
       (error "scheme::PycAssig" "assignment to unresolved variable" lhs))
     ;; X.attr = ...
     ((isa? lhs PycAccess)
-      (let* ((obj (PycAccess-obj lhs))
+      (let* ((access-obj-sym (my-gensym 'obj))
+             (hclass-sym (my-gensym 'hclass))
+             (cache-sym (my-gensym 'cache))
+             (val-sym (my-gensym 'val))
+             (obj (PycAccess-obj lhs))
              (field (PycAccess-field lhs)))
-        `(py-setattribute
-          ,(scheme obj conf)
-          ,(pyc-propname field)
-          ,(scheme rhs conf))))
+        `(let* ((,access-obj-sym ,(scheme obj conf))
+                (,val-sym ,(scheme rhs conf))
+                (,hclass-sym (py-obj-hclass ,access-obj-sym))
+                (,cache-sym ,(scheme-cache (PycAccess-cache lhs) lhs)))
+            (if (eq? ,hclass-sym (AttributeCache-object-cache:hclass ,cache-sym))
+                (PyObject-elements-set!
+                  ,access-obj-sym
+                  (AttributeCache-object-cache:index ,cache-sym)
+                  ,val-sym)
+                (py-setattribute-cached/miss
+                  ,access-obj-sym
+                  ,(pyc-propname field)
+                  ,val-sym
+                  ,cache-sym)))))
     ;; l[x:y:z] = X
     ((isa? lhs PycSlice)
       (let* ((obj (PycSlice-obj lhs))
@@ -1264,7 +1294,10 @@
             (,(if is-builtin 'py-make-builtin-class 'py-make-class)
               (&& ,(PycClass-name this))
               (&& ,(PycClass-module this))
-              (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))))
+              (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
+              ,@(if is-builtin
+                  '() ;; builtin classes hclasses are determined in rts
+                  (list (PycHClass-id (PycClass-hclass this))))))
           ,@(map
             (lambda (var)
               (let ((var-name (scheme-var-name var conf))
