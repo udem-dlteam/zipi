@@ -56,8 +56,3 @@
       (if res
         (cons res (filter-map fn (cdr lst)))
         (filter-map fn (cdr lst))))))
-
-(cond-expand
-  (gambit #f)
-  (bigloo
-    (define (append-strings strings) (apply string-append strings))))

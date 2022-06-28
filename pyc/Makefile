@@ -22,7 +22,7 @@ do: build
 #*---------------------------------------------------------------------*/
 OBJECTS_COMMON = ast compile parse sexp symbol return dump locals break \
   generator cps methods hclass scheme javascript utils configure super \
-  intrinsics simple-scoping usage type-inference strings pyc-to-scheme-utils \
+  intrinsics simple-scoping usage type-inference pyc-to-scheme-utils \
   PycBinary-to-scheme PycCall-to-scheme PycAccess-to-scheme
 
 #*---------------------------------------------------------------------*/

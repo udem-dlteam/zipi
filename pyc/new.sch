@@ -3,9 +3,9 @@
 (define-inline (new-PycUnimplemented loc msg #!key (%info #f) (cps #f))
    (make-PycUnimplemented loc %info cps msg))
 
-;; (new-PycModule loc ident stmts #!key (%info #f) (cps #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (hclasses (quote ())) (strings (quote ())) (caches (quote ())))
-(define-inline (new-PycModule loc ident stmts #!key (%info #f) (cps #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (hclasses (quote ())) (strings (quote ())) (caches (quote ())))
-   (make-PycModule loc %info cps special-init version ident stmts globals global-defs hclasses strings caches))
+;; (new-PycModule loc ident stmts #!key (%info #f) (cps #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (hclasses (quote ())) (caches (quote ())))
+(define-inline (new-PycModule loc ident stmts #!key (%info #f) (cps #f) (special-init #f) (version 1) (globals (quote ())) (global-defs (quote ())) (hclasses (quote ())) (caches (quote ())))
+   (make-PycModule loc %info cps special-init version ident stmts globals global-defs hclasses caches))
 
 ;; (new-PycHClass id attributes classes)
 (define-inline (new-PycHClass id attributes classes)

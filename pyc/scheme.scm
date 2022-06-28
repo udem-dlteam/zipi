@@ -155,7 +155,6 @@
                   ;; function objects and global variables are dynamic
                   ,@(scheme-init-global-init-defs global-funs conf-with-defs)
                   ,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs)
-                  ,@(pyc-declare-representatives ast)
                   ,@(pyc-declare-HClasses ast)
                   (declare (block)))
                 '())
@@ -164,7 +163,6 @@
                 `(define (py-module global caches)
                   (set! %global global)
                   (set! %caches caches)
-                  ,@(pyc-initialize-representatives ast)
                   ,@(pyc-initialize-HClasses ast)
                   ,@(scheme-register-globals (map PycRef-decl global-refs) conf-with-defs)
                   ,@prog)
@@ -181,9 +179,7 @@
                       (module (py-make-module name package __path__)))
                   ,(if full-path
                     `(global-put!
-                      module
-                      ,(scheme-string-representative-name "__file__")
-                      ,(scheme-string-representative-name full-path))
+                      module (& "__file__") (&& ,full-path))
                     `(begin))
                   (py-module module caches)
                   module))
@@ -193,19 +189,6 @@
           port: (current-error-port)
           "Warning: compiling .py script with define_semantics will not generate an executable script")
         semantics-definitions))))
-
-(define (pyc-declare-representatives module)
-  (map
-    (lambda (string)
-      `(define ,(scheme-string-representative-name string) #f))
-    (PycModule-strings module)))
-
-(define (pyc-initialize-representatives module)
-  (map
-    (lambda (string)
-      `(set! ,(scheme-string-representative-name string)
-             (py-str-representative-from-scheme ,string)))
-    (PycModule-strings module)))
 
 
 (define (pyc-declare-HClasses module)
@@ -682,31 +665,6 @@
         (PycVar-name-set! var name)
         name))))
 
-(define representative-names-table (make-hashtable))
-
-(define (scheme-string-representative-name s)
-   (define (clean-string s)
-     (let* ((max-length 15)
-            (short
-             (if (> (string-length s) max-length)
-                 (substring s 0 max-length)
-                 s)))
-     (append-strings
-       (map
-         (lambda (char) (if (char-alphabetic? char) (string char) "%"))
-         (string->list short)))))
-
-   (let ((name (hashtable-get representative-names-table s)))
-     (if name
-       name
-       (let ((new-entry
-               (symbol-append
-                 '|str-rep:|
-                 (my-gensym
-                   (string->symbol (clean-string s))))))
-        (hashtable-put! representative-names-table s new-entry)
-        new-entry))))
-
 (define (scheme-var-name-init var conf)
    (symbol-append '|init:| (scheme-var-name var conf)))
 
@@ -752,10 +710,8 @@
 
 (define (pyc-propname name)
    (cond
-      ((string? name)
-        (scheme-string-representative-name name))
-      ((symbol? name)
-        (scheme-string-representative-name (symbol->string name)))
+      ((string? name) `(& ,name))
+      ((symbol? name) `(& ,(symbol->string name)))
       (else (error "pyc-propname" "Wrong property name" name))))
 
 (define (assignable-collection? x)
@@ -1050,7 +1006,8 @@
         (error "scheme::PycNumber" "unknown value type" value)))))
 
 (define-walk-method (scheme this::PycString conf)
-   (scheme-string-representative-name (PycLiteralValue-val this)))
+   (epairify this
+      `(&& ,(PycLiteralValue-val this))))
 
 (define-walk-method (scheme this::PycBinary conf)
    ;; MS, 16may2021: seq operator has been introduced to type-check
@@ -1353,8 +1310,8 @@
         `(begin
           (set! ,cls-symbol
             (,(if is-builtin 'py-make-builtin-class 'py-make-class)
-              ,(scheme-string-representative-name (PycClass-name this))
-              ,(scheme-string-representative-name (PycClass-module this))
+              (&& ,(PycClass-name this))
+              (&& ,(PycClass-module this))
               (list ,@(map (lambda (b) (scheme b conf)) (PycClass-bases this)))
               ,@(if is-builtin
                   '() ;; builtin classes hclasses are determined in rts

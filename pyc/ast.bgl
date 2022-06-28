@@ -35,7 +35,6 @@
                 (globals::pair-nil (default '()))
                 (global-defs::pair-nil (default '()))
                 (hclasses (default '()))
-                (strings (default '()))
                 (caches::pair-nil (default '())))
 
          (class PycHClass

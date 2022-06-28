@@ -12,7 +12,6 @@
      ("simple-scoping" . ,pyc-simple-scoping)
      ("hclass" . ,pyc-hclass)
      ("methods" . ,pyc-methods)
-     ("strings" . ,pyc-strings)
      ("scheme" . ,pyc-scheme)))
 
 (define (pyc-bigloo-driver)
@@ -30,7 +29,6 @@
      ("simple-scoping" . ,pyc-simple-scoping)
      ("hclass" . ,pyc-hclass)
      ("methods" . ,pyc-methods)
-     ("strings" . ,pyc-strings)
      ("bigloo" . ,pyc-scheme-bigloo)))
 
 (define (pyc-gambit-driver)
@@ -48,7 +46,6 @@
      ("simple-scoping" . ,pyc-simple-scoping)
      ("hclass" . ,pyc-hclass)
      ("methods" . ,pyc-methods)
-     ("strings" . ,pyc-strings)
      ("gambit" . ,pyc-scheme-gambit)))
 
 (define (pyc-javascript-driver)

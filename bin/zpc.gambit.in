@@ -39,7 +39,6 @@ $PYC_DIR/locals.scm \
 $PYC_DIR/super.scm \
 $PYC_DIR/hclass.scm \
 $PYC_DIR/methods.scm \
-$PYC_DIR/strings.scm \
 $PYC_DIR/PycBinary-to-scheme.bgl \
 $PYC_DIR/PycBinary-to-scheme.scm \
 $PYC_DIR/PycCall-to-scheme.bgl \
