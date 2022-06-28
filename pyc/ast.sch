@@ -22,7 +22,7 @@
 ;; PycUnimplemented
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycUnimplemented::PycUnimplemented loc2245::pair %info2246::obj cps2247::obj msg2248::string)
+    (inline make-PycUnimplemented::PycUnimplemented loc2246::pair %info2247::obj cps2248::obj msg2249::string)
     (inline PycUnimplemented?::bool ::obj)
     (PycUnimplemented-nil::PycUnimplemented)
     (inline PycUnimplemented-msg::string ::PycUnimplemented)
@@ -36,11 +36,13 @@
 ;; PycModule
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycModule::PycModule loc2233::pair %info2234::obj cps2235::obj special-init2236::obj version2237::int ident2238::string stmts2239::pair-nil globals2240::pair-nil global-defs2241::pair-nil hclasses2242::obj caches2243::pair-nil)
+    (inline make-PycModule::PycModule loc2233::pair %info2234::obj cps2235::obj special-init2236::obj version2237::int ident2238::string stmts2239::pair-nil globals2240::pair-nil global-defs2241::pair-nil hclasses2242::obj strings2243::obj caches2244::pair-nil)
     (inline PycModule?::bool ::obj)
     (PycModule-nil::PycModule)
     (inline PycModule-caches::pair-nil ::PycModule)
     (inline PycModule-caches-set! ::PycModule ::pair-nil)
+    (inline PycModule-strings::obj ::PycModule)
+    (inline PycModule-strings-set! ::PycModule ::obj)
     (inline PycModule-hclasses::obj ::PycModule)
     (inline PycModule-hclasses-set! ::PycModule ::obj)
     (inline PycModule-global-defs::pair-nil ::PycModule)
@@ -1368,7 +1370,7 @@
 (define-inline (PycNode-loc-set! o::PycNode v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycUnimplemented
-(define-inline (make-PycUnimplemented::PycUnimplemented loc2245::pair %info2246::obj cps2247::obj msg2248::string) (instantiate::PycUnimplemented (loc loc2245) (%info %info2246) (cps cps2247) (msg msg2248)))
+(define-inline (make-PycUnimplemented::PycUnimplemented loc2246::pair %info2247::obj cps2248::obj msg2249::string) (instantiate::PycUnimplemented (loc loc2246) (%info %info2247) (cps cps2248) (msg msg2249)))
 (define-inline (PycUnimplemented?::bool obj::obj) ((@ isa? __object) obj (@ PycUnimplemented __pyc_ast)))
 (define (PycUnimplemented-nil::PycUnimplemented) (class-nil (@ PycUnimplemented __pyc_ast)))
 (define-inline (PycUnimplemented-msg::string o::PycUnimplemented) (-> |#!bigloo_wallow| o msg))
@@ -1381,11 +1383,13 @@
 (define-inline (PycUnimplemented-loc-set! o::PycUnimplemented v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycModule
-(define-inline (make-PycModule::PycModule loc2233::pair %info2234::obj cps2235::obj special-init2236::obj version2237::int ident2238::string stmts2239::pair-nil globals2240::pair-nil global-defs2241::pair-nil hclasses2242::obj caches2243::pair-nil) (instantiate::PycModule (loc loc2233) (%info %info2234) (cps cps2235) (special-init special-init2236) (version version2237) (ident ident2238) (stmts stmts2239) (globals globals2240) (global-defs global-defs2241) (hclasses hclasses2242) (caches caches2243)))
+(define-inline (make-PycModule::PycModule loc2233::pair %info2234::obj cps2235::obj special-init2236::obj version2237::int ident2238::string stmts2239::pair-nil globals2240::pair-nil global-defs2241::pair-nil hclasses2242::obj strings2243::obj caches2244::pair-nil) (instantiate::PycModule (loc loc2233) (%info %info2234) (cps cps2235) (special-init special-init2236) (version version2237) (ident ident2238) (stmts stmts2239) (globals globals2240) (global-defs global-defs2241) (hclasses hclasses2242) (strings strings2243) (caches caches2244)))
 (define-inline (PycModule?::bool obj::obj) ((@ isa? __object) obj (@ PycModule __pyc_ast)))
 (define (PycModule-nil::PycModule) (class-nil (@ PycModule __pyc_ast)))
 (define-inline (PycModule-caches::pair-nil o::PycModule) (-> |#!bigloo_wallow| o caches))
 (define-inline (PycModule-caches-set! o::PycModule v::pair-nil) (set! (-> |#!bigloo_wallow| o caches) v))
+(define-inline (PycModule-strings::obj o::PycModule) (-> |#!bigloo_wallow| o strings))
+(define-inline (PycModule-strings-set! o::PycModule v::obj) (set! (-> |#!bigloo_wallow| o strings) v))
 (define-inline (PycModule-hclasses::obj o::PycModule) (-> |#!bigloo_wallow| o hclasses))
 (define-inline (PycModule-hclasses-set! o::PycModule v::obj) (set! (-> |#!bigloo_wallow| o hclasses) v))
 (define-inline (PycModule-global-defs::pair-nil o::PycModule) (-> |#!bigloo_wallow| o global-defs))

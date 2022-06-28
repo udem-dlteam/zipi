@@ -20,4 +20,5 @@
            (all? pred lst)
            (any? pred lst)
            (uniq lst)
-           (filter-map fn lst)))
+           (filter-map fn lst)
+           (append-strings strings)))
