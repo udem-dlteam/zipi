@@ -155,21 +155,12 @@
       ,(guess-access-types access))))
 
 (define (quick-access-to-attribute-of-self access conf params)
-  (define (index-of field hclass)
-    (define (loop field attributes i)
-      (if (string=? (car attributes) field)
-        i
-        ;; if the access is marked, the attribute must be in the HClass
-        (loop field (cdr attributes) (+ i 1))))
-
-    (loop field (PycHClass-attributes hclass) 0))
-
   (let* ((obj-sym (my-gensym 'obj))
          (expected-class (PycAccess-hclass-attribute-of access))
          (expected-hclass-name (PycClass-initial-hclass-name expected-class))
          (expected-hclass (PycClass-hclass expected-class))
          (field (PycAccess-field access))
-         (expected-index (index-of field expected-hclass))
+         (expected-index (index-of-field-in-hclass field expected-hclass))
          (fallback-access
            (let ((access-copy (PycAccess-copy access)))
              (PycAccess-obj-set!

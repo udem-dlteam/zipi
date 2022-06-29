@@ -717,6 +717,15 @@
 (define (assignable-collection? x)
   (and (isa? x PycCollection) (not (isa? x PycDict))))
 
+(define (index-of-field-in-hclass field hclass)
+  (define (loop field attributes i)
+    (if (string=? (car attributes) field)
+      i
+      ;; if the access is marked, the attribute must be in the HClass
+      (loop field (cdr attributes) (+ i 1))))
+
+  (loop field (PycHClass-attributes hclass) 0))
+
 (define (scheme-simple-assig lhs rhs conf)
   (cond
     ;; X = ...
@@ -739,21 +748,38 @@
              (cache-sym (my-gensym 'cache))
              (val-sym (my-gensym 'val))
              (obj (PycAccess-obj lhs))
-             (field (PycAccess-field lhs)))
+             (field (PycAccess-field lhs))
+             (expected-class (PycAccess-hclass-attribute-of lhs))
+             (static-hclass-code
+               (if (not expected-class)
+                 '()
+                 (let* ((expected-hclass-name (PycClass-initial-hclass-name expected-class))
+                       (expected-hclass (PycClass-hclass expected-class))
+                       (field (PycAccess-field lhs))
+                       (expected-index (index-of-field-in-hclass field expected-hclass)))
+                  (list
+                    `((eq? ,hclass-sym ,expected-hclass-name)
+                       (PyObject-elements-set!
+                         ,access-obj-sym
+                         ,expected-index
+                         ,val-sym)))))))
         `(let* ((,access-obj-sym ,(scheme obj conf))
                 (,val-sym ,(scheme rhs conf))
                 (,hclass-sym (py-obj-hclass ,access-obj-sym))
                 (,cache-sym ,(scheme-cache (PycAccess-cache lhs) lhs)))
-            (if (eq? ,hclass-sym (AttributeCache-object-cache:hclass ,cache-sym))
+            (cond
+              ,@static-hclass-code
+              ((eq? ,hclass-sym (AttributeCache-object-cache:hclass ,cache-sym))
                 (PyObject-elements-set!
                   ,access-obj-sym
                   (AttributeCache-object-cache:index ,cache-sym)
-                  ,val-sym)
+                  ,val-sym))
+              (else
                 (py-setattribute-cached/miss
                   ,access-obj-sym
                   ,(pyc-propname field)
                   ,val-sym
-                  ,cache-sym)))))
+                  ,cache-sym))))))
     ;; l[x:y:z] = X
     ((isa? lhs PycSlice)
       (let* ((obj (PycSlice-obj lhs))
@@ -1317,7 +1343,7 @@
                   '() ;; builtin classes hclasses are determined in rts
                   (list
                     (PycHClass-id (PycClass-hclass this))
-                    `(lambda () (set! ,(PycClass-initial-hclass-name this) #f))))))
+                    `(lambda () (set! ,(PycClass-initial-hclass-name this) 'disabled))))))
           ,@(map
             (lambda (var)
               (let ((var-name (scheme-var-name var conf))
