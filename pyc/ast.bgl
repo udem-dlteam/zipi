@@ -39,7 +39,8 @@
 
          (class PycHClass
             id::symbol
-            attributes::pair-nil)
+            attributes::pair-nil
+            classes::pair-nil)
 
          ;; misc
          (class PycVar::PycNode
@@ -186,7 +187,8 @@
                 obj::PycExpr
                 (field::obj read-only)
                 (usage (default #f))
-                (cache (default #f)))
+                (cache (default #f))
+                (hclass-attribute-of (default #f)))
 
          (class PycSubscript::PycExpr
                 obj::PycExpr
@@ -287,7 +289,8 @@
                       (decls::pair-nil (default '()))
                       (super-key::symbol (default '_))
                       (is-builtin::bool (default #f))
-                      (is-private::bool (default #f)))
+                      (is-private::bool (default #f))
+                      (initial-hclass-name (default #f)))
 
          (final-class PycYield::PycExpr
                       (val::PycExpr (info '("ast")))

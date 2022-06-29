@@ -238,12 +238,17 @@
       (lambda (subclass _) (reset-can-quick-alloc-of-subclasses! subclass))
       (PyObjectType-subclasses cls)))
 
+  (define (disable-quick-access-in-methods)
+    (let ((disabler (PyObjectType-disable-quick-access-in-methods cls)))
+      (if disabler (disabler))))
+
   (cond
     ((eq? attr-representative (& "__new__"))
       (reset-can-quick-alloc-of-subclasses! cls))
     ((or (eq? attr-representative (& "__getattribute__"))
          (eq? attr-representative (& "__setattr__")))
-      (reset-all-caches!))))
+      (reset-all-caches!)
+      (disable-quick-access-in-methods))))
 
 (define-rts (py-cls-own-attr-set-with-pending-binding! cls attr val pb-val)
   (declare-fixnum)
@@ -419,7 +424,9 @@
                        (loop (fx+ i 1)))))
               (make-vector magic-attrs-length #f)
               (make-vector magic-attrs-length #f)
-              '#())))
+              '#()
+              #f ;; disable-quick-access-in-methods (filled in by py-make-class)
+              )))
     (py-type-fill-subclasses! cls)
     cls))
 
@@ -432,21 +439,24 @@
 
 ;; alloc empty class objects during bootstrap phase 1
 (define-rts (py-builtin-type-alloc-phase1 class-index hclass-of-instances)
-  (make-PyObjectType
-    py-type-hclass-of-instances
-    '#()
-    py-type-class
-    class-index
-    #f ;; bases
-    #f ;; mro
-    (make-empty-subclass-table) ;; subclasses
-    hclass-of-instances
-    #t ;; is-builtin
-    #f ;; can-have-getter
-    #f ;; can-quick-alloc
-    (make-vector magic-attrs-length #f)
-    (make-vector magic-attrs-length #f)
-    '#()))
+  (make-still-copy
+    (make-PyObjectType
+      py-type-hclass-of-instances
+      '#()
+      py-type-class
+      class-index
+      #f ;; bases
+      #f ;; mro
+      (make-empty-subclass-table) ;; subclasses
+      hclass-of-instances
+      #t ;; is-builtin
+      #f ;; can-have-getter
+      #f ;; can-quick-alloc
+      (make-vector magic-attrs-length #f)
+      (make-vector magic-attrs-length #f)
+      '#()
+      #f ;;disable-quick-access-in-methods
+      )))
 
 (define-rts (py-dict-alloc ordered-table)
   (make-PyObjectDict
@@ -2823,15 +2833,18 @@
     (let ((parsed-attrs (py-class-parse-attributes attrs)))
       (make-cls (car parsed-attrs) (cdr parsed-attrs))))
 
-(define-rts (py-make-class name module bases hclass-of-instances . attrs)
-  (py-make-class-from-type-allocator
-    (get-behavior-type-index default)
-    #t
-    name
-    module
-    bases
-    hclass-of-instances
-    py-type-alloc attrs))
+(define-rts (py-make-class name module bases hclass-of-instances method-quick-access-resetter . attrs)
+  (let ((cls
+          (py-make-class-from-type-allocator
+            (get-behavior-type-index default)
+            #t
+            name
+            module
+            bases
+            hclass-of-instances
+            py-type-alloc attrs)))
+    (PyObjectType-disable-quick-access-in-methods-set! cls method-quick-access-resetter)
+    cls))
 
 (define-rts (py-make-builtin-class-with-class-info class-index can-have-getter name module bases hclass-of-instances . attrs)
   (py-make-class-from-type-allocator

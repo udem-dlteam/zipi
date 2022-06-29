@@ -1,3 +1,15 @@
+(define (PycAccess-copy access)
+  (new-PycAccess
+    (PycNode-loc access)
+    (PycAccess-obj access)
+    (PycAccess-field access)
+    %info: (PycNode-%info access)
+    cps: (PycNode-cps access)
+    type: (PycExpr-type access)
+    usage: (PycAccess-usage access)
+    cache: (PycAccess-cache access)
+    hclass-attribute-of: (PycAccess-hclass-attribute-of access)))
+
 ;; =====================================================================
 ;; Predicates
 ;; =====================================================================
@@ -119,6 +131,13 @@
         (else (guess-access-type-no-origin obj field)))))
 
 ;; =====================================================================
+;; Predicates
+;; =====================================================================
+
+(define-predicate (likely-access-on-self-argument? access conf params)
+  (PycAccess-hclass-attribute-of access))
+
+;; =====================================================================
 ;; Code generation
 ;; =====================================================================
 
@@ -135,9 +154,32 @@
       ,(scheme-cache (PycAccess-cache access) access)
       ,(guess-access-types access))))
 
+(define (quick-access-to-attribute-of-self access conf params)
+  (let* ((obj-sym (my-gensym 'obj))
+         (expected-class (PycAccess-hclass-attribute-of access))
+         (expected-hclass-name (PycClass-initial-hclass-name expected-class))
+         (expected-hclass (PycClass-hclass expected-class))
+         (field (PycAccess-field access))
+         (expected-index (index-of-field-in-hclass field expected-hclass))
+         (fallback-access
+           (let ((access-copy (PycAccess-copy access)))
+             (PycAccess-obj-set!
+               access-copy
+               (new-PycStatic (PycNode-loc (PycAccess-obj access)) obj-sym obj-sym))
+             access-copy)))
+    `(let ((,obj-sym ,(scheme (PycAccess-obj access) conf)))
+      (or
+        (and (eq? (py-obj-hclass ,obj-sym) ,expected-hclass-name)
+             (let (($val (PyObject-elements-ref ,obj-sym ,expected-index)))
+               ;; TODO: store #f in vector so we can remove all py-absent checks
+               (if (eq? $val py-absent) #f $val)))
+        ,(default-cached-access fallback-access conf params)))))
+
 ;; Dispatch
 
 (define-compilation-to-scheme (access-to-scheme access conf params)
+  (likely-access-on-self-argument?
+    (quick-access-to-attribute-of-self access conf params))
   (else
     (default-cached-access access conf params)))
 

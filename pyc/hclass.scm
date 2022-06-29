@@ -51,14 +51,21 @@
         (string->symbol
           (string-append hclass-name "hclass-of-instances")))))
 
+  (define (make-init-hclass-name cls)
+    (my-gensym (symbol-append '|init-hclass:| (string->symbol (PycClass-name cls)))))
+
   (let* ((class-table (group-by-attributes classes)))
     (map
       (lambda (attributes-classes)
         (let* ((attributes (car attributes-classes))
                (classes (cdr attributes-classes))
                (hclass-name (make-hclass-name classes))
-               (hclass (new-PycHClass hclass-name attributes)))
-        (for-each (lambda (cls) (PycClass-hclass-set! cls hclass)) classes)
+               (hclass (new-PycHClass hclass-name attributes classes)))
+        (for-each
+          (lambda (cls)
+            (PycClass-initial-hclass-name-set! cls (make-init-hclass-name cls))
+            (PycClass-hclass-set! cls hclass))
+          classes)
         (PycModule-hclasses-set! this (cons hclass (PycModule-hclasses this)))))
       class-table)))
 
@@ -149,21 +156,22 @@
                      superclass classes
                      (cons cls seen)))
                  (get-expected-Pyc-bases cls classes))))
-           (own-attributes (collect-cls-own-attributes* cls))
+           (own-attributes (collect-cls-own-attributes* cls cls))
            ;; remove duplicates
            (all-attributes (uniq (append own-attributes superclasses-attributes))))
       (PycClass-attributes-set! cls all-attributes)
       all-attributes)))
 
-(define-walk-method (collect-cls-own-attributes* this::PycNode)
+(define-walk-method (collect-cls-own-attributes* this::PycNode cls)
   (call-default-walker))
 
-(define-walk-method (collect-cls-own-attributes* this::PycAssig)
+(define-walk-method (collect-cls-own-attributes* this::PycAssig cls)
   (let ((lhs (PycAssig-lhs this))
         (rhs (PycAssig-rhs this)))
     (if (and
           (isa? rhs PycFun)
           ;; not decorated by staticmethod or classmethod
+          (not (string=? (symbol->string (PycFun-name rhs)) "__new__")) ;; __new__ is static
           (not (any?
                  (lambda (decorator)
                     (and (isa? decorator PycRefUnresolved)
@@ -171,17 +179,19 @@
                  (PycFun-decorators rhs))))
         (let* ((args (PycFun-args rhs)))
           (if (pair? args)
-            (collect-field-access-on-var* rhs (car args))
+            (collect-field-access-on-var* rhs (car args) cls)
             '()))
         '())))
 
-(define-walk-method (collect-field-access-on-var* this::PycNode var)
+(define-walk-method (collect-field-access-on-var* this::PycNode var cls)
   (call-default-walker))
 
-(define-walk-method (collect-field-access-on-var* this::PycAccess var)
+(define-walk-method (collect-field-access-on-var* this::PycAccess var cls)
   (let ((obj (PycAccess-obj this)))
     (if (and (isa? obj PycRef) (eq? (PycRef-decl obj) var))
-      (cons (PycAccess-field this) (call-default-walker))
+      (begin
+        (PycAccess-hclass-attribute-of-set! this cls)
+        (cons (PycAccess-field this) (call-default-walker)))
       (call-default-walker))))
 
 (define-walk-method (collect-classes* this::PycNode)
