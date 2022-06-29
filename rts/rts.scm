@@ -439,23 +439,24 @@
 
 ;; alloc empty class objects during bootstrap phase 1
 (define-rts (py-builtin-type-alloc-phase1 class-index hclass-of-instances)
-  (make-PyObjectType
-    py-type-hclass-of-instances
-    '#()
-    py-type-class
-    class-index
-    #f ;; bases
-    #f ;; mro
-    (make-empty-subclass-table) ;; subclasses
-    hclass-of-instances
-    #t ;; is-builtin
-    #f ;; can-have-getter
-    #f ;; can-quick-alloc
-    (make-vector magic-attrs-length #f)
-    (make-vector magic-attrs-length #f)
-    '#()
-    #f ;;disable-quick-access-in-methods
-    ))
+  (make-still-copy
+    (make-PyObjectType
+      py-type-hclass-of-instances
+      '#()
+      py-type-class
+      class-index
+      #f ;; bases
+      #f ;; mro
+      (make-empty-subclass-table) ;; subclasses
+      hclass-of-instances
+      #t ;; is-builtin
+      #f ;; can-have-getter
+      #f ;; can-quick-alloc
+      (make-vector magic-attrs-length #f)
+      (make-vector magic-attrs-length #f)
+      '#()
+      #f ;;disable-quick-access-in-methods
+      )))
 
 (define-rts (py-dict-alloc ordered-table)
   (make-PyObjectDict
