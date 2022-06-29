@@ -171,6 +171,7 @@
     (if (and
           (isa? rhs PycFun)
           ;; not decorated by staticmethod or classmethod
+          (not (string=? (symbol->string (PycFun-name rhs)) "__new__")) ;; __new__ is static
           (not (any?
                  (lambda (decorator)
                     (and (isa? decorator PycRefUnresolved)
