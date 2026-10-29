@@ -12,6 +12,12 @@ else
   zipicache="$ZIPICACHE"
 fi
 
+# The Zipi Bigloo libraries (needed when running from the build directory,
+# the installed executable finds them with its rpath)
+LD_LIBRARY_PATH="$zipiroot/lib/zipi/@VERSION@${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+DYLD_LIBRARY_PATH="$zipiroot/lib/zipi/@VERSION@${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH DYLD_LIBRARY_PATH
+
 if [ "$ZIPIDBG " = " " ]; then
   ZIPIROOT="$zipiroot" ZIPICACHE="$zipicache" $zipiroot/bin/zipi-compile-and-run.bigloo "$@"
 else

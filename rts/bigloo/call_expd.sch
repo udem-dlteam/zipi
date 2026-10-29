@@ -16,11 +16,14 @@
 
    (define rest (cdr x))
 
+   ;; the names are Python string constants (see the & expander)
    (define (constantify sym)
       `(& ,(symbol->string sym)))
 
    (define (constantify* lst)
-      `#(,@(map constantify lst)))
+      (if (null? lst)
+	  ''#()
+	  `(& ,(list->vector (map symbol->string lst)))))
 
    (define (get-keyword-or-default kw default)
       (let ((tail (memq kw rest)))
@@ -62,27 +65,16 @@
 	  (location (get-keyword-or-default
 		       location: (if (epair? x) `',(cer x)
 				     (get-keyword-or-default name: #f)))))
-      (e (if (or kw-defaults defaults)
-	     `(vector
-		 ,(kwote (constantify* args))
-		 ,(kwote (constantify* posonlyargs))
-		 ,(and vararg `',(constantify vararg))
-		 ,(kwote (constantify* kwonlyargs))
-		 ,(or kw-defaults (kwote '#()))
-		 ,(and kwarg `',(constantify kwarg))
-		 ,(or defaults (kwote '#()))
-		 ,arity-alignment
-		 ,location)
-	     ;; signature with no default can be optimized to a constant
-	     `'#(,(constantify* args)
-		 ,(constantify* posonlyargs)
-		 ,(and vararg (constantify vararg))
-		 ,(constantify* kwonlyargs)
-		 #()
-		 ,(and kwarg (constantify kwarg))
-		 #()
-		 ,arity-alignment
-		 ,location))
+      (e `(vector
+	     ,(constantify* args)
+	     ,(constantify* posonlyargs)
+	     ,(and vararg (constantify vararg))
+	     ,(constantify* kwonlyargs)
+	     ,(or kw-defaults ''#())
+	     ,(and kwarg (constantify kwarg))
+	     ,(or defaults ''#())
+	     ,arity-alignment
+	     ,location)
 	 e)))
 
 ;*---------------------------------------------------------------------*/

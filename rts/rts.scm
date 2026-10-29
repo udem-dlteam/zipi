@@ -723,6 +723,13 @@
 
   ;; init all object (& ...) to a py-str object
   (init-registered-constants)
+  (cond-expand
+    (bigloo
+     ;; the constants of the semantics modules
+     ((@ init-constants! __stdlib_zemantics))
+     ((@ init-constants! __stdlib_behaviors)))
+    (else
+     #f))
 
   ;; set the magic-index (for attribute fast access on types) on magic attributes (__add__, __next__, etc.)
   (fill-representatives-magic-index)
@@ -1056,10 +1063,14 @@
       #f)))
 
 (define-rts (zip-vectors vec1 vec2)
-  (map
-    cons
-    (vector->list vec1)
-    (vector->list vec2)))
+  ;; the vectors may have different lengths (the result is as long as the
+  ;; shortest one, Bigloo's map requires lists of the same length)
+  (let loop ((i (fx- (min (vector-length vec1) (vector-length vec2)) 1))
+             (acc '()))
+    (if (fx< i 0)
+        acc
+        (loop (fx- i 1)
+              (cons (cons (vector-ref vec1 i) (vector-ref vec2 i)) acc)))))
 
 (define-rts (ncdr lst n)
   (if (= n 0)
@@ -2444,30 +2455,80 @@
   body: (py-repr self)
   signature: (posonlyargs: (self)))
 
+;; Format a finite flonum as Python's repr does: the shortest digits that
+;; read back as the same flonum (as given by number->string), in positional
+;; notation when the decimal exponent is in [-4, 16), and in scientific
+;; notation (with an exponent of at least two digits) otherwise. The
+;; number->string output differs between Scheme systems (e.g., 1e15 vs
+;; 1000000000000000.0), so it is parsed and reformatted.
 (define-rts (float->string-with-padded-zeros value)
-  ;; TODO: find a more straightforward bridge between scheme format and python format
-  ;; or format using Gambit ##flonum->exact-exponential-format
-  (define (add-e+ s)
-    (let ((chars (string->list s)))
-      (let loop ((chars chars))
-        (cond
-          ((null? chars) #f)
-          ((char=? (car chars) #\e)
-            (if (not (char=? (cadr chars) #\-))
-              (set-cdr! chars (cons #\+ (cdr chars)))))
-          (else (loop (cdr chars)))))
-      (list->string chars)))
 
-  (let ((s (add-e+ (number->string value))))
-    (cond ((char=? (string-ref s 0) #\.)
-           (string-append "0" s))
-          ((and (char=? (string-ref s 0) #\-)
-                (char=? (string-ref s 1) #\.))
-           (string-append "-0" (substring s 1 (string-length s))))
-          ((char=? (string-ref s (- (string-length s) 1)) #\.)
-           (string-append s "0"))
-          (else
-           s))))
+  (define (index-of s ch start)
+    (let loop ((i start))
+      (cond ((fx>= i (string-length s)) #f)
+            ((char=? (string-ref s i) ch) i)
+            (else (loop (fx+ i 1))))))
+
+  (define (zeros n)
+    (make-string (if (fx> n 0) n 0) #\0))
+
+  (let* ((str (number->string value))
+         (neg (char=? (string-ref str 0) #\-))
+         (s (if neg (substring str 1 (string-length str)) str))
+         (e-pos (or (index-of s #\e 0) (index-of s #\E 0)))
+         (mantissa (if e-pos (substring s 0 e-pos) s))
+         (exponent (if e-pos
+                       (let ((e (substring s (fx+ e-pos 1) (string-length s))))
+                         (string->number
+                          (if (and (fx> (string-length e) 0)
+                                   (char=? (string-ref e 0) #\+))
+                              (substring e 1 (string-length e))
+                              e)))
+                       0))
+         (dot-pos (index-of mantissa #\. 0))
+         (int-part (if dot-pos (substring mantissa 0 dot-pos) mantissa))
+         (frac-part (if dot-pos
+                        (substring mantissa (fx+ dot-pos 1) (string-length mantissa))
+                        ""))
+         (all-digits (string-append int-part frac-part)))
+    ;; value = 0.<digits> * 10^point
+    (let loop ((start 0)
+               (point (fx+ (string-length int-part) exponent)))
+      (if (and (fx< start (string-length all-digits))
+               (char=? (string-ref all-digits start) #\0))
+          (loop (fx+ start 1) (fx- point 1))
+          (let trim ((end (string-length all-digits)))
+            (if (and (fx> end start)
+                     (char=? (string-ref all-digits (fx- end 1)) #\0))
+                (trim (fx- end 1))
+                (let* ((digits (substring all-digits start end))
+                       (n (string-length digits))
+                       (sign (if neg "-" ""))
+                       (exp10 (fx- point 1)))
+                  (cond
+                    ((fx= n 0)
+                     (string-append sign "0.0"))
+                    ((and (fx>= exp10 -4) (fx< exp10 16))
+                     (string-append
+                      sign
+                      (cond ((fx<= point 0)
+                             (string-append "0." (zeros (fx- 0 point)) digits))
+                            ((fx< point n)
+                             (string-append (substring digits 0 point)
+                                            "."
+                                            (substring digits point n)))
+                            (else
+                             (string-append digits (zeros (fx- point n)) ".0")))))
+                    (else
+                     (let ((e (number->string (if (fx< exp10 0) (fx- 0 exp10) exp10))))
+                       (string-append
+                        sign
+                        (substring digits 0 1)
+                        (if (fx> n 1)
+                            (string-append "." (substring digits 1 n))
+                            "")
+                        (if (fx< exp10 0) "e-" "e+")
+                        (if (fx< (string-length e) 2) (string-append "0" e) e))))))))))))
 
 (define-py-method float.__repr__
   guard: (not (py-subtype-of-float? self))
@@ -2502,7 +2563,13 @@
   signature: (posonlyargs: (self)))
 
 (define-rts (py-display obj port)
-  (display (py-str-to-scheme (py-str obj)) port))
+  (cond-expand
+    (bigloo
+     ;; Bigloo strings hold the characters as (latin-1) bytes, which must
+     ;; be encoded in UTF-8 on output (as Gambit does)
+     (display (iso-latin->utf8 (py-str-to-scheme (py-str obj))) port))
+    (else
+     (display (py-str-to-scheme (py-str obj)) port))))
 
 (define-rts (py-str obj)
   (let* ((__str__ (getattribute-from-obj-mro obj (& "__str__")))
@@ -2690,13 +2757,31 @@
 
 ;;;----------------------------------------------------------------------------
 
+;; Bigloo does not normalize the results of bignum operations, so a bignum
+;; result can be in the fixnum range. Gambit always returns a fixnum then.
+(define-macro (normalize-scheme-integer value)
+  (cond-expand
+    (bigloo
+     `(let ((v ,value))
+        (if (and (bignum? v)
+                 (>= v (fixnum->bignum (minvalfx)))
+                 (<= v (fixnum->bignum (maxvalfx))))
+            (bignum->fixnum v)
+            v)))
+    (else
+     value)))
+
 (define-rts (py-int-from-scheme-fallback value)
-  (py-if-specialized-sint-representation
-   (if (fixnum? value) value (py-bint-from-scheme value))
-   (alloc-new-PyObjectInt-from-scheme value)))
+  (let ((value (normalize-scheme-integer value)))
+    (py-if-specialized-sint-representation
+     (if (fixnum? value) value (py-bint-from-scheme value))
+     (alloc-new-PyObjectInt-from-scheme value))))
 
 (define-rts (py-bint-from-scheme-fallback value)
-  (alloc-new-PyObjectInt-from-scheme value))
+  (let ((value (normalize-scheme-integer value)))
+    (py-if-specialized-sint-representation
+     (if (fixnum? value) value (alloc-new-PyObjectInt-from-scheme value))
+     (alloc-new-PyObjectInt-from-scheme value))))
 
 (define-rts (py-subtype-of-int-from-scheme value int-subclass)
   ;; int-subclass is known to not be int-class

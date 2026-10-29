@@ -49,7 +49,8 @@
         can-quick-alloc
 	      magic-attrs
         pending-binding-magic-attrs
-        %pending-binding-elements)
+        %pending-binding-elements
+        disable-quick-access-in-methods)
 
 	   (class PyObjectModule::PyObject)
 
@@ -359,15 +360,15 @@
 	   (py-make-caches ::pair-nil)
 
 	   (py-extend-builtin-core-class cls . attrs)
-	   (py-make-class name module bases hclass-of-instances . attrs)
+	   (py-make-class name module bases hclass-of-instances method-quick-access-resetter . attrs)
 
 	   (inline native-exception? val)
 	   (py-throw ::obj)
 	   (py-throw-with-values exc . values)
 	   (py-throw-index-out-of-range type)
 	   (py-throw-assignment-index-out-of-range type)
-	   (inline py-try-except-else handler body orelse)
-	   (inline py-try-except handler body)
+	   (py-try-except-else handler body orelse)
+	   (py-try-except handler body)
 	   (inline py-throw-unsafe exc)
 
 	   (py-in x y)
@@ -412,6 +413,31 @@
 	   (load-module-and-get-init path-in-cache)
 
 	   (py-int-from-scheme-fallback value)
+	   (py-bint-from-scheme-fallback value)
+	   (py-next-fallback iterator)
+	   (py-str-from-string len string)
+	   (py-getitem-listX-sintY-fallback obj item)
+	   (py-getitem-listX-boolY-fallback obj item)
+	   (py-getitem-listX-sliceY-fallback obj item)
+	   (py-getitem-tupleX-sintY-fallback obj item)
+	   (py-getitem-tupleX-boolY-fallback obj item)
+	   (py-getitem-tupleX-sliceY-fallback obj item)
+	   (py-getitem-strX-sintY-fallback obj item)
+	   (py-getitem-strX-boolY-fallback obj item)
+	   (py-getitem-strX-sliceY-fallback obj item)
+	   (py-setitem-listX-sintY-Z-fallback obj item value)
+	   (py-test-in item container)
+	   (py-test-notin item container)
+	   (py-hash x)
+	   (py-type obj)
+	   (py-issubclass? cls parent)
+	   (py-abs x)
+	   (iterator-next obj default)
+	   (iterator->list it)
+	   (py-obj->iterator obj)
+	   (index-in-length-range index len)
+	   (py-bytearray-from-scheme len-vec-pair)
+	   (py-set-from-scheme elems)
 
 	   ;;           (py-float-from-scheme value)
 	   (py-float-from-scheme-fallback value)
@@ -597,6 +623,49 @@
 	   py-staticmethod-hclass-of-instances
 
 	   py-next-behaviors-table
+	   py-add-behaviors-table
+	   py-bitand-behaviors-table
+	   py-bitor-behaviors-table
+	   py-floordiv-behaviors-table
+	   py-lshift-behaviors-table
+	   py-matmul-behaviors-table
+	   py-mod-behaviors-table
+	   py-mul-behaviors-table
+	   py-pow-behaviors-table
+	   py-rshift-behaviors-table
+	   py-sub-behaviors-table
+	   py-truediv-behaviors-table
+	   py-xor-behaviors-table
+	   py-iadd-behaviors-table
+	   py-ibitand-behaviors-table
+	   py-ibitor-behaviors-table
+	   py-ifloordiv-behaviors-table
+	   py-ilshift-behaviors-table
+	   py-imatmul-behaviors-table
+	   py-imod-behaviors-table
+	   py-imul-behaviors-table
+	   py-ipow-behaviors-table
+	   py-irshift-behaviors-table
+	   py-isub-behaviors-table
+	   py-itruediv-behaviors-table
+	   py-ixor-behaviors-table
+	   py-pos-behaviors-table
+	   py-neg-behaviors-table
+	   py-invert-behaviors-table
+	   py-test-behaviors-table
+	   py-truth-behaviors-table
+	   py-eq-behaviors-table
+	   py-ne-behaviors-table
+	   py-ge-behaviors-table
+	   py-gt-behaviors-table
+	   py-le-behaviors-table
+	   py-lt-behaviors-table
+	   py-test-eq-behaviors-table
+	   py-test-ne-behaviors-table
+	   py-test-ge-behaviors-table
+	   py-test-gt-behaviors-table
+	   py-test-le-behaviors-table
+	   py-test-lt-behaviors-table
 	   (py-iter-fallback obj)
 
 	   (py-make-dict key-value-pairs))
@@ -1036,19 +1105,13 @@
 (define (py-init-registered-constants constants)
 
    (define (constant-string str)
+      ;; the representatives are shared with the strings created at
+      ;; runtime (str-representatives-htable is this table) and must
+      ;; have their hash (see py-str-representative-from-scheme)
       (or (table-ref (get-registered-constants-table) str)
-	  (let ((o (instantiate::PyObjectStrRep
-		      (len (string-length str))
-		      (part1-or-string str)
-		      (part2-or-rep #f)
-		      (hash 0)
-		      (magic-index #f)
-		      (hclass py-str-hclass-of-instances)
-		      (class py-str-class))))
-	     (with-access::PyObjectStrRep o (part2-or-rep)
-		(set! part2-or-rep o))
-	     (table-set! (get-registered-constants-table)
-		str o)
+	  (let ((o (py-str-representative-from-string
+		      (string-length str) str (hash-FNV1a str))))
+	     (table-set! (get-registered-constants-table) str o)
 	     o)))
 
    (cond
@@ -1316,46 +1379,39 @@
 ;; homebrewed "Ask Permission not Forgiveness" exception handling
 ;; TODO: not implemented in APNF for bigloo
 
-;* (define-inline (py-try-except-else handler body orelse)             */
-;*   (let ((exception-was-raised #f))                                  */
-;*     (let ((result                                                   */
-;*           (with-exception-handler                                   */
-;*             (lambda (raised-exception)                              */
-;*               (set! exception-was-raised #t)                        */
-;*               (handler raised-exception))                           */
-;*             body)))                                                 */
-;*     (if (not exception-was-raised)                                  */
-;*         (orelse result)                                             */
-;*         result))))                                                  */
-;*                                                                     */
-;* (define-inline (py-try-except handler body)                         */
-;*   (with-handler                                                     */
-;*     handler                                                         */
-;*     body))                                                          */
+;* ;; These are procedures, not inline procedures, because Bigloo's
+;; with-handler allocates its handler frame on the C stack, which is only
+;; reclaimed when the enclosing C function returns: inlined in a loop (e.g.,
+;; a for loop over a generator), the stack would grow at each iteration.
+(define (py-try-except-else handler body orelse)
+   ;; as with Gambit, the handler and the else clause are executed
+   ;; outside of the dynamic extent of the exception handler
+   (let* ((exn #f)
+	  (res (with-handler
+		  (lambda (e) (set! exn (list e)) #f)
+		  (body))))
+      (if exn
+	  (handler (car exn))
+	  (orelse res))))
 
-(define-inline (py-try-except-else handler body orelse)
-   (with-handler
-      handler
-      (orelse (body))))
-
-(define-inline (py-try-except handler body)
-   (with-handler
-      handler
-      (body)))
+(define (py-try-except handler body)
+   (let* ((exn #f)
+	  (res (with-handler
+		  (lambda (e) (set! exn (list e)) #f)
+		  (body))))
+      (if exn
+	  (handler (car exn))
+	  res)))
 
 (define-inline (native-exception? val)
    (isa? val &exception))
 
 ;; throw an exception without checking it is an instance of BaseException
 (define-inline (py-throw-unsafe exc)
-   (tprint "py-throw-unsafe " exc)
    (raise exc))
 
 (define-expander py-throw-unsafe
    (lambda (x e)
       (match-case x
 	 ((?- ?exc)
-	  (e `(begin
-		 (tprint "py-throw-unsafe...")
-		 (raise ,exc))
-	     e)))))
+	  (e `(raise ,exc) e)))))

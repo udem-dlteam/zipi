@@ -1,7 +1,7 @@
 (define expansion-debug? #f)
 
 (define (bigloo#symbol-append . symbols)
-  (string->symbol (append-strings (map symbol->string symbols))))
+  (string->symbol (string-concatenate (map symbol->string symbols))))
 
 (define (bigloo#string-contains string1 string2 #!optional (start 0))
   ;; Does string string1 contain string string2?

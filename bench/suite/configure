@@ -1,0 +1,20 @@
+#! /bin/bash
+
+# Usage: ./configure
+#
+# Instantiate the benchmark scripts (list, info, run) for this directory and
+# generate the micro benchmarks. The Python interpreter used to generate the
+# micro benchmarks can be set with the PYTHON environment variable.
+
+BENCHMARKS_ROOT_DIR="`pwd`"
+PYTHON="${PYTHON:-python3}"
+
+for file in makefile common list info run ; do
+  cat $file.in \
+    | sed -e "s|@BENCHMARKS_ROOT_DIR@|$BENCHMARKS_ROOT_DIR|g" \
+    > $file
+  chmod +x $file
+done
+
+
+( cd benchmarks/micro ; "$PYTHON" ./_gen_micro_bench.py )

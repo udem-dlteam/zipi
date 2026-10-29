@@ -2,56 +2,99 @@
 A fast Python implementation.
 
 
-## Versions
+## Requirements
 
-  * Bigloo: branch `4.4a`, commit `2cfd676b56a08a2d1f4f03e85159c2a1f3bddf85`
-  * Gambit:
+Zipi needs Gambit, Bigloo and CPython 3.9. The versions known to work are
+pinned at the top of the `Makefile`:
 
+  * Gambit: `GAMBIT_VERSION` (GitHub release tag of `gambit/gambit`)
+  * Bigloo: `BIGLOO_VERSION` (GitHub release tag of `manuel-serrano/bigloo`)
+  * CPython: `PYTHON_VERSION` (GitHub release tag of `python/cpython`)
 
-## How to run
+`make compilers` (or `make gambit`, `make bigloo`, `make python`) builds them
+from their GitHub releases and installs them in `dependencies/`. Building
+Bigloo from its git repository requires an installed Bigloo: by default the
+Bigloo source release `BIGLOO_BOOT_VERSION` is downloaded (checksum verified),
+built and used for that, or you can point `BIGLOO_BOOT_BINDIR` to the `bin`
+directory of an existing Bigloo installation. The usual C build tools are
+needed, as well as the GMP and libunistring development files (e.g.,
+`apt install build-essential libgmp-dev libunistring-dev libssl-dev
+libsqlite3-dev libpcre2-dev`).
 
-To compile with Zipi for Gambit
+## How to build
 
 ```
-./configure --gambit-only
+make compilers   # optional, ./configure runs it for missing dependencies
+./configure
 make
-make test # recommended
-sudo make install
+make test        # recommended
+make install     # optional, installs in --prefix (default /usr/local)
 
 # You can then compile and run a script with
-zipi somepythonfile.py
+bin/zipi somepythonfile.py
 ```
 
-To compile with Bigloo, you will first need to install Zipi
+`./configure --gambit-only` or `./configure --bigloo-only` restrict Zipi to
+one backend (the default is both, with Gambit as the default backend of
+`bin/zipi`, use `--default=bigloo` to change it).
+
+### Using local installations of the compilers
+
+The compilers and the Python interpreter can be selected with the `GSI`,
+`GSC`, `BIGLOO` and `PYTHON` variables, either when configuring or when
+building (the latter reconfigures Zipi with these tools):
 
 ```
-./configure --bigloo-only
-jmake && sudo make install
+./configure GSI=gsi GSC=gsc BIGLOO=bigloo PYTHON=python3.9
+make
+
+# or, equivalently, on an already configured tree
+make GSI=gsi GSC=gsc BIGLOO=bigloo PYTHON=python3.9
 ```
 
-Once done, you can compile and run with the following commands
+The values can be commands found in the `PATH` or absolute paths. When only
+one of `GSI` and `GSC` is given, the other one is looked up in the same
+directory. These variables can also be set in the environment of `./configure`.
+
+### Choosing the backend
+
+`bin/zipi` uses the default backend; the other one can be selected with
+`-X gambit` or `-X bigloo`, or by running `bin/zipi.gambit` or
+`bin/zipi.bigloo` directly:
 
 ```
-zpc.bigloo somepythonfile.py
+bin/zipi -X bigloo somepythonfile.py
 ```
 
-Alternatively, this can be split as:
+## Benchmarks
+
+The benchmark suite is in `bench/suite` (it used to be the separate
+`zipi-benchmarks` repository). `make bench`, `make bench-gambit` and
+`make bench-bigloo` run every benchmark once and fail if one of them crashes.
+From the `bench` directory:
 
 ```
-zpc.bigloo somepythonfile.py -s -o output.scm
-bigloo -L /usr/local/lib/zipi/0.0.1 -rpath /usr/local/lib/zipi/0.0.1 output.scm
-./a.out
+make run                          # run all benchmarks with bin/zipi
+make run filter=^scm/             # run a subset
+make run system=python3           # run with another system
+make check                        # run every benchmark once, fail on crash
+make compare-to-cpython           # compare bin/zipi to CPython
 ```
-
-You can also use the `./compile-and-run somepythonfile.py` to test a Python script with Zipi both on Bigloo and Gambit.
 
 ## Tests
 
 To run all tests
 
 ```
-make test
+make test          # with bin/zipi (the default backend)
+make test-gambit   # with the Gambit backend
+make test-bigloo   # with the Bigloo backend
 ```
+
+Tests are compared to the output of the CPython used to build Zipi. The tests
+listed in `tests/expected-failures.txt`, as well as those of `tests/wishlist`,
+are known to fail: they are run and reported as `XFAIL` but do not make the
+test suite fail (a `XPASS` reports one that now passes).
 
 To run a specific test or tests matching a given pattern
 

@@ -962,7 +962,7 @@
 ;; PycFun
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycFun::PycFun loc1854::pair %info1855::obj cps1856::obj type1857::obj args1858::pair-nil posonlyargs1859::pair-nil vararg1860::obj kwonlyargs1861::pair-nil kw-defaults1862::pair-nil kwarg1863::obj defaults1864::pair-nil body1865::PycStmt decorators1866::pair-nil decls1867::pair-nil generator1868::bool need-return1869::bool can-locals1870::bool super-in-class1871::bool use-simple-scoping1872::bool name1873::obj annotation-names1874::pair-nil annotation1875::pair-nil is-builtin1876::obj is-private1877::obj &proc1878::obj &proc-init1879::obj method-of1880::obj method-var1881::obj)
+    (inline make-PycFun::PycFun loc1854::pair %info1855::obj cps1856::obj type1857::obj args1858::pair-nil posonlyargs1859::pair-nil vararg1860::obj kwonlyargs1861::pair-nil kw-defaults1862::pair-nil kwarg1863::obj defaults1864::pair-nil body1865::PycStmt decorators1866::pair-nil decls1867::pair-nil generator1868::bool need-return1869::bool can-locals1870::bool super-in-class1871::obj use-simple-scoping1872::bool name1873::obj annotation-names1874::pair-nil annotation1875::pair-nil is-builtin1876::obj is-private1877::obj &proc1878::obj &proc-init1879::obj method-of1880::obj method-var1881::obj)
     (inline PycFun?::bool ::obj)
     (PycFun-nil::PycFun)
     (inline PycFun-method-var::obj ::PycFun)
@@ -985,8 +985,8 @@
     (inline PycFun-name-set! ::PycFun ::obj)
     (inline PycFun-use-simple-scoping::bool ::PycFun)
     (inline PycFun-use-simple-scoping-set! ::PycFun ::bool)
-    (inline PycFun-super-in-class::bool ::PycFun)
-    (inline PycFun-super-in-class-set! ::PycFun ::bool)
+    (inline PycFun-super-in-class::obj ::PycFun)
+    (inline PycFun-super-in-class-set! ::PycFun ::obj)
     (inline PycFun-can-locals::bool ::PycFun)
     (inline PycFun-can-locals-set! ::PycFun ::bool)
     (inline PycFun-need-return::bool ::PycFun)
@@ -1024,7 +1024,7 @@
 ;; PycSemantics
 (cond-expand ((and bigloo-class-sans (not bigloo-class-generate))
   (export
-    (inline make-PycSemantics::PycSemantics loc1822::pair %info1823::obj cps1824::obj type1825::obj args1826::pair-nil posonlyargs1827::pair-nil vararg1828::obj kwonlyargs1829::pair-nil kw-defaults1830::pair-nil kwarg1831::obj defaults1832::pair-nil body1833::PycStmt decorators1834::pair-nil decls1835::pair-nil generator1836::bool need-return1837::bool can-locals1838::bool super-in-class1839::bool use-simple-scoping1840::bool name1841::obj annotation-names1842::pair-nil annotation1843::pair-nil is-builtin1844::obj is-private1845::obj &proc1846::obj &proc-init1847::obj method-of1848::obj method-var1849::obj inline1850::bool inline-as-is1851::bool is-behavior1852::bool)
+    (inline make-PycSemantics::PycSemantics loc1822::pair %info1823::obj cps1824::obj type1825::obj args1826::pair-nil posonlyargs1827::pair-nil vararg1828::obj kwonlyargs1829::pair-nil kw-defaults1830::pair-nil kwarg1831::obj defaults1832::pair-nil body1833::PycStmt decorators1834::pair-nil decls1835::pair-nil generator1836::bool need-return1837::bool can-locals1838::bool super-in-class1839::obj use-simple-scoping1840::bool name1841::obj annotation-names1842::pair-nil annotation1843::pair-nil is-builtin1844::obj is-private1845::obj &proc1846::obj &proc-init1847::obj method-of1848::obj method-var1849::obj inline1850::bool inline-as-is1851::bool is-behavior1852::bool)
     (inline PycSemantics?::bool ::obj)
     (PycSemantics-nil::PycSemantics)
     (inline PycSemantics-is-behavior::bool ::PycSemantics)
@@ -1053,8 +1053,8 @@
     (inline PycSemantics-name-set! ::PycSemantics ::obj)
     (inline PycSemantics-use-simple-scoping::bool ::PycSemantics)
     (inline PycSemantics-use-simple-scoping-set! ::PycSemantics ::bool)
-    (inline PycSemantics-super-in-class::bool ::PycSemantics)
-    (inline PycSemantics-super-in-class-set! ::PycSemantics ::bool)
+    (inline PycSemantics-super-in-class::obj ::PycSemantics)
+    (inline PycSemantics-super-in-class-set! ::PycSemantics ::obj)
     (inline PycSemantics-can-locals::bool ::PycSemantics)
     (inline PycSemantics-can-locals-set! ::PycSemantics ::bool)
     (inline PycSemantics-need-return::bool ::PycSemantics)
@@ -2262,7 +2262,7 @@
 (define-inline (PycBoolOp-loc-set! o::PycBoolOp v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycFun
-(define-inline (make-PycFun::PycFun loc1854::pair %info1855::obj cps1856::obj type1857::obj args1858::pair-nil posonlyargs1859::pair-nil vararg1860::obj kwonlyargs1861::pair-nil kw-defaults1862::pair-nil kwarg1863::obj defaults1864::pair-nil body1865::PycStmt decorators1866::pair-nil decls1867::pair-nil generator1868::bool need-return1869::bool can-locals1870::bool super-in-class1871::bool use-simple-scoping1872::bool name1873::obj annotation-names1874::pair-nil annotation1875::pair-nil is-builtin1876::obj is-private1877::obj &proc1878::obj &proc-init1879::obj method-of1880::obj method-var1881::obj) (instantiate::PycFun (loc loc1854) (%info %info1855) (cps cps1856) (type type1857) (args args1858) (posonlyargs posonlyargs1859) (vararg vararg1860) (kwonlyargs kwonlyargs1861) (kw-defaults kw-defaults1862) (kwarg kwarg1863) (defaults defaults1864) (body body1865) (decorators decorators1866) (decls decls1867) (generator generator1868) (need-return need-return1869) (can-locals can-locals1870) (super-in-class super-in-class1871) (use-simple-scoping use-simple-scoping1872) (name name1873) (annotation-names annotation-names1874) (annotation annotation1875) (is-builtin is-builtin1876) (is-private is-private1877) (&proc &proc1878) (&proc-init &proc-init1879) (method-of method-of1880) (method-var method-var1881)))
+(define-inline (make-PycFun::PycFun loc1854::pair %info1855::obj cps1856::obj type1857::obj args1858::pair-nil posonlyargs1859::pair-nil vararg1860::obj kwonlyargs1861::pair-nil kw-defaults1862::pair-nil kwarg1863::obj defaults1864::pair-nil body1865::PycStmt decorators1866::pair-nil decls1867::pair-nil generator1868::bool need-return1869::bool can-locals1870::bool super-in-class1871::obj use-simple-scoping1872::bool name1873::obj annotation-names1874::pair-nil annotation1875::pair-nil is-builtin1876::obj is-private1877::obj &proc1878::obj &proc-init1879::obj method-of1880::obj method-var1881::obj) (instantiate::PycFun (loc loc1854) (%info %info1855) (cps cps1856) (type type1857) (args args1858) (posonlyargs posonlyargs1859) (vararg vararg1860) (kwonlyargs kwonlyargs1861) (kw-defaults kw-defaults1862) (kwarg kwarg1863) (defaults defaults1864) (body body1865) (decorators decorators1866) (decls decls1867) (generator generator1868) (need-return need-return1869) (can-locals can-locals1870) (super-in-class super-in-class1871) (use-simple-scoping use-simple-scoping1872) (name name1873) (annotation-names annotation-names1874) (annotation annotation1875) (is-builtin is-builtin1876) (is-private is-private1877) (&proc &proc1878) (&proc-init &proc-init1879) (method-of method-of1880) (method-var method-var1881)))
 (define-inline (PycFun?::bool obj::obj) ((@ isa? __object) obj (@ PycFun __pyc_ast)))
 (define (PycFun-nil::PycFun) (class-nil (@ PycFun __pyc_ast)))
 (define-inline (PycFun-method-var::obj o::PycFun) (-> |#!bigloo_wallow| o method-var))
@@ -2285,8 +2285,8 @@
 (define-inline (PycFun-name-set! o::PycFun v::obj) (set! (-> |#!bigloo_wallow| o name) v))
 (define-inline (PycFun-use-simple-scoping::bool o::PycFun) (-> |#!bigloo_wallow| o use-simple-scoping))
 (define-inline (PycFun-use-simple-scoping-set! o::PycFun v::bool) (set! (-> |#!bigloo_wallow| o use-simple-scoping) v))
-(define-inline (PycFun-super-in-class::bool o::PycFun) (-> |#!bigloo_wallow| o super-in-class))
-(define-inline (PycFun-super-in-class-set! o::PycFun v::bool) (set! (-> |#!bigloo_wallow| o super-in-class) v))
+(define-inline (PycFun-super-in-class::obj o::PycFun) (-> |#!bigloo_wallow| o super-in-class))
+(define-inline (PycFun-super-in-class-set! o::PycFun v::obj) (set! (-> |#!bigloo_wallow| o super-in-class) v))
 (define-inline (PycFun-can-locals::bool o::PycFun) (-> |#!bigloo_wallow| o can-locals))
 (define-inline (PycFun-can-locals-set! o::PycFun v::bool) (set! (-> |#!bigloo_wallow| o can-locals) v))
 (define-inline (PycFun-need-return::bool o::PycFun) (-> |#!bigloo_wallow| o need-return))
@@ -2323,7 +2323,7 @@
 (define-inline (PycFun-loc-set! o::PycFun v::pair) (set! (-> |#!bigloo_wallow| o loc) v))
 
 ;; PycSemantics
-(define-inline (make-PycSemantics::PycSemantics loc1822::pair %info1823::obj cps1824::obj type1825::obj args1826::pair-nil posonlyargs1827::pair-nil vararg1828::obj kwonlyargs1829::pair-nil kw-defaults1830::pair-nil kwarg1831::obj defaults1832::pair-nil body1833::PycStmt decorators1834::pair-nil decls1835::pair-nil generator1836::bool need-return1837::bool can-locals1838::bool super-in-class1839::bool use-simple-scoping1840::bool name1841::obj annotation-names1842::pair-nil annotation1843::pair-nil is-builtin1844::obj is-private1845::obj &proc1846::obj &proc-init1847::obj method-of1848::obj method-var1849::obj inline1850::bool inline-as-is1851::bool is-behavior1852::bool) (instantiate::PycSemantics (loc loc1822) (%info %info1823) (cps cps1824) (type type1825) (args args1826) (posonlyargs posonlyargs1827) (vararg vararg1828) (kwonlyargs kwonlyargs1829) (kw-defaults kw-defaults1830) (kwarg kwarg1831) (defaults defaults1832) (body body1833) (decorators decorators1834) (decls decls1835) (generator generator1836) (need-return need-return1837) (can-locals can-locals1838) (super-in-class super-in-class1839) (use-simple-scoping use-simple-scoping1840) (name name1841) (annotation-names annotation-names1842) (annotation annotation1843) (is-builtin is-builtin1844) (is-private is-private1845) (&proc &proc1846) (&proc-init &proc-init1847) (method-of method-of1848) (method-var method-var1849) (inline inline1850) (inline-as-is inline-as-is1851) (is-behavior is-behavior1852)))
+(define-inline (make-PycSemantics::PycSemantics loc1822::pair %info1823::obj cps1824::obj type1825::obj args1826::pair-nil posonlyargs1827::pair-nil vararg1828::obj kwonlyargs1829::pair-nil kw-defaults1830::pair-nil kwarg1831::obj defaults1832::pair-nil body1833::PycStmt decorators1834::pair-nil decls1835::pair-nil generator1836::bool need-return1837::bool can-locals1838::bool super-in-class1839::obj use-simple-scoping1840::bool name1841::obj annotation-names1842::pair-nil annotation1843::pair-nil is-builtin1844::obj is-private1845::obj &proc1846::obj &proc-init1847::obj method-of1848::obj method-var1849::obj inline1850::bool inline-as-is1851::bool is-behavior1852::bool) (instantiate::PycSemantics (loc loc1822) (%info %info1823) (cps cps1824) (type type1825) (args args1826) (posonlyargs posonlyargs1827) (vararg vararg1828) (kwonlyargs kwonlyargs1829) (kw-defaults kw-defaults1830) (kwarg kwarg1831) (defaults defaults1832) (body body1833) (decorators decorators1834) (decls decls1835) (generator generator1836) (need-return need-return1837) (can-locals can-locals1838) (super-in-class super-in-class1839) (use-simple-scoping use-simple-scoping1840) (name name1841) (annotation-names annotation-names1842) (annotation annotation1843) (is-builtin is-builtin1844) (is-private is-private1845) (&proc &proc1846) (&proc-init &proc-init1847) (method-of method-of1848) (method-var method-var1849) (inline inline1850) (inline-as-is inline-as-is1851) (is-behavior is-behavior1852)))
 (define-inline (PycSemantics?::bool obj::obj) ((@ isa? __object) obj (@ PycSemantics __pyc_ast)))
 (define (PycSemantics-nil::PycSemantics) (class-nil (@ PycSemantics __pyc_ast)))
 (define-inline (PycSemantics-is-behavior::bool o::PycSemantics) (-> |#!bigloo_wallow| o is-behavior))
@@ -2352,8 +2352,8 @@
 (define-inline (PycSemantics-name-set! o::PycSemantics v::obj) (set! (-> |#!bigloo_wallow| o name) v))
 (define-inline (PycSemantics-use-simple-scoping::bool o::PycSemantics) (-> |#!bigloo_wallow| o use-simple-scoping))
 (define-inline (PycSemantics-use-simple-scoping-set! o::PycSemantics v::bool) (set! (-> |#!bigloo_wallow| o use-simple-scoping) v))
-(define-inline (PycSemantics-super-in-class::bool o::PycSemantics) (-> |#!bigloo_wallow| o super-in-class))
-(define-inline (PycSemantics-super-in-class-set! o::PycSemantics v::bool) (set! (-> |#!bigloo_wallow| o super-in-class) v))
+(define-inline (PycSemantics-super-in-class::obj o::PycSemantics) (-> |#!bigloo_wallow| o super-in-class))
+(define-inline (PycSemantics-super-in-class-set! o::PycSemantics v::obj) (set! (-> |#!bigloo_wallow| o super-in-class) v))
 (define-inline (PycSemantics-can-locals::bool o::PycSemantics) (-> |#!bigloo_wallow| o can-locals))
 (define-inline (PycSemantics-can-locals-set! o::PycSemantics v::bool) (set! (-> |#!bigloo_wallow| o can-locals) v))
 (define-inline (PycSemantics-need-return::bool o::PycSemantics) (-> |#!bigloo_wallow| o need-return))

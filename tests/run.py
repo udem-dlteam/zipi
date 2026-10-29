@@ -53,6 +53,30 @@ class MajorFail(Status):
     def is_success():
         return False
 
+class ExpectedFail(Status):
+    """A test known to fail (see expected-failures.txt and wishlist/)"""
+    priority = 1
+
+    @staticmethod
+    def status_repr():
+        return colored('XFAIL', 'YELLOW')
+
+    @staticmethod
+    def is_success():
+        return True
+
+class UnexpectedPass(Status):
+    """A test expected to fail which passed (it can be removed from the expected failures)"""
+    priority = 0
+
+    @staticmethod
+    def status_repr():
+        return colored('XPASS', 'GREEN')
+
+    @staticmethod
+    def is_success():
+        return True
+
 class CriticalFail(Status):
     priority = 3
 
@@ -80,6 +104,31 @@ def clean_name(name):
 
 def file_matches_pattern(filename, rootname, pattern):
     return re.match(pattern, filename) or re.findall(pattern, rootname)
+
+
+EXPECTED_FAILURES_FILE = 'expected-failures.txt'
+EXPECTED_FAILURES_DIRS = ('wishlist',)
+
+
+def load_expected_failures():
+    """
+    Return the set of tests (paths relative to the tests directory, e.g.,
+    'protocols/sametype_semantics.py') that are known to fail.
+    Every test in a directory of EXPECTED_FAILURES_DIRS is expected to fail.
+    """
+    expected = set()
+    if os.path.exists(EXPECTED_FAILURES_FILE):
+        with open(EXPECTED_FAILURES_FILE) as f:
+            for line in f:
+                line = line.split('#', 1)[0].strip()
+                if line:
+                    expected.add(os.path.normpath(line))
+    return expected
+
+
+def is_expected_failure(path, expected_failures):
+    path = os.path.normpath(path)
+    return path in expected_failures or path.split(os.sep)[0] in EXPECTED_FAILURES_DIRS
 
 
 def collect_tests(pattern):
@@ -150,13 +199,19 @@ def run_one_test(path, cpython, zipi):
             return MajorFail(f'Missing exception (return code: {scheme_output.returncode})')
 
 
-def process_file(file, folder, cpython, zipi):
+def process_file(file, folder, cpython, zipi, expected_failures=frozenset()):
     """
     Wrapper to run the test at [folder]/[file] from a subprocess
     """
     try:
         path = os.path.join(folder, file)
         status = run_one_test(path, cpython, zipi)
+
+        if is_expected_failure(path, expected_failures):
+            if status.is_success():
+                status = UnexpectedPass('test expected to fail passed')
+            else:
+                status = ExpectedFail(*status.messages)
 
         print(f'     {clean_name(file)}: {"." * (45 - len(file))} {status.status_repr()}')
         for msg in status.messages:
@@ -178,6 +233,7 @@ def run_all(cpython='python3', zipi='../bin/zipi', pattern=None):
 
     start = time.time()
 
+    expected_failures = load_expected_failures()
     test_files = collect_tests(pattern)
     n_tests = sum(len(tests) for tests in test_files.values())
     results = collections.defaultdict(int)
@@ -188,7 +244,7 @@ def run_all(cpython='python3', zipi='../bin/zipi', pattern=None):
         print(f' - {clean_name(folder)} ({len(folder_tests)} tests)')
 
         for folder_test in folder_tests:
-            result = process_file(folder_test, folder, cpython, zipi)
+            result = process_file(folder_test, folder, cpython, zipi, expected_failures)
             results[type(result)] += 1
 
     total_time = time.time() - start
