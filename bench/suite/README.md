@@ -1,7 +1,7 @@
 # zipi benchmarks
 Performance benchmarks developed for the Zipi compiler.
 
-This suite was imported from the (private) `udem-dlteam/zipi-benchmarks`
+This suite was imported from the `udem-dlteam/zipi-benchmarks`
 repository and is now maintained as part of Zipi. From the `bench` directory
 of Zipi, use `make run`, `make compare-to-cpython`, etc. (see `bench/makefile`).
 

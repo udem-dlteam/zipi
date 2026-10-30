@@ -1,7 +1,6 @@
 # zipi
 A fast Python implementation.
 
-
 ## Requirements
 
 Zipi needs Gambit, Bigloo and CPython 3.9. The versions known to work are
@@ -68,8 +67,7 @@ bin/zipi -X bigloo somepythonfile.py
 
 ## Benchmarks
 
-The benchmark suite is in `bench/suite` (it used to be the separate
-`zipi-benchmarks` repository). `make bench`, `make bench-gambit` and
+The benchmark suite is in `bench/suite`. `make bench`, `make bench-gambit` and
 `make bench-bigloo` run every benchmark once and fail if one of them crashes.
 From the `bench` directory:
 
@@ -131,16 +129,3 @@ Same as `debug-get`, but `values` is a list
 ### `(debug-catch thunk)`
 
 Executes `thunk` and prints the name of the Python exception, if one is thrown
-
-## CI
-
-Here is some information about self-hosted runner. On the Gambit server, all files concerning the runner are located inside the `/Users/Shared/zipi` folder. There are three subfolders : 
-- `dependencies` : this folder is used as dependency folder when configuring zipi (see --dependencies-dir option of `./configure`)
-- `bigloo-*` : this folder contains the installation of bigloo. Should be moved to the dependencies soon...
-- `action-runner` : this folder contains all the info about the github self-hosted runner. 
-
-Here are some usefull commands (need sudo): 
-Start the runner service : `sudo launchctl start /Users/oestolel/Library/LaunchAgents/actions.runner.udem-dlteam-zipi.gambit.plist`
-Stop the runner service : `sudo launchctl stop /Users/oestolel/Library/LaunchAgents/actions.runner.udem-dlteam-zipi.gambit.plist`
-
-Note the `./svc.sh` in `action-runner` command to setup the service doesnt work for some reason. This is why we use sudo and the plist directly. Note that the plist file must have well-defined permissions to be used with `sudo` and `launchctl`. For more information on self-hosted runner, see github documentation for more info
