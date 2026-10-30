@@ -1020,14 +1020,15 @@
     (cond
       ((or (flonum? value) (fixnum? value))
         (epairify this value))
-      ((not (real? value))
+      ;; big num (note that bignums are not "real?" in Bigloo)
+      ((and (number? value) (exact? value) (integer? value))
+        (epairify this
+    	    `(py-int-from-scheme ,value)))
+      ((number? value)
         `(py-throw-exception-with-message
             py-builtin-NotImplementedError
               "complex number at line "
               ,(number->string (car (PycNode-loc this)))))
-   	  ((number? value) ;; big num
-        (epairify this
-    	    `(py-int-from-scheme ,value)))
       (else
         (error "scheme::PycNumber" "unknown value type" value)))))
 

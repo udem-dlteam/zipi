@@ -1,0 +1,7 @@
+all:
+
+clean:
+	rm -f *~
+
+distclean: clean
+	rm -f makefile common list info run benchmarks/micro/[a-z]*.py

@@ -42,15 +42,15 @@
 	   (inline fxmax::long ::long ::long)
 	   (inline fxquotient::long ::long ::long)
 
-	   (inline u8+::uint8 ::uint8 ::uint8)
-	   (inline u8-::uint8 ::uint8 ::uint8)
-	   (inline u8*::uint8 ::uint8 ::uint8)
-	   (inline u8/::uint8 ::uint8 ::uint8)
-	   (inline u8=::bool ::uint8 ::uint8)
-	   (inline u8>=::bool ::uint8 ::uint8)
-	   (inline u8<::bool ::uint8 ::uint8)
-	   (inline u8<=::bool ::uint8 ::uint8)
-	   (inline u8>::bool ::uint8 ::uint8)
+	   (inline u8+::long ::long ::long)
+	   (inline u8-::long ::long ::long)
+	   (inline u8*::long ::long ::long)
+	   (inline u8/::long ::long ::long)
+	   (inline u8=::bool ::long ::long)
+	   (inline u8>=::bool ::long ::long)
+	   (inline u8<::bool ::long ::long)
+	   (inline u8<=::bool ::long ::long)
+	   (inline u8>::bool ::long ::long)
 
 	   max-fixnum
 	   (inline infinite?::bool ::double)
@@ -62,6 +62,13 @@
 	   (inline +fx/overflow::obj ::obj ::obj)
 	   (inline -fx/overflow::obj ::obj ::obj)
 	   (inline *fx/overflow::obj ::obj ::obj)
+
+	   (integer-and a b)
+	   (integer-or a b)
+	   (integer-xor a b)
+	   (integer-not a)
+	   (integer-lsh a n)
+	   (integer-rsh a n)
 
 	   (inline u8vector-append . vecs)
 	   (inline subu8vector vec start stop)
@@ -93,7 +100,7 @@
 	   (inline table-ref table key #!optional default)
 	   (inline table->list table)
 	   (inline table-length table)
-     (inline table-for-each table fun)
+     (inline table-for-each fun table)
 
 	   (module-not-found-exception? e)
 
@@ -195,16 +202,19 @@
 
 ;*---------------------------------------------------------------------*/
 ;*    u8 operations                                                    */
+;*    -------------------------------------------------------------    */
+;*    The bytes read from u8vectors are fixnums (see                   */
+;*    bigloo/include.sch)                                              */
 ;*---------------------------------------------------------------------*/
-(define-inline (u8+ x y) (+u8 x y))
-(define-inline (u8- x y) (-u8 x y))
-(define-inline (u8* x y) (*u8 x y))
-(define-inline (u8/ x y) (/u8 x y))
-(define-inline (u8= x y) (=u8 x y))
-(define-inline (u8< x y) (<u8 x y))
-(define-inline (u8> x y) (>u8 x y))
-(define-inline (u8<= x y) (<=u8 x y))
-(define-inline (u8>= x y) (>=u8 x y))
+(define-inline (u8+ x y) (+fx x y))
+(define-inline (u8- x y) (-fx x y))
+(define-inline (u8* x y) (*fx x y))
+(define-inline (u8/ x y) (/fx x y))
+(define-inline (u8= x y) (=fx x y))
+(define-inline (u8< x y) (<fx x y))
+(define-inline (u8> x y) (>fx x y))
+(define-inline (u8<= x y) (<=fx x y))
+(define-inline (u8>= x y) (>=fx x y))
 
 ;*---------------------------------------------------------------------*/
 ;*    +fx/overflow ...                                                 */
@@ -304,6 +314,47 @@
       nv))
 
 ;*---------------------------------------------------------------------*/
+;*    Bitwise operations on fixnums and bignums                        */
+;*    -------------------------------------------------------------    */
+;*    Bigloo's bit-and, bit-or, ... only accept fixnums (and overflow) */
+;*---------------------------------------------------------------------*/
+(define-inline (->bignum x)
+   (if (fixnum? x) (fixnum->bignum x) x))
+
+(define (integer-and a b)
+   (if (and (fixnum? a) (fixnum? b))
+       (bit-and a b)
+       (bit-andbx (->bignum a) (->bignum b))))
+
+(define (integer-or a b)
+   (if (and (fixnum? a) (fixnum? b))
+       (bit-or a b)
+       (bit-orbx (->bignum a) (->bignum b))))
+
+(define (integer-xor a b)
+   (if (and (fixnum? a) (fixnum? b))
+       (bit-xor a b)
+       ;; bit-xorbx computes an inclusive or (Bigloo 4.7b), so use the
+       ;; identity a^b = (a|b) - (a&b)
+       (let ((a (->bignum a)) (b (->bignum b)))
+	  (-bx (bit-orbx a b) (bit-andbx a b)))))
+
+(define (integer-not a)
+   (if (fixnum? a)
+       (bit-not a)
+       (bit-notbx a)))
+
+(define (integer-lsh a n)
+   (if (and (fixnum? a) (<fx n 32) (<fx (absfx a) 1073741824))
+       (bit-lsh a n)
+       (bit-lshbx (->bignum a) n)))
+
+(define (integer-rsh a n)
+   (if (fixnum? a)
+       (if (>=fx n 62) (if (<fx a 0) -1 0) (bit-rsh a n))
+       (bit-rshbx a n)))
+
+;*---------------------------------------------------------------------*/
 ;*    strings                                                          */
 ;*---------------------------------------------------------------------*/
 (define (append-strings lst)
@@ -313,10 +364,12 @@
   (let ((len (- src-end src-start)))
     (let loop ((i 0))
       (if (< i len)
-        (string-set!
-          dst-string
-          (+ dst-start i)
-          (string-ref src-string (+ src-start i)))))))
+        (begin
+          (string-set!
+            dst-string
+            (+ dst-start i)
+            (string-ref src-string (+ src-start i)))
+          (loop (+ i 1)))))))
 
 ;*---------------------------------------------------------------------*/
 ;*    dates                                                            */
@@ -444,7 +497,8 @@
 (define-inline (table->list table)
    (hashtable-map table cons))
 
-(define-inline (table-for-each table fun)
+;; same argument order as Gambit's table-for-each
+(define-inline (table-for-each fun table)
   (hashtable-for-each table fun))
 
 (define-inline (table-length table)
@@ -494,8 +548,15 @@
 ;*    compile-source ...                                               */
 ;*---------------------------------------------------------------------*/
 (define (compile-source source target)
-   (let ((cmd (format "~a/zpc.bigloo --no-py-module-main ~a -o ~a -y -t ~a ~a"
-		 (zipi-bin-dir) source target (string-append (prefix target) ".scm")
+   ;; ZIPIROOT (set by bin/zipi.bigloo) selects the Zipi tree to use, which
+   ;; allows running Zipi from its build directory (before installing it)
+   (let* ((root ((@ getenv __os) "ZIPIROOT"))
+	  (bindir (if root (make-file-path root "bin") (zipi-bin-dir)))
+	  (libdir (if root
+		      (make-file-path root "lib" "zipi" (zipi-release))
+		      (make-file-path (zipi-lib-dir) "zipi" (zipi-release))))
+	  (cmd (format "~a/zpc.bigloo --bin-dir=~a --lib-dir=~a --no-py-module-main ~a -o ~a -y -t ~a ~a"
+		 bindir bindir libdir source target (string-append (prefix target) ".scm")
 		 ZIPIBIGLOOOPTS)))
       (if (string-contains ZIPITRACE "zipi:compile")
 	  (begin

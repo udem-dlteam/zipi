@@ -884,7 +884,7 @@
                 )
       (pyinvert (py-sint-from-scheme (bit-not X)) ;; bool or non-ov. sint
                 (py-sint-from-scheme (bit-not X)) ;; sint
-                (py-int-from-scheme (bit-not X)) ;; otherwise
+                (py-int-from-scheme (integer-not X)) ;; otherwise
                 )))
 
   (define binary-operators-bigloo
@@ -906,23 +906,23 @@
             )
       (py&  (py-sint-from-scheme (bit-and X Y)) ;; bool/bool or non-ov. sint/sint
             (py-int-from-scheme (bit-and X Y)) ;; sint/sint
-            (py-int-from-scheme (bit-and X Y)) ;; otherwise
+            (py-int-from-scheme (integer-and X Y)) ;; otherwise
             )
       (py+b (py-sint-from-scheme (bit-or X Y)) ;; bool/bool or non-ov. sint/sint
             (py-int-from-scheme (bit-or X Y)) ;; sint/sint
-            (py-int-from-scheme (bit-or X Y)) ;; otherwise
+            (py-int-from-scheme (integer-or X Y)) ;; otherwise
             )
       (py^  (py-sint-from-scheme (bit-xor X Y)) ;; bool/bool or non-ov. sint/sint
             (py-int-from-scheme (bit-xor X Y)) ;; sint/sint
-            (py-int-from-scheme (bit-xor X Y)) ;; otherwise
+            (py-int-from-scheme (integer-xor X Y)) ;; otherwise
             )
       (py>> (py-sint-from-scheme (bit-rsh X Y)) ;; bool/bool or non-ov. sint/sint
             (py-int-from-scheme (bit-rsh X Y)) ;; sint/sint
-            (py-int-from-scheme (bit-rsh X Y)) ;; otherwise
+            (py-int-from-scheme (integer-rsh X Y)) ;; otherwise
             )
       (py<< (py-sint-from-scheme (bit-lsh X Y)) ;; bool/bool or non-ov. sint/sint
-            (py-int-from-scheme (bit-lsh X Y)) ;; sint/sint
-            (py-int-from-scheme (bit-lsh X Y)) ;; otherwise
+            (py-int-from-scheme (integer-lsh X Y)) ;; sint/sint
+            (py-int-from-scheme (integer-lsh X Y)) ;; otherwise
             )
       (py// (py-sint-from-scheme (quotientfx X Y)) ;; bool/bool or non-ov. sint/sint
             (py-int-from-scheme (quotient X Y)) ;; sint/sint
@@ -1049,6 +1049,10 @@
                      (fallback arg))))
              (else
               (fallback arg)))))
+        ((and (number? arg) (exact? arg) (integer? arg)
+              (not (fixnum? arg)) (eq? host 'bigloo))
+         ;; Bigloo bignums are not Python ints, they must be boxed
+         (out-of-line arg))
         ((and (number? arg) (exact? arg) (integer? arg))
          `(py-if-specialized-sint-representation
            ,arg

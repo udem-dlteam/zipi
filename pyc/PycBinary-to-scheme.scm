@@ -4,9 +4,14 @@
 
 (cond-expand
   (bigloo
-    (define bitwise-xor bit-xor)
-    (define bitwise-ior bit-or)
-    (define bitwise-and bit-and)
+    ;; the operands of constant folding may be bignums
+    (define (->bignum x) (if (fixnum? x) (fixnum->bignum x) x))
+    ;; bit-xorbx computes an inclusive or (Bigloo 4.7b): a^b = (a|b) - (a&b)
+    (define (bitwise-xor a b)
+      (let ((a (->bignum a)) (b (->bignum b)))
+        (-bx (bit-orbx a b) (bit-andbx a b))))
+    (define (bitwise-ior a b) (bit-orbx (->bignum a) (->bignum b)))
+    (define (bitwise-and a b) (bit-andbx (->bignum a) (->bignum b)))
     (define fold reduce))
   (gambit #f))
 
@@ -86,7 +91,7 @@
 
 (define-operator (py-test-fx- left right)
   ((gambit: (not (|##fx=| left right)))
-   (bigloo: (not  (=fx fx left right)))))
+   (bigloo: (not (=fx left right)))))
 
 (define-operator (unboxed-fx- left right)
   ((gambit: (or (|##fx-?| left right) (|##-2| left right)))
@@ -202,7 +207,7 @@
 
 (define-operator (unboxed-integer& left right)
   ((gambit: (bitwise-and left right))
-   (bigloo: (bit-and left right))))
+   (bigloo: (integer-and left right))))
 
 ;; BIT-OR
 (define-operator (py-fx-or left right)
@@ -219,7 +224,7 @@
 
 (define-operator (unboxed-integer-or left right)
   ((gambit: (bitwise-ior left right))
-   (bigloo: (bit-or left right))))
+   (bigloo: (integer-or left right))))
 
 ;; BIT-XOR
 (define-operator (py-fx^ left right)
@@ -236,7 +241,7 @@
 
 (define-operator (unboxed-integer^ left right)
   ((gambit: (bitwise-xor left right))
-   (bigloo: (bit-xor left right))))
+   (bigloo: (integer-xor left right))))
 
 ;; BIT-SHIFT-LEFT
 (define-operator (py-fx<< left right)
@@ -246,7 +251,7 @@
                    (py-lshift-sintX-sintNeg1-fallback left))))
    (bigloo:
      (if (>=fx right 0)
-         (py-int-from-scheme (bit-lsh left right))
+         (py-int-from-scheme (integer-lsh left right))
          (py-lshift-sintX-sintNeg1-fallback left)))))
 
 (define-operator (py-test-fx<< left right)
@@ -265,12 +270,12 @@
                    (py-lshift-sintX-sintNeg1-fallback left))))
    (bigloo:
      (if (>=fx right 0)
-         (bit-lsh left right)
+         (integer-lsh left right)
          (py-lshift-sintX-sintNeg1-fallback left)))))
 
 (define-operator (unboxed-interger<< left right)
   ((gambit: (arithmetic-shift left right))
-   (bigloo: (bit-lsh left right))))
+   (bigloo: (integer-lsh left right))))
 
 ;; BIT-SHIFT-RIGHT
 (define-operator (py-fx>> left right)
@@ -278,7 +283,7 @@
                 (py-rshift-sintX-sintNeg1-fallback left)))
    (bigloo:
      (if (>=fx right 0)
-         (bit-rsh left right)
+         (integer-rsh left right)
          (py-rshift-sintX-sintNeg1-fallback left)))))
 
 (define-operator (py-test-fx>> left right)
@@ -289,7 +294,7 @@
                 0)))
    (bigloo:
      (if (>=fx right 0)
-         (not (=fx (bit-rsh left right) 0))
+         (not (=fx (integer-rsh left right) 0))
          (py-rshift-sintX-sintNeg1-fallback left)))))
 
 (define-operator (unboxed-fx>> left right)
@@ -297,12 +302,12 @@
                 (py-rshift-sintX-sintNeg1-fallback left)))
    (bigloo:
      (if (>=fx right 0)
-         (bit-rsh left right)
+         (integer-rsh left right)
          (py-rshift-sintX-sintNeg1-fallback left)))))
 
 (define-operator (unboxed-interger>> left right)
   ((gambit: (arithmetic-shift left (- right)))
-   (bigloo: (bit-rsh left right))))
+   (bigloo: (integer-rsh left right))))
 
 ;; FLOORDIV
 
@@ -363,7 +368,7 @@
        (bigloo: (=fx right 0)))
     (py-truediv-sintX-sint0-fallback left)
     ((gambit: (|##fl/| (|##fixnum->flonum| left) (|##fixnum->flonum| right)))
-     (bigloo: (/ left right)))))
+     (bigloo: (/fl (fixnum->flonum left) (fixnum->flonum right))))))
 
 (define-operator (py-test-fx/ left right)
   (not
@@ -372,7 +377,7 @@
          (bigloo: (=fx right 0)))
       (py-truediv-sintX-sint0-fallback left)
       ((gambit: (|##fl/| (|##fixnum->flonum| left) (|##fixnum->flonum| right)))
-       (bigloo: (/ left right))))
+       (bigloo: (/fl (fixnum->flonum left) (fixnum->flonum right)))))
     0.0)))
 
 (define-operator (unboxed-fx/ left right)
@@ -380,7 +385,7 @@
        (bigloo: (=fx right 0)))
     (py-truediv-sintX-sint0-fallback left)
     ((gambit: (|##fl/| (|##fixnum->flonum| left) (|##fixnum->flonum| right)))
-     (bigloo: (/ left right)))))
+     (bigloo: (/fl (fixnum->flonum left) (fixnum->flonum right))))))
 
 (define-operator (py-fl/ left right)
   (if ((gambit: (|##fl=| right 0.0))
@@ -629,15 +634,21 @@
         (types (if (list? types) types (list types))))
     (and (memq rhs-type-hint types) #t)))
 
+;; A non-complex number literal (bignums are not "real?" in Bigloo)
+(define (real-literal? value)
+  (and (number? value)
+       (or (real? value)
+           (and (exact? value) (integer? value)))))
+
 ;; Predicates usable in table
 (define-predicate (operands-are-complex-literals? pycbinary conf params)
-  (operands-number-literals-value-are? pycbinary (lambda (value) (not (real? value)))))
+  (operands-number-literals-value-are? pycbinary (lambda (value) (not (real-literal? value)))))
 
 (define-predicate (operands-are-int-literals? pycbinary conf params)
-  (operands-number-literals-value-are? pycbinary (lambda (value) (and (real? value) (not (flonum? value))))))
+  (operands-number-literals-value-are? pycbinary (lambda (value) (and (real-literal? value) (not (flonum? value))))))
 
 (define-predicate (operands-are-int-or-float-literals? pycbinary conf params)
-  (operands-number-literals-value-are? pycbinary real?))
+  (operands-number-literals-value-are? pycbinary real-literal?))
 
 (define-predicate (operands-are-string-literals? pycbinary conf params)
   (operands-are? pycbinary (lambda (operand) (isa? operand PycString))))
@@ -1020,7 +1031,8 @@
   ((and operands-are-int-literals? rhs-is-non-negative-literal?)
     (let ((result
             ((gambit: (arithmetic-shift (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
-             (bigloo: bit-lsh (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))))
+             ;; the operands may be bignums
+             (bigloo: (* (PycLiteralValue-val lhs) (expt 2 (PycLiteralValue-val rhs)))))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx<< (scheme lhs conf) (scheme rhs conf)))
@@ -1045,7 +1057,12 @@
   ((and operands-are-int-literals? rhs-is-non-negative-literal?)
     (let ((result
            ((gambit: (arithmetic-shift (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs))))
-            (bigloo: bit-lsh (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))))
+            ;; the operands may be bignums (the shift rounds toward -inf)
+            (bigloo: (let ((n (PycLiteralValue-val lhs))
+                           (d (expt 2 (PycLiteralValue-val rhs))))
+                       (if (>= n 0)
+                           (quotient n d)
+                           (- (quotient (+ (- n) (- d 1)) d))))))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx>> (scheme lhs conf) (scheme rhs conf)))

@@ -39,7 +39,8 @@
      (scheme-var-name-get-function var conf)
      (scheme-var-name-get-signature var conf)
      (scheme-var-name-method-assigner var conf)
-     (scheme-var-name-method-current-assigner var conf)))
+     (scheme-var-name-method-current-assigner var conf)
+     (index-of-field-in-hclass field hclass)))
 
 ;*---------------------------------------------------------------------*/
 ;*    epairify ...                                                     */
@@ -101,8 +102,14 @@
    (let* ((semantics (sort-semantics (collect-semantics* ast conf)))
 	  (defs (filter-map no-macro semantics))
 	  (protos (filter-map def->proto defs)))
-      `(,(pyc-scheme-bigloo-semantics-module conf protos)
+      `(,(pyc-scheme-bigloo-semantics-module conf
+	    (cons '(init-constants!) protos))
 	(start-registering-constants)
+	;; the constants (e.g., strings) of the module can only be
+	;; initialized once the runtime system classes exist, so this
+	;; is called by the runtime system initialization
+	(define (init-constants!)
+	   (init-registered-constants))
 	,@defs
 	(end-registering-constants))))
 
@@ -168,12 +175,14 @@
 		(define %caches #f)
 		,@(scheme-init-global-procedures global-funs conf-with-defs)
 		,@(scheme-init-global-init-defs global-funs conf-with-defs)
-		,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs))
+		,@(scheme-init-globals (map PycRef-decl global-refs) conf-with-defs)
+		,@(pyc-declare-HClasses ast))
 	      '())
 	,(if (config-get conf-with-defs optim-globals:)
 	     `(define (py-module global caches)
 		 (set! %global global)
 		 (set! %caches caches)
+		 ,@(pyc-initialize-HClasses ast)
 		 ,@(scheme-register-globals (map PycRef-decl global-refs) conf-with-defs)
 		 ,@prog)
 	     `(define py-module ,prog))

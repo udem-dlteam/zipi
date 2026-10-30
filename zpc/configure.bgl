@@ -18,4 +18,5 @@
 	   (zipi-lib-dir)
 	   (zipi-etc-dir)
 	   (zipi-rts-dir)
-	   (zipi-srfis)))
+	   (zipi-srfis)
+	   (zipi-bigloo)))

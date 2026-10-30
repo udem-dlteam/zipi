@@ -260,7 +260,7 @@
                 (generator::bool (default #f))
                 (need-return::bool (default #f))
                 (can-locals::bool (default #t))
-                (super-in-class::bool (default #f))
+                (super-in-class (default #f)) ; the super key of the class (symbol) or #f
                 (use-simple-scoping::bool (default #f))
                 (name (default #f))
                 (annotation-names::pair-nil (default '()))

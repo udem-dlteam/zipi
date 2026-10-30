@@ -1,30 +1,46 @@
 include ../etc/Makefile.zipiconfig
 
-.PHONE: build update run
+.PHONY: configure run check compare-to-cpython scm-compare-to-cpython \
+  micro-compare-to-cpython compare clean
+
+# The benchmark suite lives in the "suite" directory (it used to be the
+# separate udem-dlteam/zipi-benchmarks repository).
+SUITE = suite
 
 system ?= $(BUILDBINDIR)/zipi
+systems ?= $(BUILDPYTHON) $(BUILDBINDIR)/zipi
+filter ?=
 
-zipi-benchmarks:
-	git clone git@github.com:udem-dlteam/zipi-benchmarks.git
-	cd zipi-benchmarks; ./configure
+configure: $(SUITE)/run
 
-update: zipi-benchmarks
-	cd zipi-benchmarks; ./update
+$(SUITE)/run: $(SUITE)/run.in $(SUITE)/configure $(SUITE)/benchmarks/micro/_gen_micro_bench.py
+	cd $(SUITE); PYTHON=$(BUILDPYTHON) bash ./configure
 
-run: zipi-benchmarks
-	@cd zipi-benchmarks; ./run --system $(system) --filter $(filter)
+run: configure
+	@cd $(SUITE); ./run --system $(system) --filter "$(filter)"
 
-compare-to-cpython: zipi-benchmarks
-	@$(BUILDPYTHON) compare.py --systems $(BUILDPYTHON) $(BUILDDIR)/bin/zipi --filter $(filter)
+# Run every benchmark (matching filter) once and fail if any of them crashes
+check: configure
+	@cd $(SUITE); ./run --system $(system) --max-repeat 1 --filter "$(filter)" \
+	  | sed -e 's/^+!CSVLINE!+,//' | tee .check.out
+	@if grep -q ',CRASHED$$' $(SUITE)/.check.out; then \
+	  echo "*** benchmarks crashed:"; grep ',CRASHED$$' $(SUITE)/.check.out; \
+	  rm -f $(SUITE)/.check.out; exit 1; \
+	else \
+	  echo "*** all benchmarks ran successfully"; rm -f $(SUITE)/.check.out; \
+	fi
 
-scm-compare-to-cpython: zipi-benchmarks
-	@$(BUILDPYTHON) compare.py --systems $(BUILDPYTHON) $(BUILDDIR)/bin/zipi --filter scm
+compare-to-cpython: configure
+	@$(BUILDPYTHON) compare.py --systems $(BUILDPYTHON) $(BUILDBINDIR)/zipi --filter "$(filter)"
 
-micro-compare-to-cpython: zipi-benchmarks
-	@$(BUILDPYTHON) compare.py --systems $(BUILDPYTHON) $(BUILDDIR)/bin/zipi --filter micro
+scm-compare-to-cpython: configure
+	@$(BUILDPYTHON) compare.py --systems $(BUILDPYTHON) $(BUILDBINDIR)/zipi --filter scm
 
-compare: zipi-benchmarks
-	@$(BUILDPYTHON) compare.py --systems $(systems) --filter $(filter)
+micro-compare-to-cpython: configure
+	@$(BUILDPYTHON) compare.py --systems $(BUILDPYTHON) $(BUILDBINDIR)/zipi --filter micro
 
-make clean:
-	rm -rf zipi-benchmarks
+compare: configure
+	@$(BUILDPYTHON) compare.py --systems $(systems) --filter "$(filter)"
+
+clean:
+	if [ -f $(SUITE)/makefile ]; then $(MAKE) -C $(SUITE) distclean; fi
