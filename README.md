@@ -4,21 +4,17 @@ A fast Python implementation.
 ## Requirements
 
 Zipi needs Gambit, Bigloo and CPython 3.9. The versions known to work are
-pinned at the top of the `Makefile`:
+pinned at the top of the `Makefile` (`GAMBIT_VERSION`, `BIGLOO_VERSION` and
+`PYTHON_VERSION`), along with the URLs of their GitHub releases and the
+SHA-256 of these release tarballs.
 
-  * Gambit: `GAMBIT_VERSION` (GitHub release tag of `gambit/gambit`)
-  * Bigloo: `BIGLOO_VERSION` (GitHub release tag of `manuel-serrano/bigloo`)
-  * CPython: `PYTHON_VERSION` (GitHub release tag of `python/cpython`)
-
-`make compilers` (or `make gambit`, `make bigloo`, `make python`) builds them
-from their GitHub releases and installs them in `dependencies/`. Building
-Bigloo from its git repository requires an installed Bigloo: by default the
-Bigloo source release `BIGLOO_BOOT_VERSION` is downloaded (checksum verified),
-built and used for that, or you can point `BIGLOO_BOOT_BINDIR` to the `bin`
-directory of an existing Bigloo installation. The usual C build tools are
-needed, as well as the GMP and libunistring development files (e.g.,
-`apt install build-essential libgmp-dev libunistring-dev libssl-dev
-libsqlite3-dev libpcre2-dev`).
+`make compilers` (or `make gambit`, `make bigloo`, `make python`) downloads
+these releases, checks them, and builds and installs them in `dependencies/`
+(the downloaded tarballs are kept in `build-dependencies/src`). The Bigloo
+release tarball contains the bootstrapped C files, so no Bigloo is needed to
+build it. The usual C build tools are needed, as well as the GMP and
+libunistring development files (e.g., `apt install build-essential libgmp-dev
+libunistring-dev libssl-dev libsqlite3-dev libpcre2-dev`).
 
 ## How to build
 

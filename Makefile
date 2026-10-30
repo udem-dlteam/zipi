@@ -18,40 +18,40 @@ do: build
 -include etc/Makefile.zipiconfig
 
 #*---------------------------------------------------------------------*/
-#*    Scheme compilers (Gambit and Bigloo)                             */
+#*    Compilers (Gambit, Bigloo) and CPython                           */
 #*    -------------------------------------------------------------    */
-#*    "make compilers" builds the pinned releases below from their     */
-#*    GitHub repositories and installs them in $(DEPSDIR). ./configure */
-#*    uses them by default. To use local installations instead, see   */
-#*    the GSI, GSC, BIGLOO and PYTHON variables documented in README.  */
-#*    CPython is also built because the Zipi front end (pysexp) and    */
-#*    the test suite require CPython 3.9.                              */
+#*    "make compilers" downloads the pinned GitHub releases below,     */
+#*    checks them against their pinned SHA-256, and builds and         */
+#*    installs them in $(DEPSDIR). ./configure uses them by default.   */
+#*    To use local installations instead, see the GSI, GSC, BIGLOO and */
+#*    PYTHON variables documented in README.md. CPython is needed      */
+#*    because the Zipi front end (pysexp) and the test suite require   */
+#*    CPython 3.9.                                                     */
 #*---------------------------------------------------------------------*/
-# Pinned releases (git tags of the GitHub repositories)
-GAMBIT_VERSION		= v4.9.8
-BIGLOO_VERSION		= v4.7b
-PYTHON_VERSION		= v3.9.25
+# Pinned releases
+GAMBIT_VERSION		= 4.9.8
+BIGLOO_VERSION		= 4.7b
+PYTHON_VERSION		= 3.9.25
 
-GAMBIT_GIT_URL		= https://github.com/gambit/gambit.git
-BIGLOO_GIT_URL		= https://github.com/manuel-serrano/bigloo.git
-PYTHON_GIT_URL		= https://github.com/python/cpython.git
+# The Gambit and CPython releases are GitHub's source archives of the
+# release tags (the Gambit tree contains the C files generated for the
+# release). The Bigloo release is the tarball attached to the GitHub
+# release, which contains the bootstrapped C files, so no Bigloo is needed
+# to build it (unlike the Bigloo git repository).
+GAMBIT_URL		= https://github.com/gambit/gambit/archive/refs/tags/v$(GAMBIT_VERSION).tar.gz
+BIGLOO_URL		= https://github.com/manuel-serrano/bigloo/releases/download/v$(BIGLOO_VERSION)/bigloo-$(BIGLOO_VERSION).tar.gz
+PYTHON_URL		= https://github.com/python/cpython/archive/refs/tags/v$(PYTHON_VERSION).tar.gz
+
+# SHA-256 of the release tarballs. When a checksum is empty, the
+# tarball is not checked and its checksum is printed so that it can be
+# pinned here.
+GAMBIT_SHA256		= 0ec19b755dbda6c540e9e60b7235d801f26f40c2f211ddfb729b756218bcc873
+BIGLOO_SHA256		= c65dd791d88d1a69d0a87b6dbe7a2c41d88289e6443354eb117c67451e44aab6
+PYTHON_SHA256		=
 
 GAMBIT_CONFIGURE_FLAGS	= --enable-single-host
 BIGLOO_CONFIGURE_FLAGS	= --jvm=no --disable-gstreamer
 PYTHON_CONFIGURE_FLAGS	= --without-ensurepip
-
-# The Bigloo git repository does not contain the bootstrapped C files, so
-# building it requires an installed Bigloo of the previous release (or a
-# more recent one). When BIGLOO_BOOT_BINDIR is set to the bin directory of
-# such an installation, that Bigloo is used. Otherwise, the Bigloo source
-# release below (which contains the bootstrapped C files) is downloaded,
-# checked against its pinned SHA-512, built and used.
-BIGLOO_BOOT_BINDIR	=
-BIGLOO_BOOT_VERSION	= 4.7a
-BIGLOO_BOOT_SHA512	= 8516956472c6e390b5eaf9dee6bc804dc5f340bd75070d8146acc8d07050b49c0e0e35bdd7a46eb9877dd44eeca7ee7198c3cd51e22f5640a8d700cd4fe8603a
-BIGLOO_BOOT_URLS	= \
-  https://www-sop.inria.fr/indes/fp/Bigloo/download/bigloo-$(BIGLOO_BOOT_VERSION).tar.gz \
-  https://cdn.netbsd.org/pub/pkgsrc/distfiles/bigloo-$(BIGLOO_BOOT_VERSION).tar.gz
 
 # Where the compilers are built and installed
 # (the dependency directory of ./configure --dependencies-dir, if any)
@@ -60,9 +60,9 @@ DEPSSRCDIR		= $(CURDIR)/build-dependencies/src
 GAMBIT_PREFIX		= $(DEPSDIR)/gambit-$(GAMBIT_VERSION)
 BIGLOO_PREFIX		= $(DEPSDIR)/bigloo-$(BIGLOO_VERSION)
 PYTHON_PREFIX		= $(DEPSDIR)/cpython-$(PYTHON_VERSION)
-BIGLOO_BOOT_PREFIX	= $(DEPSSRCDIR)/bigloo-boot-$(BIGLOO_BOOT_VERSION)
 
 DEPSJOBS		:= $(shell nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1)
+SHA256SUM		:= $(shell command -v sha256sum > /dev/null 2>&1 && echo sha256sum || echo "shasum -a 256")
 
 .PHONY: compilers gambit bigloo python compilers-paths clean-compilers
 
@@ -81,12 +81,33 @@ compilers-paths:
 	@echo "deps_python_version=$(PYTHON_VERSION)"
 	@echo "deps_python_prefix=$(PYTHON_PREFIX)"
 
+# fetch-release,name,url,sha256: download the tarball of a release into
+# $(DEPSSRCDIR)/name.tar.gz (unless already there), check its SHA-256, and
+# extract it in the empty directory $(DEPSSRCDIR)/name
+define fetch-release
+	mkdir -p $(DEPSSRCDIR)
+	cd $(DEPSSRCDIR) && \
+	  if [ "$(3) " != " " ] && [ -f $(1).tar.gz ] && \
+	     ! echo "$(3)  $(1).tar.gz" | $(SHA256SUM) -c --status 2> /dev/null; then \
+	    rm -f $(1).tar.gz; \
+	  fi && \
+	  if [ ! -f $(1).tar.gz ]; then \
+	    echo "*** downloading $(2)"; \
+	    curl -fsSL --retry 3 -o $(1).tar.gz.tmp "$(2)" && mv $(1).tar.gz.tmp $(1).tar.gz; \
+	  fi && \
+	  if [ "$(3) " != " " ]; then \
+	    echo "$(3)  $(1).tar.gz" | $(SHA256SUM) -c; \
+	  else \
+	    echo "*** WARNING: $(1).tar.gz is not checked, its SHA-256 is:"; \
+	    $(SHA256SUM) $(1).tar.gz; \
+	  fi && \
+	  rm -rf $(1) && mkdir $(1) && \
+	  tar xzf $(1).tar.gz -C $(1) --strip-components=1
+endef
+
 $(GAMBIT_PREFIX)/.built:
 	@echo "*** Building Gambit $(GAMBIT_VERSION) in $(GAMBIT_PREFIX)"
-	mkdir -p $(DEPSSRCDIR)
-	rm -rf $(DEPSSRCDIR)/gambit-$(GAMBIT_VERSION)
-	git -c advice.detachedHead=false clone --depth 1 --branch $(GAMBIT_VERSION) \
-	  $(GAMBIT_GIT_URL) $(DEPSSRCDIR)/gambit-$(GAMBIT_VERSION)
+	$(call fetch-release,gambit-$(GAMBIT_VERSION),$(GAMBIT_URL),$(GAMBIT_SHA256))
 	cd $(DEPSSRCDIR)/gambit-$(GAMBIT_VERSION) && \
 	  ./configure --prefix=$(GAMBIT_PREFIX) $(GAMBIT_CONFIGURE_FLAGS) && \
 	  $(MAKE) -j$(DEPSJOBS) && \
@@ -96,50 +117,20 @@ $(GAMBIT_PREFIX)/.built:
 	$(GAMBIT_PREFIX)/bin/gsi -e '(println (##system-version-string))'
 	touch $@
 
-$(BIGLOO_PREFIX)/.built: $(if $(BIGLOO_BOOT_BINDIR),,$(BIGLOO_BOOT_PREFIX)/.built)
+$(BIGLOO_PREFIX)/.built:
 	@echo "*** Building Bigloo $(BIGLOO_VERSION) in $(BIGLOO_PREFIX)"
-	mkdir -p $(DEPSSRCDIR)
-	rm -rf $(DEPSSRCDIR)/bigloo-$(BIGLOO_VERSION)
-	git -c advice.detachedHead=false clone --depth 1 --branch $(BIGLOO_VERSION) \
-	  $(BIGLOO_GIT_URL) $(DEPSSRCDIR)/bigloo-$(BIGLOO_VERSION)
+	$(call fetch-release,bigloo-$(BIGLOO_VERSION),$(BIGLOO_URL),$(BIGLOO_SHA256))
 	cd $(DEPSSRCDIR)/bigloo-$(BIGLOO_VERSION) && \
-	  boot=$(or $(BIGLOO_BOOT_BINDIR),$(BIGLOO_BOOT_PREFIX)/bin) && \
-	  export PATH="$$boot:$$PATH" && \
-	  BGLBUILDBINDIR=$$boot ./configure --prefix=$(BIGLOO_PREFIX) $(BIGLOO_CONFIGURE_FLAGS) && \
-	  $(MAKE) hostboot BGLBUILDBINDIR=$$boot && \
-	  $(MAKE) install-progs && \
-	  $(MAKE) -j$(DEPSJOBS) cibootstrap CONFIGUREOPTS="--prefix=$(BIGLOO_PREFIX) $(BIGLOO_CONFIGURE_FLAGS)" && \
+	  ./configure --prefix=$(BIGLOO_PREFIX) $(BIGLOO_CONFIGURE_FLAGS) && \
+	  $(MAKE) -j$(DEPSJOBS) && \
 	  $(MAKE) install-sans-docs
 	rm -rf $(DEPSSRCDIR)/bigloo-$(BIGLOO_VERSION)
 	$(BIGLOO_PREFIX)/bin/bigloo -version
 	touch $@
 
-$(BIGLOO_BOOT_PREFIX)/.built:
-	@echo "*** Building bootstrap Bigloo $(BIGLOO_BOOT_VERSION) in $(BIGLOO_BOOT_PREFIX)"
-	mkdir -p $(DEPSSRCDIR)
-	cd $(DEPSSRCDIR) && \
-	  tarball=bigloo-$(BIGLOO_BOOT_VERSION).tar.gz && \
-	  for url in $(BIGLOO_BOOT_URLS); do \
-	    echo "$(BIGLOO_BOOT_SHA512)  $$tarball" | sha512sum -c --status 2> /dev/null && break; \
-	    echo "*** downloading $$url"; \
-	    curl -fsSL "$$url" -o $$tarball || rm -f $$tarball; \
-	  done && \
-	  echo "$(BIGLOO_BOOT_SHA512)  $$tarball" | sha512sum -c && \
-	  rm -rf bigloo-$(BIGLOO_BOOT_VERSION) && \
-	  tar xzf $$tarball && \
-	  cd bigloo-$(BIGLOO_BOOT_VERSION) && \
-	  ./configure --prefix=$(BIGLOO_BOOT_PREFIX) $(BIGLOO_CONFIGURE_FLAGS) && \
-	  $(MAKE) -j$(DEPSJOBS) && \
-	  $(MAKE) install-sans-docs
-	rm -rf $(DEPSSRCDIR)/bigloo-$(BIGLOO_BOOT_VERSION)
-	touch $@
-
 $(PYTHON_PREFIX)/.built:
 	@echo "*** Building CPython $(PYTHON_VERSION) in $(PYTHON_PREFIX)"
-	mkdir -p $(DEPSSRCDIR)
-	rm -rf $(DEPSSRCDIR)/cpython-$(PYTHON_VERSION)
-	git -c advice.detachedHead=false clone --depth 1 --branch $(PYTHON_VERSION) \
-	  $(PYTHON_GIT_URL) $(DEPSSRCDIR)/cpython-$(PYTHON_VERSION)
+	$(call fetch-release,cpython-$(PYTHON_VERSION),$(PYTHON_URL),$(PYTHON_SHA256))
 	cd $(DEPSSRCDIR)/cpython-$(PYTHON_VERSION) && \
 	  ./configure --prefix=$(PYTHON_PREFIX) $(PYTHON_CONFIGURE_FLAGS) && \
 	  $(MAKE) -j$(DEPSJOBS) && \
@@ -150,6 +141,7 @@ $(PYTHON_PREFIX)/.built:
 
 clean-compilers:
 	rm -rf $(DEPSSRCDIR) $(GAMBIT_PREFIX) $(BIGLOO_PREFIX) $(PYTHON_PREFIX)
+
 
 
 #*---------------------------------------------------------------------*/
