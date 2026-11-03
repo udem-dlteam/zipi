@@ -41,7 +41,8 @@ o/%.o: %.scm
 
 heap-c: .afile $(HEAPFILE)
 
-$(HEAPFILE): make_lib.scm .afile
+# the heap records the modules' exports, so it depends on all the sources
+$(HEAPFILE): make_lib.scm .afile $(SOURCES)
 	@ $(RM) -f $(HEAPFILE)
 	@ $(call heap,$(BIGLOO),$(BCFLAGS),$(BHFLAGS),$<,-heap-library $(TARGETNAME),-addheap, $@)
 

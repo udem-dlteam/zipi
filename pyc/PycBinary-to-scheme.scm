@@ -12,8 +12,28 @@
         (-bx (bit-orbx a b) (bit-andbx a b))))
     (define (bitwise-ior a b) (bit-orbx (->bignum a) (->bignum b)))
     (define (bitwise-and a b) (bit-andbx (->bignum a) (->bignum b)))
+    ;; Bigloo does not normalize bignum results to fixnums
+    (define (normalize-integer x)
+      (if (and (bignum? x)
+               (>= x (fixnum->bignum (minvalfx)))
+               (<= x (fixnum->bignum (maxvalfx))))
+          (bignum->fixnum x)
+          x))
+    ;; expt silently wraps around on fixnum overflow (Bigloo 4.7b), so
+    ;; use exponentiation by squaring with the generic *, which promotes
+    ;; to bignums (n >= 0); other cases use expt
+    (define (exact-expt x n)
+      (if (and (fixnum? n) (>=fx n 0) (integer? x) (exact? x))
+          (let loop ((b x) (n n) (r 1))
+            (cond
+              ((=fx n 0) (normalize-integer r))
+              ((oddfx? n) (loop (if (=fx n 1) b (* b b)) (bit-rsh n 1) (* r b)))
+              (else (loop (* b b) (bit-rsh n 1) r))))
+          (expt x n)))
     (define fold reduce))
-  (gambit #f))
+  (gambit
+    (define (normalize-integer x) x)
+    (define exact-expt expt)))
 
 (define (replace-symbol sexp target replacement)
   (cond
@@ -160,11 +180,12 @@
         (expt left (fixnum->flonum right))))
    (bigloo:
      (if (>=fx right 0)
-         (py-int-from-scheme (expt left right))
+         (py-int-from-scheme (integer-expt left right))
          (expt left (fixnum->flonum right))))))
 
 (define-operator (py-test-fx** left right)
-  (not (= (expt left right) 0)))
+  ((gambit: (not (= (expt left right) 0)))
+   (bigloo: (not (= (integer-expt left right) 0)))))
 
 (define-operator (unboxed-fx** left right)
   ((gambit:
@@ -173,7 +194,7 @@
         (expt left (fixnum->flonum right))))
    (bigloo:
      (if (>=fx right 0)
-         (expt left right)
+         (integer-expt left right)
          (expt left (fixnum->flonum right))))))
 
 (define-operator (py-fl** left right)
@@ -929,7 +950,7 @@
   (must-return-host-bool
     (test-pow-to-scheme this conf params))
   (operands-are-int-literals?
-    (let ((result (expt (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
+    (let ((result (exact-expt (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-int-or-float-literals?
     (exact->inexact (expt (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))
@@ -1032,7 +1053,8 @@
     (let ((result
             ((gambit: (arithmetic-shift (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
              ;; the operands may be bignums
-             (bigloo: (* (PycLiteralValue-val lhs) (expt 2 (PycLiteralValue-val rhs)))))))
+             (bigloo: (normalize-integer
+                        (* (PycLiteralValue-val lhs) (exact-expt 2 (PycLiteralValue-val rhs))))))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx<< (scheme lhs conf) (scheme rhs conf)))
@@ -1059,10 +1081,11 @@
            ((gambit: (arithmetic-shift (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs))))
             ;; the operands may be bignums (the shift rounds toward -inf)
             (bigloo: (let ((n (PycLiteralValue-val lhs))
-                           (d (expt 2 (PycLiteralValue-val rhs))))
-                       (if (>= n 0)
-                           (quotient n d)
-                           (- (quotient (+ (- n) (- d 1)) d))))))))
+                           (d (exact-expt 2 (PycLiteralValue-val rhs))))
+                       (normalize-integer
+                         (if (>= n 0)
+                             (quotient n d)
+                             (- (quotient (+ (- n) (- d 1)) d)))))))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx>> (scheme lhs conf) (scheme rhs conf)))

@@ -901,8 +901,8 @@
             (py-int-from-scheme (* X Y)) ;; otherwise
             )
       (py** (py-sint-from-scheme (exptfx X Y)) ;; bool/bool or non-ov. sint/sint
-            (py-int-from-scheme (expt X Y)) ;; sint/sint
-            (py-int-from-scheme (expt X Y)) ;; otherwise
+            (py-int-from-scheme (integer-expt X Y)) ;; sint/sint
+            (py-int-from-scheme (integer-expt X Y)) ;; otherwise
             )
       (py&  (py-sint-from-scheme (bit-and X Y)) ;; bool/bool or non-ov. sint/sint
             (py-int-from-scheme (bit-and X Y)) ;; sint/sint
