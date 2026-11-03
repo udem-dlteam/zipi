@@ -1,0 +1,11 @@
+# Tests that are known to fail with the current implementation of Zipi.
+# They are still run, but reported as XFAIL (expected failure) instead of
+# failing the test suite. A test listed here that passes is reported as
+# XPASS and can be removed from this list.
+#
+# All the tests in the wishlist/ directory are also expected to fail.
+
+# Binary operators do not yet implement CPython's rules for the reflected
+# method of a subclass operand (tried first) and of an operand of the same
+# type (never tried).
+protocols/sametype_semantics.py

@@ -6,8 +6,14 @@ pyc/.afile~
 pyc/configure.scm
 dependencies
 dependencies/*
+build-dependencies/src
 bench/zipi-benchmarks
-bench/zipi-benchmarks/*
+bench/suite/makefile
+bench/suite/common
+bench/suite/list
+bench/suite/info
+bench/suite/run
+bench/suite/benchmarks/micro/[a-z]*.py
 etc/Makefile.zipiconfig
 etc/Makefile.bigloo
 etc/pyc.init
@@ -64,3 +70,5 @@ tests/.idea
 __pycache__/
 *.idea
 *~
+bench/suite/.check.out
+zipi/rts

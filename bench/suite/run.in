@@ -1,0 +1,94 @@
+#! /bin/bash
+
+# Usage: ./run [--system system] [--max-time SECS] [--max-repeat N] [--filter filter-pattern] [benchmark1 benchmark2...]
+
+# This script runs benchmarks using the given system.
+
+
+source "@BENCHMARKS_ROOT_DIR@/common"
+
+SYSTEM=""
+MAX_TIME="5"
+MAX_REPEAT="1"
+FILTER_PATTERN=""
+BENCHMARKS=""
+
+while test "$#" != "0" ; do
+  case "$1" in
+    --system)
+      shift
+      SYSTEM="$1"
+      ;;
+    --max-time)
+      shift
+      MAX_TIME="$1"
+      ;;
+    --max-repeat)
+      shift
+      MAX_REPEAT="$1"
+      ;;
+    --filter)
+      shift
+      FILTER_PATTERN="$1"
+      ;;
+    *)
+      BENCHMARKS="$BENCHMARKS $1"
+      ;;
+  esac
+  shift
+done
+
+if test "$SYSTEM" == "" ; then
+  echo "error: system must be specified with \"--system <full-path-of-system>\""
+  exit 1
+fi
+
+if test "$BENCHMARKS" == "" ; then
+  if test "$FILTER_PATTERN" != "" ; then
+    BENCHMARKS="`$BENCHMARKS_ROOT_DIR/list --filter \"$FILTER_PATTERN\"`"
+  else
+    BENCHMARKS="`$BENCHMARKS_ROOT_DIR/list`"
+  fi
+else
+  if test "$FILTER_PATTERN" != "" ; then
+    echo "warning: ignoring the \"--filter option\""
+  fi
+fi
+
+
+for BENCHMARK in $BENCHMARKS ; do
+
+  #echo "------------------------- $BENCHMARK"
+  SUITE="`echo \"$BENCHMARK\" | sed -e \"s,/.*$,,g"`"
+  NAME="`echo \"$BENCHMARK\" | sed -e \"s,^[^/]*/,,g"`"
+
+  TOTAL="0"
+  NRUNS="0"
+  RESULT=""
+
+  while true ; do
+
+    EXEC_TIME=`($SYSTEM "$BENCHMARKS_ROOT_DIR/benchmarks/$SUITE/$NAME.py" | grep "[-+.0-9][-+.0-9eE]* seconds[: ]" | sed -e "s/ .*//g")`
+
+    if test "$EXEC_TIME" = "" ; then
+      break
+    fi
+
+    RESULT="$RESULT$EXEC_TIME "
+
+    TOTAL="`echo \"$TOTAL + $EXEC_TIME\" | bc`"
+    NRUNS="`echo \"$NRUNS + 1\" | bc`"
+
+    if test "`echo \"$TOTAL > $MAX_TIME\" | bc`" = "1" -o "$NRUNS" = "$MAX_REPEAT" ; then
+      break
+    fi
+
+  done
+
+  if test "$NRUNS" = "0" ; then
+    RESULT="CRASHED"
+  fi
+
+  echo '+!CSVLINE!+',"$BENCHMARK","$RESULT"
+
+done

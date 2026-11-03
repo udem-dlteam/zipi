@@ -19,7 +19,31 @@ afile=bglafile
 btags=bgltags
 bdepend=bgldepend
 
-bigloo=`which bigloo`
+#*---------------------------------------------------------------------*/
+#*    The Bigloo compiler is, in order:                                */
+#*      - BIGLOO (environment or ./configure BIGLOO=...);              */
+#*      - --bigloo=comp;                                               */
+#*      - the version pinned in the Makefile ("make bigloo").          */
+#*---------------------------------------------------------------------*/
+if [ "$bigloo " = " " ]; then
+  bigloo=$deps_bigloo_prefix/bin/bigloo
+  if [ ! -f $deps_bigloo_prefix/.built ]; then
+    install_dependency bigloo
+  else
+    echo "***   Using Bigloo $deps_bigloo_version from $deps_bigloo_prefix"
+  fi
+fi
+
+bigloo=`resolve_tool $bigloo` || {
+  echo "***   ERROR: cannot find the Bigloo compiler '$bigloo'" >&2; exit 1; }
+
+# The Bigloo tools are those installed with the selected Bigloo
+bigloobindir=`dirname $bigloo`
+afile=$bigloobindir/$afile
+btags=$bigloobindir/$btags
+bdepend=$bigloobindir/$bdepend
+
+echo "***   bigloo: $bigloo (`$bigloo -q -eval '(begin (print (bigloo-config (quote release-number))) (exit 0))'`)"
 #bcflags="-O3 -fstackable -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 bcflags="-O3 -unsafe -fsharing -srfi bootstrap -L \$(BUILDLIBDIR) -srfi bigloo-compile"
 blflags="-copt \$(CPICFLAGS) -L \$(BUILDLIBDIR) -srfi bigloo-compile"

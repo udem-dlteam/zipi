@@ -19,10 +19,17 @@ default_scheme_system="no_default_scheme_system_currently_set"
 #*---------------------------------------------------------------------*/
 #*    Bigloo configuration                                             */
 #*---------------------------------------------------------------------*/
-bigloo=bigloo
+# The Scheme compilers and the CPython interpreter can be given with the
+# GSI, GSC, BIGLOO and PYTHON environment variables, or as VAR=value
+# arguments (e.g., ./configure GSI=gsi GSC=gsc BIGLOO=bigloo). Otherwise,
+# the versions pinned in the Makefile are used (see "make compilers").
+bigloo=$BIGLOO
 if [ "$ZIPIBIGLOO " != " " ]; then
   bigloo=$ZIPIBIGLOO
 fi
+gsi=$GSI
+gsc=$GSC
+python=$PYTHON
 
 #*---------------------------------------------------------------------*/
 #*    Private variables                                                */
@@ -104,8 +111,17 @@ function parseArg() {
     --bigloobindir=*)
       bigloobindir="`echo $1 | sed 's/^[^=]*=//'`";;
 
-    --python=*)
+    --python=*|PYTHON=*)
       python="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    GSI=*)
+      gsi="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    GSC=*)
+      gsc="`echo $1 | sed 's/^[^=]*=//'`";;
+
+    BIGLOO=*)
+      bigloo="`echo $1 | sed 's/^[^=]*=//'`";;
 
     --install=*)
       install="`echo $1 | sed 's/^[^=]*=//'`";;
@@ -145,6 +161,9 @@ function parseArg() {
       echo "   --gambitroot=path........... set build and host Gambit, requires path to gambit root folder (not recommended)" >&2;
       echo "   --bigloo=comp............... set both build and host Bigloo compilers ($bigloo/$hostbigloo)" >&2;
       echo "   --python=comp............... set build build and host cPython interpreter (not recommended)" >&2;
+      echo "   GSI=gsi GSC=gsc............. use these Gambit interpreter/compiler (default: make compilers)" >&2;
+      echo "   BIGLOO=bigloo............... use this Bigloo compiler (default: make compilers)" >&2;
+      echo "   PYTHON=python3.9............ use this cPython 3.9 interpreter (default: make compilers)" >&2;
       echo "" >&2;
       echo "bigloo:" >&2;
       echo "   --bigloobindir=path......... the Bigloo bin-dir path" >&2;
@@ -152,7 +171,7 @@ function parseArg() {
       echo "" >&2;
       echo "Misc:" >&2;
       echo "   --install................... the installer ($install)" >&2;
-      echo "   --skip-dependencies......... skip the installation of dependencies (only use if dependencies were already configured)" >&2;
+      echo "   --skip-dependencies......... do not run \"make compilers\" for missing dependencies" >&2;
       echo "   --dependencies-dir=path..... location of the dependency directory (default ./dependencies)" >&2;
       echo "   --mode=[prod|debug]......... the configuration mode ($mode)" >&2;
       echo "   --debug..................... debug mode (aka --mode=debug)" >&2;
@@ -163,6 +182,7 @@ function parseArg() {
   esac
 }
 
+configureargs="$*"
 echo "configuring with [$*]..." > config.status
 echo "ZIPICONFIGUREOPTS=$ZIPICONFIGUREOPTS" >> config.status
 
@@ -195,36 +215,62 @@ stdlibdir=$zipiroot/stdlib
 depdir=$zipiroot/$depdirname
 
 #*---------------------------------------------------------------------*/
-#*                    Install cPython                                  */
+#*    Dependencies (Gambit, Bigloo, cPython)                           */
+#*    -------------------------------------------------------------    */
+#*    Unless given explicitly (GSI, GSC, BIGLOO, PYTHON), the tools    */
+#*    are the versions pinned in the Makefile and built by             */
+#*    "make compilers" in the dependencies directory.                  */
 #*---------------------------------------------------------------------*/
+make=${MAKE:-make}
 
+eval `$make -s --no-print-directory compilers-paths DEPSDIR=$builddepdir` || exit 1
+
+# resolve_tool name -> absolute path of the executable "name"
+function resolve_tool() {
+  local path
+  path=`command -v "$1" 2> /dev/null`
+  if [ "$path " = " " ] || [ ! -x "$path" ]; then
+    return 1
+  fi
+  echo "`cd \`dirname $path\` && pwd -P`/`basename $path`"
+}
+
+# install_dependency target -> run "make target" unless --skip-dependencies
+function install_dependency() {
+  if [ "$skipdependencies" = false ]; then
+    echo "***   Building $1 in $builddepdir (make $1)"
+    $make --no-print-directory $1 DEPSDIR=$builddepdir || exit 1
+  else
+    echo "***   WARNING: $1 is missing and --skip-dependencies was given" >&2
+  fi
+}
+
+#*---------------------------------------------------------------------*/
+#*    cPython                                                          */
+#*---------------------------------------------------------------------*/
 echo "*** Configuring Python"
 
-if [ -z $python ]; then
-  buildpythonversion=3.9.4
-  buildpython=$builddepdir/cpython-$buildpythonversion/bin/python3
-  python=$depdir/cpython-$buildpythonversion/bin/python3
-  if [ "$skipdependencies" = false ]; then
-    if [ -e $buildpython ]; then
-      echo "***   Python $buildpythonversion is already installed in $buildpython so installation was skipped"
-    else
-      echo "***   Installing Python $buildpythonversion for Zipi in $builddepdir"
-      mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-cpython v$buildpythonversion; cd $builddir;
-    fi
+if [ "$python " = " " ]; then
+  python=$deps_python_prefix/bin/python3
+  if [ ! -f $deps_python_prefix/.built ]; then
+    install_dependency python
   else
-    echo "***   WARNING: cPython was configured, but its installation was skipped"
+    echo "***   Using cPython $deps_python_version from $deps_python_prefix"
   fi
 else
-  if [ $($python -c "import sys; print(sys.version_info>=(3,9))") = "True" ]; then
-    echo "***   Using cPython at '$python' for Zipi (we recommend letting Zipi install its own cPython version)"
-    # If a python executable is given, use the same for build and runtime
-    buildpython=$python
-  else
-    echo "***   Zipi requires python>=3.9 (version $($python -c "import sys; print(sys.version.split()[0])") was provided)"
-    exit 1
-  fi
+  python=`resolve_tool $python` || {
+    echo "***   ERROR: cannot find the Python interpreter '$python'" >&2; exit 1; }
+  echo "***   Using cPython at '$python'"
 fi
 
+if [ "`$python -c 'import sys; print(sys.version_info[:2] == (3,9))'`" != "True" ]; then
+  echo "***   ERROR: Zipi requires cPython 3.9 ('$python' is version `$python -c 'import sys; print(sys.version.split()[0])'`)" >&2
+  echo "***   Use \"make python\" to build the pinned version or PYTHON=... to select another one" >&2
+  exit 1
+fi
+
+# The same interpreter is used for building and running Zipi
+buildpython=$python
 
 #*---------------------------------------------------------------------*/
 #*    Create directories                                               */
@@ -249,8 +295,13 @@ if test "${systems#*gambit}" != "$systems"; then
 fi
 
 if [ "$default_scheme_system " = "no_default_scheme_system_currently_set " ]; then
-  echo "*** WARNING: no default scheme system has been set..." 1>&2;
-  echo "             use --default=[gambit|bigloo] or --bigloo-only or --gambit-only" 1>&2;
+  # Gambit is the default backend (use --default=bigloo to change it)
+  if test "${systems#*gambit}" != "$systems"; then
+    default_scheme_system=gambit
+  else
+    default_scheme_system=bigloo
+  fi
+  echo "*** Default backend: $default_scheme_system (use --default=[gambit|bigloo] to change it)"
 fi
 
 #*---------------------------------------------------------------------*/
@@ -305,6 +356,7 @@ for file in Makefile.zipiconfig  configure.scm zpc.bigloo.sh; do
 
   cat $mkmf.in \
     | sed -e "s|@RELEASE@|$version|" \
+          -e "s|@CONFIGUREARGS@|$configureargs|" \
           -e "s|@DEFAULT_SCHEME_SYSTEM@|$default_scheme_system|" \
           -e "s|@DATE@|$date|" \
           -e "s|@BRANCH@|$branch|" \
