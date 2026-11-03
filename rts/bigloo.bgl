@@ -63,14 +63,6 @@
 	   (inline -fx/overflow::obj ::obj ::obj)
 	   (inline *fx/overflow::obj ::obj ::obj)
 
-	   (integer-and a b)
-	   (integer-or a b)
-	   (integer-xor a b)
-	   (integer-not a)
-	   (integer-lsh a n)
-	   (integer-rsh a n)
-	   (integer-expt x n)
-
 	   (inline u8vector-append . vecs)
 	   (inline subu8vector vec start stop)
 	   (u8vector-copy::u8vector ::u8vector)
@@ -313,74 +305,6 @@
    (let ((nv (make-u8vector (u8vector-length ov))))
       (u8vector-copy! nv 0 ov)
       nv))
-
-;*---------------------------------------------------------------------*/
-;*    Bitwise operations on fixnums and bignums                        */
-;*    -------------------------------------------------------------    */
-;*    Bigloo's bit-and, bit-or, ... only accept fixnums (and overflow) */
-;*---------------------------------------------------------------------*/
-(define-inline (->bignum x)
-   (if (fixnum? x) (fixnum->bignum x) x))
-
-(define (integer-and a b)
-   (if (and (fixnum? a) (fixnum? b))
-       (bit-and a b)
-       (bit-andbx (->bignum a) (->bignum b))))
-
-(define (integer-or a b)
-   (if (and (fixnum? a) (fixnum? b))
-       (bit-or a b)
-       (bit-orbx (->bignum a) (->bignum b))))
-
-(define (integer-xor a b)
-   (if (and (fixnum? a) (fixnum? b))
-       (bit-xor a b)
-       ;; bit-xorbx computes an inclusive or (Bigloo 4.7b), so use the
-       ;; identity a^b = (a|b) - (a&b)
-       (let ((a (->bignum a)) (b (->bignum b)))
-	  (-bx (bit-orbx a b) (bit-andbx a b)))))
-
-(define (integer-not a)
-   (if (fixnum? a)
-       (bit-not a)
-       (bit-notbx a)))
-
-;; bit-lsh silently wraps around on overflow, so check that a * 2^n is a
-;; fixnum first: minvalfx = -2^60, so this holds exactly when
-;; minvalfx >> n <= a <= maxvalfx >> n (n >= 0 is assumed). Shifting the
-;; result back is not a valid check: unboxed fixnums are 64-bit C longs.
-(define (integer-lsh a n)
-   (if (and (fixnum? a)
-	    (<=fx n 60)
-	    (<=fx (bit-rsh (minvalfx) n) a)
-	    (<=fx a (bit-rsh (maxvalfx) n)))
-       (bit-lsh a n)
-       (bit-lshbx (->bignum a) n)))
-
-;; bit-rsh by 64 or more is undefined in C (x86 masks the count)
-(define (integer-rsh a n)
-   (if (fixnum? a)
-       (if (>=fx n 62) (if (<fx a 0) -1 0) (bit-rsh a n))
-       (bit-rshbx a n)))
-
-;; expt silently wraps around on fixnum overflow (Bigloo 4.7b), so use
-;; exponentiation by squaring with the generic *, which promotes to
-;; bignums (n >= 0); other cases (negative or float exponent) use expt
-(define (integer-expt x n)
-   (if (and (fixnum? n) (>=fx n 0) (or (fixnum? x) (bignum? x)))
-       (let loop ((b x) (n n) (r 1))
-	  (cond
-	     ((=fx n 0)
-	      (if (and (bignum? r)
-		       (>= r (fixnum->bignum (minvalfx)))
-		       (<= r (fixnum->bignum (maxvalfx))))
-		  (bignum->fixnum r)
-		  r))
-	     ((oddfx? n)
-	      (loop (if (=fx n 1) b (* b b)) (bit-rsh n 1) (* r b)))
-	     (else
-	      (loop (* b b) (bit-rsh n 1) r))))
-       (expt x n)))
 
 ;*---------------------------------------------------------------------*/
 ;*    strings                                                          */

@@ -109,14 +109,7 @@ def scm_bool(b):
         return 'False'
 
 def scm_int(i):
-    if -2**62 <= i < 2**62:
-        return str(i)
-    else:
-        # Workaround for the Bigloo reader (observed with Bigloo 4.6a and
-        # 4.7b): a bignum followed by a whitespace is read as 0 because the
-        # digits are handed to GMP without being delimited. Ending the token
-        # with a comment avoids this (and is harmless for other readers).
-        return str(i) + ";\n"
+    return str(i)
 
 def scm_float(f):
     if math.isinf(f):

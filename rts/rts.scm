@@ -2757,31 +2757,13 @@
 
 ;;;----------------------------------------------------------------------------
 
-;; Bigloo does not normalize the results of bignum operations, so a bignum
-;; result can be in the fixnum range. Gambit always returns a fixnum then.
-(define-macro (normalize-scheme-integer value)
-  (cond-expand
-    (bigloo
-     `(let ((v ,value))
-        (if (and (bignum? v)
-                 (>= v (fixnum->bignum (minvalfx)))
-                 (<= v (fixnum->bignum (maxvalfx))))
-            (bignum->fixnum v)
-            v)))
-    (else
-     value)))
-
 (define-rts (py-int-from-scheme-fallback value)
-  (let ((value (normalize-scheme-integer value)))
-    (py-if-specialized-sint-representation
-     (if (fixnum? value) value (py-bint-from-scheme value))
-     (alloc-new-PyObjectInt-from-scheme value))))
+  (py-if-specialized-sint-representation
+   (if (fixnum? value) value (py-bint-from-scheme value))
+   (alloc-new-PyObjectInt-from-scheme value)))
 
 (define-rts (py-bint-from-scheme-fallback value)
-  (let ((value (normalize-scheme-integer value)))
-    (py-if-specialized-sint-representation
-     (if (fixnum? value) value (alloc-new-PyObjectInt-from-scheme value))
-     (alloc-new-PyObjectInt-from-scheme value))))
+  (alloc-new-PyObjectInt-from-scheme value))
 
 (define-rts (py-subtype-of-int-from-scheme value int-subclass)
   ;; int-subclass is known to not be int-class
