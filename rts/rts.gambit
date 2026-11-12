@@ -2,7 +2,10 @@
 ;*    Gambit compatibility                                             */
 ;*---------------------------------------------------------------------*/
 
-(import (gambit prim))
+;; (gambit prim) exports "import" as "##import", which since Gambit v4.9.4
+;; does not handle R7RS libraries. Keep the R7RS "import" (it is used in
+;; bootstrap-builtins to load the builtins module).
+(import (except (gambit prim) import))
 
 (declare (standard-bindings) (extended-bindings) (not safe) (block))
 
@@ -13,6 +16,10 @@
              (lambda (result)
                (##continuation-return $cont result))))
         ,@body))))
+
+;; append-strings was renamed string-concatenate in Gambit v4.9.4
+(define-macro (append-strings . args)
+  `(string-concatenate ,@args))
 
 (define-macro (make-cell e)
   `(box ,e))
@@ -62,7 +69,8 @@
 (define-macro (type-name t)
   `(##type-name ,t))
 
-(define max-fixnum ##max-fixnum)
+;; ##max-fixnum was replaced by (##greatest-fixnum) in Gambit v4.9.4
+(define max-fixnum (##greatest-fixnum))
 
 (define (vector-map! proc vec)
    (let loop ((i (fx- (vector-length vec) 1)))

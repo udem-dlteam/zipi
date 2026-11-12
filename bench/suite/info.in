@@ -1,0 +1,57 @@
+#! /bin/bash
+
+# Usage: ./info [--system system] benchmark attribute
+
+# This script return an attribute of a benchmark.
+
+
+source "@BENCHMARKS_ROOT_DIR@/common"
+
+SYSTEM=""
+NPARAMS="0"
+BENCHMARK=""
+ATTRIBUTE=""
+
+while test "$#" != "0" ; do
+  case "$1" in
+    --system)
+      shift
+      SYSTEM="$1"
+      ;;
+    *)
+      NPARAMS=$((NPARAMS+1))
+      case "$NPARAMS" in
+        1) BENCHMARK="$1"
+           ;;
+        2) ATTRIBUTE="$1"
+           ;;
+      esac
+      ;;
+  esac
+  shift
+done
+
+if test "$NPARAMS" != "2" ; then
+  echo "Usage: ./info [--system system] benchmark attribute"
+  exit 1
+fi
+
+SYSTEM_NAME=""
+if test "$SYSTEM" != "" ; then
+  SYSTEM_NAME="`$BENCHMARKS_ROOT_DIR/system-name $SYSTEM`"
+fi
+
+SUITE="`echo \"$BENCHMARK\" | sed -e \"s,/.*$,,g"`"
+NAME="`echo \"$BENCHMARK\" | sed -e \"s,^[^/]*/,,g"`"
+
+case "$ATTRIBUTE" in
+  SOURCE)
+    cat "$BENCHMARKS_ROOT_DIR/benchmarks/$BENCHMARK.py"
+    ;;
+  CATEGORIES)
+    ;;
+  *)
+    echo "unknown attribute $ATTRIBUTE"
+    exit 1
+    ;;
+esac

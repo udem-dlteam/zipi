@@ -2,45 +2,49 @@
 
 #*---------------------------------------------------------------------*/
 #*    Gambit configuration                                             */
+#*    -------------------------------------------------------------    */
+#*    The Gambit interpreter (gsi) and compiler (gsc) are, in order:   */
+#*      - GSI/GSC (environment or ./configure GSI=... GSC=...);        */
+#*      - --gambitroot=dir (uses dir/bin/gsi and dir/bin/gsc);         */
+#*      - the version pinned in the Makefile ("make gambit").          */
 #*---------------------------------------------------------------------*/
 echo "*** Configuring Gambit"
 
-if [ -z "$gambitroot" ]; then
-  buildgambitversion=4.9.3-1380
-  # build gambit paths
-  buildgambitroot=$builddepdir/gambit-$buildgambitversion
-  buildgambit=$buildgambitroot/bin/gsi
-  buildgambitcompiler=$buildgambitroot/bin/gsc
-  # install gambit paths
-  gambitroot=$depdir/gambit-$buildgambitversion
-  gambit=$gambitroot/bin/gsi
-  gambitcompiler=$gambitroot/bin/gsc
-  if [ "$skipdependencies" = false ]; then
-    if [ -e $buildgambit ]; then
-      echo "***   Gambit $buildgambitversion is already installed in $buildgambit so installation was skipped"
-    else
-      echo "***   Installing Gambit $buildgambitversion for Zipi in $builddepdir"
-      #SPECIAL_CONFIGURE_OPTIONS="--enable-multiple-hosts"
-      if gcc-9 -v > /dev/null 2>&1 ; then
-        export CC="gcc-9 -fno-tree-fre"
-      else
-        if gcc -v > /dev/null 2>&1 ; then
-          export CC="gcc -fno-tree-fre"
-        fi
-      fi
-      mkdir -p $builddepdir; cd $builddepdir; $buildbuilddepdir/build-gambit v$buildgambitversion $SPECIAL_CONFIGURE_OPTIONS; cd $builddir;
-    fi
+if [ "$gsi " = " " ] && [ "$gsc " = " " ]; then
+  if [ "$gambitroot " != " " ]; then
+    gsi=$gambitroot/bin/gsi
+    gsc=$gambitroot/bin/gsc
   else
-    echo "***   WARNING: Gambit was configured, but its installation was skipped"
+    gsi=$deps_gambit_prefix/bin/gsi
+    gsc=$deps_gambit_prefix/bin/gsc
+    if [ ! -f $deps_gambit_prefix/.built ]; then
+      install_dependency gambit
+    else
+      echo "***   Using Gambit $deps_gambit_version from $deps_gambit_prefix"
+    fi
   fi
 else
-  buildgambitroot=$gambitroot
-  buildgambit=$buildgambitroot/bin/gsi
-  buildgambitcompiler=$buildgambitroot/bin/gsc
-  # install gambit paths
-  gambitroot=$gambitroot
-  gambit=$gambitroot/bin/gsi
-  gambitcompiler=$gambitroot/bin/gsc
-  echo "***   Using gsi at '$gambit' (we recommend letting Zipi install its own Gambit version)"
-  echo "***   Using gsc at '$gambitcompiler' (we recommend letting Zipi install its own Gambit version)"
+  # When only one of GSI/GSC is given, look for the other one next to it
+  if [ "$gsi " = " " ]; then
+    gsi=`dirname \`resolve_tool $gsc\``/gsi
+  elif [ "$gsc " = " " ]; then
+    gsc=`dirname \`resolve_tool $gsi\``/gsc
+  fi
 fi
+
+buildgambit=`resolve_tool $gsi` || {
+  echo "***   ERROR: cannot find the Gambit interpreter '$gsi'" >&2; exit 1; }
+buildgambitcompiler=`resolve_tool $gsc` || {
+  echo "***   ERROR: cannot find the Gambit compiler '$gsc'" >&2; exit 1; }
+
+# The Gambit installation directory (i.e., "~~")
+buildgambitroot=`$buildgambit -e '(display (path-strip-trailing-directory-separator (path-expand "~~")))'` || {
+  echo "***   ERROR: '$buildgambit' does not run" >&2; exit 1; }
+
+echo "***   gsi: $buildgambit (`$buildgambit -v | sed -e 's/ .*//'`)"
+echo "***   gsc: $buildgambitcompiler"
+
+# The installed Zipi uses the same Gambit
+gambitroot=$buildgambitroot
+gambit=$buildgambit
+gambitcompiler=$buildgambitcompiler

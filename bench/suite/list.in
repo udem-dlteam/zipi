@@ -1,0 +1,55 @@
+#! /bin/bash
+
+# Usage: ./list [--filter filter-pattern]
+
+# This script lists the name all of the available benchmarks (possibly
+# filtered using the optional filter-pattern regular expression).
+# These names can be passed to the "run" script to run the benchmark.
+
+
+source "@BENCHMARKS_ROOT_DIR@/common"
+
+FILTER_PATTERN=""
+
+while test "$#" != "0" ; do
+  case "$1" in
+    --filter)
+      shift
+      FILTER_PATTERN="$1"
+      ;;
+    *)
+      echo "error: command line arguments are not allowed"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+
+list_all_benchmarks()
+{
+  BENCHMARKS=""
+
+  # Extract the benchmarks from the subdirectories.
+
+  for NAME in `cd benchmarks/micro ; ls [a-z]*.py` ; do
+    BENCHMARK="`echo \"$NAME\" | sed -e 's,^,micro/,g' -e 's,.py$,,g'`"
+    BENCHMARKS="$BENCHMARKS $BENCHMARK"
+  done
+
+  for NAME in `cd benchmarks/scm ; ls [a-z]*.py` ; do
+    BENCHMARK="`echo \"$NAME\" | sed -e 's,^,scm/,g' -e 's,.py$,,g'`"
+    BENCHMARKS="$BENCHMARKS $BENCHMARK"
+  done
+
+  for BENCHMARK in $BENCHMARKS ; do
+    echo "$BENCHMARK"
+  done
+}
+
+
+if test "$FILTER_PATTERN" != "" ; then
+  list_all_benchmarks | grep "$FILTER_PATTERN"
+else
+  list_all_benchmarks
+fi

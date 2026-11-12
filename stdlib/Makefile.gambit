@@ -2,16 +2,19 @@ do.gambit: zemantics.scm behaviors.scm builtins.sld
 
 install.gambit:
 
-zemantics.scm:
-	../bin/zpc.gambit zemantics.py > zemantics.scm
+# The generated files are written to a temporary file first so that a
+# failing translation does not leave a partial (or error) output behind.
+zemantics.scm: zemantics.py
+	../bin/zpc.gambit zemantics.py > $@.tmp && mv $@.tmp $@ || (cat $@.tmp; rm -f $@.tmp; exit 1)
 
-behaviors.scm:
-	../bin/zpc.gambit behaviors.py > behaviors.scm
+behaviors.scm: behaviors.py
+	../bin/zpc.gambit behaviors.py > $@.tmp && mv $@.tmp $@ || (cat $@.tmp; rm -f $@.tmp; exit 1)
 
 builtins.sld: builtins.py
-	../bin/zpc.gambit builtins.py > builtins.sld
+	../bin/zpc.gambit builtins.py > $@.tmp && mv $@.tmp $@ || (cat $@.tmp; rm -f $@.tmp; exit 1)
 
 clean.gambit:
+	rm -f builtins.sld
 
 distclean.gambit:
 	rm -f builtins.sld

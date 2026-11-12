@@ -151,7 +151,7 @@
       (let loop ((keep #t) (rev-output '()))
         (let ((line (read-line)))
           (cond ((eof-object? line)
-                 (append-strings (reverse rev-output) "\n"))
+                 (string-concatenate (reverse rev-output) "\n"))
                 ((equal? ";;BEGIN-GENERATED-CODE" line)
                  (loop #f (cons generated-code (cons line rev-output))))
                 ((or (equal? ";;END-GENERATED-CODE" line)

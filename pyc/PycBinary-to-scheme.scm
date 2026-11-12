@@ -86,7 +86,7 @@
 
 (define-operator (py-test-fx- left right)
   ((gambit: (not (|##fx=| left right)))
-   (bigloo: (not  (=fx fx left right)))))
+   (bigloo: (not (=fx left right)))))
 
 (define-operator (unboxed-fx- left right)
   ((gambit: (or (|##fx-?| left right) (|##-2| left right)))
@@ -363,7 +363,7 @@
        (bigloo: (=fx right 0)))
     (py-truediv-sintX-sint0-fallback left)
     ((gambit: (|##fl/| (|##fixnum->flonum| left) (|##fixnum->flonum| right)))
-     (bigloo: (/ left right)))))
+     (bigloo: (/fl (fixnum->flonum left) (fixnum->flonum right))))))
 
 (define-operator (py-test-fx/ left right)
   (not
@@ -372,7 +372,7 @@
          (bigloo: (=fx right 0)))
       (py-truediv-sintX-sint0-fallback left)
       ((gambit: (|##fl/| (|##fixnum->flonum| left) (|##fixnum->flonum| right)))
-       (bigloo: (/ left right))))
+       (bigloo: (/fl (fixnum->flonum left) (fixnum->flonum right)))))
     0.0)))
 
 (define-operator (unboxed-fx/ left right)
@@ -380,7 +380,7 @@
        (bigloo: (=fx right 0)))
     (py-truediv-sintX-sint0-fallback left)
     ((gambit: (|##fl/| (|##fixnum->flonum| left) (|##fixnum->flonum| right)))
-     (bigloo: (/ left right)))))
+     (bigloo: (/fl (fixnum->flonum left) (fixnum->flonum right))))))
 
 (define-operator (py-fl/ left right)
   (if ((gambit: (|##fl=| right 0.0))
@@ -1020,7 +1020,7 @@
   ((and operands-are-int-literals? rhs-is-non-negative-literal?)
     (let ((result
             ((gambit: (arithmetic-shift (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))
-             (bigloo: bit-lsh (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))))
+             (bigloo: (bit-lsh (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx<< (scheme lhs conf) (scheme rhs conf)))
@@ -1045,7 +1045,7 @@
   ((and operands-are-int-literals? rhs-is-non-negative-literal?)
     (let ((result
            ((gambit: (arithmetic-shift (PycLiteralValue-val lhs) (- (PycLiteralValue-val rhs))))
-            (bigloo: bit-lsh (PycLiteralValue-val lhs) (PycLiteralValue-val rhs)))))
+            (bigloo: (bit-rsh (PycLiteralValue-val lhs) (PycLiteralValue-val rhs))))))
       (if (fixnum? result) result `(py-bint-from-scheme ,result))))
   (operands-are-unboxed-fixnums?
     (unboxed-fx>> (scheme lhs conf) (scheme rhs conf)))

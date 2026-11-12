@@ -119,7 +119,8 @@
 ;*    zpc-bigloo ...                                                   */
 ;*---------------------------------------------------------------------*/
 (define-parameter zpc-bigloo
-   "bigloo")
+   ;; the Bigloo compiler Zipi was configured with
+   (zipi-bigloo))
 
 ;*---------------------------------------------------------------------*/
 ;*    zpc-bigloo-options ...                                           */
